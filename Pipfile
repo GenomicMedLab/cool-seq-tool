@@ -1,0 +1,21 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+aiofiles = "*"
+asyncpg = "*"
+boto3 = "*"
+
+[dev-packages]
+uta_tools = {editable = true, path = "."}
+pytest = "*"
+pre-commit = "*"
+flake8 = "*"
+flake8-docstrings = "*"
+coverage = "*"
+pytest-cov = "*"
+coveralls = "*"
+jupyterlab = "*"
+pytest-asyncio = "*"
