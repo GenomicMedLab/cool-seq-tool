@@ -133,11 +133,11 @@ class UTADatabase:
                 result = await connection.fetch(query)
                 return result
 
-    async def get_genomic_coords(self, tx_ac: str, start_exon: int,
-                                 end_exon: int, start_exon_offset: int = 0,
-                                 end_exon_offset: int = 0, gene: str = None)\
-            -> Optional[Dict]:
-        """Get genomic chromosome and start/end exon coordinates.
+    async def transcript_to_genomic(
+            self, tx_ac: str, start_exon: int, end_exon: int,
+            start_exon_offset: int = 0, end_exon_offset: int = 0,
+            gene: str = None) -> Optional[Dict]:
+        """Get genomic data given transcript data.
 
         :param str tx_ac: Transcript accession
         :param int start_exon: Starting exon number
