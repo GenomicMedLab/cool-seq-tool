@@ -1,0 +1,7 @@
+[run]
+source =
+   uta_tools/
+   tests/
+omit =
+   setup.py
+   docs/*
