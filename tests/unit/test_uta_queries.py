@@ -11,7 +11,6 @@ async def test_db():
     class TestUTADatabase:
         def __init__(self):
             self.test_db = UTADatabase()
-            self.test_db.create_pool()
 
         async def transcript_to_genomic(
                 self, tx_ac: str, start_exon: int,
@@ -45,6 +44,12 @@ async def test_db():
                 tx_exon_end: int, gene: Optional[str] = None):
             return await self.test_db.get_alt_ac_start_or_end(
                 tx_ac, tx_exon_start, tx_exon_end, gene)
+
+        async def _create_genomic_table(self):
+            await self.test_db._create_genomic_table()
+
+    test_uta_db = TestUTADatabase()
+    await test_uta_db._create_genomic_table()
     return TestUTADatabase()
 
 
