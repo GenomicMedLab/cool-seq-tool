@@ -403,7 +403,7 @@ class UTADatabase:
         result = results[0]
         return result[0], result[1], result[2], result[3], result[4]
 
-    async def get_cds_start_end(self, tx_ac: str) -> Optional[Dict[int, int]]:
+    async def get_cds_start_end(self, tx_ac: str) -> Optional[tuple[int, int]]:
         """Get coding start and end site
 
         :param str tx_ac: Transcript accession
@@ -419,9 +419,10 @@ class UTADatabase:
             """
         )
         cds_start_end = await self.execute_query(query)
-        if cds_start_end and cds_start_end[0] is not None \
-                and cds_start_end[1] is not None:
-            return cds_start_end
+        if cds_start_end:
+            cds_start_end = cds_start_end[0]
+            if cds_start_end[0] is not None and cds_start_end[1] is not None:
+                return cds_start_end
         else:
             logger.warning(f"Unable to get coding start/end site for "
                            f"accession: {tx_ac}")

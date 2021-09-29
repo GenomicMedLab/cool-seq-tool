@@ -20,7 +20,7 @@ async def test_db():
                 tx_ac, start_exon, end_exon, start_exon_offset,
                 end_exon_offset, gene)
 
-        async def get_tx_exons(self, tx_ac):
+        async def get_tx_exons(self, tx_ac: str):
             return await self.test_db.get_tx_exons(tx_ac)
 
         async def get_tx_exon_start_end(
@@ -47,6 +47,9 @@ async def test_db():
 
         async def _create_genomic_table(self):
             await self.test_db._create_genomic_table()
+
+        async def get_cds_start_end(self, tx_ac: str):
+            return await self.test_db.get_cds_start_end(tx_ac)
 
     test_uta_db = TestUTADatabase()
     await test_uta_db._create_genomic_table()
@@ -110,6 +113,20 @@ async def test_get_tx_exons(test_db, nm_152263_exons):
 
     # Invalid transcript accession
     resp = await test_db.get_tx_exons('NM_152263.36')
+    assert resp is None
+
+
+@pytest.mark.asyncio
+async def test_get_cds_start_end(test_db):
+    """Test that get_cds_start_end works correctly."""
+    expected = (61, 2362)
+    resp = await test_db.get_cds_start_end('NM_004333.4')
+    assert resp == expected
+
+    resp = await test_db.get_cds_start_end('ENST00000288602.6')
+    assert resp == expected
+
+    resp = await test_db.get_cds_start_end('NM_004333.999')
     assert resp is None
 
 
