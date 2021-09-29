@@ -145,6 +145,8 @@ class UTADatabase:
         async with self._connection_pool.acquire() as connection:
             async with connection.transaction():
                 result = await connection.fetch(query)
+                if result:
+                    result = result[0]
                 return result
 
     async def _create_genomic_table(self):
@@ -159,7 +161,7 @@ class UTADatabase:
             """
         )
         genomic_table_exists = await self.execute_query(check_table_exists)
-        genomic_table_exists = genomic_table_exists[0][0]
+        genomic_table_exists = genomic_table_exists[0]
         if not genomic_table_exists:
             create_genomic_table = (
                 f"""
@@ -275,7 +277,7 @@ class UTADatabase:
         if not cds_se_i:
             logger.warning(f"Unable to get exons for {tx_ac}")
             return None
-        return cds_se_i[0][0].split(';')
+        return cds_se_i[0].split(';')
 
     async def get_tx_exon_start_end(self, tx_ac: str, exon_start: int,
                                     exon_end: int)\
@@ -394,13 +396,12 @@ class UTADatabase:
             ORDER BY T.alt_ac DESC;
             """
         )
-        results = await self.execute_query(query)
-        if not results:
+        result = await self.execute_query(query)
+        if not result:
             logger.warning(f"Unable to get genomic data for {tx_ac}"
                            f" on start exon {tx_exon_start} and "
                            f"end exon {tx_exon_end}")
             return None
-        result = results[0]
         return result[0], result[1], result[2], result[3], result[4]
 
     async def get_cds_start_end(self, tx_ac: str) -> Optional[tuple[int, int]]:
@@ -419,10 +420,9 @@ class UTADatabase:
             """
         )
         cds_start_end = await self.execute_query(query)
-        if cds_start_end:
-            cds_start_end = cds_start_end[0]
-            if cds_start_end[0] is not None and cds_start_end[1] is not None:
-                return cds_start_end
+        if cds_start_end and cds_start_end[0] is not None \
+                and cds_start_end[1] is not None:
+            return cds_start_end
         else:
             logger.warning(f"Unable to get coding start/end site for "
                            f"accession: {tx_ac}")
@@ -443,7 +443,10 @@ class UTADatabase:
             ORDER BY ac
             """
         )
-        return await self.execute_query(query)
+        result = await self.execute_query(query)
+        if result:
+            return [result[0]]
+        return []
 
     async def validate_genomic_ac(self, ac: str) -> bool:
         """Return whether or not genomic accession exists.
