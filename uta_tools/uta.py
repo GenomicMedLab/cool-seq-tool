@@ -235,14 +235,12 @@ class UTADatabase:
         :return: Transcript's exons and start/end exon coordinates, or
             None if lookup fails
         """
+        # if exon_start or exon_end is 0, we will default to the transcript's
+        # first and last transcript
         if exon_start and exon_end:
             if exon_start > exon_end:
                 logger.warning(f"start exon, {exon_start},"
                                f"is greater than end exon, {exon_end}")
-                return None
-            elif exon_end < exon_start:
-                logger.warning(f"end exon, {exon_end}, "
-                               f"is less than start exon, {exon_start}")
                 return None
 
         tx_exons = await self.get_tx_exons(tx_ac)
