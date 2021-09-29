@@ -330,8 +330,8 @@ class UTADatabase:
         query = (
             f"""
             SELECT T.hgnc, T.alt_ac, T.alt_start_i, T.alt_end_i, T.alt_strand
-            FROM uta_20210129._cds_exons_fp_v as C
-            JOIN uta_20210129.tx_exon_aln_v as T ON T.tx_ac = C.tx_ac
+            FROM {self.schema}._cds_exons_fp_v as C
+            JOIN {self.schema}.tx_exon_aln_v as T ON T.tx_ac = C.tx_ac
             WHERE T.tx_ac = '{tx_ac}'
             {gene_query}
             AND {tx_exon_start} BETWEEN T.tx_start_i AND T.tx_end_i
