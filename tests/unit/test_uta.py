@@ -6,7 +6,7 @@ import copy
 
 @pytest.fixture(scope='session')
 async def test_db():
-    """Create uta test fixture."""
+    """Create uta db test fixture."""
     class TestUTADatabase:
         def __init__(self):
             self.test_db = UTADatabase()
@@ -53,9 +53,9 @@ def ntrk1_exon10_exon17():
 
 
 @pytest.mark.asyncio
-async def test_get_genomic_coords(test_db, tpm3_exon1_exon8,
-                                  ntrk1_exon10_exon17):
-    """Test that uta data source works correctly."""
+async def test_transcript_to_genomic(test_db, tpm3_exon1_exon8,
+                                     ntrk1_exon10_exon17):
+    """Test that transcript_to_genomic works correctly."""
     # TPM3
     resp = await test_db.transcript_to_genomic('NM_152263.3', 0, 8)
     assert resp == tpm3_exon1_exon8
@@ -133,6 +133,7 @@ async def test_get_genomic_coords(test_db, tpm3_exon1_exon8,
                                                start_exon_offset=-3)
     expected["exon_start_offset"] = -3
     expected["start"] = 156874623
+    assert resp == expected
 
 
 @pytest.mark.asyncio

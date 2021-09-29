@@ -16,8 +16,9 @@ class UTADatabase:
                  is_prod_env: bool = False) -> None:
         """Initialize DB class.
 
-        :param str db_url: URL to DB
-        :param str db_pwd: User password for uta database
+        :param str db_url: PostgreSQL connection URL
+            Format: `driver://user:pass@host/database/schema`
+        :param str db_pwd: User's password for uta database
         :param bool is_prod_env: `True` if working in prod environment.
             `False` otherwise.
         """
@@ -29,10 +30,10 @@ class UTADatabase:
     def _update_db_url(db_pwd: str, db_url: str) -> Optional[str]:
         """Return new db_url containing password.
 
-        :param str db_pwd: uta_admin's user password
-        :param str db_url: PostgreSQL db url
-        :return: PostgreSQL db url with password included,
-            or None if invalid parameters encountered
+        :param str db_pwd: User's password for uta database
+        :param str db_url: PostgreSQL connection URL
+            Format: `driver://user:pass@host/database/schema`
+        :return: PostgreSQL connection URL
         """
         if 'UTA_DB_URL' in environ:
             return environ["UTA_DB_URL"]
@@ -56,12 +57,12 @@ class UTADatabase:
                   password: str) -> Dict:
         """Return db credentials.
 
-        :param str host: DB Host name
-        :param int port: DB port number
-        :param str database: DB name
-        :param str user: DB user name
-        :param str password: DB password for user
-        :return: DB Credentials
+        :param str host: Database host name
+        :param int port: Database port number
+        :param str database: Database name
+        :param str user: Database username
+        :param str password: Database password for user
+        :return: Database credentials
         """
         return dict(
             host=host,
@@ -78,9 +79,10 @@ class UTADatabase:
 
         :param bool is_prod_env: `True` if production environment.
             `False` otherwise.
-        :param str db_url: PostgreSQL db url
-        :param str db_pwd: uta_admin's user password
-        :return: A dictionary containing db credentials
+        :param str db_url: PostgreSQL connection URL
+            Format: `driver://user:pass@host/database/schema`
+        :param str db_pwd: User's password for uta database
+        :return: Database credentials
         """
         if is_prod_env:
             self.schema = environ['UTA_SCHEMA']
@@ -105,8 +107,8 @@ class UTADatabase:
             return self._get_args(url.hostname, url.port, url.database,
                                   url.username, password)
 
-    async def create_pool(self):
-        """Connect to DB and create connection pool."""
+    async def create_pool(self) -> None:
+        """Create connection pool if not already created."""
         if not self._connection_pool:
             try:
                 self._connection_pool = await asyncpg.create_pool(
@@ -124,8 +126,12 @@ class UTADatabase:
                 logger.error(f'While creating connection pool, '
                              f'encountered exception {e}')
 
-    async def execute_query(self, query: str):
-        """Execute a query."""
+    async def execute_query(self, query: str) -> any:
+        """Execute a query and return its result.
+
+        :param str query: Query to make on database
+        :return: Query's result
+        """
         if not self._connection_pool:
             await self.create_pool()
         async with self._connection_pool.acquire() as connection:
@@ -145,8 +151,8 @@ class UTADatabase:
         :param int exon_start_offset: Starting exon offset
         :param int exon_end_offset: Ending exon offset
         :param str gene: Gene symbol
-        :return: Dictionary containing transcript and exon data, or
-            None if lookup fails
+        :return: Dictionary containing transcript exon data and genomic
+            start/end coordinates, or None if lookup fails
         """
         if gene:
             gene = gene.upper().strip()
@@ -255,12 +261,12 @@ class UTADatabase:
     def get_tx_exon_coords(tx_exons: List[str], exon_start: int,
                            exon_end: int) -> Optional[Tuple[List, List]]:
         """Get transcript exon coordinates.
+
         :param list tx_exons: List of transcript exons
         :param int exon_start: Start exon number
         :param int exon_end: End exon number
-        :return: Transcript start exon coords, Transcript end exon coords, or
-            None if there's a
-            mismatch between coordinates and retrieved exon numbers
+        :return: [Transcript start exon coords, Transcript end exon coords], or
+            None if exon start/end is not valid
         """
         try:
             tx_exon_start = tx_exons[exon_start - 1].split(',')
@@ -296,8 +302,13 @@ class UTADatabase:
         # validate
         for i in (0, 1, 4):
             if alt_ac_start[i] != alt_ac_end[i]:
-                logger.warning(f"Mismatch between start and end coordinates "
-                               f"on related transcript: "
+                if i == 0:
+                    error = "Gene symbol does not match"
+                elif i == 1:
+                    error = "Chromosome does not match"
+                else:
+                    error = "Strand does not match"
+                logger.warning(f"{error}: "
                                f"{alt_ac_start[i]} != {alt_ac_end[i]}")
         return alt_ac_start, alt_ac_end
 
