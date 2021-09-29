@@ -134,16 +134,16 @@ class UTADatabase:
                 return result
 
     async def transcript_to_genomic(
-            self, tx_ac: str, start_exon: int, end_exon: int,
-            start_exon_offset: int = 0, end_exon_offset: int = 0,
+            self, tx_ac: str, exon_start: int, exon_end: int,
+            exon_start_offset: int = 0, exon_end_offset: int = 0,
             gene: str = None) -> Optional[Dict]:
         """Get genomic data given transcript data.
 
         :param str tx_ac: Transcript accession
-        :param int start_exon: Starting exon number
-        :param int end_exon: Ending exon number
-        :param int start_exon_offset: Starting exon offset
-        :param int end_exon_offset: Ending exon offset
+        :param int exon_start: Starting exon number
+        :param int exon_end: Ending exon number
+        :param int exon_start_offset: Starting exon offset
+        :param int exon_end_offset: Ending exon offset
         :param str gene: Gene symbol
         :return: Dictionary containing transcript and exon data, or
             None if lookup fails
@@ -155,13 +155,13 @@ class UTADatabase:
             tx_ac = tx_ac.strip()
 
         tx_exon_start_end = await self.get_tx_exon_start_end(
-            tx_ac, start_exon, end_exon)
+            tx_ac, exon_start, exon_end)
         if not tx_exon_start_end:
             return None
-        (tx_exons, start_exon, end_exon) = tx_exon_start_end
+        (tx_exons, exon_start, exon_end) = tx_exon_start_end
 
         tx_exon_coords = self.get_tx_exon_coords(
-            tx_exons, start_exon, end_exon)
+            tx_exons, exon_start, exon_end)
         if not tx_exon_coords:
             return None
         tx_exon_start, tx_exon_end = tx_exon_coords
@@ -176,11 +176,11 @@ class UTADatabase:
         end = alt_ac_end[2]
         strand = alt_ac_start[4]
         if strand == -1:
-            start_offset = start_exon_offset * -1
-            end_offset = end_exon_offset * -1
+            start_offset = exon_start_offset * -1
+            end_offset = exon_end_offset * -1
         else:
-            start_offset = start_exon_offset
-            end_offset = end_exon_offset
+            start_offset = exon_start_offset
+            end_offset = exon_end_offset
         start += start_offset
         end += end_offset
 
@@ -193,10 +193,10 @@ class UTADatabase:
             "chr": chr,
             "start": start,
             "end": end,
-            "exon_start": start_exon,
-            "exon_start_offset": start_exon_offset,
-            "exon_end": end_exon,
-            "exon_end_offset": end_exon_offset,
+            "exon_start": exon_start,
+            "exon_start_offset": exon_start_offset,
+            "exon_end": exon_end,
+            "exon_end_offset": exon_end_offset,
         }
 
     async def get_tx_exons(self, tx_ac: str) -> Optional[List[str]]:
@@ -218,53 +218,53 @@ class UTADatabase:
             return None
         return cds_se_i[0][0].split(';')
 
-    async def get_tx_exon_start_end(self, tx_ac: str, start_exon: int,
-                                    end_exon: int)\
+    async def get_tx_exon_start_end(self, tx_ac: str, exon_start: int,
+                                    exon_end: int)\
             -> Optional[Tuple[List[str], int, int]]:
         """Get exon start/end coordinates given accession and gene.
 
         :param str tx_ac: Transcript accession
-        :param int start_exon: Starting exon number
-        :param int end_exon: Ending exon number
+        :param int exon_start: Starting exon number
+        :param int exon_end: Ending exon number
         :return: Transcript's exons and start/end exon coordinates, or
             None if lookup fails
         """
-        if start_exon and end_exon:
-            if start_exon > end_exon:
-                logger.warning(f"start exon, {start_exon},"
-                               f"is greater than end exon, {end_exon}")
+        if exon_start and exon_end:
+            if exon_start > exon_end:
+                logger.warning(f"start exon, {exon_start},"
+                               f"is greater than end exon, {exon_end}")
                 return None
-            elif end_exon < start_exon:
-                logger.warning(f"end exon, {end_exon}, "
-                               f"is less than start exon, {start_exon}")
+            elif exon_end < exon_start:
+                logger.warning(f"end exon, {exon_end}, "
+                               f"is less than start exon, {exon_start}")
                 return None
 
         tx_exons = await self.get_tx_exons(tx_ac)
         if not tx_exons:
             return None
 
-        if start_exon == 0:
-            start_exon = 1
+        if exon_start == 0:
+            exon_start = 1
 
-        if end_exon == 0:
-            end_exon = len(tx_exons)
+        if exon_end == 0:
+            exon_end = len(tx_exons)
 
-        return tx_exons, start_exon, end_exon
+        return tx_exons, exon_start, exon_end
 
     @staticmethod
-    def get_tx_exon_coords(tx_exons: List[str], start_exon: int,
-                           end_exon: int) -> Optional[Tuple[List, List]]:
+    def get_tx_exon_coords(tx_exons: List[str], exon_start: int,
+                           exon_end: int) -> Optional[Tuple[List, List]]:
         """Get transcript exon coordinates.
         :param list tx_exons: List of transcript exons
-        :param int start_exon: Start exon number
-        :param int end_exon: End exon number
+        :param int exon_start: Start exon number
+        :param int exon_end: End exon number
         :return: Transcript start exon coords, Transcript end exon coords, or
             None if there's a
             mismatch between coordinates and retrieved exon numbers
         """
         try:
-            tx_exon_start = tx_exons[start_exon - 1].split(',')
-            tx_exon_end = tx_exons[end_exon - 1].split(',')
+            tx_exon_start = tx_exons[exon_start - 1].split(',')
+            tx_exon_end = tx_exons[exon_end - 1].split(',')
         except IndexError as e:
             logger.warning(e)
             return None
