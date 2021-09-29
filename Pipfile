@@ -8,6 +8,7 @@ aiofiles = "*"
 asyncpg = "*"
 boto3 = "*"
 pyliftover = "*"
+pandas = "*"
 
 [dev-packages]
 uta_tools = {editable = true, path = "."}
@@ -20,3 +21,4 @@ pytest-cov = "*"
 coveralls = "*"
 jupyterlab = "*"
 pytest-asyncio = "*"
+ipython = "*"
