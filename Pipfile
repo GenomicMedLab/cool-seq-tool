@@ -7,6 +7,7 @@ name = "pypi"
 aiofiles = "*"
 asyncpg = "*"
 boto3 = "*"
+pyliftover = "*"
 
 [dev-packages]
 uta_tools = {editable = true, path = "."}
