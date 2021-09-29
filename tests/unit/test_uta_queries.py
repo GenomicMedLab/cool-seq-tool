@@ -1,5 +1,4 @@
 """Test UTA data source."""
-from typing import List, Optional
 import pytest
 from uta_tools.uta import UTADatabase
 import copy
@@ -8,52 +7,9 @@ import copy
 @pytest.fixture(scope='session')
 async def test_db():
     """Create uta db test fixture."""
-    class TestUTADatabase:
-        def __init__(self):
-            self.test_db = UTADatabase()
-
-        async def transcript_to_genomic(
-                self, tx_ac: str, start_exon: int,
-                end_exon: int, start_exon_offset: int = 0,
-                end_exon_offset: int = 0, gene: str = None):
-            return await self.test_db.transcript_to_genomic(
-                tx_ac, start_exon, end_exon, start_exon_offset,
-                end_exon_offset, gene)
-
-        async def get_tx_exons(self, tx_ac: str):
-            return await self.test_db.get_tx_exons(tx_ac)
-
-        async def get_tx_exon_start_end(
-                self, tx_ac: str, exon_start: int, exon_end: int):
-            return await self.test_db.get_tx_exon_start_end(
-                tx_ac, exon_start, exon_end)
-
-        def get_tx_exon_coords(self, tx_exons: List[str],
-                               exon_start: int, exon_end: int):
-            return self.test_db.get_tx_exon_coords(
-                tx_exons, exon_start, exon_end)
-
-        async def get_alt_ac_start_and_end(
-                self, tx_ac: str, tx_exon_start: List[str],
-                tx_exon_end: List[str], gene: str = None):
-            return await self.test_db.get_alt_ac_start_and_end(
-                tx_ac, tx_exon_start, tx_exon_end, gene)
-
-        async def get_alt_ac_start_or_end(
-                self, tx_ac: str, tx_exon_start: int,
-                tx_exon_end: int, gene: Optional[str] = None):
-            return await self.test_db.get_alt_ac_start_or_end(
-                tx_ac, tx_exon_start, tx_exon_end, gene)
-
-        async def _create_genomic_table(self):
-            await self.test_db._create_genomic_table()
-
-        async def get_cds_start_end(self, tx_ac: str):
-            return await self.test_db.get_cds_start_end(tx_ac)
-
-    test_uta_db = TestUTADatabase()
+    test_uta_db = UTADatabase()
     await test_uta_db._create_genomic_table()
-    return TestUTADatabase()
+    return test_uta_db
 
 
 @pytest.fixture(scope='module')
@@ -169,10 +125,10 @@ async def test_get_alt_ac_start_and_end(test_db, tpm3_1_8_start_genomic,
 async def test_get_alt_ac_start_or_end(test_db, tpm3_1_8_start_genomic,
                                        tpm3_1_8_end_genomic):
     """Test that get_alt_ac_start_or_end works correctly."""
-    resp = await test_db.get_alt_ac_start_or_end('NM_152263.3', 117, 234)
+    resp = await test_db.get_alt_ac_start_or_end('NM_152263.3', 117, 234, None)
     assert resp == tpm3_1_8_start_genomic
 
-    resp = await test_db.get_alt_ac_start_or_end('NM_152263.3', 822, 892)
+    resp = await test_db.get_alt_ac_start_or_end('NM_152263.3', 822, 892, None)
     assert resp == tpm3_1_8_end_genomic
 
 
@@ -207,29 +163,29 @@ async def test_transcript_to_genomic(test_db, tpm3_exon1_exon8,
     assert resp == expected
 
     resp = await test_db.transcript_to_genomic('NM_152263.3', 0, 8,
-                                               end_exon_offset=-5)
+                                               exon_end_offset=-5)
     expected["exon_end"] = 8
     expected["exon_end_offset"] = -5
     expected["end"] = 154170404
     assert resp == expected
 
     resp = await test_db.transcript_to_genomic('NM_152263.3', 0, 8,
-                                               end_exon_offset=5)
+                                               exon_end_offset=5)
     expected["exon_end_offset"] = 5
     expected["end"] = 154170394
     assert resp == expected
 
     resp = await test_db.transcript_to_genomic('NM_152263.3', 3, 8,
-                                               start_exon_offset=3,
-                                               end_exon_offset=5)
+                                               exon_start_offset=3,
+                                               exon_end_offset=5)
     expected["exon_start"] = 3
     expected["exon_start_offset"] = 3
     expected["start"] = 154176245
     assert resp == expected
 
     resp = await test_db.transcript_to_genomic('NM_152263.3', 3, 8,
-                                               start_exon_offset=-3,
-                                               end_exon_offset=5)
+                                               exon_start_offset=-3,
+                                               exon_end_offset=5)
     expected["exon_start_offset"] = -3
     expected["start"] = 154176251
     assert resp == expected
@@ -247,14 +203,14 @@ async def test_transcript_to_genomic(test_db, tpm3_exon1_exon8,
     assert resp == ntrk1_exon10_exon17
 
     resp = await test_db.transcript_to_genomic('NM_002529.3', 10, 0,
-                                               start_exon_offset=3)
+                                               exon_start_offset=3)
     expected = copy.deepcopy(ntrk1_exon10_exon17)
     expected["exon_start_offset"] = 3
     expected["start"] = 156874629
     assert resp == expected
 
     resp = await test_db.transcript_to_genomic('NM_002529.3', 10, 0,
-                                               start_exon_offset=-3)
+                                               exon_start_offset=-3)
     expected["exon_start_offset"] = -3
     expected["start"] = 156874623
     assert resp == expected
