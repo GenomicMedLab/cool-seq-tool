@@ -145,8 +145,6 @@ class UTADatabase:
         async with self._connection_pool.acquire() as connection:
             async with connection.transaction():
                 result = await connection.fetch(query)
-                if result:
-                    result = result[0]
                 return result
 
     async def _create_genomic_table(self):
@@ -277,7 +275,7 @@ class UTADatabase:
         if not cds_se_i:
             logger.warning(f"Unable to get exons for {tx_ac}")
             return None
-        return cds_se_i[0].split(';')
+        return cds_se_i[0][0].split(';')
 
     async def get_tx_exon_start_end(self, tx_ac: str, exon_start: int,
                                     exon_end: int)\
@@ -397,6 +395,7 @@ class UTADatabase:
             """
         )
         result = await self.execute_query(query)
+        result = result[0]
         if not result:
             logger.warning(f"Unable to get genomic data for {tx_ac}"
                            f" on start exon {tx_exon_start} and "
@@ -420,9 +419,11 @@ class UTADatabase:
             """
         )
         cds_start_end = await self.execute_query(query)
-        if cds_start_end and cds_start_end[0] is not None \
-                and cds_start_end[1] is not None:
-            return cds_start_end
+        if cds_start_end:
+            cds_start_end = cds_start_end[0]
+            if cds_start_end[0] is not None \
+                    and cds_start_end[1] is not None:
+                return cds_start_end
         else:
             logger.warning(f"Unable to get coding start/end site for "
                            f"accession: {tx_ac}")
@@ -445,7 +446,7 @@ class UTADatabase:
         )
         result = await self.execute_query(query)
         if result:
-            return [result[0]]
+            return [result[0][0]]
         return []
 
     async def validate_genomic_ac(self, ac: str) -> bool:
@@ -464,7 +465,7 @@ class UTADatabase:
             """
         )
         result = await self.execute_query(query)
-        return result[0]
+        return result[0][0]
 
     async def get_ac_descr(self, ac: str) -> Optional[str]:
         """Return accession description.
@@ -485,7 +486,10 @@ class UTADatabase:
             logger.warning(f"Accession {ac} does not have a description")
             return None
         else:
-            return result[0]
+            result = result[0][0]
+            if result == '':
+                result = None
+            return result
 
     async def get_tx_exon_aln_v_data(self, ac: str, start_pos: int,
                                      end_pos: int, alt_ac: str = None,
@@ -542,8 +546,7 @@ class UTADatabase:
             if len(results) > 1:
                 logger.debug(f"Found more than one match for tx_ac {temp_ac} "
                              f"and alt_ac = {alt_ac}")
-
-        return results
+        return [r for r in results[0]]
 
     @staticmethod
     def data_from_result(result: list) -> Optional[Dict]:
@@ -596,9 +599,8 @@ class UTADatabase:
         )
         if not results:
             return None
-        result = results[0]
 
-        data = self.data_from_result(result)
+        data = self.data_from_result(results)
         if not data:
             return None
 
@@ -607,8 +609,8 @@ class UTADatabase:
             logger.warning(f"Accession {ac} not found in UTA")
             return None
 
-        data['tx_ac'] = result[1]
-        data['alt_ac'] = result[4]
+        data['tx_ac'] = results[1]
+        data['alt_ac'] = results[4]
         data['coding_start_site'] = coding_start_site[0]
         data['coding_end_site'] = coding_start_site[1]
         data['alt_pos_change'] = (
@@ -635,12 +637,11 @@ class UTADatabase:
         if not results:
             return None
 
-        result = results[-1]
-        data = self.data_from_result(result)
+        data = self.data_from_result(results)
         if not data:
             return None
         data['tx_ac'] = ac
-        data['alt_ac'] = result[4]
+        data['alt_ac'] = results[4]
         data['pos_change'] = (
             pos[0] - data['tx_pos_range'][0],
             data['tx_pos_range'][1] - pos[1]
@@ -672,13 +673,13 @@ class UTADatabase:
         return [item for sublist in results for item in sublist]
 
     async def get_gene_from_ac(self, ac: str, start_pos: int,
-                               end_pos: int) -> Optional[str]:
+                               end_pos: int) -> Optional[List[str]]:
         """Get transcripts from NC accession and positions.
 
         :param str ac: NC Accession
         :param int start_pos: Start position change
         :param int end_pos: End position change
-        :return: HGNC gene symbol
+        :return: List of HGNC gene symbols
         """
         if end_pos is None:
             end_pos = start_pos
@@ -701,7 +702,7 @@ class UTADatabase:
                 logger.info(f"Found more than one gene between "
                             f"{start_pos} and {end_pos} on {ac}")
 
-        return results
+        return [r[0] for r in results]
 
     async def get_transcripts_from_gene(self, gene: str, start_pos: int,
                                         end_pos: int) -> pd.core.frame.DataFrame:  # noqa: E501
@@ -735,7 +736,7 @@ class UTADatabase:
             results, columns=["pro_ac", "tx_ac", "alt_ac", "cds_start_i"])
 
     async def get_chr_assembly(self, ac: str) -> Optional[Tuple[str, str]]:
-        """Get chromosome and assembly for NC accession.
+        """Get chromosome and assembly for NC accession if not in GRCh38.
 
         :param str ac: NC accession
         :return: Chromosome and Assembly accession is on
@@ -857,7 +858,10 @@ class UTADatabase:
             ORDER BY tx_ac;
             """
         )
-        return await self.execute_query(query)
+        result = await self.execute_query(query)
+        if result:
+            result = [r[0] for r in result]
+        return result
 
 
 class ParseResult(urlparse.ParseResult):
