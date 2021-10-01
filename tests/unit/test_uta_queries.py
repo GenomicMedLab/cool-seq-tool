@@ -129,7 +129,7 @@ async def test_get_cds_start_end(test_db):
 async def test_get_newest_assembly(test_db):
     """Test that get_newest_assembly works correctly."""
     resp = await test_db.get_newest_assembly_ac("NC_000007.13")
-    assert resp == ["NC_000007.14"]
+    assert resp == [["NC_000007.14"]]
 
     resp = await test_db.get_newest_assembly_ac("NC_0000077.1")
     assert resp == []
@@ -161,19 +161,23 @@ async def test_get_tx_exon_aln_v_data(test_db, tx_exon_aln_v_data):
     resp = await test_db.get_tx_exon_aln_v_data(
         "NM_004333.4", 140453136, 140453136, alt_ac="NC_000007.13",
         use_tx_pos=False)
-    assert resp == tx_exon_aln_v_data
+    assert resp == [tx_exon_aln_v_data]
 
     resp = await test_db.get_tx_exon_aln_v_data(
         "NM_004333.4", 140453136, 140453136, alt_ac=None, use_tx_pos=False)
-    assert resp == tx_exon_aln_v_data
+    assert resp == [tx_exon_aln_v_data]
 
     resp = await test_db.get_tx_exon_aln_v_data(
         "NM_004333.4", 140453136, None, alt_ac=None, use_tx_pos=False)
-    assert resp == tx_exon_aln_v_data
+    assert resp == [tx_exon_aln_v_data]
 
     resp = await test_db.get_tx_exon_aln_v_data(
         "NM_004333.4", 1860, None, alt_ac=None, use_tx_pos=True)
-    assert resp == tx_exon_aln_v_data
+    assert resp == [
+        ['BRAF', 'NM_004333.4', 1802, 1921, 'NC_000007.13', 140453074,
+         140453193, -1, 'splign', 780494, 1927263],
+        ['BRAF', 'NM_004333.4', 1802, 1921, 'NC_000007.14', 140753274,
+         140753393, -1, 'splign', 780494, 6619850]]
 
 
 @pytest.mark.asyncio
@@ -211,7 +215,19 @@ async def test_mane_c_genomic_data(test_db):
 async def test_get_genomic_tx_data(test_db, genomic_tx_data):
     """Test that get_genomic_tx_data works correctly."""
     resp = await test_db.get_genomic_tx_data("NM_004333.4", (2145, 2145))
-    assert resp == genomic_tx_data
+    assert resp == {
+        'gene': 'BRAF',
+        'strand': '-',
+        'tx_pos_range': (2053, 2188),
+        'alt_pos_range': (140739811, 140739946),
+        'alt_aln_method': 'splign',
+        'tx_exon_id': 780496,
+        'alt_exon_id': 6619852,
+        'tx_ac': 'NM_004333.4',
+        'alt_ac': 'NC_000007.14',
+        'pos_change': (92, 43),
+        'alt_pos_change_range': (140739903, 140739903)
+    }
 
 
 @pytest.mark.asyncio
