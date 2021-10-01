@@ -9,6 +9,8 @@ asyncpg = "*"
 boto3 = "*"
 pyliftover = "*"
 pandas = "*"
+hgvs = "*"
+"biocommons.seqrepo" = "*"
 
 [dev-packages]
 uta_tools = {editable = true, path = "."}
