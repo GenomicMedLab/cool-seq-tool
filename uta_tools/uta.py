@@ -446,7 +446,10 @@ class UTADatabase:
         )
         result = await self.execute_query(query)
         if result:
-            return [result[0][0]]
+            ret = list()
+            for r in result:
+                ret.append([field for field in r])
+            return ret
         return []
 
     async def validate_genomic_ac(self, ac: str) -> bool:
@@ -537,16 +540,19 @@ class UTADatabase:
             ORDER BY alt_ac;
             """
         )
-        results = await self.execute_query(query)
-        if not results:
+        result = await self.execute_query(query)
+        if not result:
             logger.warning(f"Unable to find transcript alignment for query: "
                            f"{query}")
             return None
         if alt_ac and not use_tx_pos:
-            if len(results) > 1:
+            if len(result) > 1:
                 logger.debug(f"Found more than one match for tx_ac {temp_ac} "
                              f"and alt_ac = {alt_ac}")
-        return [r for r in results[0]]
+        results = list()
+        for r in result:
+            results.append([field for field in r])
+        return results
 
     @staticmethod
     def data_from_result(result: list) -> Optional[Dict]:
@@ -599,8 +605,9 @@ class UTADatabase:
         )
         if not results:
             return None
+        result = results[0]
 
-        data = self.data_from_result(results)
+        data = self.data_from_result(result)
         if not data:
             return None
 
@@ -609,8 +616,8 @@ class UTADatabase:
             logger.warning(f"Accession {ac} not found in UTA")
             return None
 
-        data['tx_ac'] = results[1]
-        data['alt_ac'] = results[4]
+        data['tx_ac'] = result[1]
+        data['alt_ac'] = result[4]
         data['coding_start_site'] = coding_start_site[0]
         data['coding_end_site'] = coding_start_site[1]
         data['alt_pos_change'] = (
@@ -636,12 +643,13 @@ class UTADatabase:
         results = await self.get_tx_exon_aln_v_data(ac, pos[0], pos[1])
         if not results:
             return None
+        result = results[-1]
 
-        data = self.data_from_result(results)
+        data = self.data_from_result(result)
         if not data:
             return None
         data['tx_ac'] = ac
-        data['alt_ac'] = results[4]
+        data['alt_ac'] = result[4]
         data['pos_change'] = (
             pos[0] - data['tx_pos_range'][0],
             data['tx_pos_range'][1] - pos[1]
