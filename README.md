@@ -2,9 +2,15 @@
 
 Service for querying the [UTA](https://github.com/biocommons/uta) database
 
-## Development
+## Installation
 
-### Installation
+### pip
+
+```commandline
+pip install uta_tools
+```
+
+### Development
 
 Clone the repo:
 
