@@ -1,6 +1,6 @@
 """Test UTA data source."""
 import pytest
-from uta_tools.uta import UTADatabase
+from uta_tools.data_sources import UTADatabase
 import copy
 
 

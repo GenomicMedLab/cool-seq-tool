@@ -1,8 +1,7 @@
 """The module for loading MANE Transcript mappings to genes."""
 from typing import Dict, Optional, List
-from uta_tools import MANE_SUMMARY_PATH
+from uta_tools import MANE_SUMMARY_PATH, logger
 import pandas as pd
-from uta_tools import logger
 
 
 class MANETranscriptMappings:

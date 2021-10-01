@@ -2,7 +2,7 @@
 import asyncpg
 import boto3
 import pandas as pd
-from uta_tools import UTA_DB_URL, logger
+from uta_tools import UTA_DB_URL, logger, IS_PROD_ENV
 from six.moves.urllib import parse as urlparse
 from asyncpg.exceptions import InterfaceError
 from typing import Dict, List, Optional, Tuple
@@ -15,7 +15,7 @@ class UTADatabase:
     """Class for connecting and querying UTA database."""
 
     def __init__(self, db_url: str = UTA_DB_URL, db_pwd: str = '',
-                 is_prod_env: bool = False, liftover_from: str = 'hg19',
+                 liftover_from: str = 'hg19',
                  liftover_to: str = 'hg38') -> None:
         """Initialize DB class.
         After initializing, you must run `_create_genomic_table()`
@@ -23,13 +23,11 @@ class UTADatabase:
         :param str db_url: PostgreSQL connection URL
             Format: `driver://user:pass@host/database/schema`
         :param str db_pwd: User's password for uta database
-        :param bool is_prod_env: `True` if working in prod environment.
-            `False` otherwise.
         :param str liftover_from: Assembly to liftover from
         :param str liftover_to: Assembly to liftover to
         """
         self.schema = None
-        self.args = self._get_conn_args(is_prod_env, db_url, db_pwd)
+        self.args = self._get_conn_args(db_url, db_pwd)
         self._connection_pool = None
         self.liftover = LiftOver(liftover_from, liftover_to)
 
@@ -81,18 +79,15 @@ class UTADatabase:
             application_name='uta_tools'
         )
 
-    def _get_conn_args(self, is_prod_env: bool, db_url: str,
-                       db_pwd: str = '') -> Dict:
+    def _get_conn_args(self, db_url: str, db_pwd: str = '') -> Dict:
         """Return connection arguments.
 
-        :param bool is_prod_env: `True` if production environment.
-            `False` otherwise.
         :param str db_url: PostgreSQL connection URL
             Format: `driver://user:pass@host/database/schema`
         :param str db_pwd: User's password for uta database
         :return: Database credentials
         """
-        if is_prod_env:
+        if IS_PROD_ENV:
             self.schema = environ['UTA_SCHEMA']
             region = 'us-east-2'
             client = boto3.client('rds', region_name=region)

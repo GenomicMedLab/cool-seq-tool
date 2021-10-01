@@ -1,10 +1,7 @@
 """Module for testing MANE Transcript class."""
 import pytest
-from uta_tools.mane_transcript import MANETranscript
-from uta_tools.transcript_mappings import TranscriptMappings
-from uta_tools.mane_transcript_mappings import MANETranscriptMappings
-from uta_tools.uta import UTADatabase
-from uta_tools.seqrepo_access import SeqRepoAccess
+from uta_tools.data_sources import MANETranscript, MANETranscriptMappings,\
+    SeqRepoAccess, TranscriptMappings, UTADatabase
 import copy
 
 

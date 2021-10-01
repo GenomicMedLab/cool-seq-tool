@@ -29,7 +29,7 @@ else:
 
 TRANSCRIPT_MAPPINGS_PATH = f"{APP_ROOT}/data/transcript_mapping.tsv"
 
-from uta_tools.data_downloads import DataDownload  # noqa: E402
+from uta_tools.data import DataDownload  # noqa: E402
 d = DataDownload()
 MANE_SUMMARY_PATH = d._mane_summary_path
 LRG_REFSEQGENE_PATH = d._lrg_refseqgene_path
