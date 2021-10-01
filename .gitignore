@@ -130,3 +130,8 @@ dmypy.json
 
 Pipfile.lock
 pyproject.toml
+
+# Data files
+uta_tools/data/seqrepo/
+uta_tools/data/*.txt
+uta_tools/data/LRG_RefSeqGene*
