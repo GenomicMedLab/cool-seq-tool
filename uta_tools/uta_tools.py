@@ -98,7 +98,7 @@ class UTATools:
             else:
                 params[field] = start[field]
 
-        params["start"] = start["pos"]
+        params["start"] = start["pos"] - 1 if residue_mode.lower() == "residue" else start["pos"]  # noqa: E501
         params["exon_start"] = start["exon"]
         params["exon_start_offset"] = start["exon_offset"] if start["exon_offset"] is not None else 0  # noqa: E501
 
@@ -128,7 +128,7 @@ class UTATools:
         """
         result = {
             "transcript": transcript,
-            "pos": None,
+            "pos": pos,
             "exon": None,
             "exon_offset": 0,
             "gene": None
@@ -188,7 +188,6 @@ class UTATools:
             tx_exons = await self._get_exons_tuple(transcript)
 
             tx_pos = mane_data["pos"][0] + mane_data["coding_start_site"]
-            result["pos"] = tx_pos
             exon_pos = self._find_exon(tx_exons, tx_pos)
             result["exon"] = exon_pos
         else:
@@ -210,10 +209,6 @@ class UTATools:
                 if not found_tx_exon:
                     i = 1
                 result["exon"] = i
-        if residue_mode.lower() == "residue":
-            # Change to inter-residue coords
-            if result["pos"]:
-                result["pos"] -= 1
         return result
 
     async def _get_exons_tuple(self, transcript: str):
