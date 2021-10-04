@@ -128,6 +128,7 @@ class UTADatabase:
             except InterfaceError as e:
                 logger.error(f'While creating connection pool, '
                              f'encountered exception {e}')
+                raise Exception("Could not create connection pool")
 
     async def execute_query(self, query: str) -> any:
         """Execute a query and return its result.
