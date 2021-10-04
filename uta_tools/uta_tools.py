@@ -191,6 +191,9 @@ class UTATools:
         result["gene"] = output_gene if output_gene else input_gene
 
         if transcript is None:
+            if gene is None:
+                logger.warning("Must provide gene for MANE transcript")
+                return None
             mane_data = await self.mane_transcript.get_mane_transcript( # noqa
                 alt_ac, pos, None, 'g', gene=gene,
                 normalize_endpoint=True
@@ -241,7 +244,7 @@ class UTATools:
 
     def _find_exon(self, tx_exons: list, tx_pos: int):
         """Find exon number"""
-        i = 0
+        i = 1
         for coords in tx_exons:
             if coords[0] <= tx_pos <= coords[1]:
                 break
