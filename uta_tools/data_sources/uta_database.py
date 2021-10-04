@@ -32,7 +32,7 @@ class UTADatabase:
         self.liftover = LiftOver(liftover_from, liftover_to)
 
     @staticmethod
-    def _update_db_url(db_pwd: str, db_url: str) -> Optional[str]:
+    def _update_db_url(db_pwd: str, db_url: str) -> str:
         """Return new db_url containing password.
 
         :param str db_pwd: User's password for uta database
@@ -47,7 +47,6 @@ class UTADatabase:
                             'or `db_pwd` param must be set')
         else:
             uta_password_in_environ = 'UTA_PASSWORD' in environ
-            db_url = db_url.split('@')
             if uta_password_in_environ and db_pwd:
                 if db_pwd != environ['UTA_PASSWORD']:
                     raise Exception('If both environment variable UTA_PASSWORD'
@@ -56,6 +55,7 @@ class UTADatabase:
             else:
                 if uta_password_in_environ and not db_pwd:
                     db_pwd = environ['UTA_PASSWORD']
+            db_url = db_url.split('@')
             return f"{db_url[0]}:{db_pwd}@{db_url[1]}"
 
     @staticmethod
@@ -128,6 +128,7 @@ class UTADatabase:
             except InterfaceError as e:
                 logger.error(f'While creating connection pool, '
                              f'encountered exception {e}')
+                raise Exception("Could not create connection pool")
 
     async def execute_query(self, query: str) -> any:
         """Execute a query and return its result.
@@ -468,7 +469,7 @@ class UTADatabase:
                            f"accession: {tx_ac}")
             return None
 
-    async def get_newest_assembly_ac(self, ac: str) -> Optional[List]:
+    async def get_newest_assembly_ac(self, ac: str) -> List:
         """Find most recent genomic accession version.
 
         :param str ac: Genomic accession
