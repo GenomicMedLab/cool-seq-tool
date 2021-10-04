@@ -57,12 +57,33 @@ def tpm3_exon1_exon8():
 async def test__genomic_to_transcript(test_uta_tools, tpm3_exon1, tpm3_exon8):
     """Test that _genomic_to_transcript method works correctly."""
     resp = await test_uta_tools._genomic_to_transcript(
-        "NC_000001.11", 154192135, strand=-1, transcript="NM_152263.3"
+        "NC_000001.11", 154192135, strand=-1, transcript="NM_152263.3",
+        gene="TPM3"
+    )
+    assert resp == tpm3_exon1
+
+    resp = await test_uta_tools._genomic_to_transcript(
+        1, 154192135, strand=-1, transcript="NM_152263.3"
+    )
+    assert resp == tpm3_exon1
+
+    resp = await test_uta_tools._genomic_to_transcript(
+        1, 154192135, transcript="NM_152263.3"
     )
     assert resp == tpm3_exon1
 
     resp = await test_uta_tools._genomic_to_transcript(
         "NC_000001.11", 154170399, strand=-1, transcript="NM_152263.3"
+    )
+    assert resp == tpm3_exon8
+
+    resp = await test_uta_tools._genomic_to_transcript(
+        1, 154170399, strand=-1, transcript="NM_152263.3"
+    )
+    assert resp == tpm3_exon8
+
+    resp = await test_uta_tools._genomic_to_transcript(
+        1, 154170399, transcript="NM_152263.3"
     )
     assert resp == tpm3_exon8
 
@@ -74,3 +95,12 @@ async def test_genomic_to_transcript(test_uta_tools, tpm3_exon1_exon8):
         "NC_000001.11", 154192135, 154170399, strand=-1,
         transcript="NM_152263.3")
     assert resp == tpm3_exon1_exon8
+
+
+@pytest.mark.asyncio
+async def test_invalid(test_uta_tools):
+    """Test that invalid queries return `None`."""
+    resp = await test_uta_tools.genomic_to_transcript(
+        "NC_000001.11", 154192135, 154170399, strand=-1,
+        transcript="NM_152263.3", gene="dummy gene")
+    assert resp is None

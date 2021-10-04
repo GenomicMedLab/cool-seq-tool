@@ -76,16 +76,18 @@ class UTATools:
             "gene": None,
             "transcript": None
         }
+        if gene is not None:
+            gene = gene.upper()
         start = await self._genomic_to_transcript(
             chromosome, start_pos, strand=strand, transcript=transcript,
-            gene=gene, residue_mode=residue_mode
+            gene=gene
         )
         if not start:
             return None
 
         end = await self._genomic_to_transcript(
             chromosome, end_pos, strand=strand, transcript=transcript,
-            gene=gene, residue_mode=residue_mode
+            gene=gene
         )
         if not end:
             return None
@@ -98,6 +100,11 @@ class UTATools:
             else:
                 params[field] = start[field]
 
+        if gene and gene != params["gene"]:
+            logger.warning(f"Input gene, {gene}, does not match output "
+                           f"gene, {params['gene']}")
+            return None
+
         params["start"] = start["pos"] - 1 if residue_mode.lower() == "residue" else start["pos"]  # noqa: E501
         params["exon_start"] = start["exon"]
         params["exon_start_offset"] = start["exon_offset"] if start["exon_offset"] is not None else 0  # noqa: E501
@@ -109,9 +116,8 @@ class UTATools:
 
     async def _genomic_to_transcript(self, chromosome: Union[str, int],
                                      pos: int, strand: int = None,
-                                     transcript: str = None, gene: str = None,
-                                     residue_mode: str = 'residue')\
-            -> Optional[Dict]:
+                                     transcript: str = None,
+                                     gene: str = None) -> Optional[Dict]:
         """Get transcript data given genomic data.
 
         :param str chromosome: Chromosome. Must either give chromosome number
@@ -122,8 +128,6 @@ class UTATools:
             we will try the following transcripts: MANE Select, MANE Clinical
             Plus, Longest Remaining Compatible Transcript
         :param str gene: Gene
-        :param str residue_mode: Default is `resiude` (1-based).
-            Must be either `residue` or `inter-residue` (0-based).
         :return: Transcript data (inter-residue coordinates)
         """
         result = {
@@ -155,21 +159,36 @@ class UTATools:
                 chromosome, pos, strand=strand, alt_ac=None
             )
         alt_acs = genes_alt_acs["alt_acs"]
-        genes = genes_alt_acs["genes"]
         len_alt_acs = len(alt_acs)
-
         if len_alt_acs > 1:
             logger.warning(f"Found more than one accessions: {alt_acs}")
             return None
         elif len_alt_acs == 0:
             logger.warning("No accessions found")
             return None
-
         alt_ac = next(iter(alt_acs))
-        if gene is None:
-            if len(genes) == 1:
-                gene = next(iter(genes))
-                result["gene"] = gene
+
+        genes = genes_alt_acs["genes"]
+        len_genes = len(genes)
+        input_gene = gene
+        output_gene = None
+        if len_genes == 1:
+            output_gene = next(iter(genes))
+        elif len_genes > 1:
+            logger.warning(f"Found more than one gene: {genes}")
+            return None
+        elif len_genes == 0:
+            logger.warning("No genes found")
+            return None
+
+        if input_gene is not None:
+            input_gene = input_gene.upper()
+            if gene and gene != input_gene:
+                logger.warning(f"Input gene, {input_gene}, does not match "
+                               f"output gene, {output_gene}")
+                return None
+
+        result["gene"] = output_gene if output_gene else input_gene
 
         if transcript is None:
             mane_data = await self.mane_transcript.get_mane_transcript( # noqa
