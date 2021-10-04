@@ -46,9 +46,71 @@ class UTATools:
             self.mane_transcript_mappings, self.uta_db)
 
     async def genomic_to_transcript(self, chromosome: Union[str, int],
-                                    pos: int, strand: int = None,
-                                    transcript: str = None, gene: str = None,
-                                    residue_mode: str = 'residue')\
+                                    start_pos: int, end_pos: int,
+                                    strand: int = None, transcript: str = None,
+                                    gene: str = None,
+                                    residue_mode: str = "residue")\
+            -> Optional[Dict]:
+        """Get transcript data for genomic range data.
+
+        :param str chromosome: Chromosome. Must either give chromosome number
+            (i.e. `1`) or accession (i.e. `NC_000001.11`).
+        :param int start_pos: Start position
+        :param int end_pos: End position
+        :param str strand: Strand. Must be either `-1` or `1`.
+        :param str transcript: The transcript to use. If this is not given,
+            we will try the following transcripts: MANE Select, MANE Clinical
+            Plus, Longest Remaining Compatible Transcript
+        :param str gene: Gene
+        :param str residue_mode: Default is `resiude` (1-based).
+            Must be either `residue` or `inter-residue` (0-based).
+        :return: Transcript data (inter-residue coordinates)
+        """
+        params = {
+            "start": None,
+            "exon_start": None,
+            "exon_start_offset": None,
+            "end": None,
+            "exon_end": None,
+            "exon_end_offset": None,
+            "gene": None,
+            "transcript": None
+        }
+        start = await self._genomic_to_transcript(
+            chromosome, start_pos, strand=strand, transcript=transcript,
+            gene=gene, residue_mode=residue_mode
+        )
+        if not start:
+            return None
+
+        end = await self._genomic_to_transcript(
+            chromosome, end_pos, strand=strand, transcript=transcript,
+            gene=gene, residue_mode=residue_mode
+        )
+        if not end:
+            return None
+
+        for field in ["transcript", "gene"]:
+            if start[field] != end[field]:
+                logger.warning(f"Start `{field}`, {start[field]}, does not "
+                               f"match End `{field}`, {end[field]}")
+                return None
+            else:
+                params[field] = start[field]
+
+        params["start"] = start["pos"]
+        params["exon_start"] = start["exon"]
+        params["exon_start_offset"] = start["exon_offset"] if start["exon_offset"] is not None else 0  # noqa: E501
+
+        params["end"] = end["pos"]
+        params["exon_end"] = end["exon"]
+        params["exon_end_offset"] = end["exon_offset"] if end["exon_offset"] is not None else 0  # noqa: E501
+        return params
+
+    async def _genomic_to_transcript(self, chromosome: Union[str, int],
+                                     pos: int, strand: int = None,
+                                     transcript: str = None, gene: str = None,
+                                     residue_mode: str = 'residue')\
             -> Optional[Dict]:
         """Get transcript data given genomic data.
 
