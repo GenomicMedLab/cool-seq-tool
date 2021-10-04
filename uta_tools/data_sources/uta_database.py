@@ -425,7 +425,7 @@ class UTADatabase:
                            f"accession: {tx_ac}")
             return None
 
-    async def get_newest_assembly_ac(self, ac: str) -> Optional[List]:
+    async def get_newest_assembly_ac(self, ac: str) -> List:
         """Find most recent genomic accession version.
 
         :param str ac: Genomic accession
