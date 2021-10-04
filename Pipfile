@@ -7,6 +7,10 @@ name = "pypi"
 aiofiles = "*"
 asyncpg = "*"
 boto3 = "*"
+pyliftover = "*"
+pandas = "*"
+hgvs = "*"
+"biocommons.seqrepo" = "*"
 
 [dev-packages]
 uta_tools = {editable = true, path = "."}
@@ -19,3 +23,4 @@ pytest-cov = "*"
 coveralls = "*"
 jupyterlab = "*"
 pytest-asyncio = "*"
+ipython = "*"
