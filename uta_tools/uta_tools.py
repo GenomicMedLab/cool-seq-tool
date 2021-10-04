@@ -69,10 +69,10 @@ class UTATools:
         params = {
             "start": None,
             "exon_start": None,
-            "exon_start_offset": None,
+            "exon_start_offset": 0,
             "end": None,
             "exon_end": None,
-            "exon_end_offset": None,
+            "exon_end_offset": 0,
             "gene": None,
             "transcript": None
         }
@@ -130,7 +130,7 @@ class UTATools:
             "transcript": transcript,
             "pos": None,
             "exon": None,
-            "exon_offset": None,
+            "exon_offset": 0,
             "gene": None
         }
         try:
