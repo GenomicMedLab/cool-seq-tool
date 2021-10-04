@@ -187,6 +187,50 @@ class UTADatabase:
             for create_index in indexes:
                 await self.execute_query(create_index)
 
+    def _transform_list(self, li):
+        """Transform list to only contain field values"""
+        results = list()
+        for item in li:
+            results.append([field for field in item])
+        return results
+
+    async def chr_to_accession(self, chromosome, pos, strand=None,
+                               alt_ac=None):
+        """Chromosome number to accession.
+
+        :return: List of transcripts associated with input arguments
+        """
+        if alt_ac:
+            alt_ac_cond = f"WHERE alt_ac = '{alt_ac}'"
+        else:
+            alt_ac_cond = f"WHERE alt_ac ~ '^NC_[0-9]+0{chromosome}.[0-9]+$'"
+
+        if strand:
+            strand_cond = f"AND alt_strand = '{strand}'"
+        else:
+            strand_cond = ""
+        query = (
+            f"""
+            SELECT hgnc, alt_ac
+            FROM {self.schema}.tx_exon_aln_v
+            {alt_ac_cond}
+            AND alt_aln_method = 'splign'
+            AND {pos} BETWEEN alt_start_i AND alt_end_i
+            {strand_cond}
+            """
+        )
+        results = await self.execute_query(query)
+        results = self._transform_list(results)
+        genes = set()
+        alt_acs = set()
+        for r in results:
+            genes.add(r[0])
+            alt_acs.add(r[1])
+        return {
+            "genes": genes,
+            "alt_acs": alt_acs
+        }
+
     async def transcript_to_genomic(
             self, tx_ac: str, exon_start: int, exon_end: int,
             exon_start_offset: int = 0, exon_end_offset: int = 0,

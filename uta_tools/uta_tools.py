@@ -1,4 +1,6 @@
 """Module for initializing data sources."""
+from typing import Optional, Dict, Union
+from uta_tools import logger
 from uta_tools.data_sources import MANETranscript, MANETranscriptMappings,\
     SeqRepoAccess, TranscriptMappings, UTADatabase
 from uta_tools import SEQREPO_DATA_PATH, \
@@ -42,3 +44,130 @@ class UTATools:
         self.mane_transcript = MANETranscript(
             self.seqrepo_access, self.transcript_mappings,
             self.mane_transcript_mappings, self.uta_db)
+
+    async def genomic_to_transcript(self, chromosome: Union[str, int],
+                                    pos: int, strand: int = None,
+                                    transcript: str = None, gene: str = None,
+                                    residue_mode: str = 'residue')\
+            -> Optional[Dict]:
+        """Get transcript data given genomic data.
+
+        :param str chromosome: Chromosome. Must either give chromosome number
+            (i.e. `1`) or accession (i.e. `NC_000001.11`).
+        :param int pos: Position
+        :param str strand: Strand. Must be either `-1` or `1`.
+        :param str transcript: The transcript to use. If this is not given,
+            we will try the following transcripts: MANE Select, MANE Clinical
+            Plus, Longest Remaining Compatible Transcript
+        :param str gene: Gene
+        :param str residue_mode: Default is `resiude` (1-based).
+            Must be either `residue` or `inter-residue` (0-based).
+        :return: Transcript data (inter-residue coordinates)
+        """
+        result = {
+            "transcript": transcript,
+            "pos": None,
+            "exon": None,
+            "exon_offset": None,
+            "gene": None
+        }
+        try:
+            # Check if just chromosome number is given. If it is, we should
+            # convert this to the correct accession version
+            chromosome = int(chromosome)
+        except ValueError:
+            # Check if valid accession is given
+            if not await self.uta_db.validate_genomic_ac(chromosome):
+                logger.warning(f"Chromosome is not valid: {chromosome}")
+                return None
+
+        if isinstance(chromosome, str):
+            # Accession given
+            genes_alt_acs = await self.uta_db.chr_to_accession(
+                chromosome, pos, strand=strand,
+                alt_ac=chromosome
+            )
+        else:
+            # Number given
+            genes_alt_acs = await self.uta_db.chr_to_accession(
+                chromosome, pos, strand=strand, alt_ac=None
+            )
+        alt_acs = genes_alt_acs["alt_acs"]
+        genes = genes_alt_acs["genes"]
+        len_alt_acs = len(alt_acs)
+
+        if len_alt_acs > 1:
+            logger.warning(f"Found more than one accessions: {alt_acs}")
+            return None
+        elif len_alt_acs == 0:
+            logger.warning("No accessions found")
+            return None
+
+        alt_ac = next(iter(alt_acs))
+        if gene is None:
+            if len(genes) == 1:
+                gene = next(iter(genes))
+                result["gene"] = gene
+
+        if transcript is None:
+            mane_data = await self.mane_transcript.get_mane_transcript( # noqa
+                alt_ac, pos, None, 'g', gene=gene,
+                normalize_endpoint=True
+            )
+
+            if mane_data["refseq"]:
+                transcript = mane_data["refseq"]
+            elif mane_data["ensembl"]:
+                transcript = mane_data["ensembl"]
+            else:
+                transcript = None
+            result["transcript"] = transcript
+
+            tx_exons = await self._get_exons_tuple(transcript)
+
+            tx_pos = mane_data["pos"][0] + mane_data["coding_start_site"]
+            result["pos"] = tx_pos
+            exon_pos = self._find_exon(tx_exons, tx_pos)
+            result["exon"] = exon_pos
+        else:
+            tx_exons = await self._get_exons_tuple(transcript)
+            data = await self.uta_db.get_tx_exon_aln_v_data(
+                transcript, pos, pos, alt_ac=alt_ac, use_tx_pos=False
+            )
+            if len(data) == 1:
+                data = data[0]
+                data_exons = data[2], data[3]
+
+                i = 1
+                found_tx_exon = False
+                for exon in tx_exons:
+                    if data_exons == exon:
+                        found_tx_exon = True
+                        break
+                    i += 1
+                if not found_tx_exon:
+                    i = 1
+                result["exon"] = i
+        if residue_mode.lower() == "residue":
+            # Change to inter-residue coords
+            if result["pos"]:
+                result["pos"] -= 1
+        return result
+
+    async def _get_exons_tuple(self, transcript: str):
+        """Reformat exons as tuples"""
+        result = list()
+        tx_exons = await self.uta_db.get_tx_exons(transcript)
+        for tx_exon in tx_exons:
+            coords = tx_exon.split(",")
+            result.append((int(coords[0]), int(coords[1])))
+        return result
+
+    def _find_exon(self, tx_exons: list, tx_pos: int):
+        """Find exon number"""
+        i = 0
+        for coords in tx_exons:
+            if coords[0] <= tx_pos <= coords[1]:
+                break
+            i += 1
+        return i
