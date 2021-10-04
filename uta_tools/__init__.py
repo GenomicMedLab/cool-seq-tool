@@ -33,3 +33,5 @@ from uta_tools.data import DataDownload  # noqa: E402
 d = DataDownload()
 MANE_SUMMARY_PATH = d._mane_summary_path
 LRG_REFSEQGENE_PATH = d._lrg_refseqgene_path
+
+from uta_tools.uta_tools import UTATools  # noqa: E402, F401
