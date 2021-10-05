@@ -1,7 +1,7 @@
 """Module for initializing data sources."""
 from typing import Optional, Union, List, Tuple
 from uta_tools import logger
-from uta_tools.schemas import GenomicData, TranscriptExonData, ResideMode
+from uta_tools.schemas import GenomicData, TranscriptExonData, ResidueMode
 from uta_tools.data_sources import MANETranscript, MANETranscriptMappings,\
     SeqRepoAccess, TranscriptMappings, UTADatabase
 from uta_tools import SEQREPO_DATA_PATH, \
@@ -117,7 +117,7 @@ class UTATools:
                                     start: int, end: int,
                                     strand: int = None, transcript: str = None,
                                     gene: str = None,
-                                    residue_mode: ResideMode = ResideMode.RESIDUE,  # noqa: E501
+                                    residue_mode: ResidueMode = ResidueMode.RESIDUE,  # noqa: E501
                                     *args, **kwargs) -> Optional[GenomicData]:
         """Get transcript data for genomic data.
         MANE Transcript data will be returned iff `transcript` is not supplied.
@@ -181,7 +181,7 @@ class UTATools:
     async def _individual_genomic_to_transcript(
             self, chromosome: Union[str, int], pos: int, strand: int = None,
             transcript: str = None, gene: str = None, is_start: bool = True,
-            residue_mode: ResideMode = ResideMode.RESIDUE) -> Optional[TranscriptExonData]:  # noqa: E501
+            residue_mode: ResidueMode = ResidueMode.RESIDUE) -> Optional[TranscriptExonData]:  # noqa: E501
         """Convert individual genomic data to transcript data
 
         :param str chromosome: Chromosome. Must either give chromosome number
@@ -236,7 +236,7 @@ class UTATools:
             params["chr"] = alt_ac
             await self._set_genomic_data(params, strand, is_start)
 
-        if residue_mode == ResideMode.RESIDUE and is_start:
+        if residue_mode.lower().strip() == ResidueMode.RESIDUE and is_start:
             params["pos"] -= 1
         return TranscriptExonData(**params)
 

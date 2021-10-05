@@ -5,7 +5,7 @@ from pydantic.main import Extra
 from typing import Literal
 
 
-class ResideMode(str, Enum):
+class ResidueMode(str, Enum):
     """Create Enum for residue modes."""
 
     RESIDUE: Literal["residue"] = "residue"
