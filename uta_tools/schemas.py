@@ -1,6 +1,15 @@
 """Module for data models."""
+from enum import Enum
 from pydantic import BaseModel
 from pydantic.main import Extra
+from typing import Literal
+
+
+class ResideMode(str, Enum):
+    """Create Enum for residue modes."""
+
+    RESIDUE: Literal["residue"] = "residue"
+    INTER_RESIDUE: Literal["inter-residue"] = "inter-residue"
 
 
 class GenomicData(BaseModel):

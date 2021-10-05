@@ -1,7 +1,7 @@
 """Module for initializing data sources."""
 from typing import Optional, Union, List, Tuple
 from uta_tools import logger
-from uta_tools.schemas import GenomicData, TranscriptExonData
+from uta_tools.schemas import GenomicData, TranscriptExonData, ResideMode
 from uta_tools.data_sources import MANETranscript, MANETranscriptMappings,\
     SeqRepoAccess, TranscriptMappings, UTADatabase
 from uta_tools import SEQREPO_DATA_PATH, \
@@ -117,7 +117,7 @@ class UTATools:
                                     start: int, end: int,
                                     strand: int = None, transcript: str = None,
                                     gene: str = None,
-                                    residue_mode: str = "residue",
+                                    residue_mode: ResideMode = ResideMode.RESIDUE,  # noqa: E501
                                     *args, **kwargs) -> Optional[GenomicData]:
         """Get transcript data for genomic data.
         MANE Transcript data will be returned iff `transcript` is not supplied.
@@ -143,14 +143,14 @@ class UTATools:
 
         start_data = await self._individual_genomic_to_transcript(
             chromosome, start, strand=strand, transcript=transcript,
-            gene=gene, is_start=True
+            gene=gene, is_start=True, residue_mode=residue_mode
         )
         if not start_data:
             return None
 
         end_data = await self._individual_genomic_to_transcript(
             chromosome, end, strand=strand, transcript=transcript,
-            gene=gene, is_start=False
+            gene=gene, is_start=False, residue_mode=residue_mode
         )
         if not end_data:
             return None
@@ -172,21 +172,16 @@ class UTATools:
                            f"gene, {params['gene']}")
             return None
 
-        params["start"] = start_data["pos"] - 1 if residue_mode.lower() == "residue" else start_data["pos"]  # noqa: E501
-        params["exon_start"] = start_data["exon"]
-        params["exon_start_offset"] = start_data["exon_offset"]
-
-        params["end"] = end_data["pos"]
-        params["exon_end"] = end_data["exon"]
-        params["exon_end_offset"] = end_data["exon_offset"]
+        for label, data in [("start", start_data), ("end", end_data)]:
+            params[label] = data["pos"]
+            params[f"exon_{label}"] = data["exon"]
+            params[f"exon_{label}_offset"] = data["exon_offset"]
         return GenomicData(**params)
 
-    async def _individual_genomic_to_transcript(self,
-                                                chromosome: Union[str, int],
-                                                pos: int, strand: int = None,
-                                                transcript: str = None,
-                                                gene: str = None,
-                                                is_start: bool = True) -> Optional[TranscriptExonData]:  # noqa: E501
+    async def _individual_genomic_to_transcript(
+            self, chromosome: Union[str, int], pos: int, strand: int = None,
+            transcript: str = None, gene: str = None, is_start: bool = True,
+            residue_mode: ResideMode = ResideMode.RESIDUE) -> Optional[TranscriptExonData]:  # noqa: E501
         """Convert individual genomic data to transcript data
 
         :param str chromosome: Chromosome. Must either give chromosome number
@@ -199,6 +194,8 @@ class UTATools:
         :param str gene: Gene symbol
         :param bool is_start: `True` if `pos` is start position. `False` if
             `pos` is end position.
+        :param str residue_mode: Default is `resiude` (1-based).
+            Must be either `residue` or `inter-residue` (0-based).
         :return: Transcript data (inter-residue coordinates)
         """
         params = {key: None for key in TranscriptExonData.__dict__["__fields__"].keys()}  # noqa: E501
@@ -238,6 +235,9 @@ class UTATools:
             params["pos"] = pos
             params["chr"] = alt_ac
             await self._set_genomic_data(params, strand, is_start)
+
+        if residue_mode == ResideMode.RESIDUE and is_start:
+            params["pos"] -= 1
         return TranscriptExonData(**params)
 
     def _get_gene_and_alt_ac(self,

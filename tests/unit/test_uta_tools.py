@@ -19,7 +19,7 @@ def tpm3_exon1():
     params = {
         "chr": "NC_000001.11",
         "gene": "TPM3",
-        "pos": 154192135,
+        "pos": 154192134,
         "exon": 1,
         "exon_offset": 0,
         "transcript": "NM_152263.3"
