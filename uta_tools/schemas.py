@@ -20,3 +20,19 @@ class GenomicData(BaseModel):
     exon_end: int
     exon_end_offset: int = 0
     transcript: str
+
+
+class TranscriptExonData(BaseModel):
+    """Model containing transcript exon data."""
+
+    class Config:
+        """Class configs."""
+
+        extra = Extra.forbid
+
+    transcript: str
+    pos: int
+    exon: int
+    exon_offset: int = 0
+    gene: str
+    chr: str

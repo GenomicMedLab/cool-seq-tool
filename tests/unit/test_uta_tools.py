@@ -2,6 +2,7 @@
 import pytest
 from uta_tools import UTATools
 import copy
+from uta_tools.schemas import GenomicData, TranscriptExonData
 
 
 @pytest.fixture(scope="session")
@@ -15,7 +16,7 @@ async def test_uta_tools():
 @pytest.fixture(scope="module")
 def tpm3_exon1():
     """Create test fixture for TPM3 exon 1."""
-    return {
+    params = {
         "chr": "NC_000001.11",
         "gene": "TPM3",
         "pos": 154192135,
@@ -24,12 +25,13 @@ def tpm3_exon1():
         "transcript": "NM_152263.3"
 
     }
+    return TranscriptExonData(**params)
 
 
 @pytest.fixture(scope="module")
 def tpm3_exon8():
     """Create test fixture for TPM3 exon 8."""
-    return {
+    params = {
         "chr": "NC_000001.11",
         "gene": "TPM3",
         "pos": 154170399,
@@ -38,12 +40,13 @@ def tpm3_exon8():
         "transcript": "NM_152263.3"
 
     }
+    return TranscriptExonData(**params)
 
 
 @pytest.fixture(scope='module')
 def tpm3_exon1_exon8():
     """Create test fixture for TPM3."""
-    return {
+    params = {
         "gene": "TPM3",
         "chr": "NC_000001.11",
         "start": 154192134,
@@ -54,12 +57,13 @@ def tpm3_exon1_exon8():
         "exon_start_offset": 0,
         "transcript": "NM_152263.3"
     }
+    return GenomicData(**params)
 
 
 @pytest.fixture(scope="module")
 def tpm3_exon1_exon8_offset():
     """Create test fixture for TPM3."""
-    return {
+    params = {
         "chr": "NC_000001.11",
         "gene": "TPM3",
         "start": 154192131,
@@ -71,12 +75,13 @@ def tpm3_exon1_exon8_offset():
         "transcript": "NM_152263.3"
 
     }
+    return GenomicData(**params)
 
 
 @pytest.fixture(scope="module")
 def mane_BRAF():
     """Create test fixture for BRAF."""
-    return {
+    params = {
         "chr": "NC_000007.14",
         "gene": "BRAF",
         "start": 140801411,
@@ -88,12 +93,13 @@ def mane_BRAF():
         "transcript": "NM_001374258.1"
 
     }
+    return GenomicData(**params)
 
 
 @pytest.fixture(scope="module")
 def wee1_exon2_exon11():
     """Create test fixture for WEE1."""
-    return {
+    params = {
         "chr": "NC_000011.10",
         "gene": "WEE1",
         "start": 9576092,
@@ -105,12 +111,13 @@ def wee1_exon2_exon11():
         "transcript": "NM_003390.3"
 
     }
+    return GenomicData(**params)
 
 
 @pytest.fixture(scope="module")
 def mane_wee1_exon2_exon11():
     """Create test fixture for WEE1."""
-    return {
+    params = {
         "chr": "NC_000011.10",
         "gene": "WEE1",
         "start": 9576092,
@@ -122,12 +129,13 @@ def mane_wee1_exon2_exon11():
         "transcript": "NM_003390.4"
 
     }
+    return GenomicData(**params)
 
 
 @pytest.fixture(scope='module')
 def ntrk1_exon10_exon17():
     """Create test fixture for NTRK1."""
-    return {
+    params = {
         "gene": "NTRK1",
         "chr": "NC_000001.11",
         "start": 156874625,
@@ -138,6 +146,7 @@ def ntrk1_exon10_exon17():
         "exon_start_offset": 0,
         "transcript": "NM_002529.3"
     }
+    return GenomicData(**params)
 
 
 @pytest.mark.asyncio
@@ -287,7 +296,7 @@ async def test_transcript_to_genomic(test_uta_tools, tpm3_exon1_exon8,
 
     resp = await test_uta_tools.transcript_to_genomic(
         'NM_152263.3', 0, 0, gene="tpm3")
-    expected = copy.deepcopy(tpm3_exon1_exon8)
+    expected = copy.deepcopy(tpm3_exon1_exon8.dict())
     expected["exon_end"] = 10
     expected["end"] = 154161812
     assert resp == expected
@@ -332,7 +341,7 @@ async def test_transcript_to_genomic(test_uta_tools, tpm3_exon1_exon8,
 
     resp = await test_uta_tools.transcript_to_genomic(
         'NM_002529.3', 10, 0, exon_start_offset=3)
-    expected = copy.deepcopy(ntrk1_exon10_exon17)
+    expected = copy.deepcopy(ntrk1_exon10_exon17.dict())
     expected["exon_start_offset"] = 3
     expected["start"] = 156874628
     assert resp == expected

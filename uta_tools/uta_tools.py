@@ -1,7 +1,7 @@
 """Module for initializing data sources."""
-from typing import Optional, Dict, Union, List, Tuple
+from typing import Optional, Union, List, Tuple
 from uta_tools import logger
-from uta_tools.schemas import GenomicData
+from uta_tools.schemas import GenomicData, TranscriptExonData
 from uta_tools.data_sources import MANETranscript, MANETranscriptMappings,\
     SeqRepoAccess, TranscriptMappings, UTADatabase
 from uta_tools import SEQREPO_DATA_PATH, \
@@ -137,19 +137,10 @@ class UTATools:
             Must be either `residue` or `inter-residue` (0-based).
         :return: Genomic data (inter-residue coordinates)
         """
-        params = {
-            "start": None,
-            "exon_start": None,
-            "exon_start_offset": 0,
-            "end": None,
-            "exon_end": None,
-            "exon_end_offset": 0,
-            "gene": None,
-            "transcript": None,
-            "chr": None
-        }
+        params = {key: None for key in GenomicData.__dict__["__fields__"].keys()}  # noqa: E501
         if gene is not None:
-            gene = gene.upper()
+            gene = gene.upper().strip()
+
         start_data = await self._genomic_to_transcript(
             chromosome, start, strand=strand, transcript=transcript,
             gene=gene, is_start=True
@@ -163,6 +154,9 @@ class UTATools:
         )
         if not end_data:
             return None
+
+        start_data = start_data.dict()
+        end_data = end_data.dict()
 
         for field in ["transcript", "gene", "chr"]:
             if start_data[field] != end_data[field]:
@@ -180,18 +174,18 @@ class UTATools:
 
         params["start"] = start_data["pos"] - 1 if residue_mode.lower() == "residue" else start_data["pos"]  # noqa: E501
         params["exon_start"] = start_data["exon"]
-        params["exon_start_offset"] = start_data["exon_offset"] if start_data["exon_offset"] is not None else 0  # noqa: E501
+        params["exon_start_offset"] = start_data["exon_offset"]
 
         params["end"] = end_data["pos"]
         params["exon_end"] = end_data["exon"]
-        params["exon_end_offset"] = end_data["exon_offset"] if end_data["exon_offset"] is not None else 0  # noqa: E501
+        params["exon_end_offset"] = end_data["exon_offset"]
         return GenomicData(**params)
 
     async def _genomic_to_transcript(self, chromosome: Union[str, int],
                                      pos: int, strand: int = None,
                                      transcript: str = None,
                                      gene: str = None,
-                                     is_start: bool = True) -> Optional[Dict]:
+                                     is_start: bool = True) -> Optional[TranscriptExonData]:  # noqa: E501
         """Get transcript data given genomic data.
 
         :param str chromosome: Chromosome. Must either give chromosome number
@@ -206,14 +200,8 @@ class UTATools:
             `pos` is end position.
         :return: Transcript data (inter-residue coordinates)
         """
-        result = {
-            "transcript": transcript,
-            "pos": pos,
-            "exon": None,
-            "exon_offset": 0,
-            "gene": None,
-            "chr": None
-        }
+        params = {key: None for key in TranscriptExonData.__dict__["__fields__"].keys()}  # noqa: E501
+
         try:
             # Check if just chromosome number is given. If it is, we should
             # convert this to the correct accession version
@@ -244,7 +232,7 @@ class UTATools:
             logger.warning("No accessions found")
             return None
         alt_ac = next(iter(alt_acs))
-        result["chr"] = alt_ac
+        params["chr"] = alt_ac
 
         genes = genes_alt_acs["genes"]
         len_genes = len(genes)
@@ -266,7 +254,7 @@ class UTATools:
                                f"output gene, {output_gene}")
                 return None
 
-        result["gene"] = output_gene if output_gene else input_gene
+        params["gene"] = output_gene if output_gene else input_gene
 
         if transcript is None:
             if gene is None:
@@ -283,7 +271,6 @@ class UTATools:
                 transcript = mane_data["ensembl"]
             else:
                 transcript = None
-            result["transcript"] = transcript
 
             tx_exons = await self._structure_exons(transcript)
             tx_pos = mane_data["pos"][0] + mane_data["coding_start_site"]
@@ -291,23 +278,15 @@ class UTATools:
             tx_exon = tx_exons[exon_pos - 1]
 
             strand_to_use = strand if strand is not None else mane_data["strand"]  # noqa: E501
-            if is_start:
-                if strand_to_use == -1:
-                    result["exon_offset"] = tx_exon[1] - tx_pos
-                else:
-                    result["exon_offset"] = tx_pos - tx_exon[1]
-            else:
-                if strand_to_use == -1:
-                    result["exon_offset"] = tx_exon[0] - tx_pos
-                else:
-                    result["exon_offset"] = tx_pos - tx_exon[0]
+            self._set_exon_offset(params, tx_exon[0], tx_exon[1], tx_pos,
+                                  is_start=is_start, strand=strand_to_use)
 
             # Need to check if we need to change pos
             genomic_data = await self.uta_db.get_alt_ac_start_or_end(
                 transcript, tx_pos, tx_pos, gene)
             if genomic_data is None:
                 return None
-            result["chr"] = genomic_data[1]
+            alt_ac = genomic_data[1]
 
             genomic_coords = genomic_data[2], genomic_data[3]
             if is_start:
@@ -316,10 +295,10 @@ class UTATools:
                 genomic_pos = genomic_coords[0]
 
             if strand_to_use == -1:
-                result["pos"] = genomic_pos - result["exon_offset"]
+                pos = genomic_pos - params["exon_offset"]
             else:
-                result["pos"] = genomic_pos + result["exon_offset"]
-            result["exon"] = exon_pos
+                pos = genomic_pos + params["exon_offset"]
+            params["exon"] = exon_pos
         else:
             # We should always try to liftover
             grch38_ac = await self.uta_db.get_newest_assembly_ac(alt_ac)
@@ -338,10 +317,7 @@ class UTATools:
                 if liftover_data is None:
                     return None
                 pos = liftover_data[1]
-                result["pos"] = pos
-
                 alt_ac = grch38_ac
-                result["chr"] = alt_ac
 
             tx_exons = await self._structure_exons(transcript)
             data = await self.uta_db.get_tx_exon_aln_v_data(
@@ -366,25 +342,38 @@ class UTATools:
                         i = 1
                     else:
                         i -= 1
-                result["exon"] = i
+                params["exon"] = i
 
-                # Find exon offset
-                alt_start_i = data[5]
-                alt_end_i = data[6]
-                uta_strand = data[7]
-                strand_to_use = strand if strand is not None else uta_strand
-                if is_start:
-                    if strand_to_use == - 1:
-                        result["exon_offset"] = alt_end_i - pos
-                    else:
-                        result["exon_offset"] = pos - alt_end_i
-                else:
-                    if strand_to_use == -1:
-                        result["exon_offset"] = alt_start_i - pos
-                    else:
-                        result["exon_offset"] = pos - alt_start_i
+                strand_to_use = strand if strand is not None else data[7]
+                self._set_exon_offset(params, data[5], data[6], pos,
+                                      is_start=is_start, strand=strand_to_use)
+        params["transcript"] = transcript
+        params["pos"] = pos
+        params["chr"] = alt_ac
+        return TranscriptExonData(**params)
 
-        return result
+    def _set_exon_offset(self, params: dict, start: int, end: int, pos: int,
+                         is_start: bool, strand: int) -> None:
+        """Set `exon_offset` in params.
+
+        :param dict params: Parameters for response
+        :param int start: Start exon coord (can be transcript or genomic)
+        :param int end: End exon coord (can be transcript or genomic)
+        :param int pos: Position change (can be transcript or genomic)
+        :param bool is_start: `True` if `pos` is start position.
+            `False` if `pos` is end position
+        :param int strand: Strand
+        """
+        if is_start:
+            if strand == -1:
+                params["exon_offset"] = end - pos
+            else:
+                params["exon_offset"] = pos - end
+        else:
+            if strand == -1:
+                params["exon_offset"] = start - pos
+            else:
+                params["exon_offset"] = pos - start
 
     async def _structure_exons(self, transcript: str) -> List[Tuple[int, int]]:
         """Structure exons as list of tuples.
