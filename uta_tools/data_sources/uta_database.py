@@ -431,7 +431,8 @@ class UTADatabase:
             AND {tx_exon_end} BETWEEN T.tx_start_i AND T.tx_end_i
             AND T.alt_aln_method = 'splign'
             AND T.alt_ac LIKE 'NC_00%'
-            ORDER BY T.alt_ac DESC;
+            ORDER BY (CAST(SUBSTR(T.alt_ac, position('.' in T.alt_ac) + 1,
+                LENGTH(T.alt_ac)) AS INT)) DESC;
             """
         )
         result = await self.execute_query(query)
