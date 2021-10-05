@@ -1,5 +1,5 @@
 """Module for initializing data sources."""
-from typing import Optional, Dict, Union
+from typing import Optional, Dict, Union, List, Tuple
 from uta_tools import logger
 from uta_tools.data_sources import MANETranscript, MANETranscriptMappings,\
     SeqRepoAccess, TranscriptMappings, UTADatabase
@@ -387,8 +387,12 @@ class UTATools:
 
         return result
 
-    async def _get_exons_tuple(self, transcript: str):
-        """Reformat exons as tuples"""
+    async def _get_exons_tuple(self, transcript: str) -> List[Tuple[int, int]]:
+        """Reformat exons as list of tuples.
+
+        :param str transcript: Transcript accession
+        :return: List of tuples containing transcript exon coordinates
+        """
         result = list()
         tx_exons = await self.uta_db.get_tx_exons(transcript)
         for tx_exon in tx_exons:
@@ -396,8 +400,13 @@ class UTATools:
             result.append((int(coords[0]), int(coords[1])))
         return result
 
-    def _find_exon(self, tx_exons: list, tx_pos: int):
-        """Find exon number"""
+    def _find_exon(self, tx_exons: list, tx_pos: int) -> int:
+        """Find exon number.
+
+        :param list tx_exons: List of exon coordinates
+        :param int tx_pos: Transcript position change
+        :return: Exon number associated to transcript position change
+        """
         i = 1
         for coords in tx_exons:
             if coords[0] <= tx_pos <= coords[1]:
