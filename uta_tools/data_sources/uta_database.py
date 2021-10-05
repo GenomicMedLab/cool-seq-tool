@@ -188,18 +188,27 @@ class UTADatabase:
             for create_index in indexes:
                 await self.execute_query(create_index)
 
-    def _transform_list(self, li):
-        """Transform list to only contain field values"""
+    def _transform_list(self, li: list) -> List:
+        """Transform list to only contain field values
+
+        :param list li: List of asyncpg.Record objects
+        :return: List of objects
+        """
         results = list()
         for item in li:
             results.append([field for field in item])
         return results
 
-    async def chr_to_accession(self, chromosome, pos, strand=None,
-                               alt_ac=None):
-        """Chromosome number to accession.
+    async def chr_to_gene_and_accessions(self, chromosome: int, pos: int,
+                                         strand: int = None,
+                                         alt_ac: str = None) -> Dict:
+        """Return genes and genomic accessions related to a position on a chr.
 
-        :return: List of transcripts associated with input arguments
+        :param int chromosome: Chromosome number
+        :param int pos: Genomic position
+        :param int strand: Strand. Must be either `-1` or `1`
+        :param str alt_ac: Genomic accession
+        :return: Dictionary containing genes and genomic accessions
         """
         if alt_ac:
             alt_ac_cond = f"WHERE alt_ac = '{alt_ac}'"

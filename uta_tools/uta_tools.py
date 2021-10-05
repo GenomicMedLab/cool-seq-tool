@@ -119,7 +119,7 @@ class UTATools:
                                     gene: str = None,
                                     residue_mode: str = "residue",
                                     *args, **kwargs) -> Optional[GenomicData]:
-        """Get transcript data for genomic range data.
+        """Get transcript data for genomic data.
         MANE Transcript data will be returned iff `transcript` is not supplied.
             `gene` must be supplied in order to retrieve MANE Transcript data.
         Liftovers genomic coordinates to GRCh38
@@ -141,14 +141,14 @@ class UTATools:
         if gene is not None:
             gene = gene.upper().strip()
 
-        start_data = await self._genomic_to_transcript(
+        start_data = await self._individual_genomic_to_transcript(
             chromosome, start, strand=strand, transcript=transcript,
             gene=gene, is_start=True
         )
         if not start_data:
             return None
 
-        end_data = await self._genomic_to_transcript(
+        end_data = await self._individual_genomic_to_transcript(
             chromosome, end, strand=strand, transcript=transcript,
             gene=gene, is_start=False
         )
@@ -181,12 +181,13 @@ class UTATools:
         params["exon_end_offset"] = end_data["exon_offset"]
         return GenomicData(**params)
 
-    async def _genomic_to_transcript(self, chromosome: Union[str, int],
-                                     pos: int, strand: int = None,
-                                     transcript: str = None,
-                                     gene: str = None,
-                                     is_start: bool = True) -> Optional[TranscriptExonData]:  # noqa: E501
-        """Get transcript data given genomic data.
+    async def _individual_genomic_to_transcript(self,
+                                                chromosome: Union[str, int],
+                                                pos: int, strand: int = None,
+                                                transcript: str = None,
+                                                gene: str = None,
+                                                is_start: bool = True) -> Optional[TranscriptExonData]:  # noqa: E501
+        """Convert individual genomic data to transcript data
 
         :param str chromosome: Chromosome. Must either give chromosome number
             (i.e. `1`) or accession (i.e. `NC_000001.11`).
@@ -214,13 +215,13 @@ class UTATools:
 
         if isinstance(chromosome, str):
             # Accession given
-            genes_alt_acs = await self.uta_db.chr_to_accession(
+            genes_alt_acs = await self.uta_db.chr_to_gene_and_accessions(
                 chromosome, pos, strand=strand,
                 alt_ac=chromosome
             )
         else:
             # Number given
-            genes_alt_acs = await self.uta_db.chr_to_accession(
+            genes_alt_acs = await self.uta_db.chr_to_gene_and_accessions(
                 chromosome, pos, strand=strand, alt_ac=None
             )
         gene_alt_ac = self._get_gene_and_alt_ac(genes_alt_acs, gene)
