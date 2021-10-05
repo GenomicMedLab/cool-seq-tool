@@ -233,7 +233,12 @@ class UTATools:
                         break
                     i += 1
                 if not found_tx_exon:
-                    i = 1
+                    # Either first or last
+                    first_exon = 0, tx_exons[0][1]
+                    if data_exons == first_exon:
+                        i = 1
+                    else:
+                        i -= 1
                 result["exon"] = i
 
                 # Find exon offset
