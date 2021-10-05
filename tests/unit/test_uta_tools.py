@@ -356,24 +356,34 @@ async def test_transcript_to_genomic(test_uta_tools, tpm3_exon1_exon8,
 @pytest.mark.asyncio
 async def test_invalid(test_uta_tools):
     """Test that invalid queries return `None`."""
+    # Invalid gene
     resp = await test_uta_tools.genomic_to_transcript(
         "NC_000001.11", 154192135, 154170399, strand=-1,
         transcript="NM_152263.3", gene="dummy gene")
     assert resp is None
 
+    # Invalid chromosome
     resp = await test_uta_tools.genomic_to_transcript(
         "NC_000001.200", 154192135, 154170399, strand=-1,
         transcript="NM_152263.3")
     assert resp is None
 
+    # Invalid coordinates
     resp = await test_uta_tools.genomic_to_transcript(
         "NC_000001.11", 9999999999999, 9999999999999, strand=-1,
         transcript="NM_152263.3")
     assert resp is None
 
+    # Strand does not match
     resp = await test_uta_tools._genomic_to_transcript(
         "NC_000001.11", 154192135, strand=1, transcript="NM_152263.3",
         gene="TPM3"
+    )
+    assert resp is None
+
+    # Must supply either gene or transcript
+    resp = await test_uta_tools._genomic_to_transcript(
+        "NC_000001.11", 154192135, strand=1
     )
     assert resp is None
 
