@@ -45,6 +45,72 @@ class UTATools:
             self.seqrepo_access, self.transcript_mappings,
             self.mane_transcript_mappings, self.uta_db)
 
+    async def transcript_to_genomic(
+            self, tx_ac: str, exon_start: int, exon_end: int,
+            exon_start_offset: int = 0, exon_end_offset: int = 0,
+            gene: str = None) -> Optional[Dict]:
+        """Get genomic data given transcript data.
+
+        :param str tx_ac: Transcript accession
+        :param int exon_start: Starting exon number
+        :param int exon_end: Ending exon number
+        :param int exon_start_offset: Starting exon offset
+        :param int exon_end_offset: Ending exon offset
+        :param str gene: Gene symbol
+        :return: Dictionary containing transcript exon data and genomic
+            start/end coordinates, or None if lookup fails
+        """
+        if gene:
+            gene = gene.upper().strip()
+
+        if tx_ac:
+            tx_ac = tx_ac.strip()
+
+        tx_exon_start_end = await self.uta_db.get_tx_exon_start_end(
+            tx_ac, exon_start, exon_end)
+        if not tx_exon_start_end:
+            return None
+        (tx_exons, exon_start, exon_end) = tx_exon_start_end
+
+        tx_exon_coords = self.uta_db.get_tx_exon_coords(
+            tx_exons, exon_start, exon_end)
+        if not tx_exon_coords:
+            return None
+        tx_exon_start, tx_exon_end = tx_exon_coords
+
+        alt_ac_start_end = await self.uta_db.get_alt_ac_start_and_end(
+            tx_ac, tx_exon_start, tx_exon_end, gene=gene)
+        if not alt_ac_start_end:
+            return None
+        alt_ac_start, alt_ac_end = alt_ac_start_end
+
+        start = alt_ac_start[3]
+        end = alt_ac_end[2]
+        strand = alt_ac_start[4]
+        if strand == -1:
+            start_offset = exon_start_offset * -1
+            end_offset = exon_end_offset * -1
+        else:
+            start_offset = exon_start_offset
+            end_offset = exon_end_offset
+        start += start_offset
+        end += end_offset
+
+        gene = alt_ac_start[0]
+        chromosome = alt_ac_start[1]
+        if gene is None or chromosome is None:
+            return None
+        return {
+            "gene": gene,
+            "chr": chromosome,
+            "start": start,
+            "end": end,
+            "exon_start": exon_start,
+            "exon_start_offset": exon_start_offset,
+            "exon_end": exon_end,
+            "exon_end_offset": exon_end_offset,
+        }
+
     async def genomic_to_transcript(self, chromosome: Union[str, int],
                                     start_pos: int, end_pos: int,
                                     strand: int = None, transcript: str = None,
