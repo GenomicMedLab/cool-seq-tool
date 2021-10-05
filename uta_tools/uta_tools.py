@@ -216,7 +216,6 @@ class UTATools:
             exon_pos = self._find_exon(tx_exons, tx_pos)
             tx_exon = tx_exons[exon_pos - 1]
 
-            # Need to adjust position
             strand_to_use = strand if strand is not None else mane_data["strand"]  # noqa: E501
             if is_start:
                 if strand_to_use == -1:
@@ -241,7 +240,10 @@ class UTATools:
             else:
                 genomic_pos = genomic_coords[0]
 
-            result["pos"] = genomic_pos - result["exon_offset"]
+            if strand_to_use == -1:
+                result["pos"] = genomic_pos - result["exon_offset"]
+            else:
+                result["pos"] = genomic_pos + result["exon_offset"]
             result["exon"] = exon_pos
         else:
             tx_exons = await self._get_exons_tuple(transcript)
