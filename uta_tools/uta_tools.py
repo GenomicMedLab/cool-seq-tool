@@ -50,6 +50,7 @@ class UTATools:
             exon_start_offset: int = 0, exon_end_offset: int = 0,
             gene: str = None, *args, **kwargs) -> Optional[Dict]:
         """Get genomic data given transcript data.
+        Will liftover to GRCh38 coordinates if possible.
 
         :param str transcript: Transcript accession
         :param int exon_start: Starting exon number
@@ -119,6 +120,9 @@ class UTATools:
                                     residue_mode: str = "residue",
                                     *args, **kwargs) -> Optional[Dict]:
         """Get transcript data for genomic range data.
+        MANE Transcript data will be returned iff `transcript` is not supplied.
+            `gene` must be supplied in order to retrieve MANE Transcript data.
+        Liftovers genomic coordinates to GRCh38
 
         :param str chromosome: Chromosome. Must either give chromosome number
             (i.e. `1`) or accession (i.e. `NC_000001.11`).
@@ -318,6 +322,28 @@ class UTATools:
                 result["pos"] = genomic_pos + result["exon_offset"]
             result["exon"] = exon_pos
         else:
+            # We should always try to liftover
+            grch38_ac = await self.uta_db.get_newest_assembly_ac(alt_ac)
+            if not grch38_ac:
+                logger.warning(f"Invalid genomic accession: {alt_ac}")
+                return None
+            grch38_ac = grch38_ac[0][0]
+            if grch38_ac != alt_ac:
+                # Liftover
+                descr = await self.uta_db.get_chr_assembly(alt_ac)
+                if descr is None:
+                    return None
+                chromosome_number, assembly = descr
+                liftover_data = self.uta_db.get_liftover(
+                    chromosome_number, pos)
+                if liftover_data is None:
+                    return None
+                pos = liftover_data[1]
+                result["pos"] = pos
+
+                alt_ac = grch38_ac
+                result["chr"] = alt_ac
+
             tx_exons = await self._get_exons_tuple(transcript)
             data = await self.uta_db.get_tx_exon_aln_v_data(
                 transcript, pos, pos, alt_ac=alt_ac, use_tx_pos=False
