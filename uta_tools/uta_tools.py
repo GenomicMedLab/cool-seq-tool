@@ -232,57 +232,11 @@ class UTATools:
             await self._set_mane_genomic_data(params, gene, alt_ac, pos,
                                               strand, is_start)
         else:
-            # We should always try to liftover
-            grch38_ac = await self.uta_db.get_newest_assembly_ac(alt_ac)
-            if not grch38_ac:
-                logger.warning(f"Invalid genomic accession: {alt_ac}")
-                return None
-            grch38_ac = grch38_ac[0][0]
-            if grch38_ac != alt_ac:
-                # Liftover
-                descr = await self.uta_db.get_chr_assembly(alt_ac)
-                if descr is None:
-                    return None
-                chromosome_number, assembly = descr
-                liftover_data = self.uta_db.get_liftover(
-                    chromosome_number, pos)
-                if liftover_data is None:
-                    return None
-                pos = liftover_data[1]
-                alt_ac = grch38_ac
-
-            tx_exons = await self._structure_exons(transcript)
-            data = await self.uta_db.get_tx_exon_aln_v_data(
-                transcript, pos, pos, alt_ac=alt_ac, use_tx_pos=False
-            )
-            if len(data) == 1:
-                # Find exon number
-                data = data[0]
-                data_exons = data[2], data[3]
-
-                i = 1
-                found_tx_exon = False
-                for exon in tx_exons:
-                    if data_exons == exon:
-                        found_tx_exon = True
-                        break
-                    i += 1
-                if not found_tx_exon:
-                    # Either first or last
-                    first_exon = 0, tx_exons[0][1]
-                    if data_exons == first_exon:
-                        i = 1
-                    else:
-                        i -= 1
-                params["exon"] = i
-
-                strand_to_use = strand if strand is not None else data[7]
-                self._set_exon_offset(params, data[5], data[6], pos,
-                                      is_start=is_start, strand=strand_to_use)
             params["transcript"] = transcript
+            params["gene"] = gene
             params["pos"] = pos
             params["chr"] = alt_ac
-            params["gene"] = gene
+            await self._set_genomic_data(params, strand, is_start)
         return TranscriptExonData(**params)
 
     def _get_gene_and_alt_ac(self,
@@ -327,7 +281,7 @@ class UTATools:
         gene = output_gene if output_gene else input_gene
         return gene, alt_ac
 
-    async def _set_mane_genomic_data(self, params: dict, gene: Optional[str],
+    async def _set_mane_genomic_data(self, params: dict, gene: str,
                                      alt_ac: str, pos: int, strand: int,
                                      is_start: bool) -> None:
         """Set genomic data in `params` found from MANE.
@@ -340,9 +294,6 @@ class UTATools:
         :param bool is_start: `True` if `pos` is start position. `False` if
             `pos` is end position.
         """
-        if gene is None:
-            logger.warning("Must provide gene for MANE transcript")
-            return None
         mane_data = await self.mane_transcript.get_mane_transcript(
             alt_ac, pos, None, 'g', gene=gene,
             normalize_endpoint=True
@@ -373,6 +324,65 @@ class UTATools:
         genomic_pos = genomic_coords[1] if is_start else genomic_coords[0]
         params["pos"] = genomic_pos - params["exon_offset"] if \
             strand_to_use == -1 else genomic_pos + params["exon_offset"]
+
+    async def _set_genomic_data(self, params: dict, strand: int,
+                                is_start: bool) -> None:
+        """Set genomic data in `params`.
+
+        :param dict params: Parameters for response
+        :param int strand: Strand
+        :param bool is_start: `True` if `pos` is start position. `False` if
+            `pos` is end position.
+        """
+        # We should always try to liftover
+        grch38_ac = await self.uta_db.get_newest_assembly_ac(params["chr"])
+        if not grch38_ac:
+            logger.warning(f"Invalid genomic accession: {params['chr']}")
+            return None
+
+        grch38_ac = grch38_ac[0][0]
+        if grch38_ac != params["chr"]:
+            # Liftover
+            descr = await self.uta_db.get_chr_assembly(params["chr"])
+            if descr is None:
+                return None
+
+            chromosome_number, assembly = descr
+            liftover_data = self.uta_db.get_liftover(
+                chromosome_number, params["pos"])
+            if liftover_data is None:
+                return None
+
+            params["pos"] = liftover_data[1]
+            params["chr"] = grch38_ac
+
+        tx_exons = await self._structure_exons(params["transcript"])
+        data = await self.uta_db.get_tx_exon_aln_v_data(
+            params["transcript"], params["pos"], params["pos"],
+            alt_ac=params["chr"], use_tx_pos=False)
+        if len(data) != 1:
+            logger.warning(f"Must find exactly one row for genomic data, "
+                           f"but found: {len(data)}")
+            return None
+
+        # Find exon number
+        data = data[0]
+        data_exons = data[2], data[3]
+        i = 1
+        found_tx_exon = False
+        for exon in tx_exons:
+            if data_exons == exon:
+                found_tx_exon = True
+                break
+            i += 1
+        if not found_tx_exon:
+            # Either first or last
+            i = 1 if data_exons == (0, tx_exons[0][1]) else i - 1
+        params["exon"] = i
+
+        strand_to_use = strand if strand is not None else data[7]
+        self._set_exon_offset(params, data[5], data[6], params["pos"],
+                              is_start=is_start, strand=strand_to_use)
 
     def _set_exon_offset(self, params: dict, start: int, end: int, pos: int,
                          is_start: bool, strand: int) -> None:
