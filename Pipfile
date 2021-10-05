@@ -11,6 +11,7 @@ pyliftover = "*"
 pandas = "*"
 hgvs = "*"
 "biocommons.seqrepo" = "*"
+pydantic = "*"
 
 [dev-packages]
 uta_tools = {editable = true, path = "."}
