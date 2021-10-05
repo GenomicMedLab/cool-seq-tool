@@ -285,10 +285,9 @@ class UTATools:
                 transcript = None
             result["transcript"] = transcript
 
-            tx_exons = await self._get_exons_tuple(transcript)
-
+            tx_exons = await self._structure_exons(transcript)
             tx_pos = mane_data["pos"][0] + mane_data["coding_start_site"]
-            exon_pos = self._find_exon(tx_exons, tx_pos)
+            exon_pos = self._get_exon_number(tx_exons, tx_pos)
             tx_exon = tx_exons[exon_pos - 1]
 
             strand_to_use = strand if strand is not None else mane_data["strand"]  # noqa: E501
@@ -344,7 +343,7 @@ class UTATools:
                 alt_ac = grch38_ac
                 result["chr"] = alt_ac
 
-            tx_exons = await self._get_exons_tuple(transcript)
+            tx_exons = await self._structure_exons(transcript)
             data = await self.uta_db.get_tx_exon_aln_v_data(
                 transcript, pos, pos, alt_ac=alt_ac, use_tx_pos=False
             )
@@ -387,8 +386,8 @@ class UTATools:
 
         return result
 
-    async def _get_exons_tuple(self, transcript: str) -> List[Tuple[int, int]]:
-        """Reformat exons as list of tuples.
+    async def _structure_exons(self, transcript: str) -> List[Tuple[int, int]]:
+        """Structure exons as list of tuples.
 
         :param str transcript: Transcript accession
         :return: List of tuples containing transcript exon coordinates
@@ -400,7 +399,7 @@ class UTATools:
             result.append((int(coords[0]), int(coords[1])))
         return result
 
-    def _find_exon(self, tx_exons: list, tx_pos: int) -> int:
+    def _get_exon_number(self, tx_exons: list, tx_pos: int) -> int:
         """Find exon number.
 
         :param list tx_exons: List of exon coordinates
