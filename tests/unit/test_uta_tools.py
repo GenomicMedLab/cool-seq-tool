@@ -16,6 +16,7 @@ async def test_uta_tools():
 def tpm3_exon1():
     """Create test fixture for TPM3 exon 1."""
     return {
+        "chr": "NC_000001.11",
         "gene": "TPM3",
         "pos": 154192135,
         "exon": 1,
@@ -29,6 +30,7 @@ def tpm3_exon1():
 def tpm3_exon8():
     """Create test fixture for TPM3 exon 8."""
     return {
+        "chr": "NC_000001.11",
         "gene": "TPM3",
         "pos": 154170399,
         "exon": 8,
@@ -44,28 +46,13 @@ def tpm3_exon1_exon8():
     return {
         "gene": "TPM3",
         "chr": "NC_000001.11",
-        "start": 154192135,
-        "end": 154170399,
-        "exon_start": 1,
-        "exon_end": 8,
-        "exon_end_offset": 0,
-        "exon_start_offset": 0
-    }
-
-
-@pytest.fixture(scope="module")
-def tpm3_exon1_exon8_g_to_t():
-    """Create test fixture for TPM3."""
-    return {
-        "gene": "TPM3",
         "start": 154192134,
-        "exon_start": 1,
-        "exon_start_offset": 0,
         "end": 154170399,
+        "exon_start": 1,
         "exon_end": 8,
         "exon_end_offset": 0,
+        "exon_start_offset": 0,
         "transcript": "NM_152263.3"
-
     }
 
 
@@ -73,6 +60,7 @@ def tpm3_exon1_exon8_g_to_t():
 def tpm3_exon1_exon8_offset():
     """Create test fixture for TPM3."""
     return {
+        "chr": "NC_000001.11",
         "gene": "TPM3",
         "start": 154192131,
         "exon_start": 1,
@@ -89,6 +77,7 @@ def tpm3_exon1_exon8_offset():
 def mane_BRAF():
     """Create test fixture for BRAF."""
     return {
+        "chr": "NC_000007.14",
         "gene": "BRAF",
         "start": 140801411,
         "exon_start": 6,
@@ -105,6 +94,7 @@ def mane_BRAF():
 def wee1_exon2_exon11():
     """Create test fixture for WEE1."""
     return {
+        "chr": "NC_000011.9",
         "gene": "WEE1",
         "start": 9597639,
         "exon_start": 2,
@@ -118,9 +108,27 @@ def wee1_exon2_exon11():
 
 
 @pytest.fixture(scope="module")
+def wee1_exon2_exon11_liftover():
+    """Create test fixture for WEE1."""
+    return {
+        "chr": "NC_000011.10",
+        "gene": "WEE1",
+        "start": 9576092,
+        "exon_start": 2,
+        "exon_start_offset": 0,
+        "end": 9588448,
+        "exon_end": 11,
+        "exon_end_offset": 0,
+        "transcript": "NM_003390.3"
+
+    }
+
+
+@pytest.fixture(scope="module")
 def mane_wee1_exon2_exon11():
     """Create test fixture for WEE1."""
     return {
+        "chr": "NC_000011.10",
         "gene": "WEE1",
         "start": 9576092,
         "exon_start": 2,
@@ -139,12 +147,13 @@ def ntrk1_exon10_exon17():
     return {
         "gene": "NTRK1",
         "chr": "NC_000001.11",
-        "start": 156874626,
+        "start": 156874625,
         "end": 156881456,
         "exon_start": 10,
         "exon_end": 17,
         "exon_end_offset": 0,
-        "exon_start_offset": 0
+        "exon_start_offset": 0,
+        "transcript": "NM_002529.3"
     }
 
 
@@ -185,48 +194,89 @@ async def test__genomic_to_transcript(test_uta_tools, tpm3_exon1, tpm3_exon8):
 
 
 @pytest.mark.asyncio
-async def test_genomic_to_transcript(test_uta_tools, tpm3_exon1_exon8_g_to_t,
-                                     mane_BRAF,
-                                     tpm3_exon1_exon8_offset,
-                                     wee1_exon2_exon11,
-                                     mane_wee1_exon2_exon11):
-    """Test that genomic_to_transcript method works correctly."""
-    resp = await test_uta_tools.genomic_to_transcript(
-        "NC_000001.11", 154192135, 154170399, strand=-1,
-        transcript="NM_152263.3")
-    assert resp == tpm3_exon1_exon8_g_to_t
+async def test_tpm3(test_uta_tools, tpm3_exon1_exon8,
+                    tpm3_exon1_exon8_offset):
+    """Test TPM3 genomic_to_transcript and transcript_to_genomic."""
+    inputs = {
+        "chromosome": "NC_000001.11",
+        "start": 154192135,
+        "end": 154170399,
+        "strand": -1,
+        "transcript": "NM_152263.3"
+    }
+    g_to_t_resp = await test_uta_tools.genomic_to_transcript(**inputs)
+    assert g_to_t_resp == tpm3_exon1_exon8
+    t_to_g_resp = await test_uta_tools.transcript_to_genomic(**g_to_t_resp)
+    assert t_to_g_resp == tpm3_exon1_exon8
 
-    # Offset, no strand provided
-    resp = await test_uta_tools.genomic_to_transcript(
-        "NC_000001.11", 154192132, 154170404, transcript="NM_152263.3")
-    assert resp == tpm3_exon1_exon8_offset
+    # No strand
+    del inputs["strand"]
+    g_to_t_resp = await test_uta_tools.genomic_to_transcript(**inputs)
+    assert g_to_t_resp == tpm3_exon1_exon8
+    t_to_g_resp = await test_uta_tools.transcript_to_genomic(**g_to_t_resp)
+    assert t_to_g_resp == tpm3_exon1_exon8
 
-    # Offset, strand provided
-    resp = await test_uta_tools.genomic_to_transcript(
-        "NC_000001.11", 154192132, 154170404, strand=-1,
-        transcript="NM_152263.3")
-    assert resp == tpm3_exon1_exon8_offset
+    # Offset, no strand
+    inputs["start"] = 154192132
+    inputs["end"] = 154170404
+    g_to_t_resp = await test_uta_tools.genomic_to_transcript(**inputs)
+    assert g_to_t_resp == tpm3_exon1_exon8_offset
+    t_to_g_resp = await test_uta_tools.transcript_to_genomic(**g_to_t_resp)
+    assert t_to_g_resp == tpm3_exon1_exon8_offset
 
-    # MANE Transcript Test
-    resp = await test_uta_tools.genomic_to_transcript(
-        "NC_000007.13", 140501360, 140453136, strand=-1, gene="BRAF")
-    assert resp == mane_BRAF
+    # Offset, strand
+    inputs["strand"] = -1
+    g_to_t_resp = await test_uta_tools.genomic_to_transcript(**inputs)
+    assert g_to_t_resp == tpm3_exon1_exon8_offset
+    t_to_g_resp = await test_uta_tools.transcript_to_genomic(**g_to_t_resp)
+    assert t_to_g_resp == tpm3_exon1_exon8_offset
 
-    resp = await test_uta_tools.genomic_to_transcript(
-        "NC_000011.9", 9597640, 9609995, strand=1, transcript="NM_003390.3"
-    )
-    assert resp == wee1_exon2_exon11
 
-    resp = await test_uta_tools.genomic_to_transcript(
-        "NC_000011.9", 9597640, 9609995, transcript="NM_003390.3", gene="wee1"
-    )
-    assert resp == wee1_exon2_exon11
+@pytest.mark.asyncio
+async def test_braf(test_uta_tools, mane_BRAF):
+    """Test BRAF genomic_to_transcript and transcript_to_genomic."""
+    # MANE
+    inputs = {
+        "chromosome": "NC_000007.13",
+        "start": 140501360,
+        "end": 140453136,
+        "strand": -1,
+        "gene": "BRAF"
+    }
+    g_to_t_resp = await test_uta_tools.genomic_to_transcript(**inputs)
+    assert g_to_t_resp == mane_BRAF
+    t_to_g_resp = await test_uta_tools.transcript_to_genomic(**g_to_t_resp)
+    assert t_to_g_resp == mane_BRAF
 
-    # MANE Transcript
-    resp = await test_uta_tools.genomic_to_transcript(
-        "NC_000011.9", 9597640, 9609995, gene="wee1"
-    )
-    assert resp == mane_wee1_exon2_exon11
+
+@pytest.mark.asyncio
+async def test_wee1(test_uta_tools, wee1_exon2_exon11,
+                    wee1_exon2_exon11_liftover, mane_wee1_exon2_exon11):
+    """Test WEE1 genomic_to_transcript and transcript_to_genomic."""
+    inputs = {
+        "chromosome": "NC_000011.9",
+        "start": 9597640,
+        "end": 9609995,
+        "strand": 1,
+        "transcript": "NM_003390.3"
+    }
+    g_to_t_resp = await test_uta_tools.genomic_to_transcript(**inputs)
+    assert g_to_t_resp == wee1_exon2_exon11
+    t_to_g_resp = await test_uta_tools.transcript_to_genomic(**g_to_t_resp)
+    assert t_to_g_resp == wee1_exon2_exon11_liftover
+
+    inputs["gene"] = "wee1"
+    g_to_t_resp = await test_uta_tools.genomic_to_transcript(**inputs)
+    assert g_to_t_resp == wee1_exon2_exon11
+    t_to_g_resp = await test_uta_tools.transcript_to_genomic(**g_to_t_resp)
+    assert t_to_g_resp == wee1_exon2_exon11_liftover
+
+    # MANE
+    del inputs["transcript"]
+    g_to_t_resp = await test_uta_tools.genomic_to_transcript(**inputs)
+    assert g_to_t_resp == mane_wee1_exon2_exon11
+    t_to_g_resp = await test_uta_tools.transcript_to_genomic(**g_to_t_resp)
+    assert t_to_g_resp == mane_wee1_exon2_exon11
 
 
 @pytest.mark.asyncio
@@ -277,13 +327,13 @@ async def test_transcript_to_genomic(test_uta_tools, tpm3_exon1_exon8,
         'NM_152263.3', 3, 8, exon_start_offset=3, exon_end_offset=5)
     expected["exon_start"] = 3
     expected["exon_start_offset"] = 3
-    expected["start"] = 154176245
+    expected["start"] = 154176244
     assert resp == expected
 
     resp = await test_uta_tools.transcript_to_genomic(
         'NM_152263.3', 3, 8, exon_start_offset=-3, exon_end_offset=5)
     expected["exon_start_offset"] = -3
-    expected["start"] = 154176251
+    expected["start"] = 154176250
     assert resp == expected
 
     # NTRK1
@@ -302,13 +352,13 @@ async def test_transcript_to_genomic(test_uta_tools, tpm3_exon1_exon8,
         'NM_002529.3', 10, 0, exon_start_offset=3)
     expected = copy.deepcopy(ntrk1_exon10_exon17)
     expected["exon_start_offset"] = 3
-    expected["start"] = 156874629
+    expected["start"] = 156874628
     assert resp == expected
 
     resp = await test_uta_tools.transcript_to_genomic(
         'NM_002529.3', 10, 0, exon_start_offset=-3)
     expected["exon_start_offset"] = -3
-    expected["start"] = 156874623
+    expected["start"] = 156874622
     assert resp == expected
 
 
