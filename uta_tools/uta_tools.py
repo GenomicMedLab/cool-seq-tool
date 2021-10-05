@@ -54,8 +54,8 @@ class UTATools:
         Will liftover to GRCh38 coordinates if possible.
 
         :param str transcript: Transcript accession
-        :param int exon_start: Starting exon number
-        :param int exon_end: Ending exon number
+        :param int exon_start: Starting transcript exon number
+        :param int exon_end: Ending transcript exon number
         :param int exon_start_offset: Starting exon offset
         :param int exon_end_offset: Ending exon offset
         :param str gene: Gene symbol
@@ -132,7 +132,7 @@ class UTATools:
         :param str transcript: The transcript to use. If this is not given,
             we will try the following transcripts: MANE Select, MANE Clinical
             Plus, Longest Remaining Compatible Transcript
-        :param str gene: Gene
+        :param str gene: Gene symbol
         :param str residue_mode: Default is `resiude` (1-based).
             Must be either `residue` or `inter-residue` (0-based).
         :return: Genomic data (inter-residue coordinates)
@@ -190,12 +190,12 @@ class UTATools:
 
         :param str chromosome: Chromosome. Must either give chromosome number
             (i.e. `1`) or accession (i.e. `NC_000001.11`).
-        :param int pos: Position
+        :param int pos: Genomic position
         :param str strand: Strand. Must be either `-1` or `1`.
         :param str transcript: The transcript to use. If this is not given,
             we will try the following transcripts: MANE Select, MANE Clinical
             Plus, Longest Remaining Compatible Transcript
-        :param str gene: Gene
+        :param str gene: Gene symbol
         :param bool is_start: `True` if `pos` is start position. `False` if
             `pos` is end position.
         :return: Transcript data (inter-residue coordinates)
@@ -229,48 +229,8 @@ class UTATools:
         gene, alt_ac = gene_alt_ac
 
         if transcript is None:
-            if gene is None:
-                logger.warning("Must provide gene for MANE transcript")
-                return None
-            mane_data = await self.mane_transcript.get_mane_transcript( # noqa
-                alt_ac, pos, None, 'g', gene=gene,
-                normalize_endpoint=True
-            )
-
-            if mane_data["refseq"]:
-                transcript = mane_data["refseq"]
-            elif mane_data["ensembl"]:
-                transcript = mane_data["ensembl"]
-            else:
-                transcript = None
-
-            tx_exons = await self._structure_exons(transcript)
-            tx_pos = mane_data["pos"][0] + mane_data["coding_start_site"]
-            exon_pos = self._get_exon_number(tx_exons, tx_pos)
-            tx_exon = tx_exons[exon_pos - 1]
-
-            strand_to_use = strand if strand is not None else mane_data["strand"]  # noqa: E501
-            self._set_exon_offset(params, tx_exon[0], tx_exon[1], tx_pos,
-                                  is_start=is_start, strand=strand_to_use)
-
-            # Need to check if we need to change pos
-            genomic_data = await self.uta_db.get_alt_ac_start_or_end(
-                transcript, tx_pos, tx_pos, gene)
-            if genomic_data is None:
-                return None
-            alt_ac = genomic_data[1]
-
-            genomic_coords = genomic_data[2], genomic_data[3]
-            if is_start:
-                genomic_pos = genomic_coords[1]
-            else:
-                genomic_pos = genomic_coords[0]
-
-            if strand_to_use == -1:
-                pos = genomic_pos - params["exon_offset"]
-            else:
-                pos = genomic_pos + params["exon_offset"]
-            params["exon"] = exon_pos
+            await self._set_mane_genomic_data(params, gene, alt_ac, pos,
+                                              strand, is_start)
         else:
             # We should always try to liftover
             grch38_ac = await self.uta_db.get_newest_assembly_ac(alt_ac)
@@ -319,10 +279,10 @@ class UTATools:
                 strand_to_use = strand if strand is not None else data[7]
                 self._set_exon_offset(params, data[5], data[6], pos,
                                       is_start=is_start, strand=strand_to_use)
-        params["transcript"] = transcript
-        params["pos"] = pos
-        params["chr"] = alt_ac
-        params["gene"] = gene
+            params["transcript"] = transcript
+            params["pos"] = pos
+            params["chr"] = alt_ac
+            params["gene"] = gene
         return TranscriptExonData(**params)
 
     def _get_gene_and_alt_ac(self,
@@ -366,6 +326,53 @@ class UTATools:
 
         gene = output_gene if output_gene else input_gene
         return gene, alt_ac
+
+    async def _set_mane_genomic_data(self, params: dict, gene: Optional[str],
+                                     alt_ac: str, pos: int, strand: int,
+                                     is_start: bool) -> None:
+        """Set genomic data in `params` found from MANE.
+
+        :param dict params: Parameters for response
+        :param str gene: Gene symbol
+        :param str alt_ac: Genomic accession
+        :param int pos: Genomic position
+        :param int strand: Strand
+        :param bool is_start: `True` if `pos` is start position. `False` if
+            `pos` is end position.
+        """
+        if gene is None:
+            logger.warning("Must provide gene for MANE transcript")
+            return None
+        mane_data = await self.mane_transcript.get_mane_transcript(
+            alt_ac, pos, None, 'g', gene=gene,
+            normalize_endpoint=True
+        )
+        if not mane_data:
+            logger.warning("Could not find mane data")
+            return None
+
+        params["gene"] = mane_data["gene"]
+        params["transcript"] = mane_data["refseq"] if mane_data["refseq"] \
+            else mane_data["ensembl"] if mane_data["ensembl"] else None
+        tx_exons = await self._structure_exons(params["transcript"])
+        tx_pos = mane_data["pos"][0] + mane_data["coding_start_site"]
+        params["exon"] = self._get_exon_number(tx_exons, tx_pos)
+        tx_exon = tx_exons[params["exon"] - 1]
+        strand_to_use = strand if strand is not None else mane_data[
+            "strand"]  # noqa: E501
+        self._set_exon_offset(params, tx_exon[0], tx_exon[1], tx_pos,
+                              is_start=is_start, strand=strand_to_use)
+
+        # Need to check if we need to change pos for liftover
+        genomic_data = await self.uta_db.get_alt_ac_start_or_end(
+            params["transcript"], tx_pos, tx_pos, gene)
+        if genomic_data is None:
+            return None
+        params["chr"] = genomic_data[1]
+        genomic_coords = genomic_data[2], genomic_data[3]
+        genomic_pos = genomic_coords[1] if is_start else genomic_coords[0]
+        params["pos"] = genomic_pos - params["exon_offset"] if \
+            strand_to_use == -1 else genomic_pos + params["exon_offset"]
 
     def _set_exon_offset(self, params: dict, start: int, end: int, pos: int,
                          is_start: bool, strand: int) -> None:
