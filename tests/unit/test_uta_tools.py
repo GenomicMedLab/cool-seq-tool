@@ -94,23 +94,6 @@ def mane_BRAF():
 def wee1_exon2_exon11():
     """Create test fixture for WEE1."""
     return {
-        "chr": "NC_000011.9",
-        "gene": "WEE1",
-        "start": 9597639,
-        "exon_start": 2,
-        "exon_start_offset": 0,
-        "end": 9609995,
-        "exon_end": 11,
-        "exon_end_offset": 0,
-        "transcript": "NM_003390.3"
-
-    }
-
-
-@pytest.fixture(scope="module")
-def wee1_exon2_exon11_liftover():
-    """Create test fixture for WEE1."""
-    return {
         "chr": "NC_000011.10",
         "gene": "WEE1",
         "start": 9576092,
@@ -235,7 +218,6 @@ async def test_tpm3(test_uta_tools, tpm3_exon1_exon8,
 @pytest.mark.asyncio
 async def test_braf(test_uta_tools, mane_BRAF):
     """Test BRAF genomic_to_transcript and transcript_to_genomic."""
-    # MANE
     inputs = {
         "chromosome": "NC_000007.13",
         "start": 140501360,
@@ -243,6 +225,7 @@ async def test_braf(test_uta_tools, mane_BRAF):
         "strand": -1,
         "gene": "BRAF"
     }
+    # MANE
     g_to_t_resp = await test_uta_tools.genomic_to_transcript(**inputs)
     assert g_to_t_resp == mane_BRAF
     t_to_g_resp = await test_uta_tools.transcript_to_genomic(**g_to_t_resp)
@@ -250,8 +233,7 @@ async def test_braf(test_uta_tools, mane_BRAF):
 
 
 @pytest.mark.asyncio
-async def test_wee1(test_uta_tools, wee1_exon2_exon11,
-                    wee1_exon2_exon11_liftover, mane_wee1_exon2_exon11):
+async def test_wee1(test_uta_tools, wee1_exon2_exon11, mane_wee1_exon2_exon11):
     """Test WEE1 genomic_to_transcript and transcript_to_genomic."""
     inputs = {
         "chromosome": "NC_000011.9",
@@ -263,13 +245,13 @@ async def test_wee1(test_uta_tools, wee1_exon2_exon11,
     g_to_t_resp = await test_uta_tools.genomic_to_transcript(**inputs)
     assert g_to_t_resp == wee1_exon2_exon11
     t_to_g_resp = await test_uta_tools.transcript_to_genomic(**g_to_t_resp)
-    assert t_to_g_resp == wee1_exon2_exon11_liftover
+    assert t_to_g_resp == wee1_exon2_exon11
 
     inputs["gene"] = "wee1"
     g_to_t_resp = await test_uta_tools.genomic_to_transcript(**inputs)
     assert g_to_t_resp == wee1_exon2_exon11
     t_to_g_resp = await test_uta_tools.transcript_to_genomic(**g_to_t_resp)
-    assert t_to_g_resp == wee1_exon2_exon11_liftover
+    assert t_to_g_resp == wee1_exon2_exon11
 
     # MANE
     del inputs["transcript"]
