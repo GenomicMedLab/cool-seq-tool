@@ -80,14 +80,14 @@ class UTATools:
             gene = gene.upper()
         start = await self._genomic_to_transcript(
             chromosome, start_pos, strand=strand, transcript=transcript,
-            gene=gene
+            gene=gene, is_start=True
         )
         if not start:
             return None
 
         end = await self._genomic_to_transcript(
             chromosome, end_pos, strand=strand, transcript=transcript,
-            gene=gene
+            gene=gene, is_start=False
         )
         if not end:
             return None
@@ -117,7 +117,8 @@ class UTATools:
     async def _genomic_to_transcript(self, chromosome: Union[str, int],
                                      pos: int, strand: int = None,
                                      transcript: str = None,
-                                     gene: str = None) -> Optional[Dict]:
+                                     gene: str = None,
+                                     is_start: bool = True) -> Optional[Dict]:
         """Get transcript data given genomic data.
 
         :param str chromosome: Chromosome. Must either give chromosome number
@@ -128,6 +129,8 @@ class UTATools:
             we will try the following transcripts: MANE Select, MANE Clinical
             Plus, Longest Remaining Compatible Transcript
         :param str gene: Gene
+        :param bool is_start: `True` if `pos` is start position. `False` if
+            `pos` is end position.
         :return: Transcript data (inter-residue coordinates)
         """
         result = {
@@ -218,6 +221,7 @@ class UTATools:
                 transcript, pos, pos, alt_ac=alt_ac, use_tx_pos=False
             )
             if len(data) == 1:
+                # Find exon number
                 data = data[0]
                 data_exons = data[2], data[3]
 
@@ -231,6 +235,23 @@ class UTATools:
                 if not found_tx_exon:
                     i = 1
                 result["exon"] = i
+
+                # Find exon offset
+                alt_start_i = data[5]
+                alt_end_i = data[6]
+                uta_strand = data[7]
+                strand_to_use = strand if strand is not None else uta_strand
+                if is_start:
+                    if strand_to_use == - 1:
+                        result["exon_offset"] = alt_end_i - pos
+                    else:
+                        result["exon_offset"] = pos - alt_end_i
+                else:
+                    if strand_to_use == -1:
+                        result["exon_offset"] = alt_start_i - pos
+                    else:
+                        result["exon_offset"] = pos - alt_start_i
+
         return result
 
     async def _get_exons_tuple(self, transcript: str):
