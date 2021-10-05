@@ -104,7 +104,7 @@ class UTATools:
         return GenomicData(
             gene=gene,
             chr=chromosome,
-            start=start - 1,
+            start=start,
             end=end,
             exon_start=exon_start,
             exon_start_offset=exon_start_offset,
