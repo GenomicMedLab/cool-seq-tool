@@ -1,6 +1,7 @@
 """Module for initializing data sources."""
 from typing import Optional, Dict, Union, List, Tuple
 from uta_tools import logger
+from uta_tools.schemas import GenomicData
 from uta_tools.data_sources import MANETranscript, MANETranscriptMappings,\
     SeqRepoAccess, TranscriptMappings, UTADatabase
 from uta_tools import SEQREPO_DATA_PATH, \
@@ -48,7 +49,7 @@ class UTATools:
     async def transcript_to_genomic(
             self, transcript: str, exon_start: int, exon_end: int,
             exon_start_offset: int = 0, exon_end_offset: int = 0,
-            gene: str = None, *args, **kwargs) -> Optional[Dict]:
+            gene: str = None, *args, **kwargs) -> Optional[GenomicData]:
         """Get genomic data given transcript data.
         Will liftover to GRCh38 coordinates if possible.
 
@@ -58,8 +59,7 @@ class UTATools:
         :param int exon_start_offset: Starting exon offset
         :param int exon_end_offset: Ending exon offset
         :param str gene: Gene symbol
-        :return: Dictionary containing transcript exon data and genomic
-            start/end coordinates, or None if lookup fails
+        :return: Genomic data (inter-residue coordinates)
         """
         if gene:
             gene = gene.upper().strip()
@@ -101,24 +101,24 @@ class UTATools:
         chromosome = alt_ac_start[1]
         if gene is None or chromosome is None:
             return None
-        return {
-            "gene": gene,
-            "chr": chromosome,
-            "start": start - 1,
-            "end": end,
-            "exon_start": exon_start,
-            "exon_start_offset": exon_start_offset,
-            "exon_end": exon_end,
-            "exon_end_offset": exon_end_offset,
-            "transcript": transcript
-        }
+        return GenomicData(
+            gene=gene,
+            chr=chromosome,
+            start=start - 1,
+            end=end,
+            exon_start=exon_start,
+            exon_start_offset=exon_start_offset,
+            exon_end=exon_end,
+            exon_end_offset=exon_end_offset,
+            transcript=transcript
+        )
 
     async def genomic_to_transcript(self, chromosome: Union[str, int],
                                     start: int, end: int,
                                     strand: int = None, transcript: str = None,
                                     gene: str = None,
                                     residue_mode: str = "residue",
-                                    *args, **kwargs) -> Optional[Dict]:
+                                    *args, **kwargs) -> Optional[GenomicData]:
         """Get transcript data for genomic range data.
         MANE Transcript data will be returned iff `transcript` is not supplied.
             `gene` must be supplied in order to retrieve MANE Transcript data.
@@ -135,7 +135,7 @@ class UTATools:
         :param str gene: Gene
         :param str residue_mode: Default is `resiude` (1-based).
             Must be either `residue` or `inter-residue` (0-based).
-        :return: Transcript data (inter-residue coordinates)
+        :return: Genomic data (inter-residue coordinates)
         """
         params = {
             "start": None,
@@ -185,7 +185,7 @@ class UTATools:
         params["end"] = end_data["pos"]
         params["exon_end"] = end_data["exon"]
         params["exon_end_offset"] = end_data["exon_offset"] if end_data["exon_offset"] is not None else 0  # noqa: E501
-        return params
+        return GenomicData(**params)
 
     async def _genomic_to_transcript(self, chromosome: Union[str, int],
                                      pos: int, strand: int = None,

@@ -189,14 +189,14 @@ async def test_tpm3(test_uta_tools, tpm3_exon1_exon8,
     }
     g_to_t_resp = await test_uta_tools.genomic_to_transcript(**inputs)
     assert g_to_t_resp == tpm3_exon1_exon8
-    t_to_g_resp = await test_uta_tools.transcript_to_genomic(**g_to_t_resp)
+    t_to_g_resp = await test_uta_tools.transcript_to_genomic(**g_to_t_resp.dict())  # noqa: E501
     assert t_to_g_resp == tpm3_exon1_exon8
 
     # No strand
     del inputs["strand"]
     g_to_t_resp = await test_uta_tools.genomic_to_transcript(**inputs)
     assert g_to_t_resp == tpm3_exon1_exon8
-    t_to_g_resp = await test_uta_tools.transcript_to_genomic(**g_to_t_resp)
+    t_to_g_resp = await test_uta_tools.transcript_to_genomic(**g_to_t_resp.dict())  # noqa: E501
     assert t_to_g_resp == tpm3_exon1_exon8
 
     # Offset, no strand
@@ -204,14 +204,14 @@ async def test_tpm3(test_uta_tools, tpm3_exon1_exon8,
     inputs["end"] = 154170404
     g_to_t_resp = await test_uta_tools.genomic_to_transcript(**inputs)
     assert g_to_t_resp == tpm3_exon1_exon8_offset
-    t_to_g_resp = await test_uta_tools.transcript_to_genomic(**g_to_t_resp)
+    t_to_g_resp = await test_uta_tools.transcript_to_genomic(**g_to_t_resp.dict())  # noqa: E501
     assert t_to_g_resp == tpm3_exon1_exon8_offset
 
     # Offset, strand
     inputs["strand"] = -1
     g_to_t_resp = await test_uta_tools.genomic_to_transcript(**inputs)
     assert g_to_t_resp == tpm3_exon1_exon8_offset
-    t_to_g_resp = await test_uta_tools.transcript_to_genomic(**g_to_t_resp)
+    t_to_g_resp = await test_uta_tools.transcript_to_genomic(**g_to_t_resp.dict())  # noqa: E501
     assert t_to_g_resp == tpm3_exon1_exon8_offset
 
 
@@ -228,7 +228,7 @@ async def test_braf(test_uta_tools, mane_BRAF):
     # MANE
     g_to_t_resp = await test_uta_tools.genomic_to_transcript(**inputs)
     assert g_to_t_resp == mane_BRAF
-    t_to_g_resp = await test_uta_tools.transcript_to_genomic(**g_to_t_resp)
+    t_to_g_resp = await test_uta_tools.transcript_to_genomic(**g_to_t_resp.dict())  # noqa: E501
     assert t_to_g_resp == mane_BRAF
 
 
@@ -244,20 +244,20 @@ async def test_wee1(test_uta_tools, wee1_exon2_exon11, mane_wee1_exon2_exon11):
     }
     g_to_t_resp = await test_uta_tools.genomic_to_transcript(**inputs)
     assert g_to_t_resp == wee1_exon2_exon11
-    t_to_g_resp = await test_uta_tools.transcript_to_genomic(**g_to_t_resp)
+    t_to_g_resp = await test_uta_tools.transcript_to_genomic(**g_to_t_resp.dict())  # noqa: E501
     assert t_to_g_resp == wee1_exon2_exon11
 
     inputs["gene"] = "wee1"
     g_to_t_resp = await test_uta_tools.genomic_to_transcript(**inputs)
     assert g_to_t_resp == wee1_exon2_exon11
-    t_to_g_resp = await test_uta_tools.transcript_to_genomic(**g_to_t_resp)
+    t_to_g_resp = await test_uta_tools.transcript_to_genomic(**g_to_t_resp.dict())  # noqa: E501
     assert t_to_g_resp == wee1_exon2_exon11
 
     # MANE
     del inputs["transcript"]
     g_to_t_resp = await test_uta_tools.genomic_to_transcript(**inputs)
     assert g_to_t_resp == mane_wee1_exon2_exon11
-    t_to_g_resp = await test_uta_tools.transcript_to_genomic(**g_to_t_resp)
+    t_to_g_resp = await test_uta_tools.transcript_to_genomic(**g_to_t_resp.dict())  # noqa: E501
     assert t_to_g_resp == mane_wee1_exon2_exon11
 
 
