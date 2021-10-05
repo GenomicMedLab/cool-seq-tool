@@ -223,38 +223,10 @@ class UTATools:
             genes_alt_acs = await self.uta_db.chr_to_accession(
                 chromosome, pos, strand=strand, alt_ac=None
             )
-        alt_acs = genes_alt_acs["alt_acs"]
-        len_alt_acs = len(alt_acs)
-        if len_alt_acs > 1:
-            logger.warning(f"Found more than one accessions: {alt_acs}")
+        gene_alt_ac = self._get_gene_and_alt_ac(genes_alt_acs, gene)
+        if not gene_alt_ac:
             return None
-        elif len_alt_acs == 0:
-            logger.warning("No accessions found")
-            return None
-        alt_ac = next(iter(alt_acs))
-        params["chr"] = alt_ac
-
-        genes = genes_alt_acs["genes"]
-        len_genes = len(genes)
-        input_gene = gene
-        output_gene = None
-        if len_genes == 1:
-            output_gene = next(iter(genes))
-        elif len_genes > 1:
-            logger.warning(f"Found more than one gene: {genes}")
-            return None
-        elif len_genes == 0:
-            logger.warning("No genes found")
-            return None
-
-        if input_gene is not None:
-            input_gene = input_gene.upper()
-            if gene and gene != input_gene:
-                logger.warning(f"Input gene, {input_gene}, does not match "
-                               f"output gene, {output_gene}")
-                return None
-
-        params["gene"] = output_gene if output_gene else input_gene
+        gene, alt_ac = gene_alt_ac
 
         if transcript is None:
             if gene is None:
@@ -350,7 +322,50 @@ class UTATools:
         params["transcript"] = transcript
         params["pos"] = pos
         params["chr"] = alt_ac
+        params["gene"] = gene
         return TranscriptExonData(**params)
+
+    def _get_gene_and_alt_ac(self,
+                             genes_alt_acs: dict,
+                             gene: Optional[str]) -> Optional[Tuple[str, str]]:
+        """Return gene genomic accession
+
+        :param dict genes_alt_acs: Dictionary containing genes and
+            genomic accessions
+        :return: [Gene, Genomic accession] if both exist
+        """
+        alt_acs = genes_alt_acs["alt_acs"]
+        len_alt_acs = len(alt_acs)
+        if len_alt_acs > 1:
+            logger.warning(f"Found more than one accessions: {alt_acs}")
+            return None
+        elif len_alt_acs == 0:
+            logger.warning("No accessions found")
+            return None
+        alt_ac = next(iter(alt_acs))
+
+        genes = genes_alt_acs["genes"]
+        len_genes = len(genes)
+        input_gene = gene
+        output_gene = None
+        if len_genes == 1:
+            output_gene = next(iter(genes))
+        elif len_genes > 1:
+            logger.warning(f"Found more than one gene: {genes}")
+            return None
+        elif len_genes == 0:
+            logger.warning("No genes found")
+            return None
+
+        if input_gene is not None:
+            input_gene = input_gene.upper()
+            if gene and gene != input_gene:
+                logger.warning(f"Input gene, {input_gene}, does not match "
+                               f"output gene, {output_gene}")
+                return None
+
+        gene = output_gene if output_gene else input_gene
+        return gene, alt_ac
 
     def _set_exon_offset(self, params: dict, start: int, end: int, pos: int,
                          is_start: bool, strand: int) -> None:
