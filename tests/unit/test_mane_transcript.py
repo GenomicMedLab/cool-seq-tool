@@ -82,6 +82,7 @@ def egfr_l858r_mane_p():
 def braf_v600e_mane_c():
     """Create test fixture for BRAF V600E MANE Transcript on c coordinate."""
     return {
+        'alt_ac': 'NC_000007.14',
         'refseq': 'NM_001374258.1',
         'ensembl': 'ENST00000644969.2',
         'pos': (1919, 1919),
@@ -97,6 +98,7 @@ def braf_v600e_mane_c():
 def egfr_l858r_mane_c():
     """Create test fixture for EGFR L858R MANE Transcript on c coordinate."""
     return {
+        'alt_ac': 'NC_000007.14',
         'refseq': 'NM_005228.5',
         'ensembl': 'ENST00000275493.7',
         'pos': (2573, 2573),
@@ -119,7 +121,8 @@ def grch38():
         "coding_end_site": None,
         "pos": (55191822, 55191822),
         "strand": None,
-        "status": "GRCh38"
+        "status": "GRCh38",
+        "alt_ac": "NC_000007.14"
     }
 
 
@@ -223,6 +226,7 @@ async def test__g_to_mane_c(test_mane_transcript, braf_mane_data,
     )
     expected = copy.deepcopy(braf_v600e_mane_c)
     expected['pos'] = (1918, 1920)
+    expected['alt_ac'] = None
     assert mane_c == expected
 
 
@@ -281,48 +285,52 @@ async def test_c_to_mane_c(test_mane_transcript, braf_v600e_mane_c,
                            egfr_l858r_mane_c):
     """Test that c_to_mane_p method works correctly."""
     # BRAF V600E RefSeq Accessions
+    cpy_braf_v600e_mane_c = copy.deepcopy(braf_v600e_mane_c)
+    cpy_braf_v600e_mane_c['alt_ac'] = None
     mane_c = await test_mane_transcript.get_mane_transcript(
         'NM_004333.4', 1799, None, 'c')
-    assert mane_c == braf_v600e_mane_c
+    assert mane_c == cpy_braf_v600e_mane_c
 
     mane_c = await test_mane_transcript.get_mane_transcript(
         'NM_004333.5', 1799, None, 'C')
-    assert mane_c == braf_v600e_mane_c
+    assert mane_c == cpy_braf_v600e_mane_c
 
     mane_c = await test_mane_transcript.get_mane_transcript(
         'NM_004333.6', 1799, None, 'c')
-    assert mane_c == braf_v600e_mane_c
+    assert mane_c == cpy_braf_v600e_mane_c
 
     # BRAF V600E Ensembl Accessions
     mane_c = await test_mane_transcript.get_mane_transcript(
         'ENST00000288602.10', 1799, None, 'c')
-    assert mane_c == braf_v600e_mane_c
+    assert mane_c == cpy_braf_v600e_mane_c
 
     mane_c = await test_mane_transcript.get_mane_transcript(
         'ENST00000288602.11', 1799, None, 'c')
-    assert mane_c == braf_v600e_mane_c
+    assert mane_c == cpy_braf_v600e_mane_c
 
+    cpy_egfr_l858r_mane_c = copy.deepcopy(egfr_l858r_mane_c)
+    cpy_egfr_l858r_mane_c['alt_ac'] = None
     # EGFR L858R RefSeq Accessions
     mane_c = await test_mane_transcript.get_mane_transcript(
         'NM_005228.3', 2573, None, 'c')
-    assert mane_c == egfr_l858r_mane_c
+    assert mane_c == cpy_egfr_l858r_mane_c
 
     mane_c = await test_mane_transcript.get_mane_transcript(
         'NM_005228.4', 2573, None, 'c')
-    assert mane_c == egfr_l858r_mane_c
+    assert mane_c == cpy_egfr_l858r_mane_c
 
     mane_c = await test_mane_transcript.get_mane_transcript(
         'NM_005228.5', 2573, 2573, 'c')
-    assert mane_c == egfr_l858r_mane_c
+    assert mane_c == cpy_egfr_l858r_mane_c
 
     # EGFR L858R Ensembl Accessions
     mane_c = await test_mane_transcript.get_mane_transcript(
         'ENST00000275493.7', 2573, None, 'c')
-    assert mane_c == egfr_l858r_mane_c
+    assert mane_c == cpy_egfr_l858r_mane_c
 
     mane_c = await test_mane_transcript.get_mane_transcript(
         'ENST00000275493.6', 2573, None, 'c')
-    assert mane_c == egfr_l858r_mane_c
+    assert mane_c == cpy_egfr_l858r_mane_c
 
 
 @pytest.mark.asyncio

@@ -132,13 +132,16 @@ class MANETranscript:
 
         return genomic_tx_data
 
-    def _get_mane_c(self, mane_data, mane_c_pos_change, cds_start_end):
+    def _get_mane_c(self, mane_data, mane_c_pos_change, cds_start_end,
+                    grch38=None):
         """Return MANE Transcript data on c. coordinate.
         :param dict mane_data: MANE Transcript data (transcript accessions,
             gene, and location information)
         :param tuple[int, int] mane_c_pos_change: Start and end positions
             for change on c. coordinate
-        :param DictRow[int, int]: Coding start and end site for MANE transcript
+        :param DictRow[int, int] cds_start_end: Coding start and end site
+            for MANE transcript
+        :param Dict grch38: GRCh38 data
         """
         cds_start = cds_start_end[0]
         cds_end = cds_start_end[1]
@@ -157,7 +160,8 @@ class MANETranscript:
             coding_end_site=cds_end,
             pos=mane_c_pos_change,
             strand=mane_data['chr_strand'],
-            status=mane_data['MANE_status']
+            status=mane_data['MANE_status'],
+            alt_ac=grch38['ac'] if grch38 else None
         )
 
     def _get_mane_p(self, mane_data, mane_c_pos_range) -> Dict:
@@ -572,7 +576,8 @@ class MANETranscript:
                 coding_end_site=None,
                 pos=grch38['pos'],
                 strand=None,
-                status='GRCh38'
+                status='GRCh38',
+                alt_ac=grch38['ac']
             )
 
         if not await self.uta.validate_genomic_ac(ac):
@@ -631,4 +636,5 @@ class MANETranscript:
                 return None
 
             return self._get_mane_c(current_mane_data, mane_c_pos_change,
-                                    (coding_start_site, coding_end_site))
+                                    (coding_start_site, coding_end_site),
+                                    grch38)
