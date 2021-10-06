@@ -47,18 +47,19 @@ class UTATools:
             self.mane_transcript_mappings, self.uta_db)
 
     async def transcript_to_genomic(
-            self, transcript: str, exon_start: int, exon_end: int,
+            self, exon_start: int, exon_end: int,
             exon_start_offset: int = 0, exon_end_offset: int = 0,
-            gene: str = None, *args, **kwargs) -> Optional[GenomicData]:
+            gene: Optional[str] = None, transcript: str = None,
+            *args, **kwargs) -> Optional[GenomicData]:
         """Get genomic data given transcript data.
         Will liftover to GRCh38 coordinates if possible.
 
-        :param str transcript: Transcript accession
         :param int exon_start: Starting transcript exon number
         :param int exon_end: Ending transcript exon number
         :param int exon_start_offset: Starting exon offset
         :param int exon_end_offset: Ending exon offset
         :param str gene: Gene symbol
+        :param str transcript: Transcript accession
         :return: Genomic data (inter-residue coordinates)
         """
         if gene:
@@ -85,6 +86,11 @@ class UTATools:
             return None
         alt_ac_start, alt_ac_end = alt_ac_start_end
 
+        gene = alt_ac_start[0]
+        chromosome = alt_ac_start[1]
+        if gene is None or chromosome is None:
+            return None
+
         start = alt_ac_start[3]
         end = alt_ac_end[2]
         strand = alt_ac_start[4]
@@ -97,10 +103,6 @@ class UTATools:
         start += start_offset
         end += end_offset
 
-        gene = alt_ac_start[0]
-        chromosome = alt_ac_start[1]
-        if gene is None or chromosome is None:
-            return None
         return GenomicData(
             gene=gene,
             chr=chromosome,
@@ -115,8 +117,9 @@ class UTATools:
 
     async def genomic_to_transcript(self, chromosome: Union[str, int],
                                     start: int, end: int,
-                                    strand: int = None, transcript: str = None,
-                                    gene: str = None,
+                                    strand: Optional[int] = None,
+                                    transcript: Optional[str] = None,
+                                    gene: Optional[str] = None,
                                     residue_mode: ResidueMode = ResidueMode.RESIDUE,  # noqa: E501
                                     *args, **kwargs) -> Optional[GenomicData]:
         """Get transcript data for genomic data.
@@ -137,7 +140,7 @@ class UTATools:
             Must be either `residue` or `inter-residue` (0-based).
         :return: Genomic data (inter-residue coordinates)
         """
-        params = {key: None for key in GenomicData.__dict__["__fields__"].keys()}  # noqa: E501
+        params = {key: None for key in GenomicData.__fields__.keys()}
         if gene is not None:
             gene = gene.upper().strip()
 
@@ -198,7 +201,7 @@ class UTATools:
             Must be either `residue` or `inter-residue` (0-based).
         :return: Transcript data (inter-residue coordinates)
         """
-        params = {key: None for key in TranscriptExonData.__dict__["__fields__"].keys()}  # noqa: E501
+        params = {key: None for key in TranscriptExonData.__fields__.keys()}
 
         try:
             # Check if just chromosome number is given. If it is, we should
@@ -247,6 +250,7 @@ class UTATools:
 
         :param dict genes_alt_acs: Dictionary containing genes and
             genomic accessions
+        :param dict gene: Gene symbol
         :return: [Gene, Genomic accession] if both exist
         """
         alt_acs = genes_alt_acs["alt_acs"]
@@ -274,7 +278,7 @@ class UTATools:
 
         if input_gene is not None:
             input_gene = input_gene.upper()
-            if gene and gene != input_gene:
+            if output_gene != input_gene:
                 logger.warning(f"Input gene, {input_gene}, does not match "
                                f"output gene, {output_gene}")
                 return None

@@ -188,11 +188,11 @@ class UTADatabase:
             for create_index in indexes:
                 await self.execute_query(create_index)
 
-    def _transform_list(self, li: list) -> List:
+    def _transform_list(self, li: List) -> List[List[any]]:
         """Transform list to only contain field values
 
-        :param list li: List of asyncpg.Record objects
-        :return: List of objects
+        :param List li: List of asyncpg.Record objects
+        :return: List of list of objects
         """
         results = list()
         for item in li:

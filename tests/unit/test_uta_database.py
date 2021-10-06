@@ -331,8 +331,3 @@ async def test_get_alt_ac_start_or_end(test_db, tpm3_1_8_start_genomic,
 
     resp = await test_db.get_alt_ac_start_or_end('NM_152263.3', 822, 892, None)
     assert resp == tpm3_1_8_end_genomic
-
-
-@pytest.mark.asyncio
-async def test_no_matches(test_db):
-    """Test that invalid queries return None."""
