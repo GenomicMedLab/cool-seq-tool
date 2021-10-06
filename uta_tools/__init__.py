@@ -25,7 +25,7 @@ else:
 if "SEQREPO_DATA_PATH" in environ:
     SEQREPO_DATA_PATH = environ["SEQREPO_DATA_PATH"]
 else:
-    SEQREPO_DATA_PATH = f"{APP_ROOT}/data/seqrepo/latest"
+    SEQREPO_DATA_PATH = "/usr/local/share/seqrepo/latest"
 
 TRANSCRIPT_MAPPINGS_PATH = f"{APP_ROOT}/data/transcript_mapping.tsv"
 
