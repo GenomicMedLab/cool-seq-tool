@@ -5,7 +5,7 @@ import pandas as pd
 from uta_tools import UTA_DB_URL, logger, IS_PROD_ENV
 from six.moves.urllib import parse as urlparse
 from asyncpg.exceptions import InterfaceError
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 from os import environ
 from urllib.parse import quote, unquote
 from pyliftover import LiftOver
@@ -130,7 +130,7 @@ class UTADatabase:
                              f'encountered exception {e}')
                 raise Exception("Could not create connection pool")
 
-    async def execute_query(self, query: str) -> any:
+    async def execute_query(self, query: str) -> Any:
         """Execute a query and return its result.
 
         :param str query: Query to make on database
@@ -188,7 +188,7 @@ class UTADatabase:
             for create_index in indexes:
                 await self.execute_query(create_index)
 
-    def _transform_list(self, li: List) -> List[List[any]]:
+    def _transform_list(self, li: List) -> List[List[Any]]:
         """Transform list to only contain field values
 
         :param List li: List of asyncpg.Record objects
