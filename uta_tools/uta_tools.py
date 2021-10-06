@@ -314,8 +314,7 @@ class UTATools:
         tx_pos = mane_data["pos"][0] + mane_data["coding_start_site"]
         params["exon"] = self._get_exon_number(tx_exons, tx_pos)
         tx_exon = tx_exons[params["exon"] - 1]
-        strand_to_use = strand if strand is not None else mane_data[
-            "strand"]  # noqa: E501
+        strand_to_use = strand if strand is not None else mane_data["strand"]  # noqa: E501
         self._set_exon_offset(params, tx_exon[0], tx_exon[1], tx_pos,
                               is_start=is_start, strand=strand_to_use)
 
