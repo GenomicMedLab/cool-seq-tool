@@ -5,7 +5,7 @@ import pandas as pd
 from uta_tools import UTA_DB_URL, logger, IS_PROD_ENV
 from six.moves.urllib import parse as urlparse
 from asyncpg.exceptions import InterfaceError
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 from os import environ
 from urllib.parse import quote, unquote
 from pyliftover import LiftOver
@@ -130,7 +130,7 @@ class UTADatabase:
                              f'encountered exception {e}')
                 raise Exception("Could not create connection pool")
 
-    async def execute_query(self, query: str) -> any:
+    async def execute_query(self, query: str) -> Any:
         """Execute a query and return its result.
 
         :param str query: Query to make on database
@@ -188,70 +188,57 @@ class UTADatabase:
             for create_index in indexes:
                 await self.execute_query(create_index)
 
-    async def transcript_to_genomic(
-            self, tx_ac: str, exon_start: int, exon_end: int,
-            exon_start_offset: int = 0, exon_end_offset: int = 0,
-            gene: str = None) -> Optional[Dict]:
-        """Get genomic data given transcript data.
+    def _transform_list(self, li: List) -> List[List[Any]]:
+        """Transform list to only contain field values
 
-        :param str tx_ac: Transcript accession
-        :param int exon_start: Starting exon number
-        :param int exon_end: Ending exon number
-        :param int exon_start_offset: Starting exon offset
-        :param int exon_end_offset: Ending exon offset
-        :param str gene: Gene symbol
-        :return: Dictionary containing transcript exon data and genomic
-            start/end coordinates, or None if lookup fails
+        :param List li: List of asyncpg.Record objects
+        :return: List of list of objects
         """
-        if gene:
-            gene = gene.upper().strip()
+        results = list()
+        for item in li:
+            results.append([field for field in item])
+        return results
 
-        if tx_ac:
-            tx_ac = tx_ac.strip()
+    async def chr_to_gene_and_accessions(self, chromosome: int, pos: int,
+                                         strand: int = None,
+                                         alt_ac: str = None) -> Dict:
+        """Return genes and genomic accessions related to a position on a chr.
 
-        tx_exon_start_end = await self.get_tx_exon_start_end(
-            tx_ac, exon_start, exon_end)
-        if not tx_exon_start_end:
-            return None
-        (tx_exons, exon_start, exon_end) = tx_exon_start_end
-
-        tx_exon_coords = self.get_tx_exon_coords(
-            tx_exons, exon_start, exon_end)
-        if not tx_exon_coords:
-            return None
-        tx_exon_start, tx_exon_end = tx_exon_coords
-
-        alt_ac_start_end = await self.get_alt_ac_start_and_end(
-            tx_ac, tx_exon_start, tx_exon_end, gene=gene)
-        if not alt_ac_start_end:
-            return None
-        alt_ac_start, alt_ac_end = alt_ac_start_end
-
-        start = alt_ac_start[3]
-        end = alt_ac_end[2]
-        strand = alt_ac_start[4]
-        if strand == -1:
-            start_offset = exon_start_offset * -1
-            end_offset = exon_end_offset * -1
+        :param int chromosome: Chromosome number
+        :param int pos: Genomic position
+        :param int strand: Strand. Must be either `-1` or `1`
+        :param str alt_ac: Genomic accession
+        :return: Dictionary containing genes and genomic accessions
+        """
+        if alt_ac:
+            alt_ac_cond = f"WHERE alt_ac = '{alt_ac}'"
         else:
-            start_offset = exon_start_offset
-            end_offset = exon_end_offset
-        start += start_offset
-        end += end_offset
+            alt_ac_cond = f"WHERE alt_ac ~ '^NC_[0-9]+0{chromosome}.[0-9]+$'"
 
-        gene = alt_ac_start[0]
-        chromosome = alt_ac_start[1]
-        if gene is None or chromosome is None:
-            return None
+        if strand:
+            strand_cond = f"AND alt_strand = '{strand}'"
+        else:
+            strand_cond = ""
+        query = (
+            f"""
+            SELECT hgnc, alt_ac
+            FROM {self.schema}.tx_exon_aln_v
+            {alt_ac_cond}
+            AND alt_aln_method = 'splign'
+            AND {pos} BETWEEN alt_start_i AND alt_end_i
+            {strand_cond}
+            """
+        )
+        results = await self.execute_query(query)
+        results = self._transform_list(results)
+        genes = set()
+        alt_acs = set()
+        for r in results:
+            genes.add(r[0])
+            alt_acs.add(r[1])
         return {
-            "gene": gene,
-            "chr": chromosome,
-            "start": start,
-            "end": end,
-            "exon_start": exon_start,
-            "exon_start_offset": exon_start_offset,
-            "exon_end": exon_end,
-            "exon_end_offset": exon_end_offset,
+            "genes": genes,
+            "alt_acs": alt_acs
         }
 
     async def get_tx_exons(self, tx_ac: str) -> Optional[List[str]]:
@@ -387,7 +374,8 @@ class UTADatabase:
             AND {tx_exon_end} BETWEEN T.tx_start_i AND T.tx_end_i
             AND T.alt_aln_method = 'splign'
             AND T.alt_ac LIKE 'NC_00%'
-            ORDER BY T.alt_ac DESC;
+            ORDER BY (CAST(SUBSTR(T.alt_ac, position('.' in T.alt_ac) + 1,
+                LENGTH(T.alt_ac)) AS INT)) DESC;
             """
         )
         result = await self.execute_query(query)

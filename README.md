@@ -64,14 +64,10 @@ If you do not wish to use the default, you must set the environment variable `UT
 
 From the _root_ directory:
 ```
-cd uta_tools
 pip install seqrepo
-mkdir -p data/seqrepo
-seqrepo -r data/seqrepo pull -i 2021-01-29
-sudo chmod -R u+w data/seqrepo
-cd data/seqrepo
-seqrepo_date_dir=$(ls -d */)
-sudo mv $seqrepo_date_dir latest
+sudo mkdir /usr/local/share/seqrepo
+sudo chown $USER /usr/local/share/seqrepo
+seqrepo pull -i 2021-01-29
 ```
 
 #### transcript_mappings.tsv
