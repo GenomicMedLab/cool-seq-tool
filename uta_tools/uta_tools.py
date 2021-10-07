@@ -46,7 +46,7 @@ class UTATools:
             self.seqrepo_access, self.transcript_mappings,
             self.mane_transcript_mappings, self.uta_db)
 
-    async def transcript_to_genomic(
+    async def transcript_to_genomic_coordinates(
             self, exon_start: int, exon_end: int,
             exon_start_offset: int = 0, exon_end_offset: int = 0,
             gene: Optional[str] = None, transcript: str = None,
@@ -115,13 +115,12 @@ class UTATools:
             transcript=transcript
         )
 
-    async def genomic_to_transcript(self, chromosome: Union[str, int],
-                                    start: int, end: int,
-                                    strand: Optional[int] = None,
-                                    transcript: Optional[str] = None,
-                                    gene: Optional[str] = None,
-                                    residue_mode: ResidueMode = ResidueMode.RESIDUE,  # noqa: E501
-                                    *args, **kwargs) -> Optional[GenomicData]:
+    async def genomic_to_transcript_exon_coordinates(
+            self, chromosome: Union[str, int], start: int, end: int,
+            strand: Optional[int] = None, transcript: Optional[str] = None,
+            gene: Optional[str] = None,
+            residue_mode: ResidueMode = ResidueMode.RESIDUE,
+            *args, **kwargs) -> Optional[GenomicData]:
         """Get transcript data for genomic data.
         MANE Transcript data will be returned iff `transcript` is not supplied.
             `gene` must be supplied in order to retrieve MANE Transcript data.
@@ -144,14 +143,14 @@ class UTATools:
         if gene is not None:
             gene = gene.upper().strip()
 
-        start_data = await self._individual_genomic_to_transcript(
+        start_data = await self._genomic_to_transcript_exon_coordinate(
             chromosome, start, strand=strand, transcript=transcript,
             gene=gene, is_start=True, residue_mode=residue_mode
         )
         if not start_data:
             return None
 
-        end_data = await self._individual_genomic_to_transcript(
+        end_data = await self._genomic_to_transcript_exon_coordinate(
             chromosome, end, strand=strand, transcript=transcript,
             gene=gene, is_start=False, residue_mode=residue_mode
         )
@@ -181,7 +180,7 @@ class UTATools:
             params[f"exon_{label}_offset"] = data["exon_offset"]
         return GenomicData(**params)
 
-    async def _individual_genomic_to_transcript(
+    async def _genomic_to_transcript_exon_coordinate(
             self, chromosome: Union[str, int], pos: int, strand: int = None,
             transcript: str = None, gene: str = None, is_start: bool = True,
             residue_mode: ResidueMode = ResidueMode.RESIDUE) -> Optional[TranscriptExonData]:  # noqa: E501
