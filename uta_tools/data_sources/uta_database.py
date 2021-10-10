@@ -260,18 +260,17 @@ class UTADatabase:
             return None
         return cds_se_i[0][0].split(';')
 
-    async def get_tx_exon_start_end(self, tx_ac: str, exon_start: int,
-                                    exon_end: int)\
-            -> Optional[Tuple[List[str], int, int]]:
+    async def get_tx_exon_start_end(
+            self, tx_ac: str, exon_start: Optional[int] = None,
+            exon_end: Optional[int] = None) -> Optional[Tuple[List[str], int, int]]:  # noqa: E501
         """Get exon start/end coordinates given accession and gene.
 
         :param str tx_ac: Transcript accession
-        :param int exon_start: Starting exon number
-        :param int exon_end: Ending exon number
+        :param Optional[int] exon_start: Starting exon number
+        :param Optional[int] exon_end: Ending exon number
         :return: Transcript's exons and start/end exon coordinates, or
             None if lookup fails
         """
-        # if exon_start or exon_end is 0, we will default to the transcript's
         # first and last transcript
         if exon_start and exon_end:
             if exon_start > exon_end:
@@ -282,68 +281,72 @@ class UTADatabase:
         tx_exons = await self.get_tx_exons(tx_ac)
         if not tx_exons:
             return None
-
-        if exon_start == 0:
-            exon_start = 1
-
-        if exon_end == 0:
-            exon_end = len(tx_exons)
-
         return tx_exons, exon_start, exon_end
 
     @staticmethod
-    def get_tx_exon_coords(tx_exons: List[str], exon_start: int,
-                           exon_end: int) -> Optional[Tuple[List, List]]:
+    def get_tx_exon_coords(
+            tx_exons: List[str], exon_start: Optional[int] = None,
+            exon_end: Optional[int] = None) -> Optional[Tuple[List, List]]:
         """Get transcript exon coordinates.
 
         :param list tx_exons: List of transcript exons
-        :param int exon_start: Start exon number
-        :param int exon_end: End exon number
+        :param Optional[int] exon_start: Start exon number
+        :param Optional[int] exon_end: End exon number
         :return: [Transcript start exon coords, Transcript end exon coords], or
             None if exon start/end is not valid
         """
         try:
-            tx_exon_start = tx_exons[exon_start - 1].split(',')
-            tx_exon_end = tx_exons[exon_end - 1].split(',')
+            tx_exon_start = \
+                tx_exons[exon_start - 1].split(',') if exon_start else None
+            tx_exon_end = \
+                tx_exons[exon_end - 1].split(',') if exon_end else None
         except IndexError as e:
             logger.warning(e)
             return None
         return tx_exon_start, tx_exon_end
 
-    async def get_alt_ac_start_and_end(self, tx_ac: str,
-                                       tx_exon_start: List[str],
-                                       tx_exon_end: List[str],
-                                       gene: str = None)\
-            -> Optional[Tuple[Tuple, Tuple]]:
+    async def get_alt_ac_start_and_end(
+            self, tx_ac: str, tx_exon_start: Optional[List[str]] = None,
+            tx_exon_end: Optional[List[str]] = None,
+            gene: str = None) -> Optional[Tuple[Tuple, Tuple]]:
         """Get genomic coordinates for related transcript exon start and end.
 
         :param str tx_ac: Transcript accession
-        :param List[str] tx_exon_start: Transcript's exon start coordinates
-        :param List[str] tx_exon_end: Transcript's exon end coordinates
+        :param Optional[List[str]] tx_exon_start: Transcript's exon start
+            coordinates
+        :param Optional[List[str]] tx_exon_end: Transcript's exon end
+            coordinates
         :param str gene: Gene symbol
         :return: Alt ac start and end data
         """
-        alt_ac_start = await self.get_alt_ac_start_or_end(
-            tx_ac, int(tx_exon_start[0]), int(tx_exon_start[1]), gene=gene)
-        if not alt_ac_start:
-            return None
+        if tx_exon_start:
+            alt_ac_start = await self.get_alt_ac_start_or_end(
+                tx_ac, int(tx_exon_start[0]), int(tx_exon_start[1]), gene=gene)
+            if not alt_ac_start:
+                return None
+        else:
+            alt_ac_start = None
 
-        alt_ac_end = await self.get_alt_ac_start_or_end(
-            tx_ac, int(tx_exon_end[0]), int(tx_exon_end[1]), gene=gene)
-        if not alt_ac_end:
-            return None
+        if tx_exon_end:
+            alt_ac_end = await self.get_alt_ac_start_or_end(
+                tx_ac, int(tx_exon_end[0]), int(tx_exon_end[1]), gene=gene)
+            if not alt_ac_end:
+                return None
+        else:
+            alt_ac_end = None
 
         # validate
-        for i in (0, 1, 4):
-            if alt_ac_start[i] != alt_ac_end[i]:
-                if i == 0:
-                    error = "Gene symbol does not match"
-                elif i == 1:
-                    error = "Chromosome does not match"
-                else:
-                    error = "Strand does not match"
-                logger.warning(f"{error}: "
-                               f"{alt_ac_start[i]} != {alt_ac_end[i]}")
+        if alt_ac_start and alt_ac_end:
+            for i in (0, 1, 4):
+                if alt_ac_start[i] != alt_ac_end[i]:
+                    if i == 0:
+                        error = "Gene symbol does not match"
+                    elif i == 1:
+                        error = "Chromosome does not match"
+                    else:
+                        error = "Strand does not match"
+                    logger.warning(f"{error}: "
+                                   f"{alt_ac_start[i]} != {alt_ac_end[i]}")
         return alt_ac_start, alt_ac_end
 
     async def get_alt_ac_start_or_end(self, tx_ac: str, tx_exon_start: int,
