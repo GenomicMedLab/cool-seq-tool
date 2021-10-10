@@ -190,7 +190,7 @@ class UTATools:
                                        f"{end_data[field]}")
                         return None
                 params[field] = start_data[field]
-            elif end_data:
+            else:
                 params[field] = end_data[field]
 
         if gene and gene != params["gene"]:
