@@ -335,6 +335,10 @@ class UTADatabase:
         else:
             alt_ac_end = None
 
+        if alt_ac_start is None and alt_ac_end is None:
+            logger.warning("Unable to find `alt_ac_start` or `alt_ac_end`")
+            return None
+
         # validate
         if alt_ac_start and alt_ac_end:
             for i in (0, 1, 4):

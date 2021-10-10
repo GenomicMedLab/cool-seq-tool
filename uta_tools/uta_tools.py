@@ -99,25 +99,29 @@ class UTATools:
         end = alt_ac_end[2] if alt_ac_end else None
         strand = alt_ac_start[4] if alt_ac_start else alt_ac_end[4]
 
-        if strand == -1:
-            start_offset = exon_start_offset * -1 if start else None
-            end_offset = exon_end_offset * -1 if end else None
-        else:
-            start_offset = exon_start_offset if start else None
-            end_offset = exon_end_offset if end else None
+        # Using none since could set to 0
+        start_exits = start is not None
+        end_exists = end is not None
 
-        start = start + start_offset if start else None
-        end = end + end_offset if end else None
+        if strand == -1:
+            start_offset = exon_start_offset * -1 if start_exits else None
+            end_offset = exon_end_offset * -1 if end_exists else None
+        else:
+            start_offset = exon_start_offset if start_exits else None
+            end_offset = exon_end_offset if end_exists else None
+
+        start = start + start_offset if start_exits else None
+        end = end + end_offset if end_exists else None
 
         return GenomicData(
             gene=gene,
             chr=chromosome,
             start=start,
             end=end,
-            exon_start=exon_start if start else None,
-            exon_start_offset=exon_start_offset if start else None,
-            exon_end=exon_end if end else None,
-            exon_end_offset=exon_end_offset if end else None,
+            exon_start=exon_start if start_exits else None,
+            exon_start_offset=exon_start_offset if start_exits else None,
+            exon_end=exon_end if end_exists else None,
+            exon_end_offset=exon_end_offset if end_exists else None,
             transcript=transcript
         )
 
