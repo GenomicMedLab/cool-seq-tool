@@ -53,8 +53,8 @@ def tpm3_exon1_g():
         "end": None,
         "exon_start": 1,
         "exon_end": None,
-        "exon_end_offset": None,
         "exon_start_offset": 0,
+        "exon_end_offset": None,
         "transcript": "NM_152263.3"
     }
     return GenomicData(**params)
@@ -70,8 +70,8 @@ def tpm3_exon8_g():
         "end": 154170399,
         "exon_start": None,
         "exon_end": 8,
-        "exon_end_offset": None,
-        "exon_start_offset": 0,
+        "exon_start_offset": None,
+        "exon_end_offset": 0,
         "transcript": "NM_152263.3"
     }
     return GenomicData(**params)
@@ -274,7 +274,8 @@ async def test__genomic_to_transcript(test_uta_tools, tpm3_exon1, tpm3_exon8):
 
 @pytest.mark.asyncio
 async def test_tpm3(test_uta_tools, tpm3_exon1_exon8,
-                    tpm3_exon1_exon8_offset):
+                    tpm3_exon1_exon8_offset, tpm3_exon1_g, tpm3_exon8_g,
+                    tpm3_exon1_exon8_t_to_g):
     """Test TPM3 genomic_to_transcript_exon_coordinates and
     transcript_to_genomic_coordinates.
     """
@@ -328,6 +329,37 @@ async def test_tpm3(test_uta_tools, tpm3_exon1_exon8,
     assert g_to_t_resp == tpm3_exon1_exon8_offset
     t_to_g_resp = await test_uta_tools.transcript_to_genomic_coordinates(**g_to_t_resp.dict())  # noqa: E501
     assert t_to_g_resp == tpm3_exon1_exon8_offset_t_to_g
+
+    # Test only setting start
+    inputs = {
+        "chromosome": "NC_000001.11",
+        "start": 154192135,
+        "strand": -1,
+        "transcript": "NM_152263.3"
+    }
+    tpm3_exon1_exon8_t_to_g = copy.deepcopy(tpm3_exon1_g)
+    tpm3_exon1_exon8_t_to_g.start = 154192135
+
+    g_to_t_resp = \
+        await test_uta_tools.genomic_to_transcript_exon_coordinates(**inputs)
+    assert g_to_t_resp == tpm3_exon1_g
+    t_to_g_resp = await test_uta_tools.transcript_to_genomic_coordinates(**g_to_t_resp.dict())  # noqa: E501
+    assert t_to_g_resp == tpm3_exon1_exon8_t_to_g
+
+    # Test only setting end
+    inputs = {
+        "chromosome": "NC_000001.11",
+        "end": 154170399,
+        "strand": -1,
+        "transcript": "NM_152263.3"
+    }
+    tpm3_exon1_exon8_t_to_g = copy.deepcopy(tpm3_exon8_g)
+
+    g_to_t_resp = \
+        await test_uta_tools.genomic_to_transcript_exon_coordinates(**inputs)
+    assert g_to_t_resp == tpm3_exon8_g
+    t_to_g_resp = await test_uta_tools.transcript_to_genomic_coordinates(**g_to_t_resp.dict())  # noqa: E501
+    assert t_to_g_resp == tpm3_exon1_exon8_t_to_g
 
 
 @pytest.mark.asyncio
