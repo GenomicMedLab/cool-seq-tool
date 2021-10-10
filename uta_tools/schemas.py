@@ -22,8 +22,8 @@ class GenomicData(BaseModel):
 
     gene: str
     chr: str
-    start: int  # Genomic start position
-    end: int  # Genomic end position
+    start: Optional[int] = None  # Genomic start position
+    end: Optional[int] = None  # Genomic end position
     exon_start: Optional[int] = None
     exon_start_offset: Optional[int] = 0
     exon_end: Optional[int] = None
@@ -31,19 +31,28 @@ class GenomicData(BaseModel):
     transcript: str
 
     @root_validator(pre=True)
-    def check_exons(cls, values):
-        """Check that at least one of {`exon_start`, `exon_end`} is set.
+    def check_start_end(cls, values):
+        """
+        Check that at least one of {`start`, `end`} is set.
+        Check that at least one of {`exon_start`, `exon_end`} is set.
         If not set, set corresponding offset to `None`
         """
-        msg = "Must give values for either `exon_start`, `exon_end`, or both"
-        exon_start = values.get("exon_start")
-        exon_end = values.get("exon_end")
-        assert exon_start or exon_end, msg
+        msg = "Missing values for `start` or `end`"
+        start = values.get("start")
+        end = values.get("end")
+        assert start or end, msg
 
-        for exon, exon_offset in [(exon_start, "exon_start_offset"),
-                                  (exon_end, "exon_end_offset")]:
-            if exon is None:
-                values[exon_offset] = None
+        if start:
+            msg = "Missing value `exon_start`"
+            assert values.get("exon_start"), msg
+        else:
+            values["exon_start_offset"] = None
+
+        if end:
+            msg = "Missing value `exon_end`"
+            assert values.get("exon_end"), msg
+        else:
+            values["exon_end_offset"] = None
         return values
 
 
