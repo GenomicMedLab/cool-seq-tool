@@ -47,21 +47,25 @@ class UTATools:
             self.mane_transcript_mappings, self.uta_db)
 
     async def transcript_to_genomic_coordinates(
-            self, exon_start: int, exon_end: int,
-            exon_start_offset: int = 0, exon_end_offset: int = 0,
-            gene: Optional[str] = None, transcript: str = None,
+            self, gene: Optional[str] = None, transcript: str = None,
+            exon_start: Optional[int] = None, exon_start_offset: Optional[int] = 0,  # noqa: E501
+            exon_end: Optional[int] = None, exon_end_offset: Optional[int] = 0,
             *args, **kwargs) -> Optional[GenomicData]:
         """Get genomic data given transcript data.
         Will liftover to GRCh38 coordinates if possible.
 
-        :param int exon_start: Starting transcript exon number
-        :param int exon_end: Ending transcript exon number
-        :param int exon_start_offset: Starting exon offset
-        :param int exon_end_offset: Ending exon offset
-        :param str gene: Gene symbol
-        :param str transcript: Transcript accession
+        :param Optional[int] exon_start: Starting transcript exon number
+        :param Optional[int] exon_end: Ending transcript exon number
+        :param Optional[int] exon_start_offset: Starting exon offset
+        :param Optional[int] exon_end_offset: Ending exon offset
+        :param Optional[str] gene: Gene symbol
+        :param Optional[str] transcript: Transcript accession
         :return: Genomic data (inter-residue coordinates)
         """
+        if exon_start is None and exon_end is None:
+            logger.warning("Must provide either `exon_start` or `exon_end`")
+            return None
+
         if gene:
             gene = gene.upper().strip()
 
@@ -86,39 +90,45 @@ class UTATools:
             return None
         alt_ac_start, alt_ac_end = alt_ac_start_end
 
-        gene = alt_ac_start[0]
-        chromosome = alt_ac_start[1]
+        gene = alt_ac_start[0] if alt_ac_start else alt_ac_end[0]
+        chromosome = alt_ac_start[1] if alt_ac_start else alt_ac_end[1]
         if gene is None or chromosome is None:
             return None
 
-        start = alt_ac_start[3]
-        end = alt_ac_end[2]
-        strand = alt_ac_start[4]
+        start = alt_ac_start[3] if alt_ac_start else None
+        end = alt_ac_end[2] if alt_ac_end else None
+        strand = alt_ac_start[4] if alt_ac_start else alt_ac_end[4]
+
+        # Using none since could set to 0
+        start_exits = start is not None
+        end_exists = end is not None
+
         if strand == -1:
-            start_offset = exon_start_offset * -1
-            end_offset = exon_end_offset * -1
+            start_offset = exon_start_offset * -1 if start_exits else None
+            end_offset = exon_end_offset * -1 if end_exists else None
         else:
-            start_offset = exon_start_offset
-            end_offset = exon_end_offset
-        start += start_offset
-        end += end_offset
+            start_offset = exon_start_offset if start_exits else None
+            end_offset = exon_end_offset if end_exists else None
+
+        start = start + start_offset if start_exits else None
+        end = end + end_offset if end_exists else None
 
         return GenomicData(
             gene=gene,
             chr=chromosome,
             start=start,
             end=end,
-            exon_start=exon_start,
-            exon_start_offset=exon_start_offset,
-            exon_end=exon_end,
-            exon_end_offset=exon_end_offset,
+            exon_start=exon_start if start_exits else None,
+            exon_start_offset=exon_start_offset if start_exits else None,
+            exon_end=exon_end if end_exists else None,
+            exon_end_offset=exon_end_offset if end_exists else None,
             transcript=transcript
         )
 
     async def genomic_to_transcript_exon_coordinates(
-            self, chromosome: Union[str, int], start: int, end: int,
-            strand: Optional[int] = None, transcript: Optional[str] = None,
-            gene: Optional[str] = None,
+            self, chromosome: Union[str, int], start: Optional[int] = None,
+            end: Optional[int] = None, strand: Optional[int] = None,
+            transcript: Optional[str] = None, gene: Optional[str] = None,
             residue_mode: ResidueMode = ResidueMode.RESIDUE,
             *args, **kwargs) -> Optional[GenomicData]:
         """Get transcript data for genomic data.
@@ -139,35 +149,49 @@ class UTATools:
             Must be either `residue` or `inter-residue` (0-based).
         :return: Genomic data (inter-residue coordinates)
         """
+        if start is None and end is None:
+            logger.warning("Must provide either `start` or `end`")
+            return None
+
         params = {key: None for key in GenomicData.__fields__.keys()}
         if gene is not None:
             gene = gene.upper().strip()
 
-        start_data = await self._genomic_to_transcript_exon_coordinate(
-            chromosome, start, strand=strand, transcript=transcript,
-            gene=gene, is_start=True, residue_mode=residue_mode
-        )
-        if not start_data:
-            return None
+        if start:
+            start_data = await self._genomic_to_transcript_exon_coordinate(
+                chromosome, start, strand=strand, transcript=transcript,
+                gene=gene, is_start=True, residue_mode=residue_mode
+            )
+            if start_data:
+                start_data = start_data.dict()
+        else:
+            start_data = None
 
-        end_data = await self._genomic_to_transcript_exon_coordinate(
-            chromosome, end, strand=strand, transcript=transcript,
-            gene=gene, is_start=False, residue_mode=residue_mode
-        )
-        if not end_data:
-            return None
+        if end:
+            end_data = await self._genomic_to_transcript_exon_coordinate(
+                chromosome, end, strand=strand, transcript=transcript,
+                gene=gene, is_start=False, residue_mode=residue_mode
+            )
+            if end_data:
+                end_data = end_data.dict()
+        else:
+            end_data = None
 
-        start_data = start_data.dict()
-        end_data = end_data.dict()
+        if start_data is None and end_data is None:
+            logger.warning("No data found from input")
+            return None
 
         for field in ["transcript", "gene", "chr"]:
-            if start_data[field] != end_data[field]:
-                logger.warning(f"Start `{field}`, {start_data[field]}, "
-                               f"does not match End `{field}`, "
-                               f"{end_data[field]}")
-                return None
-            else:
+            if start_data:
+                if end_data:
+                    if start_data[field] != end_data[field]:
+                        logger.warning(f"Start `{field}`, {start_data[field]},"
+                                       f" does not match End `{field}`, "
+                                       f"{end_data[field]}")
+                        return None
                 params[field] = start_data[field]
+            else:
+                params[field] = end_data[field]
 
         if gene and gene != params["gene"]:
             logger.warning(f"Input gene, {gene}, does not match output "
@@ -175,9 +199,10 @@ class UTATools:
             return None
 
         for label, data in [("start", start_data), ("end", end_data)]:
-            params[label] = data["pos"]
-            params[f"exon_{label}"] = data["exon"]
-            params[f"exon_{label}_offset"] = data["exon_offset"]
+            if data:
+                params[label] = data["pos"]
+                params[f"exon_{label}"] = data["exon"]
+                params[f"exon_{label}_offset"] = data["exon_offset"]
         return GenomicData(**params)
 
     async def _genomic_to_transcript_exon_coordinate(
