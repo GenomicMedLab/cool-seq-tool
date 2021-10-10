@@ -290,16 +290,16 @@ async def test_p_to_c_ac(test_db):
 @pytest.mark.asyncio
 async def test_get_tx_exon_start_end(test_db, nm_152263_exons):
     """Test that get_tx_exon_start_end works correctly."""
-    resp = await test_db.get_tx_exon_start_end('NM_152263.3', 1, 8)
+    resp = await test_db.get_tx_exon_start_end(
+        'NM_152263.3', exon_start=1, exon_end=8)
     assert resp == (nm_152263_exons, 1, 8)
 
-    resp = await test_db.get_tx_exon_start_end('NM_152263.3', 0, 8)
-    assert resp == (nm_152263_exons, 1, 8)
+    resp = await test_db.get_tx_exon_start_end(
+        'NM_152263.3', exon_start=None, exon_end=8)
+    assert resp == (nm_152263_exons, None, 8)
 
-    resp = await test_db.get_tx_exon_start_end('NM_152263.3', 0, 0)
-    assert resp == (nm_152263_exons, 1, 10)
-
-    resp = await test_db.get_tx_exon_start_end('NM_152263.3', 8, 1)
+    resp = await test_db.get_tx_exon_start_end(
+        'NM_152263.3', exon_start=8, exon_end=1)
     assert resp is None
 
 
