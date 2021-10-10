@@ -95,27 +95,29 @@ class UTATools:
         if gene is None or chromosome is None:
             return None
 
-        start = alt_ac_start[3] if alt_ac_start[3] else None
-        end = alt_ac_end[2] if alt_ac_end[2] else None
+        start = alt_ac_start[3] if alt_ac_start else None
+        end = alt_ac_end[2] if alt_ac_end else None
         strand = alt_ac_start[4] if alt_ac_start else alt_ac_end[4]
+
         if strand == -1:
-            start_offset = exon_start_offset * -1
-            end_offset = exon_end_offset * -1
+            start_offset = exon_start_offset * -1 if start else None
+            end_offset = exon_end_offset * -1 if end else None
         else:
-            start_offset = exon_start_offset
-            end_offset = exon_end_offset
-        start += start_offset
-        end += end_offset
+            start_offset = exon_start_offset if start else None
+            end_offset = exon_end_offset if end else None
+
+        start = start + start_offset if start else None
+        end = end + end_offset if end else None
 
         return GenomicData(
             gene=gene,
             chr=chromosome,
             start=start,
             end=end,
-            exon_start=exon_start,
-            exon_start_offset=exon_start_offset,
-            exon_end=exon_end,
-            exon_end_offset=exon_end_offset,
+            exon_start=exon_start if start else None,
+            exon_start_offset=exon_start_offset if start else None,
+            exon_end=exon_end if end else None,
+            exon_end_offset=exon_end_offset if end else None,
             transcript=transcript
         )
 
