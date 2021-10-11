@@ -78,16 +78,16 @@ class UTATools:
             self, gene: Optional[str] = None, transcript: str = None,
             exon_start: Optional[int] = None, exon_start_offset: Optional[int] = 0,  # noqa: E501
             exon_end: Optional[int] = None, exon_end_offset: Optional[int] = 0,
-            *args, **kwargs) -> GenomicDataResponse:
+            **kwargs) -> GenomicDataResponse:
         """Get genomic data given transcript data.
         Will liftover to GRCh38 coordinates if possible.
 
+        :param Optional[str] gene: Gene symbol
+        :param Optional[str] transcript: Transcript accession
         :param Optional[int] exon_start: Starting transcript exon number
         :param Optional[int] exon_end: Ending transcript exon number
         :param Optional[int] exon_start_offset: Starting exon offset
         :param Optional[int] exon_end_offset: Ending exon offset
-        :param Optional[str] gene: Gene symbol
-        :param Optional[str] transcript: Transcript accession
         :return: Genomic data (inter-residue coordinates)
         """
         resp = GenomicDataResponse(
@@ -176,7 +176,7 @@ class UTATools:
             end: Optional[int] = None, strand: Optional[int] = None,
             transcript: Optional[str] = None, gene: Optional[str] = None,
             residue_mode: ResidueMode = ResidueMode.RESIDUE,
-            *args, **kwargs) -> GenomicDataResponse:
+            **kwargs) -> GenomicDataResponse:
         """Get transcript data for genomic data.
         MANE Transcript data will be returned iff `transcript` is not supplied.
             `gene` must be supplied in order to retrieve MANE Transcript data.
