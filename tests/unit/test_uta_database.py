@@ -74,11 +74,13 @@ def genomic_tx_data():
 async def test_get_tx_exons(test_db, nm_152263_exons):
     """Test that get_tx_exons works correctly."""
     resp = await test_db.get_tx_exons('NM_152263.3')
-    assert resp == nm_152263_exons
+    assert resp[0] == nm_152263_exons
+    assert resp[1] is None
 
     # Invalid transcript accession
     resp = await test_db.get_tx_exons('NM_152263.36')
-    assert resp is None
+    assert resp[0] is None
+    assert resp[1] == "Unable to get exons for NM_152263.36"
 
 
 @pytest.mark.asyncio
@@ -288,29 +290,15 @@ async def test_p_to_c_ac(test_db):
 
 
 @pytest.mark.asyncio
-async def test_get_tx_exon_start_end(test_db, nm_152263_exons):
-    """Test that get_tx_exon_start_end works correctly."""
-    resp = await test_db.get_tx_exon_start_end('NM_152263.3', 1, 8)
-    assert resp == (nm_152263_exons, 1, 8)
-
-    resp = await test_db.get_tx_exon_start_end('NM_152263.3', 0, 8)
-    assert resp == (nm_152263_exons, 1, 8)
-
-    resp = await test_db.get_tx_exon_start_end('NM_152263.3', 0, 0)
-    assert resp == (nm_152263_exons, 1, 10)
-
-    resp = await test_db.get_tx_exon_start_end('NM_152263.3', 8, 1)
-    assert resp is None
-
-
-@pytest.mark.asyncio
 async def test_get_tx_exon_coords(test_db, nm_152263_exons):
     """Test that get_tx_exon_coords works correctly."""
-    resp = test_db.get_tx_exon_coords(nm_152263_exons, 1, 8)
-    assert resp == (["117", "234"], ["822", "892"])
+    resp = test_db.get_tx_exon_coords("NM_152263.3", nm_152263_exons, 1, 8)
+    assert resp[0] == (["117", "234"], ["822", "892"])
+    assert resp[1] is None
 
-    resp = test_db.get_tx_exon_coords(nm_152263_exons, 1, 11)
-    assert resp is None
+    resp = test_db.get_tx_exon_coords("NM_152263.3", nm_152263_exons, 1, 11)
+    assert resp[0] is None
+    assert resp[1] == "Exon 11 does not exist on NM_152263.3"
 
 
 @pytest.mark.asyncio
@@ -319,7 +307,12 @@ async def test_get_alt_ac_start_and_end(test_db, tpm3_1_8_start_genomic,
     """Test that get_alt_ac_start_and_end works correctly."""
     resp = await test_db.get_alt_ac_start_and_end(
         'NM_152263.3', ["117", "234"], ["822", "892"], "TPM3")
-    assert resp == (tpm3_1_8_start_genomic, tpm3_1_8_end_genomic)
+    assert resp[0] == (tpm3_1_8_start_genomic, tpm3_1_8_end_genomic)
+    assert resp[1] is None
+
+    resp = await test_db.get_alt_ac_start_and_end('NM_152263.3', gene="TPM3")
+    assert resp[0] is None
+    assert resp[1] == "Unable to find `alt_ac_start` or `alt_ac_end`"
 
 
 @pytest.mark.asyncio
@@ -327,7 +320,16 @@ async def test_get_alt_ac_start_or_end(test_db, tpm3_1_8_start_genomic,
                                        tpm3_1_8_end_genomic):
     """Test that get_alt_ac_start_or_end works correctly."""
     resp = await test_db.get_alt_ac_start_or_end('NM_152263.3', 117, 234, None)
-    assert resp == tpm3_1_8_start_genomic
+    assert resp[0] == tpm3_1_8_start_genomic
+    assert resp[1] is None
 
     resp = await test_db.get_alt_ac_start_or_end('NM_152263.3', 822, 892, None)
-    assert resp == tpm3_1_8_end_genomic
+    assert resp[0] == tpm3_1_8_end_genomic
+    assert resp[1] is None
+
+    resp = await test_db.get_alt_ac_start_or_end(
+        'NM_152263.63', 822, 892, None)
+    assert resp[0] is None
+    assert resp[1] == "Unable to find a result where NM_152263.63 has " \
+                      "transcript coordinates 822 and 892 between an exon's " \
+                      "start and end coordinates"
