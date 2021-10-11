@@ -199,16 +199,17 @@ class UTADatabase:
             results.append([field for field in item])
         return results
 
-    async def chr_to_gene_and_accessions(self, chromosome: int, pos: int,
-                                         strand: int = None,
-                                         alt_ac: str = None) -> Dict:
+    async def chr_to_gene_and_accessions(
+            self, chromosome: int, pos: int, strand: int = None,
+            alt_ac: str = None) -> Tuple[Optional[Dict], Optional[str]]:
         """Return genes and genomic accessions related to a position on a chr.
 
         :param int chromosome: Chromosome number
         :param int pos: Genomic position
         :param int strand: Strand. Must be either `-1` or `1`
         :param str alt_ac: Genomic accession
-        :return: Dictionary containing genes and genomic accessions
+        :return: Dictionary containing genes and genomic accessions and
+        warnings if found
         """
         if alt_ac:
             alt_ac_cond = f"WHERE alt_ac = '{alt_ac}'"
@@ -230,22 +231,28 @@ class UTADatabase:
             """
         )
         results = await self.execute_query(query)
+        if not results:
+            msg = f"Unable to find a result for chromosome " \
+                  f"{alt_ac or chromosome} where genomic coordinate {pos}" \
+                  f" is mapped between an exon's start and end coordinates"
+            if strand:
+                msg += f" on the " \
+                       f"{'positive' if strand == 1 else 'negative'} strand"
+            return None, msg
+
         results = self._transform_list(results)
         genes = set()
         alt_acs = set()
         for r in results:
             genes.add(r[0])
             alt_acs.add(r[1])
-        return {
-            "genes": genes,
-            "alt_acs": alt_acs
-        }
+        return dict(genes=genes, alt_acs=alt_acs), None
 
-    async def get_tx_exons(self, tx_ac: str) -> Optional[List[str]]:
+    async def get_tx_exons(self, tx_ac: str) -> Tuple[Optional[List[str]], Optional[str]]:  # noqa: E501
         """Get list of transcript exons start/end coordinates.
 
         :param str tx_ac: Transcript accession
-        :return: List of a transcript's accessions, or None if lookup fails
+        :return: List of a transcript's accessions and warnings if found
         """
         query = (
             f"""
@@ -256,59 +263,65 @@ class UTADatabase:
         )
         cds_se_i = await self.execute_query(query)
         if not cds_se_i:
-            logger.warning(f"Unable to get exons for {tx_ac}")
-            return None
-        return cds_se_i[0][0].split(';')
+            msg = f"Unable to get exons for {tx_ac}"
+            logger.warning(msg)
+            return None, msg
+        return cds_se_i[0][0].split(';'), None
 
-    async def get_tx_exon_start_end(
-            self, tx_ac: str, exon_start: Optional[int] = None,
-            exon_end: Optional[int] = None) -> Optional[Tuple[List[str], int, int]]:  # noqa: E501
-        """Get exon start/end coordinates given accession and gene.
+    def _validate_exon(
+            self, transcript: str, tx_exons: List[str],
+            exon_number: Optional[int] = None) -> Tuple[Optional[List], Optional[str]]:  # noqa: E501
+        """Validate that exon number is valid
 
-        :param str tx_ac: Transcript accession
-        :param Optional[int] exon_start: Starting exon number
-        :param Optional[int] exon_end: Ending exon number
-        :return: Transcript's exons and start/end exon coordinates, or
-            None if lookup fails
+        :param str transcript: Transcript accession
+        :param list tx_exons: List of transcript's exons
+        :param Optional[int] exon_number: Exon number to validate
+        :return: Transcript coordinates and warnings if found
         """
-        # first and last transcript
-        if exon_start and exon_end:
-            if exon_start > exon_end:
-                logger.warning(f"start exon, {exon_start},"
-                               f"is greater than end exon, {exon_end}")
-                return None
+        msg = f"Exon {exon_number} does not exist on {transcript}"
+        try:
+            if exon_number < 1:
+                return None, msg
+            exon = \
+                tx_exons[exon_number - 1].split(",")
+        except IndexError:
+            return None, msg
+        return exon, None
 
-        tx_exons = await self.get_tx_exons(tx_ac)
-        if not tx_exons:
-            return None
-        return tx_exons, exon_start, exon_end
-
-    @staticmethod
     def get_tx_exon_coords(
-            tx_exons: List[str], exon_start: Optional[int] = None,
-            exon_end: Optional[int] = None) -> Optional[Tuple[List, List]]:
-        """Get transcript exon coordinates.
+            self, transcript: str, tx_exons: List[str],
+            exon_start: Optional[int] = None,
+            exon_end: Optional[int] = None) -> Tuple[Optional[Tuple[List, List]], Optional[str]]:  # noqa: E501
+        """Get transcript exon coordinates
 
+        :param str transcript: Transcript accession
         :param list tx_exons: List of transcript exons
         :param Optional[int] exon_start: Start exon number
         :param Optional[int] exon_end: End exon number
-        :return: [Transcript start exon coords, Transcript end exon coords], or
-            None if exon start/end is not valid
+        :return: [Transcript start exon coords, Transcript end exon coords],
+            and warnings if found
         """
-        try:
-            tx_exon_start = \
-                tx_exons[exon_start - 1].split(',') if exon_start else None
-            tx_exon_end = \
-                tx_exons[exon_end - 1].split(',') if exon_end else None
-        except IndexError as e:
-            logger.warning(e)
-            return None
-        return tx_exon_start, tx_exon_end
+        if exon_start is not None:
+            tx_exon_start, warning = self._validate_exon(
+                transcript, tx_exons, exon_start)
+            if not tx_exon_start:
+                return None, warning
+        else:
+            tx_exon_start = None
+
+        if exon_end is not None:
+            tx_exon_end, warning = self._validate_exon(
+                transcript, tx_exons, exon_end)
+            if not tx_exon_end:
+                return None, warning
+        else:
+            tx_exon_end = None
+        return (tx_exon_start, tx_exon_end), None
 
     async def get_alt_ac_start_and_end(
             self, tx_ac: str, tx_exon_start: Optional[List[str]] = None,
             tx_exon_end: Optional[List[str]] = None,
-            gene: str = None) -> Optional[Tuple[Tuple, Tuple]]:
+            gene: str = None) -> Tuple[Optional[Tuple[Tuple, Tuple]], Optional[str]]:  # noqa: E501
         """Get genomic coordinates for related transcript exon start and end.
 
         :param str tx_ac: Transcript accession
@@ -317,27 +330,28 @@ class UTADatabase:
         :param Optional[List[str]] tx_exon_end: Transcript's exon end
             coordinates
         :param str gene: Gene symbol
-        :return: Alt ac start and end data
+        :return: Alt ac start and end data, and warnings if found
         """
         if tx_exon_start:
-            alt_ac_start = await self.get_alt_ac_start_or_end(
+            alt_ac_start, warning = await self.get_alt_ac_start_or_end(
                 tx_ac, int(tx_exon_start[0]), int(tx_exon_start[1]), gene=gene)
             if not alt_ac_start:
-                return None
+                return None, warning
         else:
             alt_ac_start = None
 
         if tx_exon_end:
-            alt_ac_end = await self.get_alt_ac_start_or_end(
+            alt_ac_end, warning = await self.get_alt_ac_start_or_end(
                 tx_ac, int(tx_exon_end[0]), int(tx_exon_end[1]), gene=gene)
             if not alt_ac_end:
-                return None
+                return None, warning
         else:
             alt_ac_end = None
 
         if alt_ac_start is None and alt_ac_end is None:
-            logger.warning("Unable to find `alt_ac_start` or `alt_ac_end`")
-            return None
+            msg = "Unable to find `alt_ac_start` or `alt_ac_end`"
+            logger.warning(msg)
+            return None, msg
 
         # validate
         if alt_ac_start and alt_ac_end:
@@ -351,19 +365,20 @@ class UTADatabase:
                         error = "Strand does not match"
                     logger.warning(f"{error}: "
                                    f"{alt_ac_start[i]} != {alt_ac_end[i]}")
-        return alt_ac_start, alt_ac_end
+        return (alt_ac_start, alt_ac_end), None
 
     async def get_alt_ac_start_or_end(self, tx_ac: str, tx_exon_start: int,
                                       tx_exon_end: int, gene: Optional[str])\
-            -> Optional[Tuple[str, str, int, int, int]]:
+            -> Tuple[Optional[Tuple[str, str, int, int, int]], Optional[str]]:
         """Get genomic data for related transcript exon start or end.
 
         :param str tx_ac: Transcript accession
         :param int tx_exon_start: Transcript's exon start coordinate
         :param int tx_exon_end: Transcript's exon end coordinate
         :param Optional[str] gene: Gene symbol
-        :return: hgnc symbol, genomic accession for chromosome,
-            start exon's end coordinate, end exon's start coordinate, strand
+        :return: [hgnc symbol, genomic accession for chromosome,
+            start exon's end coordinate, end exon's start coordinate, strand],
+            and warnings if found
         """
         if gene:
             gene_query = f"AND T.hgnc = '{gene}'"
@@ -386,13 +401,15 @@ class UTADatabase:
             """
         )
         result = await self.execute_query(query)
-        result = result[0]
         if not result:
-            logger.warning(f"Unable to get genomic data for {tx_ac}"
-                           f" on start exon {tx_exon_start} and "
-                           f"end exon {tx_exon_end}")
-            return None
-        return result[0], result[1], result[2], result[3], result[4]
+            msg = f"Unable to find a result where {tx_ac} has transcript " \
+                  f"coordinates {tx_exon_start} and {tx_exon_end} between " \
+                  f"an exon's start and end coordinates"
+            logger.warning(msg)
+            return None, msg
+        else:
+            result = result[0]
+        return (result[0], result[1], result[2], result[3], result[4]), None
 
     async def get_cds_start_end(self, tx_ac: str) -> Optional[tuple[int, int]]:
         """Get coding start and end site

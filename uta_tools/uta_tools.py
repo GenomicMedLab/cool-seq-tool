@@ -1,12 +1,15 @@
 """Module for initializing data sources."""
+from datetime import datetime
 from typing import Optional, Union, List, Tuple
 from uta_tools import logger
-from uta_tools.schemas import GenomicData, TranscriptExonData, ResidueMode
+from uta_tools.schemas import GenomicData, TranscriptExonData, ResidueMode, \
+    GenomicDataResponse, ServiceMeta, TranscriptExonDataResponse
 from uta_tools.data_sources import MANETranscript, MANETranscriptMappings,\
     SeqRepoAccess, TranscriptMappings, UTADatabase
 from uta_tools import SEQREPO_DATA_PATH, \
     TRANSCRIPT_MAPPINGS_PATH, LRG_REFSEQGENE_PATH, MANE_SUMMARY_PATH, \
     UTA_DB_URL
+from uta_tools.version import __version__
 
 
 class UTATools:
@@ -46,11 +49,36 @@ class UTATools:
             self.seqrepo_access, self.transcript_mappings,
             self.mane_transcript_mappings, self.uta_db)
 
+    def service_meta(self) -> ServiceMeta:
+        """Return ServiceMeta for uta_tools
+
+        :return: ServiceMeta object
+        """
+        return ServiceMeta(
+            version=__version__,
+            response_datetime=datetime.now()
+        )
+
+    def _return_warnings(
+            self, resp: Union[GenomicDataResponse, TranscriptExonDataResponse],
+            warning_msg: str) -> Union[GenomicDataResponse, TranscriptExonDataResponse]:  # noqa: E501
+        """Add warnings to response object
+
+        :param Union[GenomicDataResponse, TranscriptExonDataResponse] resp:
+            Response object
+        :param str warning_msg: Warning message on why `transcript_exon_data`
+            or `genomic_data` field is None
+        :return: Response object with warning message
+        """
+        logger.warning(warning_msg)
+        resp.warnings.append(warning_msg)
+        return resp
+
     async def transcript_to_genomic_coordinates(
             self, gene: Optional[str] = None, transcript: str = None,
             exon_start: Optional[int] = None, exon_start_offset: Optional[int] = 0,  # noqa: E501
             exon_end: Optional[int] = None, exon_end_offset: Optional[int] = 0,
-            *args, **kwargs) -> Optional[GenomicData]:
+            *args, **kwargs) -> GenomicDataResponse:
         """Get genomic data given transcript data.
         Will liftover to GRCh38 coordinates if possible.
 
@@ -62,9 +90,18 @@ class UTATools:
         :param Optional[str] transcript: Transcript accession
         :return: Genomic data (inter-residue coordinates)
         """
+        resp = GenomicDataResponse(
+            genomic_data=None,
+            warnings=[],
+            service_meta=self.service_meta()
+        )
+
+        if not transcript:
+            return self._return_warnings(resp, "Must provide `transcript`")
+
         if exon_start is None and exon_end is None:
-            logger.warning("Must provide either `exon_start` or `exon_end`")
-            return None
+            return self._return_warnings(
+                resp, "Must provide either `exon_start` or `exon_end`")
 
         if gene:
             gene = gene.upper().strip()
@@ -72,28 +109,35 @@ class UTATools:
         if transcript:
             transcript = transcript.strip()
 
-        tx_exon_start_end = await self.uta_db.get_tx_exon_start_end(
-            transcript, exon_start, exon_end)
-        if not tx_exon_start_end:
-            return None
-        (tx_exons, exon_start, exon_end) = tx_exon_start_end
+        if exon_start and exon_end:
+            if exon_start > exon_end:
+                return self._return_warnings(
+                    resp,
+                    f"Start exon {exon_start} is greater than end exon {exon_end}"  # noqa: E501
+                )
 
-        tx_exon_coords = self.uta_db.get_tx_exon_coords(
-            tx_exons, exon_start, exon_end)
+        tx_exons, warning = await self.uta_db.get_tx_exons(transcript)
+        if not tx_exons:
+            return self._return_warnings(resp, warning)
+
+        tx_exon_coords, warning = self.uta_db.get_tx_exon_coords(
+            transcript, tx_exons, exon_start, exon_end)
         if not tx_exon_coords:
-            return None
+            return self._return_warnings(resp, warning)
         tx_exon_start, tx_exon_end = tx_exon_coords
 
-        alt_ac_start_end = await self.uta_db.get_alt_ac_start_and_end(
+        alt_ac_start_end, warning = await self.uta_db.get_alt_ac_start_and_end(
             transcript, tx_exon_start, tx_exon_end, gene=gene)
         if not alt_ac_start_end:
-            return None
+            return self._return_warnings(resp, warning)
         alt_ac_start, alt_ac_end = alt_ac_start_end
 
         gene = alt_ac_start[0] if alt_ac_start else alt_ac_end[0]
         chromosome = alt_ac_start[1] if alt_ac_start else alt_ac_end[1]
         if gene is None or chromosome is None:
-            return None
+            return self._return_warnings(
+                resp, "Unable to retrieve `gene` or `chromosome` from "
+                      "genomic start or end data")
 
         start = alt_ac_start[3] if alt_ac_start else None
         end = alt_ac_end[2] if alt_ac_end else None
@@ -113,7 +157,7 @@ class UTATools:
         start = start + start_offset if start_exits else None
         end = end + end_offset if end_exists else None
 
-        return GenomicData(
+        resp.genomic_data = GenomicData(
             gene=gene,
             chr=chromosome,
             start=start,
@@ -125,12 +169,14 @@ class UTATools:
             transcript=transcript
         )
 
+        return resp
+
     async def genomic_to_transcript_exon_coordinates(
             self, chromosome: Union[str, int], start: Optional[int] = None,
             end: Optional[int] = None, strand: Optional[int] = None,
             transcript: Optional[str] = None, gene: Optional[str] = None,
             residue_mode: ResidueMode = ResidueMode.RESIDUE,
-            *args, **kwargs) -> Optional[GenomicData]:
+            *args, **kwargs) -> GenomicDataResponse:
         """Get transcript data for genomic data.
         MANE Transcript data will be returned iff `transcript` is not supplied.
             `gene` must be supplied in order to retrieve MANE Transcript data.
@@ -149,9 +195,14 @@ class UTATools:
             Must be either `residue` or `inter-residue` (0-based).
         :return: Genomic data (inter-residue coordinates)
         """
+        resp = GenomicDataResponse(
+            genomic_data=None,
+            warnings=[],
+            service_meta=self.service_meta()
+        )
         if start is None and end is None:
-            logger.warning("Must provide either `start` or `end`")
-            return None
+            return self._return_warnings(
+                resp, "Must provide either `start` or `end`")
 
         params = {key: None for key in GenomicData.__fields__.keys()}
         if gene is not None:
@@ -162,8 +213,10 @@ class UTATools:
                 chromosome, start, strand=strand, transcript=transcript,
                 gene=gene, is_start=True, residue_mode=residue_mode
             )
-            if start_data:
-                start_data = start_data.dict()
+            if start_data.transcript_exon_data:
+                start_data = start_data.transcript_exon_data.dict()
+            else:
+                return self._return_warnings(resp, start_data.warnings[0])
         else:
             start_data = None
 
@@ -172,43 +225,41 @@ class UTATools:
                 chromosome, end, strand=strand, transcript=transcript,
                 gene=gene, is_start=False, residue_mode=residue_mode
             )
-            if end_data:
-                end_data = end_data.dict()
+            if end_data.transcript_exon_data:
+                end_data = end_data.transcript_exon_data.dict()
+            else:
+                return self._return_warnings(resp, end_data.warnings[0])
         else:
             end_data = None
-
-        if start_data is None and end_data is None:
-            logger.warning("No data found from input")
-            return None
 
         for field in ["transcript", "gene", "chr"]:
             if start_data:
                 if end_data:
                     if start_data[field] != end_data[field]:
-                        logger.warning(f"Start `{field}`, {start_data[field]},"
-                                       f" does not match End `{field}`, "
-                                       f"{end_data[field]}")
-                        return None
+                        msg = f"Start `{field}`, {start_data[field]}, does " \
+                              f"not match End `{field}`, {end_data[field]}"
+                        return self._return_warnings(resp, msg)
                 params[field] = start_data[field]
             else:
                 params[field] = end_data[field]
 
         if gene and gene != params["gene"]:
-            logger.warning(f"Input gene, {gene}, does not match output "
-                           f"gene, {params['gene']}")
-            return None
+            msg = f"Input gene, {gene}, does not match expected output" \
+                  f"gene, {params['gene']}"
+            return self._return_warnings(resp, msg)
 
         for label, data in [("start", start_data), ("end", end_data)]:
             if data:
                 params[label] = data["pos"]
                 params[f"exon_{label}"] = data["exon"]
                 params[f"exon_{label}_offset"] = data["exon_offset"]
-        return GenomicData(**params)
+        resp.genomic_data = GenomicData(**params)
+        return resp
 
     async def _genomic_to_transcript_exon_coordinate(
             self, chromosome: Union[str, int], pos: int, strand: int = None,
             transcript: str = None, gene: str = None, is_start: bool = True,
-            residue_mode: ResidueMode = ResidueMode.RESIDUE) -> Optional[TranscriptExonData]:  # noqa: E501
+            residue_mode: ResidueMode = ResidueMode.RESIDUE) -> TranscriptExonDataResponse:  # noqa: E501
         """Convert individual genomic data to transcript data
 
         :param str chromosome: Chromosome. Must either give chromosome number
@@ -225,6 +276,17 @@ class UTATools:
             Must be either `residue` or `inter-residue` (0-based).
         :return: Transcript data (inter-residue coordinates)
         """
+        resp = TranscriptExonDataResponse(
+            transcript_exon_data=None,
+            warnings=[],
+            service_meta=self.service_meta()
+        )
+
+        if transcript is None and gene is None:
+            return self._return_warnings(
+                resp, "Must provide either `gene` or `transcript`"
+            )
+
         params = {key: None for key in TranscriptExonData.__fields__.keys()}
 
         try:
@@ -234,42 +296,49 @@ class UTATools:
         except ValueError:
             # Check if valid accession is given
             if not await self.uta_db.validate_genomic_ac(chromosome):
-                logger.warning(f"Chromosome is not valid: {chromosome}")
-                return None
+                return self._return_warnings(
+                    resp, f"Invalid chromosome: {chromosome}")
 
         if isinstance(chromosome, str):
             # Accession given
-            genes_alt_acs = await self.uta_db.chr_to_gene_and_accessions(
-                chromosome, pos, strand=strand,
-                alt_ac=chromosome
-            )
+            genes_alt_acs, warning = \
+                await self.uta_db.chr_to_gene_and_accessions(
+                    chromosome, pos, strand=strand, alt_ac=chromosome)
         else:
             # Number given
-            genes_alt_acs = await self.uta_db.chr_to_gene_and_accessions(
-                chromosome, pos, strand=strand, alt_ac=None
-            )
-        gene_alt_ac = self._get_gene_and_alt_ac(genes_alt_acs, gene)
+            genes_alt_acs, warning = \
+                await self.uta_db.chr_to_gene_and_accessions(
+                    chromosome, pos, strand=strand, alt_ac=None)
+        if not genes_alt_acs:
+            return self._return_warnings(resp, warning)
+
+        gene_alt_ac, warning = self._get_gene_and_alt_ac(genes_alt_acs, gene)
         if not gene_alt_ac:
-            return None
+            return self._return_warnings(resp, warning)
         gene, alt_ac = gene_alt_ac
 
         if transcript is None:
-            await self._set_mane_genomic_data(params, gene, alt_ac, pos,
-                                              strand, is_start)
+            warnings = await self._set_mane_genomic_data(
+                params, gene, alt_ac, pos, strand, is_start)
+            if warnings:
+                return self._return_warnings(resp, warnings)
         else:
             params["transcript"] = transcript
             params["gene"] = gene
             params["pos"] = pos
             params["chr"] = alt_ac
-            await self._set_genomic_data(params, strand, is_start)
+            warning = await self._set_genomic_data(params, strand, is_start)
+            if warning:
+                return self._return_warnings(resp, warning)
 
         if residue_mode.lower().strip() == ResidueMode.RESIDUE and is_start:
             params["pos"] -= 1
-        return TranscriptExonData(**params)
+        resp.transcript_exon_data = TranscriptExonData(**params)
+        return resp
 
     def _get_gene_and_alt_ac(self,
                              genes_alt_acs: dict,
-                             gene: Optional[str]) -> Optional[Tuple[str, str]]:
+                             gene: Optional[str]) -> Tuple[Optional[Tuple[str, str]], Optional[str]]:  # noqa; E501
         """Return gene genomic accession
 
         :param dict genes_alt_acs: Dictionary containing genes and
@@ -280,11 +349,9 @@ class UTATools:
         alt_acs = genes_alt_acs["alt_acs"]
         len_alt_acs = len(alt_acs)
         if len_alt_acs > 1:
-            logger.warning(f"Found more than one accessions: {alt_acs}")
-            return None
+            return None, f"Found more than one accessions: {alt_acs}"
         elif len_alt_acs == 0:
-            logger.warning("No accessions found")
-            return None
+            return None, "No genomic accessions found"
         alt_ac = next(iter(alt_acs))
 
         genes = genes_alt_acs["genes"]
@@ -294,25 +361,21 @@ class UTATools:
         if len_genes == 1:
             output_gene = next(iter(genes))
         elif len_genes > 1:
-            logger.warning(f"Found more than one gene: {genes}")
-            return None
+            return None, f"Found more than one gene: {genes}"
         elif len_genes == 0:
-            logger.warning("No genes found")
-            return None
+            return None, "No genes found"
 
         if input_gene is not None:
-            input_gene = input_gene.upper()
-            if output_gene != input_gene:
-                logger.warning(f"Input gene, {input_gene}, does not match "
-                               f"output gene, {output_gene}")
-                return None
+            if output_gene != input_gene.upper():
+                return None, f"Input gene, {input_gene}, does not match " \
+                             f"expected output gene, {output_gene}"
 
         gene = output_gene if output_gene else input_gene
-        return gene, alt_ac
+        return (gene, alt_ac), None
 
     async def _set_mane_genomic_data(self, params: dict, gene: str,
                                      alt_ac: str, pos: int, strand: int,
-                                     is_start: bool) -> None:
+                                     is_start: bool) -> Optional[str]:
         """Set genomic data in `params` found from MANE.
 
         :param dict params: Parameters for response
@@ -322,14 +385,18 @@ class UTATools:
         :param int strand: Strand
         :param bool is_start: `True` if `pos` is start position. `False` if
             `pos` is end position.
+        :return: Warnings if found
         """
         mane_data = await self.mane_transcript.get_mane_transcript(
             alt_ac, pos, None, 'g', gene=gene,
             normalize_endpoint=True
         )
         if not mane_data:
-            logger.warning("Could not find mane data")
-            return None
+            msg = f"Unable to find mane data for {alt_ac} with position {pos}"
+            if gene:
+                msg += f" on gene {gene}"
+            logger.warning(msg)
+            return msg
 
         params["gene"] = mane_data["gene"]
         params["transcript"] = mane_data["refseq"] if mane_data["refseq"] \
@@ -343,43 +410,47 @@ class UTATools:
                               is_start=is_start, strand=strand_to_use)
 
         # Need to check if we need to change pos for liftover
-        genomic_data = await self.uta_db.get_alt_ac_start_or_end(
+        genomic_data, warnings = await self.uta_db.get_alt_ac_start_or_end(
             params["transcript"], tx_pos, tx_pos, gene)
         if genomic_data is None:
-            return None
+            return warnings
+
         params["chr"] = genomic_data[1]
         genomic_coords = genomic_data[2], genomic_data[3]
         genomic_pos = genomic_coords[1] if is_start else genomic_coords[0]
         params["pos"] = genomic_pos - params["exon_offset"] if \
             strand_to_use == -1 else genomic_pos + params["exon_offset"]
+        return None
 
     async def _set_genomic_data(self, params: dict, strand: int,
-                                is_start: bool) -> None:
+                                is_start: bool) -> Optional[str]:
         """Set genomic data in `params`.
 
         :param dict params: Parameters for response
         :param int strand: Strand
         :param bool is_start: `True` if `pos` is start position. `False` if
             `pos` is end position.
+        :return: Warnings if found
         """
         # We should always try to liftover
         grch38_ac = await self.uta_db.get_newest_assembly_ac(params["chr"])
         if not grch38_ac:
-            logger.warning(f"Invalid genomic accession: {params['chr']}")
-            return None
+            return f"Invalid genomic accession: {params['chr']}"
 
         grch38_ac = grch38_ac[0][0]
         if grch38_ac != params["chr"]:
             # Liftover
             descr = await self.uta_db.get_chr_assembly(params["chr"])
             if descr is None:
-                return None
+                return f"Unable to get chromosome and assembly for " \
+                       f"{params['chr']}"
 
             chromosome_number, assembly = descr
             liftover_data = self.uta_db.get_liftover(
                 chromosome_number, params["pos"])
             if liftover_data is None:
-                return None
+                return f"Position {params['pos']} does not exist on " \
+                       f"chromosome {chromosome_number}"
 
             params["pos"] = liftover_data[1]
             params["chr"] = grch38_ac
@@ -389,9 +460,8 @@ class UTATools:
             params["transcript"], params["pos"], params["pos"],
             alt_ac=params["chr"], use_tx_pos=False)
         if len(data) != 1:
-            logger.warning(f"Must find exactly one row for genomic data, "
-                           f"but found: {len(data)}")
-            return None
+            return f"Must find exactly one row for genomic data, " \
+                   f"but found: {len(data)}"
 
         # Find exon number
         data = data[0]
@@ -411,6 +481,7 @@ class UTATools:
         strand_to_use = strand if strand is not None else data[7]
         self._set_exon_offset(params, data[5], data[6], params["pos"],
                               is_start=is_start, strand=strand_to_use)
+        return None
 
     def _set_exon_offset(self, params: dict, start: int, end: int, pos: int,
                          is_start: bool, strand: int) -> None:
@@ -442,7 +513,7 @@ class UTATools:
         :return: List of tuples containing transcript exon coordinates
         """
         result = list()
-        tx_exons = await self.uta_db.get_tx_exons(transcript)
+        tx_exons, _ = await self.uta_db.get_tx_exons(transcript)
         for tx_exon in tx_exons:
             coords = tx_exon.split(",")
             result.append((int(coords[0]), int(coords[1])))
