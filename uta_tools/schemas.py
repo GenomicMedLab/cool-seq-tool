@@ -5,6 +5,7 @@ from pydantic import BaseModel, root_validator, validator
 from pydantic.main import Extra
 from typing import Literal, Optional, List
 import re
+from pydantic.types import StrictStr, StrictInt
 
 
 class ResidueMode(str, Enum):
@@ -22,12 +23,12 @@ class TranscriptExonData(BaseModel):
 
         extra = Extra.forbid
 
-    transcript: str
-    pos: int
-    exon: int
-    exon_offset: int = 0
-    gene: str
-    chr: str
+    transcript: StrictStr
+    pos: StrictInt
+    exon: StrictInt
+    exon_offset: StrictInt = 0
+    gene: StrictStr
+    chr: StrictStr
 
 
 class GenomicData(BaseModel):
@@ -38,15 +39,15 @@ class GenomicData(BaseModel):
 
         extra = Extra.forbid
 
-    gene: str
-    chr: str
-    start: Optional[int] = None  # Genomic start position
-    end: Optional[int] = None  # Genomic end position
-    exon_start: Optional[int] = None
-    exon_start_offset: Optional[int] = 0
-    exon_end: Optional[int] = None
-    exon_end_offset: Optional[int] = 0
-    transcript: str
+    gene: StrictStr
+    chr: StrictStr
+    start: Optional[StrictInt] = None  # Genomic start position
+    end: Optional[StrictInt] = None  # Genomic end position
+    exon_start: Optional[StrictInt] = None
+    exon_start_offset: Optional[StrictInt] = 0
+    exon_end: Optional[StrictInt] = None
+    exon_end_offset: Optional[StrictInt] = 0
+    transcript: StrictStr
 
     @root_validator(pre=True)
     def check_start_end(cls, values):
@@ -78,7 +79,7 @@ class ServiceMeta(BaseModel):
     """Metadata for uta_tools service"""
 
     name: Literal["uta_tools"] = "uta_tools"
-    version: str
+    version: StrictStr
     response_datetime: datetime
     url: Literal["https://github.com/cancervariants/uta_tools"] = "https://github.com/cancervariants/uta_tools"  # noqa: E501
 
@@ -96,7 +97,7 @@ class TranscriptExonDataResponse(BaseModel):
     """Response model for Transcript Exon Data"""
 
     transcript_exon_data: Optional[TranscriptExonData] = None
-    warnings: Optional[List[str]] = []
+    warnings: Optional[List[StrictStr]] = []
     service_meta: ServiceMeta
 
     class Config:
@@ -109,7 +110,7 @@ class GenomicDataResponse(BaseModel):
     """Response model for Genomic Data"""
 
     genomic_data: Optional[GenomicData] = None
-    warnings: Optional[List[str]] = []
+    warnings: Optional[List[StrictStr]] = []
     service_meta: ServiceMeta
 
     class Config:
