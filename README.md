@@ -1,4 +1,4 @@
-# uta_tools
+# uta-tools
 
 Service for querying the [UTA](https://github.com/biocommons/uta) database
 
@@ -7,7 +7,7 @@ Service for querying the [UTA](https://github.com/biocommons/uta) database
 ### pip
 
 ```commandline
-pip install uta_tools
+pip install uta-tools
 ```
 
 ### Development
@@ -15,7 +15,7 @@ pip install uta_tools
 Clone the repo:
 
 ```commandline
-git clone https://github.com/cancervariants/uta_tools
+git clone https://github.com/cancervariants/uta-tools
 cd uta_tools
 ```
 
@@ -30,7 +30,7 @@ pipenv lock && pipenv sync
 
 ### UTA Database Installation
 
-uta_tools uses intalls local UTA database. For other ways to install, visit [biocommons.uta](https://github.com/biocommons/uta).
+`uta-tools` uses intalls local UTA database. For other ways to install, visit [biocommons.uta](https://github.com/biocommons/uta).
 
 #### Local Installation
 
@@ -60,7 +60,7 @@ If you do not wish to use the default, you must set the environment variable `UT
 ### Data Downloads
 
 #### SeqRepo
-`uta_tools` relies on [seqrepo](https://github.com/biocommons/biocommons.seqrepo), which you must download yourself.
+`uta-tools` relies on [seqrepo](https://github.com/biocommons/biocommons.seqrepo), which you must download yourself.
 
 From the _root_ directory:
 ```
@@ -71,17 +71,17 @@ seqrepo pull -i 2021-01-29
 ```
 
 #### transcript_mappings.tsv
-`uta_tools` uses [Ensembl BioMart](http://www.ensembl.org/biomart/martview) to retrieve `uta_tools/data/transcript_mappings.tsv`. We currently use `Human Genes (GRCh38.p13)` for the dataset and the following attributes we use are: Gene stable ID, Gene stable ID version, Transcript stable ID, Transcript stable ID version, Protein stable ID, Protein stable ID version, RefSeq match transcript (MANE Select), Gene name. 
+`uta-tools` uses [Ensembl BioMart](http://www.ensembl.org/biomart/martview) to retrieve `uta_tools/data/transcript_mappings.tsv`. We currently use `Human Genes (GRCh38.p13)` for the dataset and the following attributes we use are: Gene stable ID, Gene stable ID version, Transcript stable ID, Transcript stable ID version, Protein stable ID, Protein stable ID version, RefSeq match transcript (MANE Select), Gene name. 
 
 ![image](biomart.png)
 
 #### LRG_RefSeqGene
 
-`uta_tools` fetches the latest version of `LRG_RefSeqGene`. This file is found can be found [here](https://ftp.ncbi.nlm.nih.gov/refseq/H_sapiens/RefSeqGene).  
+`uta-tools` fetches the latest version of `LRG_RefSeqGene`. This file is found can be found [here](https://ftp.ncbi.nlm.nih.gov/refseq/H_sapiens/RefSeqGene).  
 
 #### MANE Summary Data
 
-`uta_tools` fetches the latest version of `MANE.GRCh38.*.summary.txt.gz`. This file is found can be found [here](https://ftp.ncbi.nlm.nih.gov/refseq/MANE/MANE_human/current/).
+`uta-tools` fetches the latest version of `MANE.GRCh38.*.summary.txt.gz`. This file is found can be found [here](https://ftp.ncbi.nlm.nih.gov/refseq/MANE/MANE_human/current/).
 
 ## Init coding style tests
 Code style is managed by [flake8](https://github.com/PyCQA/flake8) and checked prior to commit.
