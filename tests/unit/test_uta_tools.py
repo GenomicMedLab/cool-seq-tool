@@ -483,27 +483,27 @@ async def test_transcript_to_genomic(test_uta_tools, tpm3_exon1_exon8_t_to_g,
     """Test that transcript_to_genomic_coordinates works correctly."""
     # TPM3
     resp = await test_uta_tools.transcript_to_genomic_coordinates(
-        exon_start=0, exon_end=8, transcript='NM_152263.3')
+        exon_start=None, exon_end=8, transcript='NM_152263.3')
     genomic_data_assertion_checks(resp, tpm3_exon8_t_to_g)
 
     resp = await test_uta_tools.transcript_to_genomic_coordinates(
-        exon_start=1, exon_end=0, transcript='NM_152263.3')
+        exon_start=1, exon_end=None, transcript='NM_152263.3')
     genomic_data_assertion_checks(resp, tpm3_exon1_t_to_g)
 
     resp = await test_uta_tools.transcript_to_genomic_coordinates(
-        exon_start=0, exon_end=8, transcript='NM_152263.3       ')
+        exon_start=None, exon_end=8, transcript='NM_152263.3       ')
     genomic_data_assertion_checks(resp, tpm3_exon8_t_to_g)
 
     resp = await test_uta_tools.transcript_to_genomic_coordinates(
-        exon_start=0, exon_end=8, gene="TPM3", transcript='NM_152263.3')
+        exon_start=None, exon_end=8, gene="TPM3", transcript='NM_152263.3')
     genomic_data_assertion_checks(resp, tpm3_exon8_t_to_g)
 
     resp = await test_uta_tools.transcript_to_genomic_coordinates(
-        exon_start=0, exon_end=8, gene=" TPM3 ", transcript=' NM_152263.3 ')
+        exon_start=None, exon_end=8, gene=" TPM3 ", transcript=' NM_152263.3 ')
     genomic_data_assertion_checks(resp, tpm3_exon8_t_to_g)
 
     resp = await test_uta_tools.transcript_to_genomic_coordinates(
-        exon_start=0, exon_end=8, gene="tpm3", transcript='NM_152263.3')
+        exon_start=None, exon_end=8, gene="tpm3", transcript='NM_152263.3')
     genomic_data_assertion_checks(resp, tpm3_exon8_t_to_g)
 
     expected = copy.deepcopy(tpm3_exon1_exon8_t_to_g)

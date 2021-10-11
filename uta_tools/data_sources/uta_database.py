@@ -209,7 +209,7 @@ class UTADatabase:
         :param int strand: Strand. Must be either `-1` or `1`
         :param str alt_ac: Genomic accession
         :return: Dictionary containing genes and genomic accessions and
-        warnings if found
+            warnings if found
         """
         if alt_ac:
             alt_ac_cond = f"WHERE alt_ac = '{alt_ac}'"
