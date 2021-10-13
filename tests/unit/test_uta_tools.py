@@ -25,8 +25,8 @@ def tpm3_exon1():
         "pos": 154192134,
         "exon": 1,
         "exon_offset": 0,
-        "transcript": "NM_152263.3"
-
+        "transcript": "NM_152263.3",
+        "strand": -1
     }
     return TranscriptExonData(**params)
 
@@ -40,8 +40,8 @@ def tpm3_exon8():
         "pos": 154170399,
         "exon": 8,
         "exon_offset": 0,
-        "transcript": "NM_152263.3"
-
+        "transcript": "NM_152263.3",
+        "strand": -1
     }
     return TranscriptExonData(**params)
 
@@ -58,7 +58,8 @@ def tpm3_exon1_g():
         "exon_end": None,
         "exon_start_offset": 0,
         "exon_end_offset": None,
-        "transcript": "NM_152263.3"
+        "transcript": "NM_152263.3",
+        "strand": -1
     }
     return GenomicData(**params)
 
@@ -75,7 +76,8 @@ def tpm3_exon8_g():
         "exon_end": 8,
         "exon_start_offset": None,
         "exon_end_offset": 0,
-        "transcript": "NM_152263.3"
+        "transcript": "NM_152263.3",
+        "strand": -1
     }
     return GenomicData(**params)
 
@@ -92,7 +94,8 @@ def tpm3_exon1_exon8():
         "exon_end": 8,
         "exon_end_offset": 0,
         "exon_start_offset": 0,
-        "transcript": "NM_152263.3"
+        "transcript": "NM_152263.3",
+        "strand": -1
     }
     return GenomicData(**params)
 
@@ -109,7 +112,8 @@ def tpm3_exon1_t_to_g():
         "exon_end": None,
         "exon_end_offset": None,
         "exon_start_offset": 0,
-        "transcript": "NM_152263.3"
+        "transcript": "NM_152263.3",
+        "strand": -1
     }
     return GenomicData(**params)
 
@@ -126,7 +130,8 @@ def tpm3_exon8_t_to_g():
         "exon_end": 8,
         "exon_end_offset": 0,
         "exon_start_offset": None,
-        "transcript": "NM_152263.3"
+        "transcript": "NM_152263.3",
+        "strand": -1
     }
     return GenomicData(**params)
 
@@ -143,7 +148,8 @@ def tpm3_exon1_exon8_t_to_g():
         "exon_end": 8,
         "exon_end_offset": 0,
         "exon_start_offset": 0,
-        "transcript": "NM_152263.3"
+        "transcript": "NM_152263.3",
+        "strand": -1
     }
     return GenomicData(**params)
 
@@ -160,8 +166,8 @@ def tpm3_exon1_exon8_offset():
         "end": 154170404,
         "exon_end": 8,
         "exon_end_offset": -5,
-        "transcript": "NM_152263.3"
-
+        "transcript": "NM_152263.3",
+        "strand": -1
     }
     return GenomicData(**params)
 
@@ -178,8 +184,8 @@ def mane_braf():
         "end": 140753332,
         "exon_end": 16,
         "exon_end_offset": -58,
-        "transcript": "NM_001374258.1"
-
+        "transcript": "NM_001374258.1",
+        "strand": -1
     }
     return GenomicData(**params)
 
@@ -196,8 +202,8 @@ def wee1_exon2_exon11():
         "end": 9588448,
         "exon_end": 11,
         "exon_end_offset": 0,
-        "transcript": "NM_003390.3"
-
+        "transcript": "NM_003390.3",
+        "strand": 1
     }
     return GenomicData(**params)
 
@@ -214,8 +220,8 @@ def mane_wee1_exon2_exon11():
         "end": 9586856,
         "exon_end": 10,
         "exon_end_offset": 146,
-        "transcript": "NM_003390.4"
-
+        "transcript": "NM_003390.4",
+        "strand": 1
     }
     return GenomicData(**params)
 
@@ -232,7 +238,8 @@ def ntrk1_exon10_exon17():
         "exon_end": 17,
         "exon_end_offset": 0,
         "exon_start_offset": 0,
-        "transcript": "NM_002529.3"
+        "transcript": "NM_002529.3",
+        "strand": 1
     }
     return GenomicData(**params)
 

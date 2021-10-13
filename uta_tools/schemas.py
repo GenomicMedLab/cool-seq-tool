@@ -29,6 +29,7 @@ class TranscriptExonData(BaseModel):
     exon_offset: StrictInt = 0
     gene: StrictStr
     chr: StrictStr
+    strand: StrictInt
 
 
 class GenomicData(BaseModel):
@@ -48,6 +49,7 @@ class GenomicData(BaseModel):
     exon_end: Optional[StrictInt] = None
     exon_end_offset: Optional[StrictInt] = 0
     transcript: StrictStr
+    strand: StrictInt
 
     @root_validator(pre=True)
     def check_start_end(cls, values):
