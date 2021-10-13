@@ -166,7 +166,8 @@ class UTATools:
             exon_start_offset=exon_start_offset if start_exits else None,
             exon_end=exon_end if end_exists else None,
             exon_end_offset=exon_end_offset if end_exists else None,
-            transcript=transcript
+            transcript=transcript,
+            strand=strand
         )
 
         return resp
@@ -232,7 +233,7 @@ class UTATools:
         else:
             end_data = None
 
-        for field in ["transcript", "gene", "chr"]:
+        for field in ["transcript", "gene", "chr", "strand"]:
             if start_data:
                 if end_data:
                     if start_data[field] != end_data[field]:
@@ -406,6 +407,7 @@ class UTATools:
         params["exon"] = self._get_exon_number(tx_exons, tx_pos)
         tx_exon = tx_exons[params["exon"] - 1]
         strand_to_use = strand if strand is not None else mane_data["strand"]  # noqa: E501
+        params["strand"] = strand_to_use
         self._set_exon_offset(params, tx_exon[0], tx_exon[1], tx_pos,
                               is_start=is_start, strand=strand_to_use)
 
@@ -479,6 +481,7 @@ class UTATools:
         params["exon"] = i
 
         strand_to_use = strand if strand is not None else data[7]
+        params["strand"] = strand_to_use
         self._set_exon_offset(params, data[5], data[6], params["pos"],
                               is_start=is_start, strand=strand_to_use)
         return None
