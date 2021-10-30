@@ -12,6 +12,7 @@ pandas = "*"
 hgvs = "*"
 "biocommons.seqrepo" = "*"
 pydantic = "*"
+botocore = "*"
 
 [dev-packages]
 uta_tools = {editable = true, path = "."}
