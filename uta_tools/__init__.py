@@ -12,11 +12,6 @@ logging.basicConfig(
 logger = logging.getLogger('uta_tools')
 logger.setLevel(logging.DEBUG)
 
-if "UTA_TOOLS_PROD" in environ:
-    IS_PROD_ENV = True
-else:
-    IS_PROD_ENV = False
-
 if "UTA_DB_URL" in environ:
     UTA_DB_URL = environ["UTA_DB_URL"]
 else:
