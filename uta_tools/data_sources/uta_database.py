@@ -2,13 +2,16 @@
 import asyncpg
 import boto3
 import pandas as pd
-from uta_tools import UTA_DB_URL, logger, IS_PROD_ENV
+from uta_tools import UTA_DB_URL, logger
 from six.moves.urllib import parse as urlparse
 from asyncpg.exceptions import InterfaceError
 from typing import Dict, List, Optional, Tuple, Any
 from os import environ
 from urllib.parse import quote, unquote
 from pyliftover import LiftOver
+from botocore.exceptions import ClientError
+import ast
+import base64
 
 
 class UTADatabase:
@@ -87,17 +90,18 @@ class UTADatabase:
         :param str db_pwd: User's password for uta database
         :return: Database credentials
         """
-        if IS_PROD_ENV:
-            self.schema = environ['UTA_SCHEMA']
+        if 'UTA_DB_SECRET' in environ:
+            secret = ast.literal_eval(self.get_secret())
+            self.schema = secret['UTA_SCHEMA']
             region = 'us-east-2'
             client = boto3.client('rds', region_name=region)
             token = client.generate_db_auth_token(
-                DBHostname=environ['UTA_HOST'], Port=environ['UTA_PORT'],
-                DBUsername=environ['UTA_USER'], Region=region
+                DBHostname=secret['UTA_HOST'], Port=secret['UTA_PORT'],
+                DBUsername=secret['UTA_USER'], Region=region
             )
-            return self._get_args(environ['UTA_HOST'],
-                                  int(environ['UTA_PORT']),
-                                  environ['UTA_DATABASE'], environ['UTA_USER'],
+            return self._get_args(secret['UTA_HOST'],
+                                  int(secret['UTA_PORT']),
+                                  secret['UTA_DATABASE'], secret['UTA_USER'],
                                   token)
         else:
             db_url = self._update_db_url(db_pwd, db_url)
@@ -109,6 +113,55 @@ class UTADatabase:
             password = unquote(url.password) if url.password else ''
             return self._get_args(url.hostname, url.port, url.database,
                                   url.username, password)
+
+    @staticmethod
+    def get_secret():
+        """Get secrets for UTA."""
+        secret_name = environ['UTA_DB_SECRET']
+        region_name = 'us-east-2'
+
+        # Create a Secrets Manager client
+        session = boto3.session.Session()
+        client = session.client(
+            service_name='secretsmanager',
+            region_name=region_name
+        )
+
+        try:
+            get_secret_value_response = client.get_secret_value(
+                SecretId=secret_name
+            )
+        except ClientError as e:
+            logger.warning(e)
+            if e.response['Error']['Code'] == 'DecryptionFailureException':
+                # Secrets Manager can't decrypt the protected
+                # secret text using the provided KMS key.
+                raise e
+            elif e.response['Error']['Code'] == \
+                    'InternalServiceErrorException':
+                # An error occurred on the server side.
+                raise e
+            elif e.response['Error']['Code'] == 'InvalidParameterException':
+                # You provided an invalid value for a parameter.
+                raise e
+            elif e.response['Error']['Code'] == 'InvalidRequestException':
+                # You provided a parameter value that is not valid for
+                # the current state of the resource.
+                raise e
+            elif e.response['Error']['Code'] == 'ResourceNotFoundException':
+                # We can't find the resource that you asked for.
+                raise e
+        else:
+            # Decrypts secret using the associated KMS CMK.
+            # Depending on whether the secret is a string or binary,
+            # one of these fields will be populated.
+            if 'SecretString' in get_secret_value_response:
+                secret = get_secret_value_response['SecretString']
+                return secret
+            else:
+                decoded_binary_secret = base64.b64decode(
+                    get_secret_value_response['SecretBinary'])
+                return decoded_binary_secret
 
     async def create_pool(self) -> None:
         """Create connection pool if not already created."""
