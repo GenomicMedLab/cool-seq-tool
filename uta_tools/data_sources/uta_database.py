@@ -2,7 +2,7 @@
 import asyncpg
 import boto3
 import pandas as pd
-from uta_tools import UTA_DB_URL, logger, IS_PROD_ENV
+from uta_tools import UTA_DB_URL, logger
 from six.moves.urllib import parse as urlparse
 from asyncpg.exceptions import InterfaceError
 from typing import Dict, List, Optional, Tuple, Any
@@ -87,8 +87,7 @@ class UTADatabase:
         :param str db_pwd: User's password for uta database
         :return: Database credentials
         """
-        if IS_PROD_ENV:
-            self.schema = environ['UTA_SCHEMA']
+        if 'UTA_DB_PROD' in environ:
             region = 'us-east-2'
             client = boto3.client('rds', region_name=region)
             token = client.generate_db_auth_token(
