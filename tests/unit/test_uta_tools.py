@@ -438,6 +438,11 @@ async def test_braf(test_uta_tools, mane_braf):
         await test_uta_tools.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, mane_braf)
 
+    del inputs["strand"]
+    g_to_t_resp = \
+        await test_uta_tools.genomic_to_transcript_exon_coordinates(**inputs)
+    genomic_data_assertion_checks(g_to_t_resp, mane_braf)
+
     mane_braf_t_to_g = copy.deepcopy(mane_braf)
     mane_braf_t_to_g.start = 140801412
     t_to_g_resp = \
@@ -466,6 +471,7 @@ async def test_wee1(test_uta_tools, wee1_exon2_exon11, mane_wee1_exon2_exon11):
     genomic_data_assertion_checks(t_to_g_resp, wee1_exon2_exon11_t_to_g)
 
     inputs["gene"] = "wee1"
+    del inputs["strand"]
     g_to_t_resp = \
         await test_uta_tools.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, wee1_exon2_exon11)
@@ -569,6 +575,41 @@ async def test_transcript_to_genomic(test_uta_tools, tpm3_exon1_exon8_t_to_g,
     expected.exon_start_offset = -3
     expected.start = 156874623
     genomic_data_assertion_checks(resp, expected)
+
+
+@pytest.mark.asyncio
+async def test_valid_inputs(test_uta_tools):
+    """Test that valid inputs don't return any errors"""
+    inputs = {
+        "gene": "TPM3",
+        "chromosome": "NC_000001.11",
+        "start": 154171413
+    }
+    resp = await test_uta_tools.genomic_to_transcript_exon_coordinates(**inputs)  # noqa: E501
+    assert resp.genomic_data
+
+    inputs = {
+        "gene": "WEE1",
+        "chromosome": "NC_000011.9",
+        "end": 9609995
+    }
+    resp = await test_uta_tools.genomic_to_transcript_exon_coordinates(**inputs)  # noqa: E501
+    assert resp.genomic_data
+
+    inputs["chromosome"] = "11"
+    resp = await test_uta_tools.genomic_to_transcript_exon_coordinates(**inputs)  # noqa: E501
+    assert resp.genomic_data
+
+    inputs = {
+        "transcript": "NM_003390.3",
+        "exon_start": 2
+    }
+    resp = await test_uta_tools.transcript_to_genomic_coordinates(**inputs)
+    assert resp.genomic_data
+
+    inputs["gene"] = "WEE1"
+    resp = await test_uta_tools.transcript_to_genomic_coordinates(**inputs)
+    assert resp.genomic_data
 
 
 @pytest.mark.asyncio

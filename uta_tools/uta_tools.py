@@ -399,6 +399,11 @@ class UTATools:
             logger.warning(msg)
             return msg
 
+        if mane_data["strand"] == "-":
+            mane_data["strand"] = -1
+        elif mane_data["strand"] == "+":
+            mane_data["strand"] = 1
+
         params["gene"] = mane_data["gene"]
         params["transcript"] = mane_data["refseq"] if mane_data["refseq"] \
             else mane_data["ensembl"] if mane_data["ensembl"] else None
