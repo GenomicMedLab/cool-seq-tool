@@ -410,7 +410,7 @@ class UTADatabase:
             result = result[0]
         return (result[0], result[1], result[2], result[3], result[4]), None
 
-    async def get_cds_start_end(self, tx_ac: str) -> Optional[tuple[int, int]]:
+    async def get_cds_start_end(self, tx_ac: str) -> Optional[Tuple[int, int]]:
         """Get coding start and end site
 
         :param str tx_ac: Transcript accession
