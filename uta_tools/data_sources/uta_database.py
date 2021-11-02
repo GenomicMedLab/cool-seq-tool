@@ -273,7 +273,7 @@ class UTADatabase:
         """Validate that exon number is valid
 
         :param str transcript: Transcript accession
-        :param list tx_exons: List of transcript's exons
+        :param List tx_exons: List of transcript's exons
         :param Optional[int] exon_number: Exon number to validate
         :return: Transcript coordinates and warnings if found
         """
@@ -294,7 +294,7 @@ class UTADatabase:
         """Get transcript exon coordinates
 
         :param str transcript: Transcript accession
-        :param list tx_exons: List of transcript exons
+        :param List tx_exons: List of transcript exons
         :param Optional[int] exon_start: Start exon number
         :param Optional[int] exon_end: End exon number
         :return: [Transcript start exon coords, Transcript end exon coords],
@@ -562,10 +562,10 @@ class UTADatabase:
         return results
 
     @staticmethod
-    def data_from_result(result: list) -> Optional[Dict]:
+    def data_from_result(result: List) -> Optional[Dict]:
         """Return data found from result.
 
-        :param list result: Data from tx_exon_aln_v table
+        :param List result: Data from tx_exon_aln_v table
         :return: Gene, strand, and position ranges for tx and alt_ac
         """
         gene = result[0]
@@ -638,12 +638,12 @@ class UTADatabase:
         return data
 
     async def get_genomic_tx_data(self, ac: str,
-                                  pos: tuple[int, int]) -> Optional[Dict]:
+                                  pos: Tuple[int, int]) -> Optional[Dict]:
         """Get transcript mapping to genomic data.
 
         Used when going from c -> g
         :param str ac: cDNA transcript
-        :param tuple pos: [cDNA pos start, cDNA pos end]
+        :param Tuple pos: [cDNA pos start, cDNA pos end]
         :return: Gene, Transcript accession and position change,
             Altered transcript accession and position change, Strand
         """
@@ -771,10 +771,10 @@ class UTADatabase:
 
         return chromosome, assembly
 
-    async def liftover_to_38(self, genomic_tx_data: dict) -> None:
+    async def liftover_to_38(self, genomic_tx_data: Dict) -> None:
         """Liftover genomic_tx_data to hg38 assembly.
 
-        :param dict genomic_tx_data: Dictionary containing gene, nc_accession,
+        :param Dict genomic_tx_data: Dictionary containing gene, nc_accession,
             alt_pos, and strand
         """
         descr = await self.get_chr_assembly(genomic_tx_data['alt_ac'])
@@ -833,11 +833,11 @@ class UTADatabase:
         else:
             return liftover[0]
 
-    def _set_liftover(self, genomic_tx_data: dict, key: str,
+    def _set_liftover(self, genomic_tx_data: Dict, key: str,
                       chromosome: str) -> None:
         """Update genomic_tx_data to have hg38 coordinates.
 
-        :param dict genomic_tx_data: Dictionary containing gene, nc_accession,
+        :param Dict genomic_tx_data: Dictionary containing gene, nc_accession,
             alt_pos, and strand
         :param str key: Key to access coordinate positions
         :param str chromosome: Chromosome
