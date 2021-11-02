@@ -1,6 +1,6 @@
 """Module for initializing data sources."""
 from datetime import datetime
-from typing import Optional, Union, List, Tuple
+from typing import Optional, Union, List, Tuple, Dict
 from uta_tools import logger
 from uta_tools.schemas import GenomicData, TranscriptExonData, ResidueMode, \
     GenomicDataResponse, ServiceMeta, TranscriptExonDataResponse
@@ -338,13 +338,13 @@ class UTATools:
         return resp
 
     def _get_gene_and_alt_ac(self,
-                             genes_alt_acs: dict,
+                             genes_alt_acs: Dict,
                              gene: Optional[str]) -> Tuple[Optional[Tuple[str, str]], Optional[str]]:  # noqa; E501
         """Return gene genomic accession
 
-        :param dict genes_alt_acs: Dictionary containing genes and
+        :param Dict genes_alt_acs: Dictionary containing genes and
             genomic accessions
-        :param dict gene: Gene symbol
+        :param Optional[str] gene: Gene symbol
         :return: [Gene, Genomic accession] if both exist
         """
         alt_acs = genes_alt_acs["alt_acs"]
@@ -374,12 +374,12 @@ class UTATools:
         gene = output_gene if output_gene else input_gene
         return (gene, alt_ac), None
 
-    async def _set_mane_genomic_data(self, params: dict, gene: str,
+    async def _set_mane_genomic_data(self, params: Dict, gene: str,
                                      alt_ac: str, pos: int, strand: int,
                                      is_start: bool) -> Optional[str]:
         """Set genomic data in `params` found from MANE.
 
-        :param dict params: Parameters for response
+        :param Dict params: Parameters for response
         :param str gene: Gene symbol
         :param str alt_ac: Genomic accession
         :param int pos: Genomic position
@@ -429,11 +429,11 @@ class UTATools:
             strand_to_use == -1 else genomic_pos + params["exon_offset"]
         return None
 
-    async def _set_genomic_data(self, params: dict, strand: int,
+    async def _set_genomic_data(self, params: Dict, strand: int,
                                 is_start: bool) -> Optional[str]:
         """Set genomic data in `params`.
 
-        :param dict params: Parameters for response
+        :param Dict params: Parameters for response
         :param int strand: Strand
         :param bool is_start: `True` if `pos` is start position. `False` if
             `pos` is end position.
@@ -491,11 +491,11 @@ class UTATools:
                               is_start=is_start, strand=strand_to_use)
         return None
 
-    def _set_exon_offset(self, params: dict, start: int, end: int, pos: int,
+    def _set_exon_offset(self, params: Dict, start: int, end: int, pos: int,
                          is_start: bool, strand: int) -> None:
         """Set `exon_offset` in params.
 
-        :param dict params: Parameters for response
+        :param Dict params: Parameters for response
         :param int start: Start exon coord (can be transcript or genomic)
         :param int end: End exon coord (can be transcript or genomic)
         :param int pos: Position change (can be transcript or genomic)
@@ -527,10 +527,10 @@ class UTATools:
             result.append((int(coords[0]), int(coords[1])))
         return result
 
-    def _get_exon_number(self, tx_exons: list, tx_pos: int) -> int:
+    def _get_exon_number(self, tx_exons: List, tx_pos: int) -> int:
         """Find exon number.
 
-        :param list tx_exons: List of exon coordinates
+        :param List tx_exons: List of exon coordinates
         :param int tx_pos: Transcript position change
         :return: Exon number associated to transcript position change
         """
