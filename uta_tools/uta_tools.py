@@ -408,10 +408,12 @@ class UTATools:
         params["transcript"] = mane_data["refseq"] if mane_data["refseq"] \
             else mane_data["ensembl"] if mane_data["ensembl"] else None
         tx_exons = await self._structure_exons(params["transcript"])
+        if not tx_exons:
+            return f"Unable to get exons for {params['transcript']}"
         tx_pos = mane_data["pos"][0] + mane_data["coding_start_site"]
         params["exon"] = self._get_exon_number(tx_exons, tx_pos)
         tx_exon = tx_exons[params["exon"] - 1]
-        strand_to_use = strand if strand is not None else mane_data["strand"]  # noqa: E501
+        strand_to_use = strand if strand is not None else mane_data["strand"]
         params["strand"] = strand_to_use
         self._set_exon_offset(params, tx_exon[0], tx_exon[1], tx_pos,
                               is_start=is_start, strand=strand_to_use)
@@ -463,6 +465,8 @@ class UTATools:
             params["chr"] = grch38_ac
 
         tx_exons = await self._structure_exons(params["transcript"])
+        if not tx_exons:
+            return f"Unable to get exons for {params['transcript']}"
         data = await self.uta_db.get_tx_exon_aln_v_data(
             params["transcript"], params["pos"], params["pos"],
             alt_ac=params["chr"], use_tx_pos=False)
@@ -522,6 +526,8 @@ class UTATools:
         """
         result = list()
         tx_exons, _ = await self.uta_db.get_tx_exons(transcript)
+        if not tx_exons:
+            return result
         for tx_exon in tx_exons:
             coords = tx_exon.split(",")
             result.append((int(coords[0]), int(coords[1])))
