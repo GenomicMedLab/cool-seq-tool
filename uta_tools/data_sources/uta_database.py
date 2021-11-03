@@ -404,6 +404,8 @@ class UTADatabase:
             msg = f"Unable to find a result where {tx_ac} has transcript " \
                   f"coordinates {tx_exon_start} and {tx_exon_end} between " \
                   f"an exon's start and end coordinates"
+            if gene_query:
+                msg += f" on gene {gene}"
             logger.warning(msg)
             return None, msg
         else:

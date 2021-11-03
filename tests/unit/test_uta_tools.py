@@ -708,7 +708,8 @@ async def test_invalid(test_uta_tools):
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == [
         "Unable to find a result where NM_152263.3 has transcript coordinates"
-        " 117 and 234 between an exon's start and end coordinates"]
+        " 117 and 234 between an exon's start and end coordinates on gene "
+        "NTKR1"]
 
     # No transcript given
     resp = await test_uta_tools.transcript_to_genomic_coordinates(
