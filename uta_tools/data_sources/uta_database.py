@@ -120,8 +120,9 @@ class UTADatabase:
         async def _execute_query(q):
             async with self._connection_pool.acquire() as connection:
                 async with connection.transaction():
-                    result = await connection.fetch(q)
-                    return result
+                    r = await connection.fetch(q)
+                    return r
+
         if not self._connection_pool:
             await self.create_pool()
         try:
