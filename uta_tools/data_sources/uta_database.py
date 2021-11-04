@@ -9,6 +9,7 @@ from typing import Dict, List, Optional, Tuple, Any
 from os import environ
 from urllib.parse import quote, unquote
 from pyliftover import LiftOver
+from asyncpg.exceptions import InvalidAuthorizationSpecificationError
 
 
 class UTADatabase:
@@ -26,8 +27,10 @@ class UTADatabase:
         :param str liftover_from: Assembly to liftover from
         :param str liftover_to: Assembly to liftover to
         """
+        self.args = None
         self.schema = None
-        self.args = self._get_conn_args(db_url, db_pwd)
+        self.db_url = db_url
+        self.db_pwd = db_pwd
         self._connection_pool = None
         self.liftover = LiftOver(liftover_from, liftover_to)
 
@@ -58,33 +61,9 @@ class UTADatabase:
             db_url = db_url.split('@')
             return f"{db_url[0]}:{db_pwd}@{db_url[1]}"
 
-    @staticmethod
-    def _get_args(host: str, port: int, database: str, user: str,
-                  password: str) -> Dict:
-        """Return db credentials.
-
-        :param str host: Database host name
-        :param int port: Database port number
-        :param str database: Database name
-        :param str user: Database username
-        :param str password: Database password for user
-        :return: Database credentials
-        """
-        return dict(
-            host=host,
-            port=port,
-            database=database,
-            user=user,
-            password=password,
-            application_name='uta_tools'
-        )
-
-    def _get_conn_args(self, db_url: str, db_pwd: str = '') -> Dict:
+    def _get_conn_args(self) -> Dict:
         """Return connection arguments.
 
-        :param str db_url: PostgreSQL connection URL
-            Format: `driver://user:pass@host/database/schema`
-        :param str db_pwd: User's password for uta database
         :return: Database credentials
         """
         if 'UTA_DB_PROD' in environ:
@@ -94,24 +73,27 @@ class UTADatabase:
                 DBHostname=environ['UTA_HOST'], Port=environ['UTA_PORT'],
                 DBUsername=environ['UTA_USER'], Region=region
             )
-            return self._get_args(environ['UTA_HOST'],
-                                  int(environ['UTA_PORT']),
-                                  environ['UTA_DATABASE'], environ['UTA_USER'],
-                                  token)
+            self.schema = environ['UTA_SCHEMA']
+            return dict(
+                host=environ['UTA_HOST'], port=int(environ['UTA_PORT']),
+                database=environ['UTA_DATABASE'], user=environ['UTA_USER'],
+                password=token)
         else:
-            db_url = self._update_db_url(db_pwd, db_url)
+            db_url = self._update_db_url(self.db_pwd, self.db_url)
             original_pwd = db_url.split('//')[-1].split('@')[0].split(':')[-1]
             db_url = db_url.replace(original_pwd, quote(original_pwd))
 
             url = ParseResult(urlparse.urlparse(db_url))
             self.schema = url.schema
             password = unquote(url.password) if url.password else ''
-            return self._get_args(url.hostname, url.port, url.database,
-                                  url.username, password)
+            return dict(host=url.hostname, port=url.port,
+                        database=url.database, user=url.username,
+                        password=password)
 
     async def create_pool(self) -> None:
         """Create connection pool if not already created."""
         if not self._connection_pool:
+            self.args = self._get_conn_args()
             try:
                 self._connection_pool = await asyncpg.create_pool(
                     min_size=1,
@@ -135,12 +117,22 @@ class UTADatabase:
         :param str query: Query to make on database
         :return: Query's result
         """
+        async def _execute_query(q):
+            async with self._connection_pool.acquire() as connection:
+                async with connection.transaction():
+                    r = await connection.fetch(q)
+                    return r
+
         if not self._connection_pool:
             await self.create_pool()
-        async with self._connection_pool.acquire() as connection:
-            async with connection.transaction():
-                result = await connection.fetch(query)
-                return result
+        try:
+            result = await _execute_query(query)
+            return result
+        except InvalidAuthorizationSpecificationError:
+            self._connection_pool = None
+            await self.create_pool()
+            result = await _execute_query(query)
+            return result
 
     async def _create_genomic_table(self):
         """Create table containing genomic accession information."""
