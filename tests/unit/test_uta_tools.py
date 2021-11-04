@@ -615,6 +615,12 @@ async def test_valid_inputs(test_uta_tools):
 @pytest.mark.asyncio
 async def test_invalid(test_uta_tools):
     """Test that invalid queries return `None`."""
+    resp = await test_uta_tools.genomic_to_transcript_exon_coordinates(
+        transcript="NM_152263 3", start=154192135, end=154170399,
+        chromosome="NC_000001.11"
+    )
+    assert resp.warnings == ["Unable to get exons for NM_152263 3"]
+
     # start and end not given
     resp = await test_uta_tools.genomic_to_transcript_exon_coordinates(
         "NC_000001.11", start=None, end=None, strand=-1,
@@ -702,7 +708,8 @@ async def test_invalid(test_uta_tools):
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == [
         "Unable to find a result where NM_152263.3 has transcript coordinates"
-        " 117 and 234 between an exon's start and end coordinates"]
+        " 117 and 234 between an exon's start and end coordinates on gene "
+        "NTKR1"]
 
     # No transcript given
     resp = await test_uta_tools.transcript_to_genomic_coordinates(
