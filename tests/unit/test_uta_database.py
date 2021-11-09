@@ -4,7 +4,7 @@ from uta_tools.data_sources import UTADatabase
 import copy
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='module')
 async def test_db():
     """Create uta db test fixture."""
     test_uta_db = UTADatabase()
@@ -176,7 +176,7 @@ async def test_mane_c_genomic_data(test_db):
         coding_start_site=226,
         coding_end_site=2650,
         alt_pos_change=(61, 58),
-        alt_pos_change_range=(140753335, 140753335),
+        alt_pos_change_range=(140753332, 140753332),
         tx_ac="NM_001374258.1",
         alt_ac="NC_000007.14"
     )
@@ -198,7 +198,7 @@ async def test_get_genomic_tx_data(test_db, genomic_tx_data):
         'tx_ac': 'NM_004333.4',
         'alt_ac': 'NC_000007.14',
         'pos_change': (92, 43),
-        'alt_pos_change_range': (140739903, 140739903)
+        'alt_pos_change_range': (140739854, 140739854)
     }
 
 
