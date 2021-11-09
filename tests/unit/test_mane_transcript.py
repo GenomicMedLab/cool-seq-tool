@@ -279,6 +279,18 @@ async def test_p_to_mane_p(test_mane_transcript, braf_v600e_mane_p,
     assert test_mane_transcript.get_mane_transcript(
         'NP_004439.2', 755, 759, 'p')
 
+    mane_p = await test_mane_transcript.get_mane_transcript(
+        'ENSP00000366997.4', 63, 63, 'P', gene='DIS3', ref='P',
+        try_longest_compatible=True)
+    assert mane_p == {
+        'gene': 'DIS3',
+        'refseq': 'NP_055768.3',
+        'ensembl': 'ENSP00000366997.4',
+        'pos': (63, 63),
+        'strand': '-',
+        'status': 'MANE Select'
+    }
+
 
 @pytest.mark.asyncio
 async def test_c_to_mane_c(test_mane_transcript, braf_v600e_mane_c,
