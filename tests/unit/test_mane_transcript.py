@@ -41,7 +41,7 @@ def nm_004333v6_g():
         'tx_ac': 'NM_004333.6',
         'tx_pos_range': (1967, 2086),
         'alt_ac': 'NC_000007.14',
-        'alt_pos_change_range': (140753331, 140753333),
+        'alt_pos_change_range': (140753336, 140753334),
         'alt_pos_range': (140753274, 140753393),
         'pos_change': (57, 60),
         'strand': '-',
@@ -279,6 +279,18 @@ async def test_p_to_mane_p(test_mane_transcript, braf_v600e_mane_p,
     assert test_mane_transcript.get_mane_transcript(
         'NP_004439.2', 755, 759, 'p')
 
+    mane_p = await test_mane_transcript.get_mane_transcript(
+        'ENSP00000366997.4', 63, 63, 'P', gene='DIS3', ref='P',
+        try_longest_compatible=True)
+    assert mane_p == {
+        'gene': 'DIS3',
+        'refseq': 'NP_055768.3',
+        'ensembl': 'ENSP00000366997.4',
+        'pos': (63, 63),
+        'strand': '-',
+        'status': 'MANE Select'
+    }
+
 
 @pytest.mark.asyncio
 async def test_c_to_mane_c(test_mane_transcript, braf_v600e_mane_c,
@@ -362,6 +374,20 @@ async def test_g_to_mane_c(test_mane_transcript, egfr_l858r_mane_c,
         'NC_000007.14', 140753336, None)
     grch38["pos"] = (140753336, 140753336)
     assert resp == grch38
+
+    mane_c = await test_mane_transcript.g_to_mane_c('NC_000012.11', 25398284,
+                                                    None, gene='KRAS')
+    assert mane_c == {
+        'alt_ac': 'NC_000012.12',
+        'refseq': 'NM_004985.5',
+        'ensembl': 'ENST00000311936.8',
+        'pos': (35, 35),
+        'status': 'MANE Select',
+        'strand': '-',
+        'coding_start_site': 190,
+        'coding_end_site': 757,
+        'gene': 'KRAS'
+    }
 
 
 @pytest.mark.asyncio

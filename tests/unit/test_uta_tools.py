@@ -8,7 +8,7 @@ from uta_tools.schemas import GenomicData, TranscriptExonData
 import re
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 async def test_uta_tools():
     """Create a UTATools test fixture"""
     test_uta_tools = UTATools()
