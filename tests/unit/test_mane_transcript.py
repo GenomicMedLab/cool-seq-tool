@@ -5,7 +5,7 @@ from uta_tools.data_sources import MANETranscript, MANETranscriptMappings,\
 import copy
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='session')
 def test_mane_transcript():
     """Build mane transcript test fixture."""
     return MANETranscript(SeqRepoAccess(), TranscriptMappings(),
@@ -41,7 +41,7 @@ def nm_004333v6_g():
         'tx_ac': 'NM_004333.6',
         'tx_pos_range': (1967, 2086),
         'alt_ac': 'NC_000007.14',
-        'alt_pos_change_range': (140753331, 140753333),
+        'alt_pos_change_range': (140753336, 140753334),
         'alt_pos_range': (140753274, 140753393),
         'pos_change': (57, 60),
         'strand': '-',
@@ -362,6 +362,20 @@ async def test_g_to_mane_c(test_mane_transcript, egfr_l858r_mane_c,
         'NC_000007.14', 140753336, None)
     grch38["pos"] = (140753336, 140753336)
     assert resp == grch38
+
+    mane_c = await test_mane_transcript.g_to_mane_c('NC_000012.11', 25398284,
+                                                    None, gene='KRAS')
+    assert mane_c == {
+        'alt_ac': 'NC_000012.12',
+        'refseq': 'NM_004985.5',
+        'ensembl': 'ENST00000311936.8',
+        'pos': (35, 35),
+        'status': 'MANE Select',
+        'strand': '-',
+        'coding_start_site': 190,
+        'coding_end_site': 757,
+        'gene': 'KRAS'
+    }
 
 
 @pytest.mark.asyncio
