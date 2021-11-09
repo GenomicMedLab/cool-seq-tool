@@ -4,7 +4,7 @@ from uta_tools.data_sources import UTADatabase
 import copy
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='module')
 async def test_db():
     """Create uta db test fixture."""
     test_uta_db = UTADatabase()

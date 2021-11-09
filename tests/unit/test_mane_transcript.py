@@ -5,7 +5,7 @@ from uta_tools.data_sources import MANETranscript, MANETranscriptMappings,\
 import copy
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='module')
 def test_mane_transcript():
     """Build mane transcript test fixture."""
     return MANETranscript(SeqRepoAccess(), TranscriptMappings(),
