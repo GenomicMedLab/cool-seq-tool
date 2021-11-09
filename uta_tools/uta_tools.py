@@ -390,7 +390,7 @@ class UTATools:
         """
         mane_data = await self.mane_transcript.get_mane_transcript(
             alt_ac, pos, None, 'g', gene=gene,
-            normalize_endpoint=True
+            try_longest_compatible=True
         )
         if not mane_data:
             msg = f"Unable to find mane data for {alt_ac} with position {pos}"
