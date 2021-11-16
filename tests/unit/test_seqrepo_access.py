@@ -88,13 +88,11 @@ def test_translate_identifier(test_seqrepo_access):
     resp = test_seqrepo_access.translate_identifier("GRCh38:2")
     assert len(resp[0]) > 0
     assert resp[1] is None
-    print(resp[0])
     assert "refseq:NC_000002.12" in resp[0]
 
     resp = test_seqrepo_access.translate_identifier("NC_000002.12")
     assert len(resp[0]) > 0
     assert resp[1] is None
-    print(resp[0])
     assert "refseq:NC_000002.12" in resp[0]
 
     resp = test_seqrepo_access.translate_identifier("refseq_152263.3")
