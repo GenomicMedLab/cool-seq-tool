@@ -20,7 +20,7 @@ class SeqRepoAccess:
     def _get_start_end(
             self, start: int, end: Optional[int] = None,
             residue_mode: ResidueMode = ResidueMode.RESIDUE
-    ) -> Tuple[int, int]:
+    ) -> Tuple[Optional[Tuple[int, int]], Optional[str]]:
         """Get start and end in inter-residue (0-based) coords.
 
         :param int start: Start pos change
@@ -29,13 +29,21 @@ class SeqRepoAccess:
             Must be either `inter-residue` or `residue`
         :return: start pos, end pos
         """
+        residue_mode = residue_mode.lower()
+        if end is None:
+            end = start + 1
+        else:
+            if start == end:
+                end += 1
+
         if residue_mode == ResidueMode.RESIDUE:
-            if end is None:
-                end = start
-            else:
-                end -= 1
             start -= 1
-        return start, end
+            end -= 1
+
+        elif residue_mode != ResidueMode.INTER_RESIDUE:
+            return None, f"residue_mode must be either `inter-residue` or" \
+                         f" `residue`, not `{residue_mode}`"
+        return (start, end), None
 
     def get_reference_sequence(
             self, ac: str, start: int, end: Optional[int] = None,
@@ -55,19 +63,7 @@ class SeqRepoAccess:
         if warnings:
             return None, warnings
         else:
-            if sequence:
-                return sequence, None
-            else:
-                start, end = self._get_start_end(start, end, residue_mode)
-                if start != end:
-                    msg = f"SeqRepo returned no sequence for inter-residue " \
-                          f"coordinates {start}, {end} on {ac}"
-                else:
-                    msg = f"Inter-residue start ({start}) and end ({end}) " \
-                          f"coordinates must have different values for " \
-                          f"SeqRepo to return a reference sequence"
-                logger.warning(msg)
-                return None, msg
+            return sequence, None
 
     def check_sequence(
             self, ac: str, start: int = None,
@@ -84,7 +80,11 @@ class SeqRepoAccess:
         :return: Sequence at position (if accession and positions actually
             exist), warning
         """
-        start, end = self._get_start_end(start, end, residue_mode)
+        pos, warning = self._get_start_end(start, end, residue_mode)
+        if pos is None:
+            return None, warning
+        else:
+            start, end = pos
         try:
             sequence = self.seqrepo_client.fetch(ac, start=start, end=end)
         except KeyError:
@@ -94,11 +94,11 @@ class SeqRepoAccess:
         except ValueError as e:
             error = str(e)
             if error.startswith("start out of range"):
-                msg = f"Start inter-residue coordinate {start} is out of " \
-                      f"range on {ac}"
+                msg = f"Start inter-residue coordinate ({start}) is out of " \
+                      f"index on {ac}"
             elif error.startswith("stop out of range"):
-                msg = f"End inter-residue coordinate {end} is out of " \
-                      f"range on {ac}"
+                msg = f"End inter-residue coordinate ({end}) is out of " \
+                      f"index on {ac}"
             elif error.startswith("invalid coordinates") and ">" in error:
                 msg = f"Invalid inter-residue coordinates: start ({start}) " \
                       f"cannot be greater than end ({end})"
@@ -107,6 +107,13 @@ class SeqRepoAccess:
             logger.warning(msg)
             return None, msg
         else:
+            # If start is valid, but end is invalid, SeqRepo still returns
+            # the sequence from valid positions. So we want to make sure
+            # that both start and end positions are valid
+            expected_len_of_seq = end - start
+            if len(sequence) != expected_len_of_seq:
+                return None, f"End inter-residue coordinate ({end})" \
+                             f" is out of index on {ac}"
             return sequence, None
 
     def is_valid_input_sequence(

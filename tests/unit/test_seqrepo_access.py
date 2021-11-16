@@ -9,6 +9,31 @@ def test_seqrepo_access():
     return SeqRepoAccess()
 
 
+def test__get_start_end(test_seqrepo_access):
+    """Test that _get_start_end method works correctly."""
+    resp = test_seqrepo_access._get_start_end(600)
+    assert resp == ((599, 600), None)
+
+    resp = test_seqrepo_access._get_start_end(600, 600)
+    assert resp == ((599, 600), None)
+
+    resp = test_seqrepo_access._get_start_end(
+        600, end=600, residue_mode="residue")
+    assert resp == ((599, 600), None)
+
+    resp = test_seqrepo_access._get_start_end(
+        600, residue_mode="inter-residue")
+    assert resp == ((600, 601), None)
+
+    resp = test_seqrepo_access._get_start_end(
+        600, end=600, residue_mode="inter-residue")
+    assert resp == ((600, 601), None)
+
+    resp = test_seqrepo_access._get_start_end(600, residue_mode="mode")
+    assert resp == (None, "residue_mode must be either `inter-residue` or "
+                          "`residue`, not `mode`")
+
+
 def test_is_valid_input_sequence(test_seqrepo_access):
     """Test that is_valid_input_sequence method works correctly"""
     resp = test_seqrepo_access.is_valid_input_sequence("NP_004324.2", 600)
@@ -29,13 +54,13 @@ def test_is_valid_input_sequence(test_seqrepo_access):
 
     resp = test_seqrepo_access.is_valid_input_sequence(
         "NP_004324.2", 4654645645654, 1)
-    assert resp == (False, "Start inter-residue coordinate 4654645645653 is "
-                           "out of range on NP_004324.2")
+    assert resp == (False, "Start inter-residue coordinate (4654645645653) is "
+                           "out of index on NP_004324.2")
 
     resp = test_seqrepo_access.is_valid_input_sequence(
         "NP_004324.2", 600, 4654645645654)
-    assert resp == (False, "End inter-residue coordinate 4654645645653 is out "
-                           "of range on NP_004324.2")
+    assert resp == (False, "End inter-residue coordinate (4654645645653) is"
+                           " out of index on NP_004324.2")
 
 
 def test_get_reference_sequence(test_seqrepo_access):
@@ -43,7 +68,14 @@ def test_get_reference_sequence(test_seqrepo_access):
     resp = test_seqrepo_access.get_reference_sequence("NP_004324.2", 600)
     assert resp == ("V", None)
 
+    resp = test_seqrepo_access.get_reference_sequence("NP_004324.2", 600, 600)
+    assert resp == ("V", None)
+
     resp = test_seqrepo_access.get_reference_sequence("NP_004324.2", 600, 601)
+    assert resp == ("V", None)
+
+    resp = test_seqrepo_access.get_reference_sequence(
+        "NP_004324.2", 599, 600, residue_mode="inter-residue")
     assert resp == ("V", None)
 
     resp = test_seqrepo_access.get_reference_sequence("NP_004324.2", 601, 600)
@@ -53,20 +85,19 @@ def test_get_reference_sequence(test_seqrepo_access):
     resp = test_seqrepo_access.get_reference_sequence("NP_0043241311412", 600)
     assert resp == (None, "Accession, NP_0043241311412, not found in SeqRepo")
 
-    resp = test_seqrepo_access.get_reference_sequence("NP_004324.2", 600, 600)
-    assert resp == (None, "Inter-residue start (599) and end (599) "
-                          "coordinates must have different values for SeqRepo"
-                          " to return a reference sequence")
+    resp = test_seqrepo_access.get_reference_sequence("NP_004324.2", 600, 800)
+    assert resp == (None, "End inter-residue coordinate (799) "
+                          "is out of index on NP_004324.2")
 
     resp = test_seqrepo_access.get_reference_sequence(
         "NP_004324.2", 4654645645654, 1)
-    assert resp == (None, "Start inter-residue coordinate 4654645645653 is "
-                          "out of range on NP_004324.2")
+    assert resp == (None, "Start inter-residue coordinate (4654645645653) is "
+                          "out of index on NP_004324.2")
 
     resp = test_seqrepo_access.get_reference_sequence(
         "NP_004324.2", 600, 4654645645654)
-    assert resp == (None, "End inter-residue coordinate 4654645645653 is out "
-                          "of range on NP_004324.2")
+    assert resp == (None, "End inter-residue coordinate (4654645645653) "
+                          "is out of index on NP_004324.2")
 
 
 def test_translate_identifier(test_seqrepo_access):
