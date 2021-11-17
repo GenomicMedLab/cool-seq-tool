@@ -66,8 +66,7 @@ class SeqRepoAccess:
             return sequence, None
 
     def check_sequence(
-            self, ac: str, start: int = None,
-            end: Optional[int] = None,
+            self, ac: str, start: int, end: Optional[int] = None,
             residue_mode: ResidueMode = ResidueMode.RESIDUE
     ) -> Tuple[Optional[str], Optional[str]]:
         """Check that accession and positions actually exist
@@ -117,8 +116,7 @@ class SeqRepoAccess:
             return sequence, None
 
     def is_valid_input_sequence(
-            self, ac: str, start: int = None,
-            end: Optional[int] = None,
+            self, ac: str, start: int, end: Optional[int] = None,
             residue_mode: ResidueMode = ResidueMode.RESIDUE
     ) -> Tuple[bool, Optional[str]]:
         """Determine whether or not input sequence is valid.
