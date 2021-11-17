@@ -98,7 +98,7 @@ class MANETranscript:
         # So we want to make sure version is valid
         if ac.startswith('ENST'):
             if not self.transcript_mappings.ensembl_transcript_version_to_gene_symbol.get(ac):  # noqa: E501
-                if self.seqrepo_access.get_sequence(ac, 1) is None:
+                if not self.seqrepo_access.is_valid_input_sequence(ac, 1)[0]:
                     logger.warning(f"Ensembl transcript not found: {ac}")
                     return None
 
@@ -277,7 +277,7 @@ class MANETranscript:
             start_pos += coding_start_site
             end_pos += coding_start_site
 
-        ref = self.seqrepo_access.get_sequence(
+        ref, warnings = self.seqrepo_access.get_reference_sequence(
             ac, start_pos, end=end_pos if start_pos != end_pos else None
         )
         if ref is None:
@@ -286,7 +286,7 @@ class MANETranscript:
         if mane_transcript:
             mane_start_pos = mane_transcript['pos'][0]
             mane_end_pos = mane_transcript['pos'][1]
-            mane_ref = self.seqrepo_access.get_sequence(
+            mane_ref, warnings = self.seqrepo_access.get_reference_sequence(
                 mane_transcript['refseq'],
                 mane_start_pos,
                 end=mane_end_pos if mane_start_pos != mane_end_pos else None
@@ -314,7 +314,8 @@ class MANETranscript:
         """
         start_pos = pos[0] + coding_start_site
         end_pos = pos[1] + coding_start_site
-        if self.seqrepo_access.get_sequence(ac, start_pos, end_pos):
+        if self.seqrepo_access.is_valid_input_sequence(
+                ac, start_pos, end_pos)[0]:
             return True
         else:
             return None

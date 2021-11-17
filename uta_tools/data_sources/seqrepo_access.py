@@ -1,68 +1,169 @@
 """A module for accessing SeqRepo."""
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from biocommons.seqrepo import SeqRepo
+
 from uta_tools import SEQREPO_DATA_PATH, logger
 from os import environ
+from uta_tools.schemas import ResidueMode
 
 
 class SeqRepoAccess:
     """The SeqRepoAccess class."""
 
-    def __init__(self, seqrepo_data_path=SEQREPO_DATA_PATH):
+    def __init__(self, seqrepo_data_path: str = SEQREPO_DATA_PATH) -> None:
         """Initialize the SeqRepoAccess class.
         :param str seqrepo_data_path: The path to the seqrepo directory.
         """
         environ['SEQREPO_LRU_CACHE_MAXSIZE'] = "none"
-        self.seq_repo_client = SeqRepo(seqrepo_data_path)
+        self.seqrepo_client = SeqRepo(seqrepo_data_path)
 
-    def get_sequence(self, transcript, start, end=None) -> Optional[str]:
-        """Return sequence for transcript at given positions.
-        :param str transcript: Accession
+    def _get_start_end(
+            self, start: int, end: Optional[int] = None,
+            residue_mode: ResidueMode = ResidueMode.RESIDUE
+    ) -> Tuple[Optional[Tuple[int, int]], Optional[str]]:
+        """Get start and end in inter-residue (0-based) coords.
+
         :param int start: Start pos change
-        :param int end: End pos change
-        :return: Sequence
+        :param Optional[int] end: End pos change
+        :param ResidueMode residue_mode: Residue mode for start/end positions
+            Must be either `inter-residue` or `residue`
+        :return: start pos, end pos
         """
+        residue_mode = residue_mode.lower()
         if end is None:
-            end = start
-
-        try:
-            sequence = self.seq_repo_client.fetch(transcript, start=start - 1,
-                                                  end=end)
-            return self.is_valid_index(transcript, end, sequence)
-        except TypeError:
-            try:
-                start = int(start)
-                end = int(end)
-                sequence = self.seq_repo_client.fetch(transcript,
-                                                      start=start - 1, end=end)
-                return self.is_valid_index(transcript, end, sequence)
-            except ValueError as e:
-                logger.warning(e)
-                return None
-        except KeyError:
-            logger.warning(f"Accession {transcript} not found in SeqRepo")
-            return None
-        except ValueError as e:
-            logger.warning(f"{transcript}: {e}")
-            return None
-
-    def is_valid_index(self, ac, pos, sequence) -> Optional[str]:
-        """Check that index actually exists and return sequence if it does.
-        :param str ac: Accession
-        :param int pos: End position to check
-        :param str sequence: Sequence at pos change
-        :return: Sequence at position change
-        """
-        if self.seq_repo_client.fetch(ac, pos - 1, end=pos):
-            return sequence
+            end = start + 1
         else:
-            logger.warning(f"Index Error: pos {pos} out of range on {ac}")
-            return None
+            if start == end:
+                end += 1
 
-    def aliases(self, input_str) -> List[str]:
-        """Get aliases for a given input."""
+        if residue_mode == ResidueMode.RESIDUE:
+            start -= 1
+            end -= 1
+
+        elif residue_mode != ResidueMode.INTER_RESIDUE:
+            return None, f"residue_mode must be either `inter-residue` or" \
+                         f" `residue`, not `{residue_mode}`"
+        return (start, end), None
+
+    def get_reference_sequence(
+            self, ac: str, start: int, end: Optional[int] = None,
+            residue_mode: ResidueMode = ResidueMode.RESIDUE
+    ) -> Tuple[Optional[str], Optional[str]]:
+        """Get reference sequence for transcript at given positions
+
+        :param str ac: Accession
+        :param int start: Start pos change
+        :param Optional[int] end: End pos change
+        :param ResidueMode residue_mode: Residue mode for start/end positions
+            Must be either `inter-residue` or `residue`
+        :return: Sequence at position, warning
+        """
+        sequence, warnings = self.check_sequence(
+            ac, start, end, residue_mode)
+        if warnings:
+            return None, warnings
+        else:
+            return sequence, None
+
+    def check_sequence(
+            self, ac: str, start: int, end: Optional[int] = None,
+            residue_mode: ResidueMode = ResidueMode.RESIDUE
+    ) -> Tuple[Optional[str], Optional[str]]:
+        """Check that accession and positions actually exist
+
+        :param str ac: Accession
+        :param int start: Start pos change
+        :param Optional[int] end: End pos change
+        :param ResidueMode residue_mode: Residue mode for start/end positions
+            Must be either `inter-residue` or `residue`
+        :return: Sequence at position (if accession and positions actually
+            exist), warning
+        """
+        pos, warning = self._get_start_end(start, end, residue_mode)
+        if pos is None:
+            return None, warning
+        else:
+            start, end = pos
         try:
-            return self.seq_repo_client.translate_alias(input_str.strip())
+            sequence = self.seqrepo_client.fetch(ac, start=start, end=end)
         except KeyError:
-            logger.warning(f"SeqRepo could not translate alias: {input_str}")
-            return []
+            msg = f"Accession, {ac}, not found in SeqRepo"
+            logger.warning(msg)
+            return None, msg
+        except ValueError as e:
+            error = str(e)
+            if error.startswith("start out of range"):
+                msg = f"Start inter-residue coordinate ({start}) is out of " \
+                      f"index on {ac}"
+            elif error.startswith("stop out of range"):
+                msg = f"End inter-residue coordinate ({end}) is out of " \
+                      f"index on {ac}"
+            elif error.startswith("invalid coordinates") and ">" in error:
+                msg = f"Invalid inter-residue coordinates: start ({start}) " \
+                      f"cannot be greater than end ({end})"
+            else:
+                msg = f"{e}"
+            logger.warning(msg)
+            return None, msg
+        else:
+            # If start is valid, but end is invalid, SeqRepo still returns
+            # the sequence from valid positions. So we want to make sure
+            # that both start and end positions are valid
+            expected_len_of_seq = end - start
+            if len(sequence) != expected_len_of_seq:
+                return None, f"End inter-residue coordinate ({end})" \
+                             f" is out of index on {ac}"
+            return sequence, None
+
+    def is_valid_input_sequence(
+            self, ac: str, start: int, end: Optional[int] = None,
+            residue_mode: ResidueMode = ResidueMode.RESIDUE
+    ) -> Tuple[bool, Optional[str]]:
+        """Determine whether or not input sequence is valid.
+
+        :param str ac: Accession
+        :param int start: Start pos change
+        :param Optional[int] end: End pos change
+        :param ResidueMode residue_mode: Residue mode for start/end positions
+            Must be either `inter-residue` or `residue`
+        :return: Bool on whether or not input is valid, warning
+        """
+        seq, warning = self.check_sequence(
+            ac, start, end, residue_mode)
+        if warning:
+            return False, warning
+        else:
+            return True, None
+
+    def translate_identifier(
+            self, ac: str, target_namespace: str = None
+    ) -> Tuple[List[Optional[str]], Optional[str]]:
+        """Return list of identifiers for accession.
+
+        :param str ac: Identifier accession
+        :param str target_namespace: The namespace of identifiers to return
+        :return: List of identifiers, warning
+        """
+        try:
+            ga4gh_identifiers = self.seqrepo_client.translate_identifier(
+                ac, target_namespaces=target_namespace)
+        except KeyError:
+            msg = f"SeqRepo unable to get translated identifiers for {ac}"
+            logger.warning(msg)
+            return [], msg
+        else:
+            return ga4gh_identifiers, None
+
+    def aliases(self,
+                input_str: str) -> Tuple[List[Optional[str]], Optional[str]]:
+        """Get aliases for a given input.
+
+        :param str input_str: Input to get aliases for
+        :return: List of aliases, warning
+        """
+        try:
+            return self.seqrepo_client.translate_alias(input_str), None
+        except KeyError:
+            msg = f"SeqRepo could not translate alias {input_str}"
+            logger.warning(msg)
+            return [], msg
