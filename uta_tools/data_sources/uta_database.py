@@ -15,24 +15,21 @@ from asyncpg.exceptions import InvalidAuthorizationSpecificationError
 class UTADatabase:
     """Class for connecting and querying UTA database."""
 
-    def __init__(self, db_url: str = UTA_DB_URL, db_pwd: str = '',
-                 liftover_from: str = 'hg19',
-                 liftover_to: str = 'hg38') -> None:
+    def __init__(self, db_url: str = UTA_DB_URL, db_pwd: str = '') -> None:
         """Initialize DB class.
         After initializing, you must run `_create_genomic_table()`
 
         :param str db_url: PostgreSQL connection URL
             Format: `driver://user:pass@host/database/schema`
         :param str db_pwd: User's password for uta database
-        :param str liftover_from: Assembly to liftover from
-        :param str liftover_to: Assembly to liftover to
         """
         self.schema = None
         self.db_url = db_url
         self.db_pwd = db_pwd
         self._connection_pool = None
         self.args = self._get_conn_args()
-        self.liftover = LiftOver(liftover_from, liftover_to)
+        self.liftover_37_to_38 = LiftOver('hg19', 'hg38')
+        self.liftover_38_to_37 = LiftOver('hg38', 'hg19')
 
     @staticmethod
     def _update_db_url(db_pwd: str, db_url: str) -> str:
@@ -832,7 +829,7 @@ class UTADatabase:
         :return: [Target chromosome, target position, target strand,
             conversion_chain_score] for hg38 assembly
         """
-        liftover = self.liftover.convert_coordinate(chromosome, pos)
+        liftover = self.liftover_37_to_38.convert_coordinate(chromosome, pos)
         if liftover is None or len(liftover) == 0:
             logger.warning(f"{pos} does not exist on {chromosome}")
             return None
