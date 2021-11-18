@@ -176,7 +176,8 @@ class UTADatabase:
             for create_index in indexes:
                 await self.execute_query(create_index)
 
-    def _transform_list(self, li: List) -> List[List[Any]]:
+    @staticmethod
+    def _transform_list(li: List) -> List[List[Any]]:
         """Transform list to only contain field values
 
         :param List li: List of asyncpg.Record objects
@@ -256,8 +257,9 @@ class UTADatabase:
             return None, msg
         return cds_se_i[0][0].split(';'), None
 
+    @staticmethod
     def _validate_exon(
-            self, transcript: str, tx_exons: List[str],
+            transcript: str, tx_exons: List[str],
             exon_number: Optional[int] = None) -> Tuple[Optional[List], Optional[str]]:  # noqa: E501
         """Validate that exon number is valid
 
@@ -421,7 +423,7 @@ class UTADatabase:
             cds_start_end = cds_start_end[0]
             if cds_start_end[0] is not None \
                     and cds_start_end[1] is not None:
-                return cds_start_end
+                return cds_start_end[0], cds_start_end[1]
         else:
             logger.warning(f"Unable to get coding start/end site for "
                            f"accession: {tx_ac}")
@@ -587,7 +589,7 @@ class UTADatabase:
             alt_exon_id=alt_exon_id,
         )
 
-    async def get_mane_c_genomic_data(self, ac: str, alt_ac: str,
+    async def get_mane_c_genomic_data(self, ac: str, alt_ac: Optional[str],
                                       start_pos: int,
                                       end_pos: int) -> Optional[Dict]:
         """Get MANE Transcript and genomic data.

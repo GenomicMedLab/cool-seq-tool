@@ -7,6 +7,11 @@ Steps:
 3. Select preferred compatible annotation
 4. Map back to correct annotation layer
 """
+from uta_tools.data_sources.seqrepo_access import SeqRepoAccess
+from uta_tools.data_sources.transcript_mappings import TranscriptMappings
+from uta_tools.data_sources.mane_transcript_mappings import \
+    MANETranscriptMappings
+from uta_tools.data_sources.uta_database import UTADatabase
 from uta_tools import logger
 from typing import Optional, Tuple, Dict
 import hgvs.parser
@@ -16,9 +21,12 @@ import math
 class MANETranscript:
     """Class for retrieving MANE transcripts."""
 
-    def __init__(self, seqrepo_access, transcript_mappings,
-                 mane_transcript_mappings, uta_db) -> None:
+    def __init__(self, seqrepo_access: SeqRepoAccess,
+                 transcript_mappings: TranscriptMappings,
+                 mane_transcript_mappings: MANETranscriptMappings,
+                 uta_db: UTADatabase) -> None:
         """Initialize the MANETranscript class.
+
         :param SeqRepoAccess seqrepo_access: Access to seqrepo queries
         :param TranscriptMappings transcript_mappings: Access to transcript
             accession mappings and conversions
@@ -33,10 +41,12 @@ class MANETranscript:
         self.mane_transcript_mappings = mane_transcript_mappings
         self.uta_db = uta_db
 
-    def _get_reading_frame(self, pos) -> int:
+    @staticmethod
+    def _get_reading_frame(pos: int) -> int:
         """Return reading frame number.
         Only used on c. coordinate
-        :param int pos: Position
+
+        :param int pos: cDNA position
         :return: Reading frame
         """
         pos_mod_3 = pos % 3
@@ -44,8 +54,10 @@ class MANETranscript:
             pos_mod_3 = 3
         return pos_mod_3
 
-    def _p_to_c_pos(self, start, end) -> Tuple[int, int]:
+    @staticmethod
+    def _p_to_c_pos(start: int, end: int) -> Tuple[int, int]:
         """Return cDNA position given a protein position.
+
         :param int start: Start protein position
         :param int end: End protein position
         :return: cDNA position start, cDNA position end
@@ -58,10 +70,11 @@ class MANETranscript:
 
         return start_pos - 1, end_pos + 1
 
-    async def _p_to_c(self, ac, start_pos, end_pos)\
-            -> Optional[Tuple[str, Tuple[int, int]]]:
+    async def _p_to_c(self, ac: str, start_pos: int,
+                      end_pos: int) -> Optional[Tuple[str, Tuple[int, int]]]:
         """Convert protein (p.) annotation to cDNA (c.) annotation.
-        :param str ac: Transcript accession
+
+        :param str ac: Protein accession
         :param int start_pos: Protein start position
         :param int end_pos: Protein end position
         :return: [cDNA transcript accession, [cDNA pos start, cDNA pos end]]
@@ -87,10 +100,11 @@ class MANETranscript:
         pos = self._p_to_c_pos(start_pos, end_pos)
         return ac, pos
 
-    async def _c_to_g(self, ac, pos) -> Optional[Dict]:
+    async def _c_to_g(self, ac: str, pos: Tuple[int, int]) -> Optional[Dict]:
         """Get g. annotation from c. annotation.
+
         :param str ac: cDNA accession
-        :param tuple pos: [cDNA pos start, cDNA pos end]
+        :param Tuple[int, int] pos: [cDNA pos start, cDNA pos end]
         :return: Gene, Transcript accession and position change,
             Altered transcript accession and position change, Strand
         """
@@ -132,16 +146,20 @@ class MANETranscript:
 
         return genomic_tx_data
 
-    def _get_mane_c(self, mane_data, mane_c_pos_change, cds_start_end,
-                    grch38=None):
+    @staticmethod
+    def _get_mane_c(mane_data: Dict, mane_c_pos_change: Tuple[int, int],
+                    cds_start_end: Tuple[int, int],
+                    grch38: Dict = None) -> Dict:
         """Return MANE Transcript data on c. coordinate.
-        :param dict mane_data: MANE Transcript data (transcript accessions,
+
+        :param Dict mane_data: MANE Transcript data (transcript accessions,
             gene, and location information)
-        :param tuple[int, int] mane_c_pos_change: Start and end positions
+        :param Tuple[int, int] mane_c_pos_change: Start and end positions
             for change on c. coordinate
-        :param DictRow[int, int] cds_start_end: Coding start and end site
+        :param Tuple[int, int] cds_start_end: Coding start and end site
             for MANE transcript
-        :param Dict grch38: GRCh38 data
+        :param Optional[Dict] grch38: GRCh38 data
+        :return: MANE Transcript data on c. coord
         """
         cds_start = cds_start_end[0]
         cds_end = cds_start_end[1]
@@ -164,10 +182,13 @@ class MANETranscript:
             alt_ac=grch38['ac'] if grch38 else None
         )
 
-    def _get_mane_p(self, mane_data, mane_c_pos_range) -> Dict:
+    @staticmethod
+    def _get_mane_p(mane_data: Dict,
+                    mane_c_pos_range: Tuple[int, int]) -> Dict:
         """Translate MANE Transcript c. annotation to p. annotation
-        :param dict mane_data: MANE Transcript data
-        :param tuple[int, int] mane_c_pos_range: Position change range
+
+        :param Dict mane_data: MANE Transcript data
+        :param Tuple[int, int] mane_c_pos_range: Position change range
             on MANE Transcript c. coordinate
         :return: MANE transcripts accessions and position change on
             p. coordinate
@@ -182,10 +203,11 @@ class MANETranscript:
             status=mane_data['MANE_status']
         )
 
-    async def _g_to_mane_c(self, g, mane_data) -> Optional[Dict]:
+    async def _g_to_mane_c(self, g: Dict, mane_data: Dict) -> Optional[Dict]:
         """Get MANE Transcript c. annotation from g. annotation.
-        :param dict g: Genomic data
-        :param dict mane_data: MANE Transcript data (Transcript accessions,
+
+        :param Dict g: Genomic data
+        :param Dict mane_data: MANE Transcript data (Transcript accessions,
             gene, and location information)
         :return: MANE Transcripts accessions for RefSeq and Ensembl c.
             coordinates, and position where change occurred on these accessions
@@ -229,14 +251,17 @@ class MANETranscript:
         return self._get_mane_c(mane_data, mane_c_pos_change,
                                 cds_start_end)
 
-    def _validate_reading_frames(self, ac, start_pos, end_pos,
-                                 mane_transcript) -> bool:
+    def _validate_reading_frames(self, ac: str, start_pos: int, end_pos: int,
+                                 mane_transcript: Dict) -> bool:
         """Return whether reading frames are the same after translation.
+
         :param str ac: Query accession
-        :param int start_pos: Original start position change
-        :param int end_pos: Original end position change
-        :param dict mane_transcript: Ensembl and RefSeq transcripts with
+        :param int start_pos: Original start cDNA position change
+        :param int end_pos: Original end cDNA position change
+        :param Dict mane_transcript: Ensembl and RefSeq transcripts with
             corresponding position change
+        :return: `True` if reading frames are the same after translation.
+            `False` otherwise
         """
         for pos, mane_pos_index in [(start_pos, 0), (end_pos, 1)]:
             if pos is not None:
@@ -258,15 +283,17 @@ class MANETranscript:
                     return False
         return True
 
-    def _validate_references(self, ac, coding_start_site, start_pos, end_pos,
-                             mane_transcript, expected_ref,
-                             anno) -> bool:
+    def _validate_references(self, ac: str, coding_start_site: int,
+                             start_pos: int, end_pos: int,
+                             mane_transcript: Dict, expected_ref: str,
+                             anno: str) -> bool:
         """Return whether or not reference changes are the same.
+
         :param str ac: Query accession
         :param int coding_start_site: ac's coding start site
         :param int start_pos: Original start position change
         :param int end_pos: Origin end position change
-        :param dict mane_transcript: Ensembl and RefSeq transcripts with
+        :param Dict mane_transcript: Ensembl and RefSeq transcripts with
             corresponding position change
         :param str expected_ref: Reference at position given during input
         :param str anno: Annotation layer we are starting from.
@@ -305,10 +332,12 @@ class MANETranscript:
 
         return True
 
-    def _validate_index(self, ac, pos, coding_start_site):
+    def _validate_index(self, ac: str, pos: Tuple[int, int],
+                        coding_start_site: int) -> bool:
         """Validate that positions actually exist on accession
+
         :param str ac: Accession
-        :param tuple[int, int] pos: Start position change, End position change
+        :param Tuple[int, int] pos: Start position change, End position change
         :param int coding_start_site: coding start site for accession
         :return: `True` if positions exist on accession. `False` otherwise
         """
@@ -318,21 +347,23 @@ class MANETranscript:
                 ac, start_pos, end_pos)[0]:
             return True
         else:
-            return None
+            return False
 
-    async def get_longest_compatible_transcript(self, gene, start_pos, end_pos,
-                                                start_annotation_layer,
-                                                ref=None):
+    async def get_longest_compatible_transcript(
+            self, gene: str, start_pos: int, end_pos: int,
+            start_annotation_layer: str, ref: Optional[str] = None
+    ) -> Optional[Dict]:
         """Get longest compatible transcript from a gene.
         Try GRCh38 first, then GRCh37.
         Transcript is compatible if it passes validation checks.
+
         :param str gene: Gene symbol
         :param int start_pos: Start position change
         :param int end_pos: End position change
         :param  str start_annotation_layer: Starting annotation layer.
             Must be either `p`, or `c`.
         :param str ref: Reference at position given during input
-        :return:
+        :return: Data for longest compatible transcript
         """
         anno = start_annotation_layer.lower()
         if anno not in ['p', 'c']:
@@ -404,10 +435,13 @@ class MANETranscript:
                 )
         return None
 
-    async def get_mane_transcript(self, ac, start_pos, end_pos,
-                                  start_annotation_layer, gene=None, ref=None,
-                                  try_longest_compatible=False) -> Optional[Dict]:  # noqa: E501
+    async def get_mane_transcript(
+            self, ac: str, start_pos: int, end_pos: int,
+            start_annotation_layer: str, gene: Optional[str] = None,
+            ref: Optional[str] = None, try_longest_compatible: bool = False
+    ) -> Optional[Dict]:
         """Return mane transcript.
+
         :param str ac: Accession
         :param int start_pos: Start position change
         :param int end_pos: End position change
@@ -418,7 +452,8 @@ class MANETranscript:
         :param bool try_longest_compatible: `True` if should try longest
             compatible remaining if mane transcript was not compatible.
             `False` otherwise.
-        :return: MANE transcript
+        :return: MANE data or longest transcript compatible data if validation
+            checks are correct. Else, `None`
         """
         anno = start_annotation_layer.lower()
         if end_pos is None:
@@ -500,8 +535,10 @@ class MANETranscript:
         else:
             logger.warning(f"Annotation layer not supported: {anno}")
 
-    async def g_to_grch38(self, ac, start_pos, end_pos) -> Optional[Dict]:
+    async def g_to_grch38(self, ac: str, start_pos: int,
+                          end_pos: int) -> Optional[Dict]:
         """Return genomic coordinate on GRCh38 when not given gene context.
+
         :param str ac: Genomic accession
         :param int start_pos: Genomic start position change
         :param int end_pos: Genomic end position change
@@ -555,17 +592,20 @@ class MANETranscript:
 
         return None
 
-    async def g_to_mane_c(self, ac, start_pos, end_pos, gene=None):
+    async def g_to_mane_c(self, ac: str, start_pos: int, end_pos: int,
+                          gene: Optional[str] = None) -> Optional[Dict]:
         """Return MANE Transcript on the c. coordinate.
         If gene is provided, g->GRCh38->MANE c.
             If MANE c. cannot be found, we return the genomic coordinate on
                 GRCh38
         If gene is not provided, g -> GRCh38
+
         :param str ac: Transcript accession on g. coordinate
         :param int start_pos: genomic change start position
         :param int end_pos: genomic change end position
         :param str gene: Gene symbol
-        :return: MANE Transcripts with cDNA change on c. coordinate
+        :return: MANE Transcripts with cDNA change on c. coordinate if gene
+            is provided. Else, GRCh38 data
         """
         # If gene not provided, return GRCh38
         if not gene:
@@ -604,6 +644,7 @@ class MANETranscript:
             # Liftover to GRCh38
             grch38 = await self.g_to_grch38(ac, start_pos, end_pos)
             mane_tx_genomic_data = None
+            g_pos = None
             if grch38:
                 # GRCh38 -> MANE C
                 g_pos = grch38['pos']
