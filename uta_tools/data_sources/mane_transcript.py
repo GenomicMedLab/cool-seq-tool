@@ -17,21 +17,21 @@ class MANETranscript:
     """Class for retrieving MANE transcripts."""
 
     def __init__(self, seqrepo_access, transcript_mappings,
-                 mane_transcript_mappings, uta) -> None:
+                 mane_transcript_mappings, uta_db) -> None:
         """Initialize the MANETranscript class.
         :param SeqRepoAccess seqrepo_access: Access to seqrepo queries
         :param TranscriptMappings transcript_mappings: Access to transcript
             accession mappings and conversions
         :param MANETranscriptMappings mane_transcript_mappings: Access to
             MANE Transcript accession mapping data
-        :param UTA uta: UTA instance to give access to query methods for
-            transcript alignments
+        :param UTADatabase uta_db: UTADatabase instance to give access to query
+            UTA database
         """
         self.seqrepo_access = seqrepo_access
         self.hgvs_parser = hgvs.parser.Parser()
         self.transcript_mappings = transcript_mappings
         self.mane_transcript_mappings = mane_transcript_mappings
-        self.uta = uta
+        self.uta_db = uta_db
 
     def _get_reading_frame(self, pos) -> int:
         """Return reading frame number.
@@ -67,7 +67,7 @@ class MANETranscript:
         :return: [cDNA transcript accession, [cDNA pos start, cDNA pos end]]
         """
         # TODO: Check version mappings 1 to 1 relationship
-        temp_ac = await self.uta.p_to_c_ac(ac)
+        temp_ac = await self.uta_db.p_to_c_ac(ac)
         if temp_ac:
             ac = temp_ac[-1]
         else:
@@ -107,20 +107,20 @@ class MANETranscript:
             temp_ac = ac
 
         # c. coordinate does not contain cds start, so we need to add it
-        cds_start_end = await self.uta.get_cds_start_end(temp_ac)
+        cds_start_end = await self.uta_db.get_cds_start_end(temp_ac)
         if not cds_start_end:
             logger.warning(f"Accession {temp_ac} not found in UTA")
             return None
         coding_start_site = cds_start_end[0]
         pos = pos[0] + coding_start_site, pos[1] + coding_start_site
 
-        genomic_tx_data = await self.uta.get_genomic_tx_data(ac, pos)
+        genomic_tx_data = await self.uta_db.get_genomic_tx_data(ac, pos)
         if not genomic_tx_data:
             return None
         genomic_tx_data['coding_start_site'] = coding_start_site
 
         og_alt_exon_id = genomic_tx_data['alt_exon_id']
-        await self.uta.liftover_to_38(genomic_tx_data)
+        await self.uta_db.liftover_to_38(genomic_tx_data)
         liftover_alt_exon_id = genomic_tx_data['alt_exon_id']
 
         # Validation check: Exon structure
@@ -191,7 +191,7 @@ class MANETranscript:
             coordinates, and position where change occurred on these accessions
         """
         mane_c_ac = mane_data['RefSeq_nuc']
-        result = await self.uta.get_tx_exon_aln_v_data(
+        result = await self.uta_db.get_tx_exon_aln_v_data(
             mane_c_ac, g['alt_pos_change_range'][0],
             g['alt_pos_change_range'][1], alt_ac=g['alt_ac'], use_tx_pos=False
         )
@@ -204,7 +204,7 @@ class MANETranscript:
             result = result[-1]
 
         cds_start_end = \
-            await self.uta.get_cds_start_end(mane_data['RefSeq_nuc'])
+            await self.uta_db.get_cds_start_end(mane_data['RefSeq_nuc'])
         if not cds_start_end:
             return None
         coding_start_site = cds_start_end[0]
@@ -348,7 +348,7 @@ class MANETranscript:
             c_start_pos, c_end_pos = start_pos, end_pos
 
         # Data Frame that contains transcripts associated to a gene
-        df = await self.uta.get_transcripts_from_gene(
+        df = await self.uta_db.get_transcripts_from_gene(
             gene, c_start_pos, c_end_pos)
         nc_acs = list(df['alt_ac'].unique())
         nc_acs.sort(reverse=True)
@@ -511,7 +511,7 @@ class MANETranscript:
             end_pos = start_pos
 
         # Checking to see what chromosome and assembly we're on
-        descr = await self.uta.get_chr_assembly(ac)
+        descr = await self.uta_db.get_chr_assembly(ac)
         if not descr:
             # Already GRCh38 assembly
             if self._validate_index(ac, (start_pos, end_pos), 0):
@@ -529,14 +529,14 @@ class MANETranscript:
             logger.warning("Liftover only supported for GRCh37")
             return None
 
-        liftover_start_i = self.uta.get_liftover(chromosome, start_pos)
+        liftover_start_i = self.uta_db.get_liftover(chromosome, start_pos)
         if liftover_start_i is None:
             return None
         else:
             start_pos = liftover_start_i[1]
 
         if not is_same_pos:
-            liftover_end_i = self.uta.get_liftover(chromosome, end_pos)
+            liftover_end_i = self.uta_db.get_liftover(chromosome, end_pos)
             if liftover_end_i is None:
                 return None
             else:
@@ -544,7 +544,7 @@ class MANETranscript:
         else:
             end_pos = start_pos
 
-        newest_ac = await self.uta.get_newest_assembly_ac(ac)
+        newest_ac = await self.uta_db.get_newest_assembly_ac(ac)
         if newest_ac:
             ac = newest_ac[0][0]
             if self._validate_index(ac, (start_pos, end_pos), 0):
@@ -585,7 +585,7 @@ class MANETranscript:
                 alt_ac=grch38['ac']
             )
 
-        if not await self.uta.validate_genomic_ac(ac):
+        if not await self.uta_db.validate_genomic_ac(ac):
             logger.warning(f"Genomic accession does not exist: {ac}")
             return None
 
@@ -607,14 +607,14 @@ class MANETranscript:
             if grch38:
                 # GRCh38 -> MANE C
                 g_pos = grch38['pos']
-                mane_tx_genomic_data = await self.uta.get_mane_c_genomic_data(
+                mane_tx_genomic_data = await self.uta_db.get_mane_c_genomic_data(  # noqa: E501
                     mane_c_ac, None, grch38['pos'][0], grch38['pos'][1]
                 )
 
             if not grch38 or not mane_tx_genomic_data:
                 # GRCh38 did not work, so let's try original assembly (37)
                 g_pos = start_pos, end_pos
-                mane_tx_genomic_data = await self.uta.get_mane_c_genomic_data(
+                mane_tx_genomic_data = await self.uta_db.get_mane_c_genomic_data(  # noqa: E501
                     mane_c_ac, ac, start_pos, end_pos
                 )
                 if not mane_tx_genomic_data:
