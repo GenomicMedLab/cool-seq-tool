@@ -240,17 +240,6 @@ def test_get_mane_p(test_mane_transcript, braf_mane_data, braf_v600e_mane_p):
 async def test_p_to_mane_p(test_mane_transcript, braf_v600e_mane_p,
                            egfr_l858r_mane_p):
     """Test that p_to_mane_p method works correctly."""
-    mane_p = await test_mane_transcript.get_mane_transcript(
-        'ENSP00000366997.4', 63, 63, 'P', gene='DIS3', ref='P',
-        try_longest_compatible=True)
-    assert mane_p == {
-        'gene': 'DIS3',
-        'refseq': 'NP_055768.3',
-        'ensembl': 'ENSP00000366997.4',
-        'pos': (62, 62),
-        'strand': '-',
-        'status': 'MANE Select'
-    }
     # BRAF V600E RefSeq Accessions
     mane_p = await test_mane_transcript.get_mane_transcript(
         'NP_004324.2', 600, None, 'p')
