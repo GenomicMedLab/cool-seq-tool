@@ -7,11 +7,13 @@ Steps:
 3. Select preferred compatible annotation
 4. Map back to correct annotation layer
 """
+from uta_tools.schemas import ResidueMode
 from uta_tools.data_sources.seqrepo_access import SeqRepoAccess
 from uta_tools.data_sources.transcript_mappings import TranscriptMappings
 from uta_tools.data_sources.mane_transcript_mappings import \
     MANETranscriptMappings
 from uta_tools.data_sources.uta_database import UTADatabase
+from uta_tools.data_sources.residue_mode import get_inter_residue_pos
 from uta_tools import logger
 from typing import Optional, Tuple, Dict
 import hgvs.parser
@@ -286,7 +288,7 @@ class MANETranscript:
     def _validate_references(self, ac: str, coding_start_site: int,
                              start_pos: int, end_pos: int,
                              mane_transcript: Dict, expected_ref: str,
-                             anno: str) -> bool:
+                             anno: str, residue_mode: str) -> bool:
         """Return whether or not reference changes are the same.
 
         :param str ac: Query accession
@@ -298,6 +300,7 @@ class MANETranscript:
         :param str expected_ref: Reference at position given during input
         :param str anno: Annotation layer we are starting from.
             Must be either `p`, `c`, or `g`.
+        :param ResidueMode residue_mode: Residue mode
         :return: `True` if reference check passes. `False` otherwise.
         """
         if anno == 'c':
@@ -305,7 +308,7 @@ class MANETranscript:
             end_pos += coding_start_site
 
         ref, warnings = self.seqrepo_access.get_reference_sequence(
-            ac, start_pos, end=end_pos if start_pos != end_pos else None
+            ac, start_pos, end=end_pos, residue_mode=residue_mode
         )
         if ref is None:
             return False
@@ -351,7 +354,8 @@ class MANETranscript:
 
     async def get_longest_compatible_transcript(
             self, gene: str, start_pos: int, end_pos: int,
-            start_annotation_layer: str, ref: Optional[str] = None
+            start_annotation_layer: str, ref: Optional[str] = None,
+            residue_mode: str = ResidueMode.RESIDUE
     ) -> Optional[Dict]:
         """Get longest compatible transcript from a gene.
         Try GRCh38 first, then GRCh37.
@@ -363,15 +367,20 @@ class MANETranscript:
         :param  str start_annotation_layer: Starting annotation layer.
             Must be either `p`, or `c`.
         :param str ref: Reference at position given during input
+        :param str residue_mode: Residue mode
         :return: Data for longest compatible transcript
         """
+        inter_residue_pos, warning = get_inter_residue_pos(
+            start_pos, end_pos, residue_mode)
+        if not inter_residue_pos:
+            return None
+        residue_mode = ResidueMode.INTER_RESIDUE
+        start_pos, end_pos = inter_residue_pos
+
         anno = start_annotation_layer.lower()
         if anno not in ['p', 'c']:
             logger.warning(f"Annotation layer not supported: {anno}")
             return None
-
-        if end_pos is None:
-            end_pos = start_pos
 
         if anno == 'p':
             c_start_pos, c_end_pos = self._p_to_c_pos(start_pos, end_pos)
@@ -397,12 +406,12 @@ class MANETranscript:
                     if anno == 'p':
                         valid_references = self._validate_references(
                             row['pro_ac'], row['cds_start_i'], start_pos,
-                            end_pos, {}, ref, 'p'
+                            end_pos, {}, ref, 'p', residue_mode
                         )
                     else:
                         valid_references = self._validate_references(
                             row['tx_ac'], row['cds_start_i'], c_start_pos,
-                            c_end_pos, {}, ref, 'c'
+                            c_end_pos, {}, ref, 'c', residue_mode
                         )
 
                     if not valid_references:
@@ -438,7 +447,8 @@ class MANETranscript:
     async def get_mane_transcript(
             self, ac: str, start_pos: int, end_pos: int,
             start_annotation_layer: str, gene: Optional[str] = None,
-            ref: Optional[str] = None, try_longest_compatible: bool = False
+            ref: Optional[str] = None, try_longest_compatible: bool = False,
+            residue_mode: ResidueMode = ResidueMode.RESIDUE
     ) -> Optional[Dict]:
         """Return mane transcript.
 
@@ -452,22 +462,20 @@ class MANETranscript:
         :param bool try_longest_compatible: `True` if should try longest
             compatible remaining if mane transcript was not compatible.
             `False` otherwise.
+        :param ResidueMode residue_mode: Starting residue mode for `start_pos`
+            and `end_pos`. Will always return coordinates in inter-residue
         :return: MANE data or longest transcript compatible data if validation
-            checks are correct. Else, `None`
+            checks are correct. Will return inter-residue coordinates.
+            Else, `None`
         """
+        inter_residue_pos, warning = get_inter_residue_pos(
+            start_pos, end_pos, residue_mode)
+        if not inter_residue_pos:
+            return None
+        start_pos, end_pos = inter_residue_pos
+        residue_mode = ResidueMode.INTER_RESIDUE
+
         anno = start_annotation_layer.lower()
-        if end_pos is None:
-            end_pos = start_pos
-
-        if isinstance(start_pos, str) or isinstance(end_pos, str):
-            try:
-                start_pos = int(start_pos)
-                end_pos = int(end_pos)
-            except ValueError:
-                logger.warning(f"{start_pos} and {end_pos} "
-                               f"must be valid integers")
-                return None
-
         if anno in ['p', 'c']:
             # Get accession and position on c. coordinate
             if anno == 'p':
@@ -513,7 +521,7 @@ class MANETranscript:
                 if ref:
                     valid_references = self._validate_references(
                         ac, g['coding_start_site'], start_pos, end_pos,
-                        mane, ref, anno
+                        mane, ref, anno, residue_mode
                     )
                     if not valid_references:
                         continue
@@ -522,12 +530,12 @@ class MANETranscript:
             if try_longest_compatible:
                 if anno == 'p':
                     return await self.get_longest_compatible_transcript(
-                        g['gene'], start_pos, end_pos, 'p', ref
-                    )
+                        g['gene'], start_pos, end_pos, 'p', ref,
+                        residue_mode=residue_mode)
                 else:
                     return await self.get_longest_compatible_transcript(
-                        g['gene'], c_pos[0], c_pos[1], 'c', ref
-                    )
+                        g['gene'], c_pos[0], c_pos[1], 'c', ref,
+                        residue_mode=residue_mode)
             else:
                 return None
         elif anno == 'g':

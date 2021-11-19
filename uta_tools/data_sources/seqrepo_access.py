@@ -3,6 +3,7 @@ from typing import Optional, List, Tuple
 from biocommons.seqrepo import SeqRepo
 
 from uta_tools import SEQREPO_DATA_PATH, logger
+from uta_tools.data_sources.residue_mode import get_inter_residue_pos
 from os import environ
 from uta_tools.schemas import ResidueMode
 
@@ -17,44 +18,16 @@ class SeqRepoAccess:
         environ['SEQREPO_LRU_CACHE_MAXSIZE'] = "none"
         self.seqrepo_client = SeqRepo(seqrepo_data_path)
 
-    def _get_start_end(
-            self, start: int, end: Optional[int] = None,
-            residue_mode: ResidueMode = ResidueMode.RESIDUE
-    ) -> Tuple[Optional[Tuple[int, int]], Optional[str]]:
-        """Get start and end in inter-residue (0-based) coords.
-
-        :param int start: Start pos change
-        :param Optional[int] end: End pos change
-        :param ResidueMode residue_mode: Residue mode for start/end positions
-            Must be either `inter-residue` or `residue`
-        :return: start pos, end pos
-        """
-        residue_mode = residue_mode.lower()
-        if end is None:
-            end = start + 1
-        else:
-            if start == end:
-                end += 1
-
-        if residue_mode == ResidueMode.RESIDUE:
-            start -= 1
-            end -= 1
-
-        elif residue_mode != ResidueMode.INTER_RESIDUE:
-            return None, f"residue_mode must be either `inter-residue` or" \
-                         f" `residue`, not `{residue_mode}`"
-        return (start, end), None
-
     def get_reference_sequence(
             self, ac: str, start: int, end: Optional[int] = None,
-            residue_mode: ResidueMode = ResidueMode.RESIDUE
+            residue_mode: str = ResidueMode.RESIDUE
     ) -> Tuple[Optional[str], Optional[str]]:
         """Get reference sequence for transcript at given positions
 
         :param str ac: Accession
         :param int start: Start pos change
         :param Optional[int] end: End pos change
-        :param ResidueMode residue_mode: Residue mode for start/end positions
+        :param str residue_mode: Residue mode for start/end positions
             Must be either `inter-residue` or `residue`
         :return: Sequence at position, warning
         """
@@ -67,23 +40,26 @@ class SeqRepoAccess:
 
     def check_sequence(
             self, ac: str, start: int, end: Optional[int] = None,
-            residue_mode: ResidueMode = ResidueMode.RESIDUE
+            residue_mode: str = ResidueMode.RESIDUE
     ) -> Tuple[Optional[str], Optional[str]]:
         """Check that accession and positions actually exist
 
         :param str ac: Accession
         :param int start: Start pos change
         :param Optional[int] end: End pos change
-        :param ResidueMode residue_mode: Residue mode for start/end positions
+        :param str residue_mode: Residue mode for start/end positions
             Must be either `inter-residue` or `residue`
         :return: Sequence at position (if accession and positions actually
             exist), warning
         """
-        pos, warning = self._get_start_end(start, end, residue_mode)
+        pos, warning = get_inter_residue_pos(start, end, residue_mode)
         if pos is None:
             return None, warning
         else:
             start, end = pos
+            if start == end:
+                end += 1
+
         try:
             sequence = self.seqrepo_client.fetch(ac, start=start, end=end)
         except KeyError:
