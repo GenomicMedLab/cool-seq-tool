@@ -28,7 +28,7 @@ def get_inter_residue_pos(
             end_pos = start_pos
     else:
         msg = f"residue_mode must be either `residue` or `inter-residue`," \
-              f" not {residue_mode}"
+              f" not `{residue_mode}`"
         logger.warning(msg)
         return None, msg
     return (start_pos, end_pos), None
