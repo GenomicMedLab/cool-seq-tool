@@ -371,7 +371,7 @@ class MANETranscript:
         :return: Data for longest compatible transcript
         """
         inter_residue_pos, warning = get_inter_residue_pos(
-            start_pos, end_pos, residue_mode)
+            start_pos, residue_mode, end_pos=end_pos)
         if not inter_residue_pos:
             return None
         residue_mode = ResidueMode.INTER_RESIDUE
@@ -445,8 +445,8 @@ class MANETranscript:
         return None
 
     async def get_mane_transcript(
-            self, ac: str, start_pos: int, end_pos: Optional[int],
-            start_annotation_layer: str, gene: Optional[str] = None,
+            self, ac: str, start_pos: int, start_annotation_layer: str,
+            end_pos: Optional[int] = None, gene: Optional[str] = None,
             ref: Optional[str] = None, try_longest_compatible: bool = False,
             residue_mode: ResidueMode = ResidueMode.RESIDUE
     ) -> Optional[Dict]:
@@ -454,9 +454,10 @@ class MANETranscript:
 
         :param str ac: Accession
         :param int start_pos: Start position change
-        :param Optional[int] end_pos: End position change
         :param str start_annotation_layer: Starting annotation layer.
             Must be either `p`, `c`, or `g`.
+        :param Optional[int] end_pos: End position change. If `None` assumes
+            both  `start_pos` and `end_pos` have same values.
         :param str gene: Gene symbol
         :param str ref: Reference at position given during input
         :param bool try_longest_compatible: `True` if should try longest
@@ -469,7 +470,7 @@ class MANETranscript:
             Else, `None`
         """
         inter_residue_pos, warning = get_inter_residue_pos(
-            start_pos, end_pos, residue_mode)
+            start_pos, residue_mode, end_pos=end_pos)
         if not inter_residue_pos:
             return None
         start_pos, end_pos = inter_residue_pos

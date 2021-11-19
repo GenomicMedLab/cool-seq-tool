@@ -389,7 +389,7 @@ class UTATools:
         if residue_mode == ResidueMode.RESIDUE:
             pos += 1
         mane_data = await self.mane_transcript.get_mane_transcript(
-            alt_ac, pos, None, 'g', gene=gene,
+            alt_ac, pos, 'g', gene=gene,
             try_longest_compatible=True, residue_mode=residue_mode
         )
         if not mane_data:

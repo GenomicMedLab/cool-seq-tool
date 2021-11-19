@@ -46,13 +46,14 @@ class SeqRepoAccess:
 
         :param str ac: Accession
         :param int start: Start pos change
-        :param Optional[int] end: End pos change
+        :param Optional[int] end: End pos change. If `None` assumes both
+            `start` and `end` have same values.
         :param str residue_mode: Residue mode for start/end positions
             Must be either `inter-residue` or `residue`
         :return: Sequence at position (if accession and positions actually
             exist), warning
         """
-        pos, warning = get_inter_residue_pos(start, end, residue_mode)
+        pos, warning = get_inter_residue_pos(start, residue_mode, end_pos=end)
         if pos is None:
             return None, warning
         else:
