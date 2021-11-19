@@ -445,7 +445,7 @@ class MANETranscript:
         return None
 
     async def get_mane_transcript(
-            self, ac: str, start_pos: int, end_pos: int,
+            self, ac: str, start_pos: int, end_pos: Optional[int],
             start_annotation_layer: str, gene: Optional[str] = None,
             ref: Optional[str] = None, try_longest_compatible: bool = False,
             residue_mode: ResidueMode = ResidueMode.RESIDUE
@@ -454,7 +454,7 @@ class MANETranscript:
 
         :param str ac: Accession
         :param int start_pos: Start position change
-        :param int end_pos: End position change
+        :param Optional[int] end_pos: End position change
         :param str start_annotation_layer: Starting annotation layer.
             Must be either `p`, `c`, or `g`.
         :param str gene: Gene symbol

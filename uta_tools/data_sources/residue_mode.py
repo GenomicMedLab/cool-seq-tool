@@ -6,12 +6,12 @@ from uta_tools import logger
 
 
 def get_inter_residue_pos(
-        start_pos: int, end_pos: int, residue_mode: str
+        start_pos: int, end_pos: Optional[int], residue_mode: str
 ) -> Tuple[Optional[Tuple[int, int]], Optional[str]]:
     """Return inter-residue position
 
-    :param str start_pos: Start position
-    :param str end_pos: End position
+    :param int start_pos: Start position
+    :param Optional[int] end_pos: End position
     :param str residue_mode: `inter-residue` if start/end are 0 based coords.
         `residue` if start/end are 1 based coords
     :return: Inter-residue coordinates, warning
@@ -23,7 +23,10 @@ def get_inter_residue_pos(
             end_pos = start_pos
         else:
             end_pos -= 1
-    elif residue_mode != ResidueMode.INTER_RESIDUE:
+    elif residue_mode == ResidueMode.INTER_RESIDUE:
+        if end_pos is None:
+            end_pos = start_pos
+    else:
         msg = f"residue_mode must be either `residue` or `inter-residue`," \
               f" not {residue_mode}"
         logger.warning(msg)
