@@ -242,7 +242,15 @@ async def test_p_to_mane_p(test_mane_transcript, braf_v600e_mane_p,
     """Test that p_to_mane_p method works correctly."""
     # BRAF V600E RefSeq Accessions
     mane_p = await test_mane_transcript.get_mane_transcript(
+        'NP_004324.2', 599, None, 'p', residue_mode='inter-residue')
+    assert mane_p == braf_v600e_mane_p
+
+    mane_p = await test_mane_transcript.get_mane_transcript(
         'NP_004324.2', 600, None, 'p')
+    assert mane_p == braf_v600e_mane_p
+
+    mane_p = await test_mane_transcript.get_mane_transcript(
+        'NP_004324.2', 599, 599, 'p', residue_mode='inter-residue')
     assert mane_p == braf_v600e_mane_p
 
     mane_p = await test_mane_transcript.get_mane_transcript(
@@ -251,7 +259,15 @@ async def test_p_to_mane_p(test_mane_transcript, braf_v600e_mane_p,
 
     # BRAF V600E Ensembl Accessions
     mane_p = await test_mane_transcript.get_mane_transcript(
+        'ENSP00000288602.7', 599, None, 'p', residue_mode='inter-residue')
+    assert mane_p == braf_v600e_mane_p
+
+    mane_p = await test_mane_transcript.get_mane_transcript(
         'ENSP00000288602.7', 600, None, 'p')
+    assert mane_p == braf_v600e_mane_p
+
+    mane_p = await test_mane_transcript.get_mane_transcript(
+        'ENSP00000288602.7', 599, 599, 'p', residue_mode='inter-residue')
     assert mane_p == braf_v600e_mane_p
 
     mane_p = await test_mane_transcript.get_mane_transcript(
@@ -301,6 +317,14 @@ async def test_c_to_mane_c(test_mane_transcript, braf_v600e_mane_c,
     cpy_braf_v600e_mane_c['alt_ac'] = None
     mane_c = await test_mane_transcript.get_mane_transcript(
         'NM_004333.4', 1799, None, 'c')
+    assert mane_c == cpy_braf_v600e_mane_c
+
+    mane_c = await test_mane_transcript.get_mane_transcript(
+        'NM_004333.4', 1798, None, 'c', residue_mode='inter-residue')
+    assert mane_c == cpy_braf_v600e_mane_c
+
+    mane_c = await test_mane_transcript.get_mane_transcript(
+        'NM_004333.4', 1798, 1798, 'c', residue_mode='inter-residue')
     assert mane_c == cpy_braf_v600e_mane_c
 
     mane_c = await test_mane_transcript.get_mane_transcript(
@@ -396,5 +420,11 @@ async def test_no_matches(test_mane_transcript):
     # Invalid ENST version
     mane_c = await test_mane_transcript.get_mane_transcript(
         'ENST00000275493.15645', 2573, None, 'c'
+    )
+    assert mane_c is None
+
+    # Invalid residue-mode
+    mane_c = await test_mane_transcript.get_mane_transcript(
+        'ENST00000288602.11', 2573, None, 'c', residue_mode='residues'
     )
     assert mane_c is None
