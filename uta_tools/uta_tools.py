@@ -20,8 +20,6 @@ class UTATools:
                  lrg_refseqgene_path: str = LRG_REFSEQGENE_PATH,
                  mane_data_path: str = MANE_SUMMARY_PATH,
                  db_url: str = UTA_DB_URL, db_pwd: str = '',
-                 liftover_from: str = 'hg19',
-                 liftover_to: str = 'hg38'
                  ):
         """Initialize UTATools class
 
@@ -32,8 +30,6 @@ class UTATools:
         :param str db_url: PostgreSQL connection URL
             Format: `driver://user:pass@host/database/schema`
         :param str db_pwd: User's password for uta database
-        :param str liftover_from: Assembly to liftover from
-        :param str liftover_to: Assembly to liftover to
         """
         self.seqrepo_access = SeqRepoAccess(
             seqrepo_data_path=seqrepo_data_path)
@@ -42,14 +38,13 @@ class UTATools:
             lrg_refseqgene_path=lrg_refseqgene_path)
         self.mane_transcript_mappings = MANETranscriptMappings(
             mane_data_path=mane_data_path)
-        self.uta_db = UTADatabase(
-            db_url=db_url, db_pwd=db_pwd, liftover_from=liftover_from,
-            liftover_to=liftover_to)
+        self.uta_db = UTADatabase(db_url=db_url, db_pwd=db_pwd)
         self.mane_transcript = MANETranscript(
             self.seqrepo_access, self.transcript_mappings,
             self.mane_transcript_mappings, self.uta_db)
 
-    def service_meta(self) -> ServiceMeta:
+    @staticmethod
+    def service_meta() -> ServiceMeta:
         """Return ServiceMeta for uta_tools
 
         :return: ServiceMeta object
@@ -59,8 +54,9 @@ class UTATools:
             response_datetime=datetime.now()
         )
 
+    @staticmethod
     def _return_warnings(
-            self, resp: Union[GenomicDataResponse, TranscriptExonDataResponse],
+            resp: Union[GenomicDataResponse, TranscriptExonDataResponse],
             warning_msg: str) -> Union[GenomicDataResponse, TranscriptExonDataResponse]:  # noqa: E501
         """Add warnings to response object
 
@@ -320,7 +316,7 @@ class UTATools:
 
         if transcript is None:
             warnings = await self._set_mane_genomic_data(
-                params, gene, alt_ac, pos, strand, is_start)
+                params, gene, alt_ac, pos, strand, is_start, residue_mode)
             if warnings:
                 return self._return_warnings(resp, warnings)
         else:
@@ -337,9 +333,10 @@ class UTATools:
         resp.transcript_exon_data = TranscriptExonData(**params)
         return resp
 
-    def _get_gene_and_alt_ac(self,
-                             genes_alt_acs: Dict,
-                             gene: Optional[str]) -> Tuple[Optional[Tuple[str, str]], Optional[str]]:  # noqa; E501
+    @staticmethod
+    def _get_gene_and_alt_ac(
+            genes_alt_acs: Dict, gene: Optional[str]
+    ) -> Tuple[Optional[Tuple[str, str]], Optional[str]]:
         """Return gene genomic accession
 
         :param Dict genes_alt_acs: Dictionary containing genes and
@@ -374,9 +371,10 @@ class UTATools:
         gene = output_gene if output_gene else input_gene
         return (gene, alt_ac), None
 
-    async def _set_mane_genomic_data(self, params: Dict, gene: str,
-                                     alt_ac: str, pos: int, strand: int,
-                                     is_start: bool) -> Optional[str]:
+    async def _set_mane_genomic_data(
+            self, params: Dict, gene: str, alt_ac: str, pos: int, strand: int,
+            is_start: bool, residue_mode
+    ) -> Optional[str]:
         """Set genomic data in `params` found from MANE.
 
         :param Dict params: Parameters for response
@@ -388,9 +386,11 @@ class UTATools:
             `pos` is end position.
         :return: Warnings if found
         """
+        if residue_mode == ResidueMode.RESIDUE:
+            pos += 1
         mane_data = await self.mane_transcript.get_mane_transcript(
-            alt_ac, pos, None, 'g', gene=gene,
-            try_longest_compatible=True
+            alt_ac, pos, 'g', gene=gene,
+            try_longest_compatible=True, residue_mode=residue_mode
         )
         if not mane_data:
             msg = f"Unable to find mane data for {alt_ac} with position {pos}"
@@ -495,7 +495,8 @@ class UTATools:
                               is_start=is_start, strand=strand_to_use)
         return None
 
-    def _set_exon_offset(self, params: Dict, start: int, end: int, pos: int,
+    @staticmethod
+    def _set_exon_offset(params: Dict, start: int, end: int, pos: int,
                          is_start: bool, strand: int) -> None:
         """Set `exon_offset` in params.
 
@@ -533,7 +534,8 @@ class UTATools:
             result.append((int(coords[0]), int(coords[1])))
         return result
 
-    def _get_exon_number(self, tx_exons: List, tx_pos: int) -> int:
+    @staticmethod
+    def _get_exon_number(tx_exons: List, tx_pos: int) -> int:
         """Find exon number.
 
         :param List tx_exons: List of exon coordinates

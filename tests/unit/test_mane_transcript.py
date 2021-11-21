@@ -58,7 +58,7 @@ def braf_v600e_mane_p():
     return {
         'refseq': 'NP_001361187.1',
         'ensembl': 'ENSP00000496776.1',
-        'pos': (640, 640),
+        'pos': (639, 639),
         'status': 'MANE Select',
         'strand': '-',
         'gene': 'BRAF'
@@ -71,7 +71,7 @@ def egfr_l858r_mane_p():
     return {
         'refseq': 'NP_005219.2',
         'ensembl': 'ENSP00000275493.2',
-        'pos': (858, 858),
+        'pos': (857, 857),
         'status': 'MANE Select',
         'strand': '+',
         'gene': 'EGFR'
@@ -85,7 +85,7 @@ def braf_v600e_mane_c():
         'alt_ac': 'NC_000007.14',
         'refseq': 'NM_001374258.1',
         'ensembl': 'ENST00000644969.2',
-        'pos': (1919, 1919),
+        'pos': (1918, 1918),
         'status': 'MANE Select',
         'strand': '-',
         'coding_start_site': 226,
@@ -101,7 +101,7 @@ def egfr_l858r_mane_c():
         'alt_ac': 'NC_000007.14',
         'refseq': 'NM_005228.5',
         'ensembl': 'ENST00000275493.7',
-        'pos': (2573, 2573),
+        'pos': (2572, 2572),
         'status': 'MANE Select',
         'strand': '+',
         'coding_start_site': 261,
@@ -232,7 +232,7 @@ async def test__g_to_mane_c(test_mane_transcript, braf_mane_data,
 
 def test_get_mane_p(test_mane_transcript, braf_mane_data, braf_v600e_mane_p):
     """Test that _get_mane_p method works correctly."""
-    mane_p = test_mane_transcript._get_mane_p(braf_mane_data, (1918, 1920))
+    mane_p = test_mane_transcript._get_mane_p(braf_mane_data, (1917, 1919))
     assert mane_p == braf_v600e_mane_p
 
 
@@ -242,51 +242,68 @@ async def test_p_to_mane_p(test_mane_transcript, braf_v600e_mane_p,
     """Test that p_to_mane_p method works correctly."""
     # BRAF V600E RefSeq Accessions
     mane_p = await test_mane_transcript.get_mane_transcript(
-        'NP_004324.2', 600, None, 'p')
+        'NP_004324.2', 599, 'p', residue_mode='inter-residue')
     assert mane_p == braf_v600e_mane_p
 
     mane_p = await test_mane_transcript.get_mane_transcript(
-        'NP_004324.2', 600, 600, 'p')
+        'NP_004324.2', 600, 'p')
+    assert mane_p == braf_v600e_mane_p
+
+    mane_p = await test_mane_transcript.get_mane_transcript(
+        'NP_004324.2', 599, 'p', residue_mode='inter-residue', end_pos=599)
+    assert mane_p == braf_v600e_mane_p
+
+    mane_p = await test_mane_transcript.get_mane_transcript(
+        'NP_004324.2', 600, 'p', end_pos=600)
     assert mane_p == braf_v600e_mane_p
 
     # BRAF V600E Ensembl Accessions
     mane_p = await test_mane_transcript.get_mane_transcript(
-        'ENSP00000288602.7', 600, None, 'p')
+        'ENSP00000288602.7', 599, 'p', residue_mode='inter-residue')
     assert mane_p == braf_v600e_mane_p
 
     mane_p = await test_mane_transcript.get_mane_transcript(
-        'ENSP00000288602.7', 600, 600, 'p')
+        'ENSP00000288602.7', 600, 'p')
+    assert mane_p == braf_v600e_mane_p
+
+    mane_p = await test_mane_transcript.get_mane_transcript(
+        'ENSP00000288602.7', 599, 'p', residue_mode='inter-residue',
+        end_pos=599)
+    assert mane_p == braf_v600e_mane_p
+
+    mane_p = await test_mane_transcript.get_mane_transcript(
+        'ENSP00000288602.7', 600, 'p', end_pos=600)
     assert mane_p == braf_v600e_mane_p
 
     # EGFR L858R RefSeq Accessions
     mane_p = await test_mane_transcript.get_mane_transcript(
-        'NP_005219.2', 858, None, 'p')
+        'NP_005219.2', 858, 'p')
     assert mane_p == egfr_l858r_mane_p
 
     mane_p = await test_mane_transcript.get_mane_transcript(
-        'NP_005219.2', 858, 858, 'p')
+        'NP_005219.2', 858, 'p', end_pos=858)
     assert mane_p == egfr_l858r_mane_p
 
     # EGFR L858R Ensembl Accessions
     mane_p = await test_mane_transcript.get_mane_transcript(
-        'ENSP00000275493.2', 858, None, 'p')
+        'ENSP00000275493.2', 858, 'p')
     assert mane_p == egfr_l858r_mane_p
 
     mane_p = await test_mane_transcript.get_mane_transcript(
-        'ENSP00000275493.2', 858, 858, 'p')
+        'ENSP00000275493.2', 858, 'p', end_pos=858)
     assert mane_p == egfr_l858r_mane_p
 
     assert test_mane_transcript.get_mane_transcript(
-        'NP_004439.2', 755, 759, 'p')
+        'NP_004439.2', 755, 'p', end_pos=759)
 
     mane_p = await test_mane_transcript.get_mane_transcript(
-        'ENSP00000366997.4', 63, 63, 'P', gene='DIS3', ref='P',
-        try_longest_compatible=True)
+        'ENSP00000366997.4', 63, 'P', gene='DIS3', ref='P',
+        try_longest_compatible=True, end_pos=63)
     assert mane_p == {
         'gene': 'DIS3',
         'refseq': 'NP_055768.3',
         'ensembl': 'ENSP00000366997.4',
-        'pos': (63, 63),
+        'pos': (62, 62),
         'strand': '-',
         'status': 'MANE Select'
     }
@@ -300,48 +317,56 @@ async def test_c_to_mane_c(test_mane_transcript, braf_v600e_mane_c,
     cpy_braf_v600e_mane_c = copy.deepcopy(braf_v600e_mane_c)
     cpy_braf_v600e_mane_c['alt_ac'] = None
     mane_c = await test_mane_transcript.get_mane_transcript(
-        'NM_004333.4', 1799, None, 'c')
+        'NM_004333.4', 1799, 'c')
     assert mane_c == cpy_braf_v600e_mane_c
 
     mane_c = await test_mane_transcript.get_mane_transcript(
-        'NM_004333.5', 1799, None, 'C')
+        'NM_004333.4', 1798, 'c', residue_mode='inter-residue')
     assert mane_c == cpy_braf_v600e_mane_c
 
     mane_c = await test_mane_transcript.get_mane_transcript(
-        'NM_004333.6', 1799, None, 'c')
+        'NM_004333.4', 1798, 'c', residue_mode='inter-residue', end_pos=1798)
+    assert mane_c == cpy_braf_v600e_mane_c
+
+    mane_c = await test_mane_transcript.get_mane_transcript(
+        'NM_004333.5', 1799, 'C')
+    assert mane_c == cpy_braf_v600e_mane_c
+
+    mane_c = await test_mane_transcript.get_mane_transcript(
+        'NM_004333.6', 1799, 'c')
     assert mane_c == cpy_braf_v600e_mane_c
 
     # BRAF V600E Ensembl Accessions
     mane_c = await test_mane_transcript.get_mane_transcript(
-        'ENST00000288602.10', 1799, None, 'c')
+        'ENST00000288602.10', 1799, 'c')
     assert mane_c == cpy_braf_v600e_mane_c
 
     mane_c = await test_mane_transcript.get_mane_transcript(
-        'ENST00000288602.11', 1799, None, 'c')
+        'ENST00000288602.11', 1799, 'c')
     assert mane_c == cpy_braf_v600e_mane_c
 
     cpy_egfr_l858r_mane_c = copy.deepcopy(egfr_l858r_mane_c)
     cpy_egfr_l858r_mane_c['alt_ac'] = None
     # EGFR L858R RefSeq Accessions
     mane_c = await test_mane_transcript.get_mane_transcript(
-        'NM_005228.3', 2573, None, 'c')
+        'NM_005228.3', 2573, 'c')
     assert mane_c == cpy_egfr_l858r_mane_c
 
     mane_c = await test_mane_transcript.get_mane_transcript(
-        'NM_005228.4', 2573, None, 'c')
+        'NM_005228.4', 2573, 'c')
     assert mane_c == cpy_egfr_l858r_mane_c
 
     mane_c = await test_mane_transcript.get_mane_transcript(
-        'NM_005228.5', 2573, 2573, 'c')
+        'NM_005228.5', 2573, 'c', end_pos=2573)
     assert mane_c == cpy_egfr_l858r_mane_c
 
     # EGFR L858R Ensembl Accessions
     mane_c = await test_mane_transcript.get_mane_transcript(
-        'ENST00000275493.7', 2573, None, 'c')
+        'ENST00000275493.7', 2573, 'c')
     assert mane_c == cpy_egfr_l858r_mane_c
 
     mane_c = await test_mane_transcript.get_mane_transcript(
-        'ENST00000275493.6', 2573, None, 'c')
+        'ENST00000275493.6', 2573, 'c')
     assert mane_c == cpy_egfr_l858r_mane_c
 
 
@@ -350,15 +375,15 @@ async def test_g_to_mane_c(test_mane_transcript, egfr_l858r_mane_c,
                            braf_v600e_mane_c, grch38):
     """Test that g_to_mane_c method works correctly."""
     mane_c = await test_mane_transcript.g_to_mane_c(
-        'NC_000007.13', 55259515, None, gene='EGFR')
+        'NC_000007.13', 55259514, None, gene='EGFR')
     assert mane_c == egfr_l858r_mane_c
 
     mane_c = await test_mane_transcript.g_to_mane_c(
-        'NC_000007.13', 55259515, 55259515, gene='EGFR')
+        'NC_000007.13', 55259514, 55259514, gene='EGFR')
     assert mane_c == egfr_l858r_mane_c
 
     mane_c = await test_mane_transcript.g_to_mane_c(
-        'NC_000007.13', 140453136, None, gene='BRAF')
+        'NC_000007.13', 140453137, None, gene='BRAF')
     assert mane_c == braf_v600e_mane_c
 
     resp = await test_mane_transcript.g_to_mane_c(
@@ -366,8 +391,8 @@ async def test_g_to_mane_c(test_mane_transcript, egfr_l858r_mane_c,
     assert resp == grch38
 
     resp = await test_mane_transcript.g_to_mane_c(
-        'NC_000007.13', 140453136, None)
-    grch38["pos"] = (140753336, 140753336)
+        'NC_000007.13', 140453135, None)
+    grch38["pos"] = (140753335, 140753335)
     assert resp == grch38
 
     resp = await test_mane_transcript.g_to_mane_c(
@@ -395,6 +420,12 @@ async def test_no_matches(test_mane_transcript):
     """Test that invalid queries return None."""
     # Invalid ENST version
     mane_c = await test_mane_transcript.get_mane_transcript(
-        'ENST00000275493.15645', 2573, None, 'c'
+        'ENST00000275493.15645', 2573, 'c'
+    )
+    assert mane_c is None
+
+    # Invalid residue-mode
+    mane_c = await test_mane_transcript.get_mane_transcript(
+        'ENST00000288602.11', 2573, 'c', residue_mode='residues'
     )
     assert mane_c is None

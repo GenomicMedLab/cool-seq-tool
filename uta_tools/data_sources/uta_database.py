@@ -15,24 +15,21 @@ from asyncpg.exceptions import InvalidAuthorizationSpecificationError
 class UTADatabase:
     """Class for connecting and querying UTA database."""
 
-    def __init__(self, db_url: str = UTA_DB_URL, db_pwd: str = '',
-                 liftover_from: str = 'hg19',
-                 liftover_to: str = 'hg38') -> None:
+    def __init__(self, db_url: str = UTA_DB_URL, db_pwd: str = '') -> None:
         """Initialize DB class.
         After initializing, you must run `_create_genomic_table()`
 
         :param str db_url: PostgreSQL connection URL
             Format: `driver://user:pass@host/database/schema`
         :param str db_pwd: User's password for uta database
-        :param str liftover_from: Assembly to liftover from
-        :param str liftover_to: Assembly to liftover to
         """
         self.schema = None
         self.db_url = db_url
         self.db_pwd = db_pwd
         self._connection_pool = None
         self.args = self._get_conn_args()
-        self.liftover = LiftOver(liftover_from, liftover_to)
+        self.liftover_37_to_38 = LiftOver('hg19', 'hg38')
+        self.liftover_38_to_37 = LiftOver('hg38', 'hg19')
 
     @staticmethod
     def _update_db_url(db_pwd: str, db_url: str) -> str:
@@ -179,7 +176,8 @@ class UTADatabase:
             for create_index in indexes:
                 await self.execute_query(create_index)
 
-    def _transform_list(self, li: List) -> List[List[Any]]:
+    @staticmethod
+    def _transform_list(li: List) -> List[List[Any]]:
         """Transform list to only contain field values
 
         :param List li: List of asyncpg.Record objects
@@ -259,8 +257,9 @@ class UTADatabase:
             return None, msg
         return cds_se_i[0][0].split(';'), None
 
+    @staticmethod
     def _validate_exon(
-            self, transcript: str, tx_exons: List[str],
+            transcript: str, tx_exons: List[str],
             exon_number: Optional[int] = None) -> Tuple[Optional[List], Optional[str]]:  # noqa: E501
         """Validate that exon number is valid
 
@@ -424,7 +423,7 @@ class UTADatabase:
             cds_start_end = cds_start_end[0]
             if cds_start_end[0] is not None \
                     and cds_start_end[1] is not None:
-                return cds_start_end
+                return cds_start_end[0], cds_start_end[1]
         else:
             logger.warning(f"Unable to get coding start/end site for "
                            f"accession: {tx_ac}")
@@ -590,7 +589,7 @@ class UTADatabase:
             alt_exon_id=alt_exon_id,
         )
 
-    async def get_mane_c_genomic_data(self, ac: str, alt_ac: str,
+    async def get_mane_c_genomic_data(self, ac: str, alt_ac: Optional[str],
                                       start_pos: int,
                                       end_pos: int) -> Optional[Dict]:
         """Get MANE Transcript and genomic data.
@@ -832,7 +831,7 @@ class UTADatabase:
         :return: [Target chromosome, target position, target strand,
             conversion_chain_score] for hg38 assembly
         """
-        liftover = self.liftover.convert_coordinate(chromosome, pos)
+        liftover = self.liftover_37_to_38.convert_coordinate(chromosome, pos)
         if liftover is None or len(liftover) == 0:
             logger.warning(f"{pos} does not exist on {chromosome}")
             return None
