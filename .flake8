@@ -1,5 +1,10 @@
 [flake8]
-ignore = D205, D400
+ignore = D205, D400, ANN101, ANN002, ANN003
+inline-quotes = "
+import-order-style = pep8
+application-import-names =
+  uta_tools
+  tests
 exclude =
   .git
   venv
@@ -7,3 +12,7 @@ exclude =
   source
   outputs
   docs/*
+per-file-ignores =
+    tests/*:ANN001, ANN2
+    *__init__.py:F401
+    uta_tools/schemas.py:ANN001, ANN201

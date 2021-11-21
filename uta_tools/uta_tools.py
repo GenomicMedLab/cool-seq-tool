@@ -1,6 +1,7 @@
 """Module for initializing data sources."""
 from datetime import datetime
 from typing import Optional, Union, List, Tuple, Dict
+
 from uta_tools import logger
 from uta_tools.schemas import GenomicData, TranscriptExonData, ResidueMode, \
     GenomicDataResponse, ServiceMeta, TranscriptExonDataResponse
@@ -19,8 +20,8 @@ class UTATools:
                  transcript_file_path: str = TRANSCRIPT_MAPPINGS_PATH,
                  lrg_refseqgene_path: str = LRG_REFSEQGENE_PATH,
                  mane_data_path: str = MANE_SUMMARY_PATH,
-                 db_url: str = UTA_DB_URL, db_pwd: str = '',
-                 ):
+                 db_url: str = UTA_DB_URL, db_pwd: str = "",
+                 ) -> None:
         """Initialize UTATools class
 
         :param str seqrepo_data_path: The path to the seqrepo directory.
@@ -373,7 +374,7 @@ class UTATools:
 
     async def _set_mane_genomic_data(
             self, params: Dict, gene: str, alt_ac: str, pos: int, strand: int,
-            is_start: bool, residue_mode
+            is_start: bool, residue_mode: str
     ) -> Optional[str]:
         """Set genomic data in `params` found from MANE.
 
@@ -384,12 +385,14 @@ class UTATools:
         :param int strand: Strand
         :param bool is_start: `True` if `pos` is start position. `False` if
             `pos` is end position.
+        :param str residue_mode: Residue mode for start/end positions
+            Must be either `inter-residue` or `residue`
         :return: Warnings if found
         """
         if residue_mode == ResidueMode.RESIDUE:
             pos += 1
         mane_data = await self.mane_transcript.get_mane_transcript(
-            alt_ac, pos, 'g', gene=gene,
+            alt_ac, pos, "g", gene=gene,
             try_longest_compatible=True, residue_mode=residue_mode
         )
         if not mane_data:

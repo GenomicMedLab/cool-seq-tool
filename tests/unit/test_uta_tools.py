@@ -1,11 +1,12 @@
 """Module for testing that UTATools works correctly."""
 from datetime import datetime
+import re
+import copy
 
 import pytest
+
 from uta_tools import UTATools
-import copy
 from uta_tools.schemas import GenomicData, TranscriptExonData
-import re
 
 
 @pytest.fixture(scope="module")
@@ -46,7 +47,7 @@ def tpm3_exon8():
     return TranscriptExonData(**params)
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def tpm3_exon1_g():
     """Create test fixture for TPM3."""
     params = {
@@ -64,7 +65,7 @@ def tpm3_exon1_g():
     return GenomicData(**params)
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def tpm3_exon8_g():
     """Create test fixture for TPM3."""
     params = {
@@ -82,7 +83,7 @@ def tpm3_exon8_g():
     return GenomicData(**params)
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def tpm3_exon1_exon8():
     """Create test fixture for TPM3."""
     params = {
@@ -100,7 +101,7 @@ def tpm3_exon1_exon8():
     return GenomicData(**params)
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def tpm3_exon1_t_to_g():
     """Create test fixture for TPM3."""
     params = {
@@ -118,7 +119,7 @@ def tpm3_exon1_t_to_g():
     return GenomicData(**params)
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def tpm3_exon8_t_to_g():
     """Create test fixture for TPM3."""
     params = {
@@ -136,7 +137,7 @@ def tpm3_exon8_t_to_g():
     return GenomicData(**params)
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def tpm3_exon1_exon8_t_to_g():
     """Create test fixture for TPM3."""
     params = {
@@ -226,7 +227,7 @@ def mane_wee1_exon2_exon11():
     return GenomicData(**params)
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def ntrk1_exon10_exon17():
     """Create test fixture for NTRK1."""
     params = {
@@ -496,46 +497,46 @@ async def test_transcript_to_genomic(test_uta_tools, tpm3_exon1_exon8_t_to_g,
     """Test that transcript_to_genomic_coordinates works correctly."""
     # TPM3
     resp = await test_uta_tools.transcript_to_genomic_coordinates(
-        exon_start=None, exon_end=8, transcript='NM_152263.3')
+        exon_start=None, exon_end=8, transcript="NM_152263.3")
     genomic_data_assertion_checks(resp, tpm3_exon8_t_to_g)
 
     resp = await test_uta_tools.transcript_to_genomic_coordinates(
-        exon_start=1, exon_end=None, transcript='NM_152263.3')
+        exon_start=1, exon_end=None, transcript="NM_152263.3")
     genomic_data_assertion_checks(resp, tpm3_exon1_t_to_g)
 
     resp = await test_uta_tools.transcript_to_genomic_coordinates(
-        exon_start=None, exon_end=8, transcript='NM_152263.3       ')
+        exon_start=None, exon_end=8, transcript="NM_152263.3       ")
     genomic_data_assertion_checks(resp, tpm3_exon8_t_to_g)
 
     resp = await test_uta_tools.transcript_to_genomic_coordinates(
-        exon_start=None, exon_end=8, gene="TPM3", transcript='NM_152263.3')
+        exon_start=None, exon_end=8, gene="TPM3", transcript="NM_152263.3")
     genomic_data_assertion_checks(resp, tpm3_exon8_t_to_g)
 
     resp = await test_uta_tools.transcript_to_genomic_coordinates(
-        exon_start=None, exon_end=8, gene=" TPM3 ", transcript=' NM_152263.3 ')
+        exon_start=None, exon_end=8, gene=" TPM3 ", transcript=" NM_152263.3 ")
     genomic_data_assertion_checks(resp, tpm3_exon8_t_to_g)
 
     resp = await test_uta_tools.transcript_to_genomic_coordinates(
-        exon_start=None, exon_end=8, gene="tpm3", transcript='NM_152263.3')
+        exon_start=None, exon_end=8, gene="tpm3", transcript="NM_152263.3")
     genomic_data_assertion_checks(resp, tpm3_exon8_t_to_g)
 
     expected = copy.deepcopy(tpm3_exon1_exon8_t_to_g)
     resp = await test_uta_tools.transcript_to_genomic_coordinates(
-        exon_start=1, exon_end=8, exon_end_offset=-5, transcript='NM_152263.3')
+        exon_start=1, exon_end=8, exon_end_offset=-5, transcript="NM_152263.3")
     expected.exon_end = 8
     expected.exon_end_offset = -5
     expected.end = 154170404
     genomic_data_assertion_checks(resp, expected)
 
     resp = await test_uta_tools.transcript_to_genomic_coordinates(
-        exon_start=1, exon_end=8, exon_end_offset=5, transcript='NM_152263.3')
+        exon_start=1, exon_end=8, exon_end_offset=5, transcript="NM_152263.3")
     expected.exon_end_offset = 5
     expected.end = 154170394
     genomic_data_assertion_checks(resp, expected)
 
     resp = await test_uta_tools.transcript_to_genomic_coordinates(
         exon_start=3, exon_end=8, exon_start_offset=3, exon_end_offset=5,
-        transcript='NM_152263.3')
+        transcript="NM_152263.3")
     expected.exon_start = 3
     expected.exon_start_offset = 3
     expected.start = 154176245
@@ -543,27 +544,27 @@ async def test_transcript_to_genomic(test_uta_tools, tpm3_exon1_exon8_t_to_g,
 
     resp = await test_uta_tools.transcript_to_genomic_coordinates(
         exon_start=3, exon_end=8, exon_start_offset=-3, exon_end_offset=5,
-        transcript='NM_152263.3')
+        transcript="NM_152263.3")
     expected.exon_start_offset = -3
     expected.start = 154176251
     genomic_data_assertion_checks(resp, expected)
 
     # NTRK1
     resp = await test_uta_tools.transcript_to_genomic_coordinates(
-        exon_start=10, exon_end=17, transcript='NM_002529.3')
+        exon_start=10, exon_end=17, transcript="NM_002529.3")
     genomic_data_assertion_checks(resp, ntrk1_exon10_exon17)
 
     resp = await test_uta_tools.transcript_to_genomic_coordinates(
-        exon_start=10, exon_end=17, gene="NTRK1", transcript='NM_002529.3')
+        exon_start=10, exon_end=17, gene="NTRK1", transcript="NM_002529.3")
     genomic_data_assertion_checks(resp, ntrk1_exon10_exon17)
 
     resp = await test_uta_tools.transcript_to_genomic_coordinates(
-        exon_start=10, exon_end=17, gene="NTRK1", transcript='NM_002529.3')
+        exon_start=10, exon_end=17, gene="NTRK1", transcript="NM_002529.3")
     genomic_data_assertion_checks(resp, ntrk1_exon10_exon17)
 
     resp = await test_uta_tools.transcript_to_genomic_coordinates(
         exon_start=10, exon_end=17, exon_start_offset=3,
-        transcript='NM_002529.3')
+        transcript="NM_002529.3")
     expected = copy.deepcopy(ntrk1_exon10_exon17)
     expected.exon_start_offset = 3
     expected.start = 156874629
@@ -571,7 +572,7 @@ async def test_transcript_to_genomic(test_uta_tools, tpm3_exon1_exon8_t_to_g,
 
     resp = await test_uta_tools.transcript_to_genomic_coordinates(
         exon_start=10, exon_end=17, exon_start_offset=-3,
-        transcript='NM_002529.3')
+        transcript="NM_002529.3")
     expected.exon_start_offset = -3
     expected.start = 156874623
     genomic_data_assertion_checks(resp, expected)
@@ -579,7 +580,7 @@ async def test_transcript_to_genomic(test_uta_tools, tpm3_exon1_exon8_t_to_g,
 
 @pytest.mark.asyncio
 async def test_valid_inputs(test_uta_tools):
-    """Test that valid inputs don't return any errors"""
+    """Test that valid inputs don"t return any errors"""
     inputs = {
         "gene": "TPM3",
         "chromosome": "NC_000001.11",
@@ -674,37 +675,37 @@ async def test_invalid(test_uta_tools):
 
     # Exon 22 does not exist
     resp = await test_uta_tools.transcript_to_genomic_coordinates(
-        exon_start=None, exon_end=22, transcript='NM_152263.3', )
+        exon_start=None, exon_end=22, transcript="NM_152263.3", )
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Exon 22 does not exist on NM_152263.3"]
 
     # Start > End
     resp = await test_uta_tools.transcript_to_genomic_coordinates(
-        exon_start=8, exon_end=1, transcript='NM_152263.3')
+        exon_start=8, exon_end=1, transcript="NM_152263.3")
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Start exon 8 is greater than end exon 1"]
 
     # Transcript DNE
     resp = await test_uta_tools.transcript_to_genomic_coordinates(
-        exon_start=7, exon_end=None, transcript='NM_12345.6')
+        exon_start=7, exon_end=None, transcript="NM_12345.6")
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Unable to get exons for NM_12345.6"]
 
     # Index error for invalid exon
     resp = await test_uta_tools.transcript_to_genomic_coordinates(
-        exon_start=-1, exon_end=0, transcript='NM_152263.3')
+        exon_start=-1, exon_end=0, transcript="NM_152263.3")
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Exon -1 does not exist on NM_152263.3"]
 
     # Cant supply 0 based exons
     resp = await test_uta_tools.transcript_to_genomic_coordinates(
-        exon_start=0, exon_end=1, transcript='NM_152263.3')
+        exon_start=0, exon_end=1, transcript="NM_152263.3")
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Exon 0 does not exist on NM_152263.3"]
 
     # Gene that does not match transcript
     resp = await test_uta_tools.transcript_to_genomic_coordinates(
-        exon_start=1, exon_end=8, gene='NTKR1', transcript='NM_152263.3')
+        exon_start=1, exon_end=8, gene="NTKR1", transcript="NM_152263.3")
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == [
         "Unable to find a result where NM_152263.3 has transcript coordinates"
@@ -713,18 +714,18 @@ async def test_invalid(test_uta_tools):
 
     # No transcript given
     resp = await test_uta_tools.transcript_to_genomic_coordinates(
-        exon_start=1, exon_end=8, gene='NTKR1', transcript=None)
+        exon_start=1, exon_end=8, gene="NTKR1", transcript=None)
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Must provide `transcript`"]
 
     # No transcript given
     resp = await test_uta_tools.transcript_to_genomic_coordinates(
-        exon_start=1, exon_end=8, gene='NTKR1', transcript='')
+        exon_start=1, exon_end=8, gene="NTKR1", transcript="")
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Must provide `transcript`"]
 
     # No exons given
     resp = await test_uta_tools.transcript_to_genomic_coordinates(
-        exon_start=None, exon_end=None, transcript='NM_152263.3')
+        exon_start=None, exon_end=None, transcript="NM_152263.3")
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Must provide either `exon_start` or `exon_end`"]
