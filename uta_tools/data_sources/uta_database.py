@@ -7,9 +7,9 @@ from six.moves.urllib import parse as urlparse
 import pandas as pd
 import asyncpg
 import boto3
-from asyncpg.exceptions import InterfaceError
 from pyliftover import LiftOver
-from asyncpg.exceptions import InvalidAuthorizationSpecificationError
+from asyncpg.exceptions import InvalidAuthorizationSpecificationError, \
+    InterfaceError
 
 from uta_tools import UTA_DB_URL, logger
 
