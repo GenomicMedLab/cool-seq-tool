@@ -6,10 +6,10 @@ import logging
 APP_ROOT = Path(__file__).resolve().parents[0]
 
 logging.basicConfig(
-    filename='uta_tools.log',
-    format='[%(asctime)s] - %(name)s - %(levelname)s : %(message)s'
+    filename="uta_tools.log",
+    format="[%(asctime)s] - %(name)s - %(levelname)s : %(message)s"
 )
-logger = logging.getLogger('uta_tools')
+logger = logging.getLogger("uta_tools")
 logger.setLevel(logging.DEBUG)
 
 if "UTA_DB_URL" in environ:
@@ -24,9 +24,9 @@ else:
 
 TRANSCRIPT_MAPPINGS_PATH = f"{APP_ROOT}/data/transcript_mapping.tsv"
 
-from uta_tools.data import DataDownload  # noqa: E402
+from uta_tools.data import DataDownload  # noqa: E402, I202
 d = DataDownload()
 MANE_SUMMARY_PATH = d._mane_summary_path
 LRG_REFSEQGENE_PATH = d._lrg_refseqgene_path
 
-from uta_tools.uta_tools import UTATools  # noqa: E402, F401
+from uta_tools.uta_tools import UTATools  # noqa: E402, F401, I202

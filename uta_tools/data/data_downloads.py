@@ -1,24 +1,26 @@
 """Module for downloading data files."""
-from uta_tools import APP_ROOT
 from ftplib import FTP
 from os import remove
 import gzip
 import shutil
-from dateutil import parser
 import datetime
+
+from dateutil import parser
+
+from uta_tools import APP_ROOT
 
 
 class DataDownload:
     """Class for downloading data files."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize DataDownload."""
         self._make_data_dir()
         self._download_data()
 
     def _make_data_dir(self) -> None:
         """Make data directory"""
-        self._data_dir = APP_ROOT / 'data'
+        self._data_dir = APP_ROOT / "data"
         self._data_dir.mkdir(exist_ok=True, parents=True)
 
     def _download_data(self) -> None:
@@ -45,13 +47,13 @@ class DataDownload:
         mane_data_path = self._data_dir / mane_summary_file
         if not self._mane_summary_path.exists():
             with open(mane_data_path, "wb") as fp:
-                ftp.retrbinary(f'RETR {mane_summary_file}', fp.write)
+                ftp.retrbinary(f"RETR {mane_summary_file}", fp.write)
             with gzip.open(mane_data_path, "rb") as f_in:
                 with open(self._mane_summary_path, "wb") as f_out:
                     shutil.copyfileobj(f_in, f_out)
             remove(mane_data_path)
 
-    def _download_lrg_refseq_gene_data(self, ftp) -> None:
+    def _download_lrg_refseq_gene_data(self, ftp: FTP) -> None:
         """Download latest LRG_RefSeqGene and set path
 
         :param FTP ftp: FTP connection
@@ -62,7 +64,7 @@ class DataDownload:
         timestamp = ftp.voidcmd(f"MDTM {ftp_file_path}")[4:].strip()
         date = str(parser.parse(timestamp)).split()[0]
         version = datetime.datetime.strptime(date,
-                                             '%Y-%m-%d').strftime('%Y%m%d')
+                                             "%Y-%m-%d").strftime("%Y%m%d")
 
         fn_versioned = f"{lrg_refseqgene_file}_{version}"
         lrg_refseqgene_path = self._data_dir / lrg_refseqgene_file

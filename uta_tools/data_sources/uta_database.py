@@ -1,21 +1,23 @@
 """Module for UTA queries."""
-import asyncpg
-import boto3
-import pandas as pd
-from uta_tools import UTA_DB_URL, logger
-from six.moves.urllib import parse as urlparse
-from asyncpg.exceptions import InterfaceError
 from typing import Dict, List, Optional, Tuple, Any
 from os import environ
 from urllib.parse import quote, unquote
+
+from six.moves.urllib import parse as urlparse
+import pandas as pd
+import asyncpg
+import boto3
 from pyliftover import LiftOver
-from asyncpg.exceptions import InvalidAuthorizationSpecificationError
+from asyncpg.exceptions import InvalidAuthorizationSpecificationError, \
+    InterfaceError
+
+from uta_tools import UTA_DB_URL, logger
 
 
 class UTADatabase:
     """Class for connecting and querying UTA database."""
 
-    def __init__(self, db_url: str = UTA_DB_URL, db_pwd: str = '') -> None:
+    def __init__(self, db_url: str = UTA_DB_URL, db_pwd: str = "") -> None:
         """Initialize DB class.
         After initializing, you must run `_create_genomic_table()`
 
@@ -28,8 +30,8 @@ class UTADatabase:
         self.db_pwd = db_pwd
         self._connection_pool = None
         self.args = self._get_conn_args()
-        self.liftover_37_to_38 = LiftOver('hg19', 'hg38')
-        self.liftover_38_to_37 = LiftOver('hg38', 'hg19')
+        self.liftover_37_to_38 = LiftOver("hg19", "hg38")
+        self.liftover_38_to_37 = LiftOver("hg38", "hg19")
 
     @staticmethod
     def _update_db_url(db_pwd: str, db_url: str) -> str:
@@ -40,22 +42,22 @@ class UTADatabase:
             Format: `driver://user:pass@host/database/schema`
         :return: PostgreSQL connection URL
         """
-        if 'UTA_DB_URL' in environ:
+        if "UTA_DB_URL" in environ:
             return environ["UTA_DB_URL"]
-        if not db_pwd and 'UTA_PASSWORD' not in environ:
-            raise Exception('Environment variable UTA_PASSWORD '
-                            'or `db_pwd` param must be set')
+        if not db_pwd and "UTA_PASSWORD" not in environ:
+            raise Exception("Environment variable UTA_PASSWORD "
+                            "or `db_pwd` param must be set")
         else:
-            uta_password_in_environ = 'UTA_PASSWORD' in environ
+            uta_password_in_environ = "UTA_PASSWORD" in environ
             if uta_password_in_environ and db_pwd:
-                if db_pwd != environ['UTA_PASSWORD']:
-                    raise Exception('If both environment variable UTA_PASSWORD'
-                                    ' and param db_pwd is set, they must '
-                                    'both be the same')
+                if db_pwd != environ["UTA_PASSWORD"]:
+                    raise Exception("If both environment variable UTA_PASSWORD"
+                                    " and param db_pwd is set, they must "
+                                    "both be the same")
             else:
                 if uta_password_in_environ and not db_pwd:
-                    db_pwd = environ['UTA_PASSWORD']
-            db_url = db_url.split('@')
+                    db_pwd = environ["UTA_PASSWORD"]
+            db_url = db_url.split("@")
             return f"{db_url[0]}:{db_pwd}@{db_url[1]}"
 
     def _get_conn_args(self) -> Dict:
@@ -63,26 +65,26 @@ class UTADatabase:
 
         :return: Database credentials
         """
-        if 'UTA_DB_PROD' in environ:
-            region = 'us-east-2'
-            client = boto3.client('rds', region_name=region)
+        if "UTA_DB_PROD" in environ:
+            region = "us-east-2"
+            client = boto3.client("rds", region_name=region)
             token = client.generate_db_auth_token(
-                DBHostname=environ['UTA_HOST'], Port=environ['UTA_PORT'],
-                DBUsername=environ['UTA_USER'], Region=region
+                DBHostname=environ["UTA_HOST"], Port=environ["UTA_PORT"],
+                DBUsername=environ["UTA_USER"], Region=region
             )
-            self.schema = environ['UTA_SCHEMA']
+            self.schema = environ["UTA_SCHEMA"]
             return dict(
-                host=environ['UTA_HOST'], port=int(environ['UTA_PORT']),
-                database=environ['UTA_DATABASE'], user=environ['UTA_USER'],
+                host=environ["UTA_HOST"], port=int(environ["UTA_PORT"]),
+                database=environ["UTA_DATABASE"], user=environ["UTA_USER"],
                 password=token)
         else:
             db_url = self._update_db_url(self.db_pwd, self.db_url)
-            original_pwd = db_url.split('//')[-1].split('@')[0].split(':')[-1]
+            original_pwd = db_url.split("//")[-1].split("@")[0].split(":")[-1]
             db_url = db_url.replace(original_pwd, quote(original_pwd))
 
             url = ParseResult(urlparse.urlparse(db_url))
             self.schema = url.schema
-            password = unquote(url.password) if url.password else ''
+            password = unquote(url.password) if url.password else ""
             return dict(host=url.hostname, port=url.port,
                         database=url.database, user=url.username,
                         password=password)
@@ -97,15 +99,15 @@ class UTADatabase:
                     max_size=10,
                     max_inactive_connection_lifetime=3,
                     command_timeout=60,
-                    host=self.args['host'],
-                    port=self.args['port'],
-                    user=self.args['user'],
-                    password=self.args['password'],
-                    database=self.args['database'],
+                    host=self.args["host"],
+                    port=self.args["port"],
+                    user=self.args["user"],
+                    password=self.args["password"],
+                    database=self.args["database"],
                 )
             except InterfaceError as e:
-                logger.error(f'While creating connection pool, '
-                             f'encountered exception {e}')
+                logger.error(f"While creating connection pool, "
+                             f"encountered exception {e}")
                 raise Exception("Could not create connection pool")
 
     async def execute_query(self, query: str) -> Any:
@@ -114,7 +116,7 @@ class UTADatabase:
         :param str query: Query to make on database
         :return: Query's result
         """
-        async def _execute_query(q):
+        async def _execute_query(q: str) -> Any:
             async with self._connection_pool.acquire() as connection:
                 async with connection.transaction():
                     r = await connection.fetch(q)
@@ -131,7 +133,7 @@ class UTADatabase:
             result = await _execute_query(query)
             return result
 
-    async def _create_genomic_table(self):
+    async def _create_genomic_table(self) -> None:
         """Create table containing genomic accession information."""
         check_table_exists = (
             f"""
@@ -255,7 +257,7 @@ class UTADatabase:
             msg = f"Unable to get exons for {tx_ac}"
             logger.warning(msg)
             return None, msg
-        return cds_se_i[0][0].split(';'), None
+        return cds_se_i[0][0].split(";"), None
 
     @staticmethod
     def _validate_exon(
@@ -373,7 +375,7 @@ class UTADatabase:
         if gene:
             gene_query = f"AND T.hgnc = '{gene}'"
         else:
-            gene_query = ''
+            gene_query = ""
 
         query = (
             f"""
@@ -409,8 +411,8 @@ class UTADatabase:
         :param str tx_ac: Transcript accession
         :return: [Coding start site, Coding end site]
         """
-        if tx_ac.startswith('ENS'):
-            tx_ac = tx_ac.split('.')[0]
+        if tx_ac.startswith("ENS"):
+            tx_ac = tx_ac.split(".")[0]
         query = (
             f"""
             SELECT cds_start_i, cds_end_i
@@ -490,7 +492,7 @@ class UTADatabase:
             return None
         else:
             result = result[0][0]
-            if result == '':
+            if result == "":
                 result = None
             return result
 
@@ -510,8 +512,8 @@ class UTADatabase:
         if end_pos is None:
             end_pos = start_pos
 
-        if ac.startswith('ENST'):
-            temp_ac = ac.split('.')[0]
+        if ac.startswith("ENST"):
+            temp_ac = ac.split(".")[0]
             aln_method = f"AND alt_aln_method='genebuild'"  # noqa: F541
         else:
             temp_ac = ac
@@ -563,9 +565,9 @@ class UTADatabase:
         """
         gene = result[0]
         if result[7] == -1:
-            strand = '-'
+            strand = "-"
         else:
-            strand = '+'
+            strand = "+"
         tx_pos_range = result[2], result[3]
         alt_pos_range = result[5], result[6]
         alt_aln_method = result[8]
@@ -616,23 +618,23 @@ class UTADatabase:
             logger.warning(f"Accession {ac} not found in UTA")
             return None
 
-        data['tx_ac'] = result[1]
-        data['alt_ac'] = result[4]
-        data['coding_start_site'] = coding_start_site[0]
-        data['coding_end_site'] = coding_start_site[1]
-        data['alt_pos_change'] = (
-            start_pos - data['alt_pos_range'][0],
-            data['alt_pos_range'][1] - end_pos
+        data["tx_ac"] = result[1]
+        data["alt_ac"] = result[4]
+        data["coding_start_site"] = coding_start_site[0]
+        data["coding_end_site"] = coding_start_site[1]
+        data["alt_pos_change"] = (
+            start_pos - data["alt_pos_range"][0],
+            data["alt_pos_range"][1] - end_pos
         )
-        data['alt_pos_change_range'] = (
-            data['alt_pos_range'][0] + data['alt_pos_change'][0],
-            data['alt_pos_range'][1] - data['alt_pos_change'][1]
+        data["alt_pos_change_range"] = (
+            data["alt_pos_range"][0] + data["alt_pos_change"][0],
+            data["alt_pos_range"][1] - data["alt_pos_change"][1]
         )
 
-        if data['strand'] == '-':
-            data['alt_pos_change_range'] = (
-                data['alt_pos_range'][1] - data['alt_pos_change'][0],
-                data['alt_pos_range'][0] + data['alt_pos_change'][1]
+        if data["strand"] == "-":
+            data["alt_pos_change_range"] = (
+                data["alt_pos_range"][1] - data["alt_pos_change"][0],
+                data["alt_pos_range"][0] + data["alt_pos_change"][1]
             )
         return data
 
@@ -654,21 +656,21 @@ class UTADatabase:
         data = self.data_from_result(result)
         if not data:
             return None
-        data['tx_ac'] = ac
-        data['alt_ac'] = result[4]
-        data['pos_change'] = (
-            pos[0] - data['tx_pos_range'][0],
-            data['tx_pos_range'][1] - pos[1]
+        data["tx_ac"] = ac
+        data["alt_ac"] = result[4]
+        data["pos_change"] = (
+            pos[0] - data["tx_pos_range"][0],
+            data["tx_pos_range"][1] - pos[1]
         )
-        data['alt_pos_change_range'] = (
-            data['alt_pos_range'][0] + data['pos_change'][0],
-            data['alt_pos_range'][1] - data['pos_change'][1]
+        data["alt_pos_change_range"] = (
+            data["alt_pos_range"][0] + data["pos_change"][0],
+            data["alt_pos_range"][1] - data["pos_change"][1]
         )
 
-        if data['strand'] == '-':
-            data['alt_pos_change_range'] = (
-                data['alt_pos_range'][1] - data['pos_change'][0],
-                data['alt_pos_range'][0] + data['pos_change'][1]
+        if data["strand"] == "-":
+            data["alt_pos_change_range"] = (
+                data["alt_pos_range"][1] - data["pos_change"][0],
+                data["alt_pos_range"][0] + data["pos_change"][1]
             )
         return data
 
@@ -765,11 +767,11 @@ class UTADatabase:
         if not descr:
             # Already GRCh38 Assembly
             return None
-        descr = descr.split(',')
+        descr = descr.split(",")
         chromosome = f"chr{descr[0].split()[-1]}"
         assembly = f"GRCh{descr[1].split('.')[0].split('GRCh')[-1]}"
 
-        if assembly not in ['GRCh37', 'GRCh38']:
+        if assembly not in ["GRCh37", "GRCh38"]:
             logger.warning(f"Assembly not supported: {assembly}. "
                            f"Only GRCh37 and GRCh38 are supported.")
             return None
@@ -782,7 +784,7 @@ class UTADatabase:
         :param Dict genomic_tx_data: Dictionary containing gene, nc_accession,
             alt_pos, and strand
         """
-        descr = await self.get_chr_assembly(genomic_tx_data['alt_ac'])
+        descr = await self.get_chr_assembly(genomic_tx_data["alt_ac"])
         if descr is None:
             return None
         chromosome, assembly = descr
@@ -803,12 +805,12 @@ class UTADatabase:
         # Get most recent assembly version position
         # Liftover range
         self._set_liftover(
-            genomic_tx_data, 'alt_pos_range', chromosome
+            genomic_tx_data, "alt_pos_range", chromosome
         )
 
         # Liftover changes range
         self._set_liftover(
-            genomic_tx_data, 'alt_pos_change_range', chromosome
+            genomic_tx_data, "alt_pos_change_range", chromosome
         )
 
         # Change alt_ac to most recent
@@ -821,7 +823,7 @@ class UTADatabase:
             """
         )
         nc_acs = await self.execute_query(query)
-        genomic_tx_data['alt_ac'] = nc_acs[-1][0]
+        genomic_tx_data["alt_ac"] = nc_acs[-1][0]
 
     def get_liftover(self, chromosome: str, pos: int) -> Optional[Tuple]:
         """Get new genome assembly data for a position on a chromosome.
@@ -890,18 +892,18 @@ class ParseResult(urlparse.ParseResult):
     Source: https://github.com/biocommons/hgvs
     """
 
-    def __new__(cls, pr):
+    def __new__(cls, pr):  # noqa
         """Create new instance."""
         return super(ParseResult, cls).__new__(cls, *pr)
 
     @property
-    def database(self):
+    def database(self) -> Optional[str]:
         """Create database property."""
         path_elems = self.path.split("/")
         return path_elems[1] if len(path_elems) > 1 else None
 
     @property
-    def schema(self):
+    def schema(self) -> Optional[str]:
         """Create schema property."""
         path_elems = self.path.split("/")
         return path_elems[2] if len(path_elems) > 2 else None

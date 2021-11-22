@@ -1,9 +1,10 @@
 """Module for testing seqrepo access class"""
 import pytest
+
 from uta_tools.data_sources import SeqRepoAccess
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def test_seqrepo_access():
     """Create SeqRepoAccess test fixture"""
     return SeqRepoAccess()
@@ -102,8 +103,8 @@ def test_translate_identifier(test_seqrepo_access):
     assert "refseq:NC_000002.12" in resp[0]
 
     resp = test_seqrepo_access.translate_identifier("refseq_152263.3")
-    assert resp == ([], 'SeqRepo unable to get translated identifiers for'
-                        ' refseq_152263.3')
+    assert resp == ([], "SeqRepo unable to get translated identifiers for"
+                        " refseq_152263.3")
 
 
 def test_aliases(test_seqrepo_access):
@@ -120,7 +121,7 @@ def test_aliases(test_seqrepo_access):
     assert "GRCh38:2" in resp[0]
 
     resp = test_seqrepo_access.aliases("refseq_152263.3")
-    assert resp == ([], 'SeqRepo could not translate alias refseq_152263.3')
+    assert resp == ([], "SeqRepo could not translate alias refseq_152263.3")
 
     resp = test_seqrepo_access.aliases("GRCh38:2")
-    assert resp == ([], 'SeqRepo could not translate alias GRCh38:2')
+    assert resp == ([], "SeqRepo could not translate alias GRCh38:2")

@@ -1,11 +1,12 @@
 """A module for accessing SeqRepo."""
 from typing import Optional, List, Tuple
+from os import environ
+
 from biocommons.seqrepo import SeqRepo
 
+from uta_tools.schemas import ResidueMode
 from uta_tools import SEQREPO_DATA_PATH, logger
 from uta_tools.data_sources.residue_mode import get_inter_residue_pos
-from os import environ
-from uta_tools.schemas import ResidueMode
 
 
 class SeqRepoAccess:
@@ -15,7 +16,7 @@ class SeqRepoAccess:
         """Initialize the SeqRepoAccess class.
         :param str seqrepo_data_path: The path to the seqrepo directory.
         """
-        environ['SEQREPO_LRU_CACHE_MAXSIZE'] = "none"
+        environ["SEQREPO_LRU_CACHE_MAXSIZE"] = "none"
         self.seqrepo_client = SeqRepo(seqrepo_data_path)
 
     def get_reference_sequence(
