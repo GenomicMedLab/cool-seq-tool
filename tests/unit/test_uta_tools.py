@@ -653,6 +653,15 @@ async def test_invalid(test_uta_tools):
         "coordinate 9999999999999 is mapped between an exon's start and end "
         "coordinates on the negative strand"]
 
+    resp = await test_uta_tools.genomic_to_transcript_exon_coordinates(
+        chromosome="1", start=154170400, strand=-1, transcript="NM_002529.3"
+    )
+    genomic_data_assertion_checks(resp, is_valid=False)
+    assert resp.warnings == [
+        "Unable to retrieve exon for genomic position 154170400 "
+        "on transcript NM_002529.3"
+    ]
+
     # Strand does not match
     resp = await test_uta_tools._genomic_to_transcript_exon_coordinate(
         "NC_000001.11", 154192135, strand=1, transcript="NM_152263.3",

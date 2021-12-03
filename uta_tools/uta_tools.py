@@ -470,6 +470,11 @@ class UTATools:
         data = await self.uta_db.get_tx_exon_aln_v_data(
             params["transcript"], params["pos"], params["pos"],
             alt_ac=params["chr"], use_tx_pos=False)
+        if data is None:
+            return (
+                f"Unable to retrieve exon for genomic position {params['pos']}"
+                f" on transcript {params['transcript']}"
+            )
         if len(data) != 1:
             return f"Must find exactly one row for genomic data, " \
                    f"but found: {len(data)}"
