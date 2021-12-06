@@ -218,7 +218,7 @@ class UTADatabase:
             {alt_ac_cond}
             AND alt_aln_method = 'splign'
             AND {pos} BETWEEN alt_start_i AND alt_end_i
-            {strand_cond}
+            {strand_cond};
             """
         )
         results = await self.execute_query(query)
@@ -417,7 +417,7 @@ class UTADatabase:
             f"""
             SELECT cds_start_i, cds_end_i
             FROM {self.schema}.transcript
-            WHERE ac='{tx_ac}'
+            WHERE ac='{tx_ac}';
             """
         )
         cds_start_end = await self.execute_query(query)
@@ -443,7 +443,7 @@ class UTADatabase:
             FROM {self.schema}._seq_anno_most_recent
             WHERE ac LIKE '{ac.split('.')[0]}%'
             AND ((descr IS NULL) OR (descr = ''))
-            ORDER BY ac
+            ORDER BY ac;
             """
         )
         result = await self.execute_query(query)
@@ -466,7 +466,7 @@ class UTADatabase:
                 SELECT ac
                 FROM {self.schema}._seq_anno_most_recent
                 WHERE ac = '{ac}'
-            )
+            );
             """
         )
         result = await self.execute_query(query)
@@ -483,7 +483,7 @@ class UTADatabase:
             f"""
             SELECT descr
             FROM {self.schema}._seq_anno_most_recent
-            WHERE ac = '{ac}'
+            WHERE ac = '{ac}';
             """
         )
         result = await self.execute_query(query)
@@ -498,7 +498,7 @@ class UTADatabase:
 
     async def get_tx_exon_aln_v_data(self, ac: str, start_pos: int,
                                      end_pos: int, alt_ac: str = None,
-                                     use_tx_pos: bool = True) -> Optional[List]:  # noqa: E501
+                                     use_tx_pos: bool = True) -> List:
         """Return queried data from tx_exon_aln_v table.
 
         :param str ac: Accession
@@ -507,7 +507,7 @@ class UTADatabase:
         :param str alt_ac: NC accession
         :param bool use_tx_pos: `True` if querying on transcript position.
             `False` if querying on genomic position.
-        :return: tx_exon_aln_v data
+        :return: List of tx_exon_aln_v data
         """
         if end_pos is None:
             end_pos = start_pos
@@ -546,7 +546,7 @@ class UTADatabase:
         if not result:
             logger.warning(f"Unable to find transcript alignment for query: "
                            f"{query}")
-            return None
+            return []
         if alt_ac and not use_tx_pos:
             if len(result) > 1:
                 logger.debug(f"Found more than one match for tx_ac {temp_ac} "
@@ -686,7 +686,7 @@ class UTADatabase:
             FROM {self.schema}.genomic
             WHERE hgnc = '{gene}'
             AND alt_ac LIKE 'NC_00%'
-            ORDER BY alt_ac DESC
+            ORDER BY alt_ac DESC;
             """
         )
         results = await self.execute_query(query)
@@ -711,7 +711,7 @@ class UTADatabase:
             FROM {self.schema}.genomic
             WHERE alt_ac = '{ac}'
             AND {start_pos} BETWEEN alt_start_i AND alt_end_i
-            AND {end_pos} BETWEEN alt_start_i AND alt_end_i
+            AND {end_pos} BETWEEN alt_start_i AND alt_end_i;
             """
         )
         results = await self.execute_query(query)
@@ -793,7 +793,7 @@ class UTADatabase:
             f"""
             SELECT DISTINCT alt_ac
             FROM {self.schema}.tx_exon_aln_v
-            WHERE tx_ac = '{genomic_tx_data['tx_ac']}'
+            WHERE tx_ac = '{genomic_tx_data['tx_ac']}';
             """
         )
         nc_acs = await self.execute_query(query)
@@ -819,11 +819,12 @@ class UTADatabase:
             SELECT alt_ac
             FROM {self.schema}.genomic
             WHERE alt_ac LIKE '{genomic_tx_data['alt_ac'].split('.')[0]}%'
-            ORDER BY alt_ac;
+            ORDER BY (CAST(SUBSTR(alt_ac, position('.' in alt_ac) + 1,
+                LENGTH(alt_ac)) AS INT)) DESC;
             """
         )
         nc_acs = await self.execute_query(query)
-        genomic_tx_data["alt_ac"] = nc_acs[-1][0]
+        genomic_tx_data["alt_ac"] = nc_acs[0][0]
 
     def get_liftover(self, chromosome: str, pos: int) -> Optional[Tuple]:
         """Get new genome assembly data for a position on a chromosome.
@@ -884,6 +885,28 @@ class UTADatabase:
         if result:
             result = [r[0] for r in result]
         return result
+
+    async def get_transcripts_from_genomic_pos(
+            self, alt_ac: str, g_pos: int) -> List[str]:
+        """Get transcripts associated to a genomic ac and position.
+
+        :param str alt_ac: Genomic accession
+        :param int g_pos: Genomic position
+        :return: RefSeq transcripts on c. coordinate
+        """
+        query = (
+            f"""
+               SELECT distinct tx_ac
+               FROM {self.schema}.tx_exon_aln_v
+               WHERE alt_ac = '{alt_ac}'
+               AND {g_pos} BETWEEN alt_start_i AND alt_end_i
+               AND tx_ac LIKE 'NM_%';
+               """
+        )
+        results = await self.execute_query(query)
+        if not results:
+            return []
+        return [item for sublist in results for item in sublist]
 
 
 class ParseResult(urlparse.ParseResult):

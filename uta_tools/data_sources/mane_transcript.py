@@ -46,7 +46,7 @@ class MANETranscript:
         self.uta_db = uta_db
 
     @staticmethod
-    def _get_reading_frame(pos: int) -> int:
+    def get_reading_frame(pos: int) -> int:
         """Return reading frame number.
         Only used on c. coordinate
 
@@ -269,8 +269,8 @@ class MANETranscript:
         """
         for pos, mane_pos_index in [(start_pos, 0), (end_pos, 1)]:
             if pos is not None:
-                og_rf = self._get_reading_frame(pos)
-                mane_rf = self._get_reading_frame(
+                og_rf = self.get_reading_frame(pos)
+                mane_rf = self.get_reading_frame(
                     mane_transcript["pos"][mane_pos_index]
                 )
 
@@ -603,6 +603,31 @@ class MANETranscript:
 
         return None
 
+    @staticmethod
+    def get_mane_c_pos_change(mane_tx_genomic_data: Dict,
+                              g_pos: Tuple[int, int],
+                              coding_start_site: int) -> Tuple[int, int]:
+        """Get mane c position change
+
+        :param Dict mane_tx_genomic_data: MANE transcript and genomic data
+        :param Tuple[int, int] g_pos: Genomic start and end position
+        :param int coding_start_site: Coding start site
+        :return: cDNA pos start, cDNA pos end
+        """
+        tx_pos_range = mane_tx_genomic_data["tx_pos_range"]
+        mane_g_pos = mane_tx_genomic_data["alt_pos_range"]
+        g_pos_change = g_pos[0] - mane_g_pos[0], mane_g_pos[1] - g_pos[1]
+
+        if mane_tx_genomic_data["strand"] == "-":
+            g_pos_change = (
+                mane_g_pos[1] - g_pos[0] + 1, g_pos[1] - mane_g_pos[0] - 1
+            )
+
+        return (
+            tx_pos_range[0] + g_pos_change[0] - coding_start_site,
+            tx_pos_range[1] - g_pos_change[1] - coding_start_site
+        )
+
     async def g_to_mane_c(self, ac: str, start_pos: int, end_pos: int,
                           gene: Optional[str] = None) -> Optional[Dict]:
         """Return MANE Transcript on the c. coordinate.
@@ -674,21 +699,10 @@ class MANETranscript:
                 else:
                     logger.info("Not using most recent assembly")
 
-            tx_pos_range = mane_tx_genomic_data["tx_pos_range"]
-            mane_g_pos = mane_tx_genomic_data["alt_pos_range"]
-            g_pos_change = g_pos[0] - mane_g_pos[0], mane_g_pos[1] - g_pos[1]
             coding_start_site = mane_tx_genomic_data["coding_start_site"]
             coding_end_site = mane_tx_genomic_data["coding_end_site"]
-
-            if mane_tx_genomic_data["strand"] == "-":
-                g_pos_change = (
-                    mane_g_pos[1] - g_pos[0] + 1, g_pos[1] - mane_g_pos[0] - 1
-                )
-
-            mane_c_pos_change = (
-                tx_pos_range[0] + g_pos_change[0] - coding_start_site,
-                tx_pos_range[1] - g_pos_change[1] - coding_start_site
-            )
+            mane_c_pos_change = self.get_mane_c_pos_change(
+                mane_tx_genomic_data, g_pos, coding_start_site)
 
             if not self._validate_index(mane_c_ac, mane_c_pos_change,
                                         coding_start_site):
