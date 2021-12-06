@@ -1,10 +1,12 @@
 """A module for accessing SeqRepo."""
 from typing import Optional, List, Tuple
+from os import environ
+
 from biocommons.seqrepo import SeqRepo
 
-from uta_tools import SEQREPO_DATA_PATH, logger
-from os import environ
 from uta_tools.schemas import ResidueMode
+from uta_tools import SEQREPO_DATA_PATH, logger
+from uta_tools.data_sources.residue_mode import get_inter_residue_pos
 
 
 class SeqRepoAccess:
@@ -14,47 +16,19 @@ class SeqRepoAccess:
         """Initialize the SeqRepoAccess class.
         :param str seqrepo_data_path: The path to the seqrepo directory.
         """
-        environ['SEQREPO_LRU_CACHE_MAXSIZE'] = "none"
+        environ["SEQREPO_LRU_CACHE_MAXSIZE"] = "none"
         self.seqrepo_client = SeqRepo(seqrepo_data_path)
-
-    def _get_start_end(
-            self, start: int, end: Optional[int] = None,
-            residue_mode: ResidueMode = ResidueMode.RESIDUE
-    ) -> Tuple[Optional[Tuple[int, int]], Optional[str]]:
-        """Get start and end in inter-residue (0-based) coords.
-
-        :param int start: Start pos change
-        :param Optional[int] end: End pos change
-        :param ResidueMode residue_mode: Residue mode for start/end positions
-            Must be either `inter-residue` or `residue`
-        :return: start pos, end pos
-        """
-        residue_mode = residue_mode.lower()
-        if end is None:
-            end = start + 1
-        else:
-            if start == end:
-                end += 1
-
-        if residue_mode == ResidueMode.RESIDUE:
-            start -= 1
-            end -= 1
-
-        elif residue_mode != ResidueMode.INTER_RESIDUE:
-            return None, f"residue_mode must be either `inter-residue` or" \
-                         f" `residue`, not `{residue_mode}`"
-        return (start, end), None
 
     def get_reference_sequence(
             self, ac: str, start: int, end: Optional[int] = None,
-            residue_mode: ResidueMode = ResidueMode.RESIDUE
+            residue_mode: str = ResidueMode.RESIDUE
     ) -> Tuple[Optional[str], Optional[str]]:
         """Get reference sequence for transcript at given positions
 
         :param str ac: Accession
         :param int start: Start pos change
         :param Optional[int] end: End pos change
-        :param ResidueMode residue_mode: Residue mode for start/end positions
+        :param str residue_mode: Residue mode for start/end positions
             Must be either `inter-residue` or `residue`
         :return: Sequence at position, warning
         """
@@ -67,23 +41,27 @@ class SeqRepoAccess:
 
     def check_sequence(
             self, ac: str, start: int, end: Optional[int] = None,
-            residue_mode: ResidueMode = ResidueMode.RESIDUE
+            residue_mode: str = ResidueMode.RESIDUE
     ) -> Tuple[Optional[str], Optional[str]]:
         """Check that accession and positions actually exist
 
         :param str ac: Accession
         :param int start: Start pos change
-        :param Optional[int] end: End pos change
-        :param ResidueMode residue_mode: Residue mode for start/end positions
+        :param Optional[int] end: End pos change. If `None` assumes both
+            `start` and `end` have same values.
+        :param str residue_mode: Residue mode for start/end positions
             Must be either `inter-residue` or `residue`
         :return: Sequence at position (if accession and positions actually
             exist), warning
         """
-        pos, warning = self._get_start_end(start, end, residue_mode)
+        pos, warning = get_inter_residue_pos(start, residue_mode, end_pos=end)
         if pos is None:
             return None, warning
         else:
             start, end = pos
+            if start == end:
+                end += 1
+
         try:
             sequence = self.seqrepo_client.fetch(ac, start=start, end=end)
         except KeyError:
@@ -167,3 +145,36 @@ class SeqRepoAccess:
             msg = f"SeqRepo could not translate alias {input_str}"
             logger.warning(msg)
             return [], msg
+
+    def chromosome_to_acs(
+            self, chromosome: str
+    ) -> Tuple[Optional[List[str]], Optional[str]]:
+        """Get accessions for a chromosome
+
+        :param str chromosome: Chromosome number. Must be either 1-22, X, or Y
+        :return: Accessions for chromosome (ordered by latest assembly)
+        """
+        acs = []
+        for assembly in ["GRCh38", "GRCh37"]:
+            tmp_acs = self.translate_identifier(f"{assembly}:chr{chromosome}",
+                                                target_namespace="refseq")[0]
+            for ac in tmp_acs:
+                acs.append(ac.split("refseq:")[-1])
+        if acs:
+            return acs, None
+        else:
+            return None, f"{chromosome} is not a valid chromosome"
+
+    def ac_to_chromosome(self, ac: str) -> Tuple[Optional[str], Optional[str]]:
+        """Get chromosome for accession.
+
+        :param str ac: Accession
+        :return: Chromosome, warning
+        """
+        aliases, warning = self.aliases(ac)
+        aliases = ([a.split(":")[-1] for a in aliases
+                    if a.startswith("GRCh") and "." not in a and "chr" not in a] or [None])[0]  # noqa: E501
+        if aliases is None:
+            return None, f"Unable to get chromosome for {ac}"
+        else:
+            return aliases, None

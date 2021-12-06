@@ -1,13 +1,15 @@
 """The module for loading MANE Transcript mappings to genes."""
 from typing import Dict, Optional, List
-from uta_tools import MANE_SUMMARY_PATH, logger
+
 import pandas as pd
+
+from uta_tools import MANE_SUMMARY_PATH, logger
 
 
 class MANETranscriptMappings:
     """The MANE Transcript mappings class."""
 
-    def __init__(self, mane_data_path=MANE_SUMMARY_PATH) -> None:
+    def __init__(self, mane_data_path: str = MANE_SUMMARY_PATH) -> None:
         """Initialize the MANE Transcript mappings class.
         :param str mane_data_path: Path to RefSeq MANE summary data
         """
@@ -18,15 +20,15 @@ class MANETranscriptMappings:
         """Load RefSeq MANE data file into DataFrame.
         :return: DataFrame containing RefSeq MANE Transcript data
         """
-        return pd.read_csv(self.mane_data_path, delimiter='\t')
+        return pd.read_csv(self.mane_data_path, delimiter="\t")
 
-    def get_gene_mane_data(self, gene_symbol) -> Optional[List[Dict]]:
+    def get_gene_mane_data(self, gene_symbol: str) -> Optional[List[Dict]]:
         """Return MANE Transcript data for a gene.
         :param str gene_symbol: HGNC Gene Symbol
         :return: MANE Transcript data (Transcript accessions,
             gene, and location information)
         """
-        data = self.df.loc[self.df['symbol'] == gene_symbol.upper()]
+        data = self.df.loc[self.df["symbol"] == gene_symbol.upper()]
 
         if len(data) == 0:
             logger.warning(f"Unable to get MANE Transcript data for gene: "
@@ -34,5 +36,17 @@ class MANETranscriptMappings:
             return None
 
         # Ordering: MANE Plus Clinical (If it exists), MANE Select
-        data = data.sort_values('MANE_status')
-        return data.to_dict('records')
+        data = data.sort_values("MANE_status")
+        return data.to_dict("records")
+
+    def get_mane_from_transcripts(self, transcripts: List[str]) -> List[Dict]:
+        """Get mane transcripts from a list of transcripts
+
+        :param List[str] transcripts: RefSeq transcripts on c. coordinate
+        :return: MANE data
+        """
+        mane_rows = self.df["RefSeq_nuc"].isin(transcripts)
+        result = self.df[mane_rows]
+        if len(result) == 0:
+            return []
+        return result.to_dict("records")

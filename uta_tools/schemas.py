@@ -1,10 +1,11 @@
 """Module for data models."""
 from datetime import datetime
 from enum import Enum
+import re
+from typing import Literal, Optional, List
+
 from pydantic import BaseModel, root_validator, validator
 from pydantic.main import Extra
-from typing import Literal, Optional, List
-import re
 from pydantic.types import StrictStr, StrictInt
 
 

@@ -1,15 +1,16 @@
 """Module for testing MANE Transcript Mapping class."""
 import pytest
+
 from uta_tools.data_sources import MANETranscriptMappings
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def test_mane_transcript_mappings():
     """Build MANE transcript mappings test fixture."""
     return MANETranscriptMappings()
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def braf():
     """Create test fixture for BRAF MANE Transcript data."""
     return {
@@ -30,7 +31,7 @@ def braf():
     }
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def ercc6_plus_clinical():
     """Create test fixture for ERCC6 MANE Plus Clinical Transcript data."""
     return {
@@ -51,7 +52,7 @@ def ercc6_plus_clinical():
     }
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def ercc6_select():
     """Create test fixture for ERCC6 MANE Select Transcript data."""
     return {
@@ -76,29 +77,60 @@ def test_get_gene_mane_data(test_mane_transcript_mappings, braf, ercc6_select,
                             ercc6_plus_clinical):
     """Test that get_gene_mane_data method works correctly."""
     # MANE Select
-    actual = test_mane_transcript_mappings.get_gene_mane_data('BRAF')
+    actual = test_mane_transcript_mappings.get_gene_mane_data("BRAF")
     assert len(actual) == 1
     actual = actual[0]
     assert actual == braf
 
-    actual = test_mane_transcript_mappings.get_gene_mane_data('braf')
+    actual = test_mane_transcript_mappings.get_gene_mane_data("braf")
     assert len(actual) == 1
     actual = actual[0]
     assert actual == braf
 
     # MANE Select and MANE Plus Clinical
-    actual = test_mane_transcript_mappings.get_gene_mane_data('ERCC6')
+    actual = test_mane_transcript_mappings.get_gene_mane_data("ERCC6")
     assert len(actual) == 2
     assert actual[0] == ercc6_plus_clinical
     assert actual[1] == ercc6_select
 
-    actual = test_mane_transcript_mappings.get_gene_mane_data('ercc6')
+    actual = test_mane_transcript_mappings.get_gene_mane_data("ercc6")
     assert actual[0] == ercc6_plus_clinical
     assert actual[1] == ercc6_select
 
     # No Matches
-    actual = test_mane_transcript_mappings.get_gene_mane_data('BRAFF')
+    actual = test_mane_transcript_mappings.get_gene_mane_data("BRAFF")
     assert actual is None
 
-    actual = test_mane_transcript_mappings.get_gene_mane_data('')
+    actual = test_mane_transcript_mappings.get_gene_mane_data("")
     assert actual is None
+
+
+def test_get_mane_from_transcripts(test_mane_transcript_mappings, braf,
+                                   ercc6_plus_clinical):
+    """Test that get get_mane_from_transcripts method works correctly"""
+    transcripts = [
+        "NM_001354609.1", "NM_001354609.2", "NM_001374244.1", "NM_001374258.1",
+        "NM_001378467.1", "NM_001378468.1", "NM_001378469.1", "NM_001378470.1",
+        "NM_001378471.1", "NM_001378472.1", "NM_001378473.1", "NM_001378474.1",
+        "NM_001378475.1", "NM_004333.4", "NM_004333.5", "NM_004333.6"
+    ]
+    resp = test_mane_transcript_mappings.get_mane_from_transcripts(transcripts)
+    assert resp == [braf]
+
+    transcripts.append("NM_001277058.2")
+    resp = test_mane_transcript_mappings.get_mane_from_transcripts(transcripts)
+    assert len(resp) == 2
+    found_braf = False
+    found_ercc6_pc = False
+    for r in resp:
+        if r == braf:
+            found_braf = True
+        elif r == ercc6_plus_clinical:
+            found_ercc6_pc = True
+    assert found_braf
+    assert found_ercc6_pc
+
+    # Invalid transcripts
+    resp = test_mane_transcript_mappings.get_mane_from_transcripts(
+        ["NM_012334.34"])
+    assert resp == []
