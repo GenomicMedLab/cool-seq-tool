@@ -22,8 +22,10 @@ class UTADatabase:
     """Class for connecting and querying UTA database."""
 
     def __init__(self, db_url: str = UTA_DB_URL, db_pwd: str = "") -> None:
-        """Initialize DB class.
-        After initializing, you must run `_create_genomic_table()`
+        """Initialize DB class. Downstream libraries should use the create()
+        method to construct a new instance:
+
+        >>> db = await UTADatabase.create()
 
         :param str db_url: PostgreSQL connection URL
             Format: `driver://user:pass@host/database/schema`
@@ -115,12 +117,17 @@ class UTADatabase:
                 raise Exception("Could not create connection pool")
 
     @classmethod
-    async def create(cls: Type[UTADatabaseType]) -> UTADatabaseType:
+    async def create(
+            cls: Type[UTADatabaseType], db_url: str = UTA_DB_URL,
+            db_pwd: str = "") -> UTADatabaseType:
         """Provide fully-initialized class instance (a la factory pattern)
         :param UTADatabaseType cls: supplied implicitly
+        :param str db_url: PostgreSQL connection URL
+            Format: `driver://user:pass@host/database/schema`
+        :param str db_pwd: User's password for uta database
         :return: UTA DB access class instance
         """
-        self = cls()
+        self = cls(db_url, db_pwd)
         await self._create_genomic_table()
         await self.create_pool()
         return self
