@@ -1,5 +1,5 @@
 """Module for UTA queries."""
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Tuple, Any, TypeVar, Type
 from os import environ
 from urllib.parse import quote, unquote
 
@@ -12,6 +12,10 @@ from asyncpg.exceptions import InvalidAuthorizationSpecificationError, \
     InterfaceError
 
 from uta_tools import UTA_DB_URL, logger
+
+
+# use `bound` to upper-bound UTADatabase or child classes
+UTADatabaseType = TypeVar("UTADatabaseType", bound="UTADatabase")
 
 
 class UTADatabase:
@@ -109,6 +113,17 @@ class UTADatabase:
                 logger.error(f"While creating connection pool, "
                              f"encountered exception {e}")
                 raise Exception("Could not create connection pool")
+
+    @classmethod
+    async def create(cls: Type[UTADatabaseType]) -> UTADatabaseType:
+        """Provide fully-initialized class instance (a la factory pattern)
+        :param UTADatabaseType cls: supplied implicitly
+        :return: UTA DB access class instance
+        """
+        self = cls()
+        await self._create_genomic_table()
+        await self.create_pool()
+        return self
 
     async def execute_query(self, query: str) -> Any:
         """Execute a query and return its result.
