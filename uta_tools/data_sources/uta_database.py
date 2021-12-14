@@ -145,7 +145,13 @@ class UTADatabase:
             """
         )
         genomic_table_exists = await self.execute_query(check_table_exists)
-        genomic_table_exists = genomic_table_exists[0]
+        genomic_table_exists = genomic_table_exists[0].get("exists")
+        if genomic_table_exists is None:
+            logger.critical(
+                "SELECT EXISTS query in UTADatabase._create_genomic_table "
+                "returned invalid response"
+            )
+            raise ValueError("SELECT EXISTS query returned invalid response")
         if not genomic_table_exists:
             create_genomic_table = (
                 f"""
@@ -172,7 +178,7 @@ class UTADatabase:
 
             indexes = [
                 f"""CREATE INDEX alt_pos_index ON {self.schema}.genomic (alt_ac, alt_start_i, alt_end_i);""",  # noqa: E501
-                f"""CREATE INDEX gene_alt_index ON {self.schema}.genomic (hgnc, alt_ac);"""  # noqa: E501
+                f"""CREATE INDEX gene_alt_index ON {self.schema}.genomic (hgnc, alt_ac);""",  # noqa: E501
                 f"""CREATE INDEX alt_ac_index ON {self.schema}.genomic (alt_ac);"""  # noqa: E501
             ]
             for create_index in indexes:
