@@ -605,31 +605,33 @@ class MANETranscript:
 
     @staticmethod
     def get_mane_c_pos_change(mane_tx_genomic_data: Dict,
-                              g_pos: Tuple[int, int],
                               coding_start_site: int) -> Tuple[int, int]:
         """Get mane c position change
 
         :param Dict mane_tx_genomic_data: MANE transcript and genomic data
-        :param Tuple[int, int] g_pos: Genomic start and end position
         :param int coding_start_site: Coding start site
         :return: cDNA pos start, cDNA pos end
         """
         tx_pos_range = mane_tx_genomic_data["tx_pos_range"]
-        mane_g_pos = mane_tx_genomic_data["alt_pos_range"]
-        g_pos_change = g_pos[0] - mane_g_pos[0], mane_g_pos[1] - g_pos[1]
+        alt_pos_change = mane_tx_genomic_data["alt_pos_change"]
 
         if mane_tx_genomic_data["strand"] == "-":
-            g_pos_change = (
-                mane_g_pos[1] - g_pos[0] + 1, g_pos[1] - mane_g_pos[0] - 1
-            )
+            alt_pos_change = (alt_pos_change[1], alt_pos_change[0])
 
-        return (
-            tx_pos_range[0] + g_pos_change[0] - coding_start_site,
-            tx_pos_range[1] - g_pos_change[1] - coding_start_site
+        mane_c_pos_change = (
+            tx_pos_range[0] + alt_pos_change[0] - coding_start_site,
+            tx_pos_range[1] - alt_pos_change[1] - coding_start_site
         )
 
-    async def g_to_mane_c(self, ac: str, start_pos: int, end_pos: int,
-                          gene: Optional[str] = None) -> Optional[Dict]:
+        if mane_c_pos_change[0] > mane_c_pos_change[1]:
+            mane_c_pos_change = mane_c_pos_change[1], mane_c_pos_change[0]
+        return mane_c_pos_change
+
+    async def g_to_mane_c(
+        self, ac: str, start_pos: int, end_pos: int,
+        gene: Optional[str] = None,
+        residue_mode: ResidueMode = ResidueMode.RESIDUE
+    ) -> Optional[Dict]:
         """Return MANE Transcript on the c. coordinate.
         If gene is provided, g->GRCh38->MANE c.
             If MANE c. cannot be found, we return the genomic coordinate on
@@ -640,9 +642,18 @@ class MANETranscript:
         :param int start_pos: genomic change start position
         :param int end_pos: genomic change end position
         :param str gene: Gene symbol
+        :param ResidueMode residue_mode: Starting residue mode for `start_pos`
+            and `end_pos`. Will always return coordinates in inter-residue
         :return: MANE Transcripts with cDNA change on c. coordinate if gene
             is provided. Else, GRCh38 data
         """
+        inter_residue_pos, _ = get_inter_residue_pos(
+            start_pos, residue_mode, end_pos=end_pos)
+        if not inter_residue_pos:
+            return None
+        start_pos, end_pos = inter_residue_pos
+        residue_mode = ResidueMode.INTER_RESIDUE
+
         # If gene not provided, return GRCh38
         if not gene:
             grch38 = await self.g_to_grch38(ac, start_pos, end_pos)
@@ -674,7 +685,6 @@ class MANETranscript:
         for i in range(mane_data_len):
             index = mane_data_len - i - 1
             current_mane_data = mane_data[index]
-
             mane_c_ac = current_mane_data["RefSeq_nuc"]
 
             # Liftover to GRCh38
@@ -683,14 +693,15 @@ class MANETranscript:
             g_pos = None
             if grch38:
                 # GRCh38 -> MANE C
-                g_pos = grch38["pos"]
+                g_pos = grch38["pos"][0] + 1, grch38["pos"][1] + 1
+                grch38["pos"] = g_pos
                 mane_tx_genomic_data = await self.uta_db.get_mane_c_genomic_data(  # noqa: E501
-                    mane_c_ac, None, grch38["pos"][0], grch38["pos"][1]
+                    mane_c_ac, None, g_pos[0], g_pos[1]
                 )
 
             if not grch38 or not mane_tx_genomic_data:
-                # GRCh38 did not work, so let"s try original assembly (37)
-                g_pos = start_pos, end_pos
+                # GRCh38 did not work, so let's try original assembly (37)
+                g_pos = start_pos + 1, end_pos + 1
                 mane_tx_genomic_data = await self.uta_db.get_mane_c_genomic_data(  # noqa: E501
                     mane_c_ac, ac, start_pos, end_pos
                 )
@@ -702,7 +713,7 @@ class MANETranscript:
             coding_start_site = mane_tx_genomic_data["coding_start_site"]
             coding_end_site = mane_tx_genomic_data["coding_end_site"]
             mane_c_pos_change = self.get_mane_c_pos_change(
-                mane_tx_genomic_data, g_pos, coding_start_site)
+                mane_tx_genomic_data, coding_start_site)
 
             if not self._validate_index(mane_c_ac, mane_c_pos_change,
                                         coding_start_site):

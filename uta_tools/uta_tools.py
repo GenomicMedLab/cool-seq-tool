@@ -207,9 +207,12 @@ class UTATools:
             gene = gene.upper().strip()
 
         if start:
+            if residue_mode == ResidueMode.RESIDUE:
+                start -= 1
             start_data = await self._genomic_to_transcript_exon_coordinate(
                 chromosome, start, strand=strand, transcript=transcript,
-                gene=gene, is_start=True, residue_mode=residue_mode
+                gene=gene, is_start=True,
+                residue_mode=ResidueMode.INTER_RESIDUE
             )
             if start_data.transcript_exon_data:
                 start_data = start_data.transcript_exon_data.dict()
@@ -219,9 +222,12 @@ class UTATools:
             start_data = None
 
         if end:
+            if residue_mode == ResidueMode.RESIDUE:
+                end -= 1
             end_data = await self._genomic_to_transcript_exon_coordinate(
                 chromosome, end, strand=strand, transcript=transcript,
-                gene=gene, is_start=False, residue_mode=residue_mode
+                gene=gene, is_start=False,
+                residue_mode=ResidueMode.INTER_RESIDUE
             )
             if end_data.transcript_exon_data:
                 end_data = end_data.transcript_exon_data.dict()
@@ -329,8 +335,6 @@ class UTATools:
             if warning:
                 return self._return_warnings(resp, warning)
 
-        if residue_mode.lower().strip() == ResidueMode.RESIDUE and is_start:
-            params["pos"] -= 1
         resp.transcript_exon_data = TranscriptExonData(**params)
         return resp
 
@@ -389,8 +393,6 @@ class UTATools:
             Must be either `inter-residue` or `residue`
         :return: Warnings if found
         """
-        if residue_mode == ResidueMode.RESIDUE:
-            pos += 1
         mane_data = await self.mane_transcript.get_mane_transcript(
             alt_ac, pos, "g", gene=gene,
             try_longest_compatible=True, residue_mode=residue_mode

@@ -11,8 +11,29 @@ def test_mane_transcript_mappings():
 
 
 @pytest.fixture(scope="module")
-def braf():
-    """Create test fixture for BRAF MANE Transcript data."""
+def braf_select():
+    """Create test fixture for BRAF MANE Select Transcript data."""
+    return {
+        "#NCBI_GeneID": "GeneID:673",
+        "Ensembl_Gene": "ENSG00000157764.14",
+        "HGNC_ID": "HGNC:1097",
+        "symbol": "BRAF",
+        "name": "B-Raf proto-oncogene, serine/threonine kinase",
+        "RefSeq_nuc": "NM_004333.6",
+        "RefSeq_prot": "NP_004324.2",
+        "Ensembl_nuc": "ENST00000646891.2",
+        "Ensembl_prot": "ENSP00000493543.1",
+        "MANE_status": "MANE Select",
+        "GRCh38_chr": "7",
+        "chr_start": 140730665,
+        "chr_end": 140924929,
+        "chr_strand": "-"
+    }
+
+
+@pytest.fixture(scope="module")
+def braf_plus_clinical():
+    """Create test fixture for BRAF MANE Plus Clinical data."""
     return {
         "#NCBI_GeneID": "GeneID:673",
         "Ensembl_Gene": "ENSG00000157764.14",
@@ -23,7 +44,7 @@ def braf():
         "RefSeq_prot": "NP_001361187.1",
         "Ensembl_nuc": "ENST00000644969.2",
         "Ensembl_prot": "ENSP00000496776.1",
-        "MANE_status": "MANE Select",
+        "MANE_status": "MANE Plus Clinical",
         "GRCh38_chr": "7",
         "chr_start": 140719337,
         "chr_end": 140924929,
@@ -73,19 +94,20 @@ def ercc6_select():
     }
 
 
-def test_get_gene_mane_data(test_mane_transcript_mappings, braf, ercc6_select,
+def test_get_gene_mane_data(test_mane_transcript_mappings, braf_select,
+                            braf_plus_clinical, ercc6_select,
                             ercc6_plus_clinical):
     """Test that get_gene_mane_data method works correctly."""
     # MANE Select
     actual = test_mane_transcript_mappings.get_gene_mane_data("BRAF")
-    assert len(actual) == 1
-    actual = actual[0]
-    assert actual == braf
+    assert len(actual) == 2
+    assert actual[0] == braf_plus_clinical
+    assert actual[1] == braf_select
 
     actual = test_mane_transcript_mappings.get_gene_mane_data("braf")
-    assert len(actual) == 1
-    actual = actual[0]
-    assert actual == braf
+    assert len(actual) == 2
+    assert actual[0] == braf_plus_clinical
+    assert actual[1] == braf_select
 
     # MANE Select and MANE Plus Clinical
     actual = test_mane_transcript_mappings.get_gene_mane_data("ERCC6")
@@ -105,8 +127,9 @@ def test_get_gene_mane_data(test_mane_transcript_mappings, braf, ercc6_select,
     assert actual is None
 
 
-def test_get_mane_from_transcripts(test_mane_transcript_mappings, braf,
-                                   ercc6_plus_clinical):
+def test_get_mane_from_transcripts(test_mane_transcript_mappings,
+                                   braf_plus_clinical,
+                                   braf_select, ercc6_plus_clinical):
     """Test that get get_mane_from_transcripts method works correctly"""
     transcripts = [
         "NM_001354609.1", "NM_001354609.2", "NM_001374244.1", "NM_001374258.1",
@@ -115,20 +138,16 @@ def test_get_mane_from_transcripts(test_mane_transcript_mappings, braf,
         "NM_001378475.1", "NM_004333.4", "NM_004333.5", "NM_004333.6"
     ]
     resp = test_mane_transcript_mappings.get_mane_from_transcripts(transcripts)
-    assert resp == [braf]
+    assert len(resp) == 2
+    assert braf_select in resp
+    assert braf_plus_clinical in resp
 
     transcripts.append("NM_001277058.2")
     resp = test_mane_transcript_mappings.get_mane_from_transcripts(transcripts)
-    assert len(resp) == 2
-    found_braf = False
-    found_ercc6_pc = False
-    for r in resp:
-        if r == braf:
-            found_braf = True
-        elif r == ercc6_plus_clinical:
-            found_ercc6_pc = True
-    assert found_braf
-    assert found_ercc6_pc
+    assert len(resp) == 3
+    assert braf_select in resp
+    assert braf_plus_clinical in resp
+    assert ercc6_plus_clinical in resp
 
     # Invalid transcripts
     resp = test_mane_transcript_mappings.get_mane_from_transcripts(

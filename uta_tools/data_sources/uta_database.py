@@ -23,9 +23,7 @@ class UTADatabase:
 
     def __init__(self, db_url: str = UTA_DB_URL, db_pwd: str = "") -> None:
         """Initialize DB class. Downstream libraries should use the create()
-        method to construct a new instance:
-
-        >>> db = await UTADatabase.create()
+        method to construct a new instance: await UTADatabase.create()
 
         :param str db_url: PostgreSQL connection URL
             Format: `driver://user:pass@host/database/schema`

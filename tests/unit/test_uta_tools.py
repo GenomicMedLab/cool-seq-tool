@@ -23,7 +23,7 @@ def tpm3_exon1():
     params = {
         "chr": "NC_000001.11",
         "gene": "TPM3",
-        "pos": 154192134,
+        "pos": 154192135,
         "exon": 1,
         "exon_offset": 0,
         "transcript": "NM_152263.3",
@@ -53,7 +53,7 @@ def tpm3_exon1_g():
     params = {
         "gene": "TPM3",
         "chr": "NC_000001.11",
-        "start": 154192134,
+        "start": 154192135,
         "end": None,
         "exon_start": 1,
         "exon_end": None,
@@ -89,7 +89,7 @@ def tpm3_exon1_exon8():
     params = {
         "gene": "TPM3",
         "chr": "NC_000001.11",
-        "start": 154192134,
+        "start": 154192135,
         "end": 154170399,
         "exon_start": 1,
         "exon_end": 8,
@@ -161,7 +161,7 @@ def tpm3_exon1_exon8_offset():
     params = {
         "chr": "NC_000001.11",
         "gene": "TPM3",
-        "start": 154192131,
+        "start": 154192132,
         "exon_start": 1,
         "exon_start_offset": 3,
         "end": 154170404,
@@ -179,13 +179,13 @@ def mane_braf():
     params = {
         "chr": "NC_000007.14",
         "gene": "BRAF",
-        "start": 140801411,
+        "start": 140801412,
         "exon_start": 6,
         "exon_start_offset": 148,
         "end": 140753332,
-        "exon_end": 16,
+        "exon_end": 15,
         "exon_end_offset": -58,
-        "transcript": "NM_001374258.1",
+        "transcript": "NM_004333.6",
         "strand": -1
     }
     return GenomicData(**params)
@@ -199,7 +199,7 @@ def wee1_exon2_exon11():
         "gene": "WEE1",
         "start": 9576092,
         "exon_start": 2,
-        "exon_start_offset": 0,
+        "exon_start_offset": -1,
         "end": 9588448,
         "exon_end": 11,
         "exon_end_offset": 0,
@@ -217,7 +217,7 @@ def mane_wee1_exon2_exon11():
         "gene": "WEE1",
         "start": 9576092,
         "exon_start": 2,
-        "exon_start_offset": 0,
+        "exon_start_offset": -1,
         "end": 9586856,
         "exon_end": 10,
         "exon_end_offset": 146,
@@ -341,8 +341,8 @@ async def test_tpm3(test_uta_tools, tpm3_exon1_exon8,
     """
     inputs = {
         "chromosome": "NC_000001.11",
-        "start": 154192135,
-        "end": 154170399,
+        "start": 154192136,
+        "end": 154170400,
         "strand": -1,
         "transcript": "NM_152263.3"
     }
@@ -356,6 +356,8 @@ async def test_tpm3(test_uta_tools, tpm3_exon1_exon8,
     genomic_data_assertion_checks(t_to_g_resp, tpm3_exon1_exon8_t_to_g)
 
     inputs["residue_mode"] = "INTER-RESIDUE"
+    inputs["start"] = 154192135
+    inputs["end"] = 154170399
     g_to_t_resp = \
         await test_uta_tools.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon1_exon8_t_to_g)
@@ -365,6 +367,8 @@ async def test_tpm3(test_uta_tools, tpm3_exon1_exon8,
     # No strand
     del inputs["strand"]
     del inputs["residue_mode"]
+    inputs["start"] = 154192136
+    inputs["end"] = 154170400
     g_to_t_resp = \
         await test_uta_tools.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon1_exon8)
@@ -374,6 +378,7 @@ async def test_tpm3(test_uta_tools, tpm3_exon1_exon8,
     # Offset, no strand
     inputs["start"] = 154192132
     inputs["end"] = 154170404
+    inputs["residue_mode"] = "INTER-RESIDUE"
     tpm3_exon1_exon8_offset_t_to_g = copy.deepcopy(tpm3_exon1_exon8_offset)
     tpm3_exon1_exon8_offset_t_to_g.start = 154192132
     g_to_t_resp = \
@@ -395,7 +400,8 @@ async def test_tpm3(test_uta_tools, tpm3_exon1_exon8,
         "chromosome": "NC_000001.11",
         "start": 154192135,
         "strand": -1,
-        "transcript": "NM_152263.3"
+        "transcript": "NM_152263.3",
+        "residue_mode": "inter-residue"
     }
     tpm3_exon1_exon8_t_to_g = copy.deepcopy(tpm3_exon1_g)
     tpm3_exon1_exon8_t_to_g.start = 154192135
@@ -411,7 +417,8 @@ async def test_tpm3(test_uta_tools, tpm3_exon1_exon8,
         "chromosome": "NC_000001.11",
         "end": 154170399,
         "strand": -1,
-        "transcript": "NM_152263.3"
+        "transcript": "NM_152263.3",
+        "residue_mode": "inter-residue"
     }
     tpm3_exon1_exon8_t_to_g = copy.deepcopy(tpm3_exon8_g)
 
@@ -459,12 +466,12 @@ async def test_wee1(test_uta_tools, wee1_exon2_exon11, mane_wee1_exon2_exon11):
     inputs = {
         "chromosome": "NC_000011.9",
         "start": 9597640,
-        "end": 9609995,
+        "end": 9609996,
         "strand": 1,
         "transcript": "NM_003390.3"
     }
     wee1_exon2_exon11_t_to_g = copy.deepcopy(wee1_exon2_exon11)
-    wee1_exon2_exon11_t_to_g.start = 9576093
+    wee1_exon2_exon11_t_to_g.start = 9576092
     g_to_t_resp = \
         await test_uta_tools.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, wee1_exon2_exon11)
@@ -482,7 +489,7 @@ async def test_wee1(test_uta_tools, wee1_exon2_exon11, mane_wee1_exon2_exon11):
     # MANE
     del inputs["transcript"]
     mane_wee1_exon2_exon11_t_to_g = copy.deepcopy(mane_wee1_exon2_exon11)
-    mane_wee1_exon2_exon11_t_to_g.start = 9576093
+    mane_wee1_exon2_exon11_t_to_g.start = 9576092
     g_to_t_resp = \
         await test_uta_tools.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, mane_wee1_exon2_exon11)
@@ -592,7 +599,7 @@ async def test_valid_inputs(test_uta_tools):
     inputs = {
         "gene": "WEE1",
         "chromosome": "NC_000011.9",
-        "end": 9609995
+        "end": 9609996
     }
     resp = await test_uta_tools.genomic_to_transcript_exon_coordinates(**inputs)  # noqa: E501
     assert resp.genomic_data
@@ -651,7 +658,7 @@ async def test_invalid(test_uta_tools):
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == [
         "Unable to find a result for chromosome NC_000001.11 where genomic "
-        "coordinate 9999999999999 is mapped between an exon's start and end "
+        "coordinate 9999999999998 is mapped between an exon's start and end "
         "coordinates on the negative strand"]
 
     resp = await test_uta_tools.genomic_to_transcript_exon_coordinates(
