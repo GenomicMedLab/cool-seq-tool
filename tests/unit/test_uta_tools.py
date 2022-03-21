@@ -179,12 +179,12 @@ def mane_braf():
     params = {
         "chr": "NC_000007.14",
         "gene": "BRAF",
-        "start": 140801412,
-        "exon_start": 6,
-        "exon_start_offset": 148,
-        "end": 140753332,
+        "start": 140808062,
+        "exon_start": 5,
+        "exon_start_offset": 0,
+        "end": 140753331,
         "exon_end": 15,
-        "exon_end_offset": -58,
+        "exon_end_offset": -57,
         "transcript": "NM_004333.6",
         "strand": -1
     }
@@ -452,9 +452,9 @@ async def test_braf(test_uta_tools, mane_braf):
     genomic_data_assertion_checks(g_to_t_resp, mane_braf)
 
     mane_braf_t_to_g = copy.deepcopy(mane_braf)
-    mane_braf_t_to_g.start = 140801412
     t_to_g_resp = \
         await test_uta_tools.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.dict())  # noqa: E501
+    mane_braf_t_to_g.start = 140808062
     genomic_data_assertion_checks(t_to_g_resp, mane_braf_t_to_g)
 
 

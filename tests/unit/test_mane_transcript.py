@@ -389,12 +389,29 @@ async def test_g_to_mane_c(test_mane_transcript, egfr_l858r_mane_c,
         residue_mode="inter-residue")
     assert mane_c == braf_v600e_mane_c
 
+    mane_c = await test_mane_transcript.get_mane_transcript(
+        "NC_000007.13", 140453136, "g", gene="BRAF")
+    assert mane_c == braf_v600e_mane_c
+
+    mane_c = await test_mane_transcript.get_mane_transcript(
+        "NC_000007.13", 140453135, "g", gene="BRAF",
+        residue_mode="inter-residue")
+    assert mane_c == braf_v600e_mane_c
+
     mane_c = await test_mane_transcript.g_to_mane_c(
         "NC_000007.13", 140453136, None, gene="BRAF")
     assert mane_c == braf_v600e_mane_c
 
     resp = await test_mane_transcript.g_to_mane_c(
         "NC_000007.13", 55259515, None)
+    assert resp == grch38
+
+    resp = await test_mane_transcript.get_mane_transcript(
+        "NC_000007.13", 55259514, "g", residue_mode="inter-residue")
+    assert resp == grch38
+
+    resp = await test_mane_transcript.get_mane_transcript(
+        "NC_000007.13", 55259515, "g")
     assert resp == grch38
 
     resp = await test_mane_transcript.g_to_mane_c(
