@@ -23,13 +23,13 @@ def braf_mane_data():
         "HGNC_ID": "HGNC:1097",
         "symbol": "BRAF",
         "name": "B-Raf proto-oncogene, serine/threonine kinase",
-        "RefSeq_nuc": "NM_001374258.1",
-        "RefSeq_prot": "NP_001361187.1",
-        "Ensembl_nuc": "ENST00000644969.2",
-        "Ensembl_prot": "ENSP00000496776.1",
+        "RefSeq_nuc": "NM_004333.6",
+        "RefSeq_prot": "NP_004324.2",
+        "Ensembl_nuc": "ENST00000646891.2",
+        "Ensembl_prot": "ENSP00000493543.1",
         "MANE_status": "MANE Select",
         "GRCh38_chr": "7",
-        "chr_start": 140719337,
+        "chr_start": 140730665,
         "chr_end": 140924929,
         "chr_strand": "-"
     }
@@ -58,9 +58,9 @@ def nm_004333v6_g():
 def braf_v600e_mane_p():
     """Create test fixture for BRAF V600E MANE Transcript on p coordinate."""
     return {
-        "refseq": "NP_001361187.1",
-        "ensembl": "ENSP00000496776.1",
-        "pos": (639, 639),
+        "refseq": "NP_004324.2",
+        "ensembl": "ENSP00000493543.1",
+        "pos": (599, 599),
         "status": "MANE Select",
         "strand": "-",
         "gene": "BRAF"
@@ -85,13 +85,13 @@ def braf_v600e_mane_c():
     """Create test fixture for BRAF V600E MANE Transcript on c coordinate."""
     return {
         "alt_ac": "NC_000007.14",
-        "refseq": "NM_001374258.1",
-        "ensembl": "ENST00000644969.2",
-        "pos": (1918, 1918),
+        "refseq": "NM_004333.6",
+        "ensembl": "ENST00000646891.2",
+        "pos": (1798, 1798),
         "status": "MANE Select",
         "strand": "-",
         "coding_start_site": 226,
-        "coding_end_site": 2650,
+        "coding_end_site": 2527,
         "gene": "BRAF"
     }
 
@@ -121,7 +121,7 @@ def grch38():
         "ensembl": None,
         "coding_start_site": None,
         "coding_end_site": None,
-        "pos": (55191822, 55191822),
+        "pos": (55191821, 55191821),
         "strand": None,
         "status": "GRCh38",
         "alt_ac": "NC_000007.14"
@@ -227,14 +227,14 @@ async def test__g_to_mane_c(test_mane_transcript, braf_mane_data,
         nm_004333v6_g, braf_mane_data
     )
     expected = copy.deepcopy(braf_v600e_mane_c)
-    expected["pos"] = (1918, 1920)
+    expected["pos"] = (1798, 1800)
     expected["alt_ac"] = None
     assert mane_c == expected
 
 
 def test_get_mane_p(test_mane_transcript, braf_mane_data, braf_v600e_mane_p):
     """Test that _get_mane_p method works correctly."""
-    mane_p = test_mane_transcript._get_mane_p(braf_mane_data, (1917, 1919))
+    mane_p = test_mane_transcript._get_mane_p(braf_mane_data, (1797, 1799))
     assert mane_p == braf_v600e_mane_p
 
 
@@ -385,7 +385,12 @@ async def test_g_to_mane_c(test_mane_transcript, egfr_l858r_mane_c,
     assert mane_c == egfr_l858r_mane_c
 
     mane_c = await test_mane_transcript.g_to_mane_c(
-        "NC_000007.13", 140453137, None, gene="BRAF")
+        "NC_000007.13", 140453135, None, gene="BRAF",
+        residue_mode="inter-residue")
+    assert mane_c == braf_v600e_mane_c
+
+    mane_c = await test_mane_transcript.g_to_mane_c(
+        "NC_000007.13", 140453136, None, gene="BRAF")
     assert mane_c == braf_v600e_mane_c
 
     resp = await test_mane_transcript.g_to_mane_c(
@@ -393,13 +398,17 @@ async def test_g_to_mane_c(test_mane_transcript, egfr_l858r_mane_c,
     assert resp == grch38
 
     resp = await test_mane_transcript.g_to_mane_c(
-        "NC_000007.13", 140453135, None)
+        "NC_000007.13", 140453136, None)
     grch38["pos"] = (140753335, 140753335)
     assert resp == grch38
 
     resp = await test_mane_transcript.g_to_mane_c(
+        "NC_000007.13", 140453135, None, residue_mode="inter-residue")
+    assert resp == grch38
+
+    resp = await test_mane_transcript.g_to_mane_c(
         "NC_000007.14", 140753336, None)
-    grch38["pos"] = (140753336, 140753336)
+    grch38["pos"] = (140753335, 140753335)
     assert resp == grch38
 
     mane_c = await test_mane_transcript.g_to_mane_c("NC_000012.11", 25398284,
@@ -408,7 +417,7 @@ async def test_g_to_mane_c(test_mane_transcript, egfr_l858r_mane_c,
         "alt_ac": "NC_000012.12",
         "refseq": "NM_004985.5",
         "ensembl": "ENST00000311936.8",
-        "pos": (35, 35),
+        "pos": (34, 34),
         "status": "MANE Select",
         "strand": "-",
         "coding_start_site": 190,

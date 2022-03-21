@@ -1,5 +1,5 @@
 """Module for UTA queries."""
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Tuple, Any, TypeVar, Type
 from os import environ
 from urllib.parse import quote, unquote
 
@@ -14,12 +14,16 @@ from asyncpg.exceptions import InvalidAuthorizationSpecificationError, \
 from uta_tools import UTA_DB_URL, logger
 
 
+# use `bound` to upper-bound UTADatabase or child classes
+UTADatabaseType = TypeVar("UTADatabaseType", bound="UTADatabase")
+
+
 class UTADatabase:
     """Class for connecting and querying UTA database."""
 
     def __init__(self, db_url: str = UTA_DB_URL, db_pwd: str = "") -> None:
-        """Initialize DB class.
-        After initializing, you must run `_create_genomic_table()`
+        """Initialize DB class. Downstream libraries should use the create()
+        method to construct a new instance: await UTADatabase.create()
 
         :param str db_url: PostgreSQL connection URL
             Format: `driver://user:pass@host/database/schema`
@@ -110,6 +114,22 @@ class UTADatabase:
                              f"encountered exception {e}")
                 raise Exception("Could not create connection pool")
 
+    @classmethod
+    async def create(
+            cls: Type[UTADatabaseType], db_url: str = UTA_DB_URL,
+            db_pwd: str = "") -> UTADatabaseType:
+        """Provide fully-initialized class instance (a la factory pattern)
+        :param UTADatabaseType cls: supplied implicitly
+        :param str db_url: PostgreSQL connection URL
+            Format: `driver://user:pass@host/database/schema`
+        :param str db_pwd: User's password for uta database
+        :return: UTA DB access class instance
+        """
+        self = cls(db_url, db_pwd)
+        await self._create_genomic_table()
+        await self.create_pool()
+        return self
+
     async def execute_query(self, query: str) -> Any:
         """Execute a query and return its result.
 
@@ -145,7 +165,13 @@ class UTADatabase:
             """
         )
         genomic_table_exists = await self.execute_query(check_table_exists)
-        genomic_table_exists = genomic_table_exists[0]
+        genomic_table_exists = genomic_table_exists[0].get("exists")
+        if genomic_table_exists is None:
+            logger.critical(
+                "SELECT EXISTS query in UTADatabase._create_genomic_table "
+                "returned invalid response"
+            )
+            raise ValueError("SELECT EXISTS query returned invalid response")
         if not genomic_table_exists:
             create_genomic_table = (
                 f"""
@@ -172,7 +198,7 @@ class UTADatabase:
 
             indexes = [
                 f"""CREATE INDEX alt_pos_index ON {self.schema}.genomic (alt_ac, alt_start_i, alt_end_i);""",  # noqa: E501
-                f"""CREATE INDEX gene_alt_index ON {self.schema}.genomic (hgnc, alt_ac);"""  # noqa: E501
+                f"""CREATE INDEX gene_alt_index ON {self.schema}.genomic (hgnc, alt_ac);""",  # noqa: E501
                 f"""CREATE INDEX alt_ac_index ON {self.schema}.genomic (alt_ac);"""  # noqa: E501
             ]
             for create_index in indexes:
