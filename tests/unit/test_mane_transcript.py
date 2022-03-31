@@ -377,11 +377,16 @@ async def test_g_to_mane_c(test_mane_transcript, egfr_l858r_mane_c,
                            braf_v600e_mane_c, grch38):
     """Test that g_to_mane_c method works correctly."""
     mane_c = await test_mane_transcript.g_to_mane_c(
-        "NC_000007.13", 55259514, None, gene="EGFR")
+        "NC_000007.13", 55259515, None, gene="EGFR")
     assert mane_c == egfr_l858r_mane_c
 
     mane_c = await test_mane_transcript.g_to_mane_c(
-        "NC_000007.13", 55259514, 55259514, gene="EGFR")
+        "NC_000007.13", 55259514, None, gene="EGFR",
+        residue_mode="inter-residue")
+    assert mane_c == egfr_l858r_mane_c
+
+    mane_c = await test_mane_transcript.g_to_mane_c(
+        "NC_000007.13", 55259515, 55259515, gene="EGFR")
     assert mane_c == egfr_l858r_mane_c
 
     mane_c = await test_mane_transcript.g_to_mane_c(
@@ -440,6 +445,20 @@ async def test_g_to_mane_c(test_mane_transcript, egfr_l858r_mane_c,
         "coding_start_site": 190,
         "coding_end_site": 757,
         "gene": "KRAS"
+    }
+
+    mane_c = await test_mane_transcript.get_mane_transcript(
+        "NC_000007.13", 55249071, "g", 55249071, "EGFR")
+    assert mane_c == {
+        "alt_ac": "NC_000007.14",
+        "refseq": "NM_005228.5",
+        "ensembl": "ENST00000275493.7",
+        "pos": (2368, 2368),
+        "status": "MANE Select",
+        "strand": "+",
+        "coding_start_site": 261,
+        "coding_end_site": 3894,
+        "gene": "EGFR"
     }
 
 

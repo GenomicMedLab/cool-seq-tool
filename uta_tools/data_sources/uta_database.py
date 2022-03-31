@@ -648,20 +648,22 @@ class UTADatabase:
         data["alt_ac"] = result[4]
         data["coding_start_site"] = coding_start_site[0]
         data["coding_end_site"] = coding_start_site[1]
-        data["alt_pos_change"] = (
-            start_pos - data["alt_pos_range"][0],
-            data["alt_pos_range"][1] - end_pos
-        )
-        data["alt_pos_change_range"] = (
-            data["alt_pos_range"][0] + data["alt_pos_change"][0],
-            data["alt_pos_range"][1] - data["alt_pos_change"][1]
-        )
 
         if data["strand"] == "-":
-            data["alt_pos_change_range"] = (
-                data["alt_pos_range"][1] - data["alt_pos_change"][0],
-                data["alt_pos_range"][0] + data["alt_pos_change"][1]
+            end_pos += 1
+            start_pos += 1
+            data["alt_pos_change_range"] = (end_pos, start_pos)
+            data["alt_pos_change"] = (
+                data["alt_pos_range"][1] - data["alt_pos_change_range"][0],
+                data["alt_pos_change_range"][1] - data["alt_pos_range"][0]
             )
+        else:
+            data["alt_pos_change_range"] = (start_pos, end_pos)
+            data["alt_pos_change"] = (
+                data["alt_pos_change_range"][0] - data["alt_pos_range"][0],
+                data["alt_pos_range"][1] - data["alt_pos_change_range"][1]
+            )
+
         return data
 
     async def get_genomic_tx_data(self, ac: str,

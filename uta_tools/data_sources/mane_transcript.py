@@ -543,7 +543,7 @@ class MANETranscript:
                 return None
         elif anno == "g":
             return await self.g_to_mane_c(ac, start_pos, end_pos, gene=gene,
-                                          residue_mode=residue_mode)
+                                          residue_mode="inter-residue")
         else:
             logger.warning(f"Annotation layer not supported: {anno}")
 
@@ -615,9 +615,6 @@ class MANETranscript:
         """
         tx_pos_range = mane_tx_genomic_data["tx_pos_range"]
         alt_pos_change = mane_tx_genomic_data["alt_pos_change"]
-
-        if mane_tx_genomic_data["strand"] == "-":
-            alt_pos_change = (alt_pos_change[1], alt_pos_change[0])
 
         mane_c_pos_change = (
             tx_pos_range[0] + alt_pos_change[0] - coding_start_site,
@@ -691,18 +688,14 @@ class MANETranscript:
             # Liftover to GRCh38
             grch38 = await self.g_to_grch38(ac, start_pos, end_pos)
             mane_tx_genomic_data = None
-            g_pos = None
             if grch38:
                 # GRCh38 -> MANE C
-                g_pos = grch38["pos"][0] + 1, grch38["pos"][1] + 1
-                grch38["pos"] = g_pos
                 mane_tx_genomic_data = await self.uta_db.get_mane_c_genomic_data(  # noqa: E501
-                    mane_c_ac, None, g_pos[0], g_pos[1]
+                    mane_c_ac, None, grch38["pos"][0], grch38["pos"][1]
                 )
 
             if not grch38 or not mane_tx_genomic_data:
                 # GRCh38 did not work, so let's try original assembly (37)
-                g_pos = start_pos + 1, end_pos + 1
                 mane_tx_genomic_data = await self.uta_db.get_mane_c_genomic_data(  # noqa: E501
                     mane_c_ac, ac, start_pos, end_pos
                 )
