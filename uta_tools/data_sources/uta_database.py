@@ -130,13 +130,13 @@ class UTADatabase:
         await self.create_pool()
         return self
 
-    async def execute_query(self, query: str) -> Any:
+    async def execute_query(self, query: str) -> Any:  # noqa: ANN401
         """Execute a query and return its result.
 
         :param str query: Query to make on database
         :return: Query's result
         """
-        async def _execute_query(q: str) -> Any:
+        async def _execute_query(q: str) -> Any:  # noqa: ANN401
             async with self._connection_pool.acquire() as connection:
                 async with connection.transaction():
                     r = await connection.fetch(q)

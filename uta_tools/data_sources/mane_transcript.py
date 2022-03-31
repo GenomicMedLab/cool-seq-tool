@@ -321,7 +321,8 @@ class MANETranscript:
             mane_ref, warnings = self.seqrepo_access.get_reference_sequence(
                 mane_transcript["refseq"],
                 mane_start_pos,
-                end=mane_end_pos if mane_start_pos != mane_end_pos else None
+                end=mane_end_pos if mane_start_pos != mane_end_pos else None,
+                residue_mode=residue_mode
             )
             if not mane_ref:
                 logger.info("Unable to validate reference for MANE Transcript")
