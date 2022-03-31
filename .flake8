@@ -12,6 +12,7 @@ exclude =
   source
   outputs
   docs/*
+  build/*
 per-file-ignores =
     tests/*:ANN001, ANN2
     *__init__.py:F401
