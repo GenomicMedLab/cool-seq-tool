@@ -555,7 +555,7 @@ class MANETranscript:
                 return None
         elif anno == "g":
             return await self.g_to_mane_c(ac, start_pos, end_pos, gene=gene,
-                                          residue_mode="inter-residue")
+                                          residue_mode=residue_mode)
         else:
             logger.warning(f"Annotation layer not supported: {anno}")
 
