@@ -318,10 +318,15 @@ class MANETranscript:
         if mane_transcript:
             mane_start_pos = mane_transcript["pos"][0]
             mane_end_pos = mane_transcript["pos"][1]
+            if anno == "c":
+                mane_cds = mane_transcript["coding_start_site"]
+                mane_start_pos += mane_cds
+                mane_end_pos += mane_cds
             mane_ref, warnings = self.seqrepo_access.get_reference_sequence(
                 mane_transcript["refseq"],
                 mane_start_pos,
-                end=mane_end_pos if mane_start_pos != mane_end_pos else None
+                end=mane_end_pos if mane_start_pos != mane_end_pos else None,
+                residue_mode=residue_mode
             )
             if not mane_ref:
                 logger.info("Unable to validate reference for MANE Transcript")
@@ -477,6 +482,8 @@ class MANETranscript:
             return None
         start_pos, end_pos = inter_residue_pos
         residue_mode = ResidueMode.INTER_RESIDUE
+        if ref:
+            ref = ref[:end_pos - start_pos]
 
         anno = start_annotation_layer.lower()
         if anno in ["p", "c"]:
@@ -511,6 +518,11 @@ class MANETranscript:
                 mane = await self._g_to_mane_c(g, current_mane_data)
                 if not mane:
                     continue
+
+                if not mane["alt_ac"]:
+                    g_alt_ac = g.get("alt_ac")
+                    if g_alt_ac:
+                        mane["alt_ac"] = g_alt_ac
 
                 valid_reading_frame = self._validate_reading_frames(
                     c_ac, c_pos[0], c_pos[1], mane
@@ -616,9 +628,6 @@ class MANETranscript:
         tx_pos_range = mane_tx_genomic_data["tx_pos_range"]
         alt_pos_change = mane_tx_genomic_data["alt_pos_change"]
 
-        if mane_tx_genomic_data["strand"] == "-":
-            alt_pos_change = (alt_pos_change[1], alt_pos_change[0])
-
         mane_c_pos_change = (
             tx_pos_range[0] + alt_pos_change[0] - coding_start_site,
             tx_pos_range[1] - alt_pos_change[1] - coding_start_site
@@ -691,18 +700,14 @@ class MANETranscript:
             # Liftover to GRCh38
             grch38 = await self.g_to_grch38(ac, start_pos, end_pos)
             mane_tx_genomic_data = None
-            g_pos = None
             if grch38:
                 # GRCh38 -> MANE C
-                g_pos = grch38["pos"][0] + 1, grch38["pos"][1] + 1
-                grch38["pos"] = g_pos
                 mane_tx_genomic_data = await self.uta_db.get_mane_c_genomic_data(  # noqa: E501
-                    mane_c_ac, None, g_pos[0], g_pos[1]
+                    mane_c_ac, None, grch38["pos"][0], grch38["pos"][1]
                 )
 
             if not grch38 or not mane_tx_genomic_data:
                 # GRCh38 did not work, so let's try original assembly (37)
-                g_pos = start_pos + 1, end_pos + 1
                 mane_tx_genomic_data = await self.uta_db.get_mane_c_genomic_data(  # noqa: E501
                     mane_c_ac, ac, start_pos, end_pos
                 )
