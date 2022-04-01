@@ -318,6 +318,10 @@ class MANETranscript:
         if mane_transcript:
             mane_start_pos = mane_transcript["pos"][0]
             mane_end_pos = mane_transcript["pos"][1]
+            if anno == "c":
+                mane_cds = mane_transcript["coding_start_site"]
+                mane_start_pos += mane_cds
+                mane_end_pos += mane_cds
             mane_ref, warnings = self.seqrepo_access.get_reference_sequence(
                 mane_transcript["refseq"],
                 mane_start_pos,
@@ -478,6 +482,8 @@ class MANETranscript:
             return None
         start_pos, end_pos = inter_residue_pos
         residue_mode = ResidueMode.INTER_RESIDUE
+        if ref:
+            ref = ref[:end_pos - start_pos]
 
         anno = start_annotation_layer.lower()
         if anno in ["p", "c"]:
@@ -512,6 +518,11 @@ class MANETranscript:
                 mane = await self._g_to_mane_c(g, current_mane_data)
                 if not mane:
                     continue
+
+                if not mane["alt_ac"]:
+                    g_alt_ac = g.get("alt_ac")
+                    if g_alt_ac:
+                        mane["alt_ac"] = g_alt_ac
 
                 valid_reading_frame = self._validate_reading_frames(
                     c_ac, c_pos[0], c_pos[1], mane

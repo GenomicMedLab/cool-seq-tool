@@ -317,7 +317,6 @@ async def test_c_to_mane_c(test_mane_transcript, braf_v600e_mane_c,
     """Test that c_to_mane_p method works correctly."""
     # BRAF V600E RefSeq Accessions
     cpy_braf_v600e_mane_c = copy.deepcopy(braf_v600e_mane_c)
-    cpy_braf_v600e_mane_c["alt_ac"] = None
     mane_c = await test_mane_transcript.get_mane_transcript(
         "NM_004333.4", 1799, "c")
     assert mane_c == cpy_braf_v600e_mane_c
@@ -348,7 +347,6 @@ async def test_c_to_mane_c(test_mane_transcript, braf_v600e_mane_c,
     assert mane_c == cpy_braf_v600e_mane_c
 
     cpy_egfr_l858r_mane_c = copy.deepcopy(egfr_l858r_mane_c)
-    cpy_egfr_l858r_mane_c["alt_ac"] = None
     # EGFR L858R RefSeq Accessions
     mane_c = await test_mane_transcript.get_mane_transcript(
         "NM_005228.3", 2573, "c")
@@ -370,6 +368,21 @@ async def test_c_to_mane_c(test_mane_transcript, braf_v600e_mane_c,
     mane_c = await test_mane_transcript.get_mane_transcript(
         "ENST00000275493.6", 2573, "c")
     assert mane_c == cpy_egfr_l858r_mane_c
+
+    mane_c = await test_mane_transcript.get_mane_transcript(
+        "NM_004448.3", 2264, "c", end_pos=2278, ref="TGAGGGAAAACACAT"
+    )
+    assert mane_c == {
+        "alt_ac": "NC_000017.11",
+        "refseq": "NM_004448.4",
+        "ensembl": "ENST00000269571.10",
+        "pos": (2263, 2277),
+        "status": "MANE Select",
+        "strand": "+",
+        "coding_start_site": 175,
+        "coding_end_site": 3943,
+        "gene": "ERBB2"
+    }
 
 
 @pytest.mark.asyncio
