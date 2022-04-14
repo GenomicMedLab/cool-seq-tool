@@ -417,7 +417,15 @@ class UTATools:
             return f"Unable to get exons for {params['transcript']}"
         tx_pos = mane_data["pos"][0] + mane_data["coding_start_site"]
         params["exon"] = self._get_exon_number(tx_exons, tx_pos)
-        tx_exon = tx_exons[params["exon"] - 1]
+
+        try:
+            tx_exon = tx_exons[params["exon"] - 1]
+        except IndexError:
+            msg = f"{params['transcript']} with position {tx_pos} "\
+                  f"does not exist on exons: {tx_exons}"
+            logger.warning(msg)
+            return msg
+
         strand_to_use = strand if strand is not None else mane_data["strand"]
         params["strand"] = strand_to_use
         self._set_exon_offset(params, tx_exon[0], tx_exon[1], tx_pos,
