@@ -744,3 +744,13 @@ async def test_invalid(test_uta_tools):
         exon_start=None, exon_end=None, transcript="NM_152263.3")
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Must provide either `exon_start` or `exon_end`"]
+
+    # Does not live on exon
+    params = {"chromosome": 1, "strand": 1, "start": 3629864, "gene": "TPRG1L",
+              "residue_mode": "inter-residue"}
+    resp = await test_uta_tools.genomic_to_transcript_exon_coordinates(
+        **params)
+    genomic_data_assertion_checks(resp, is_valid=False)
+    assert resp.warnings == ["NM_182752.4 with position 2138 does not exist"
+                             " on exons: [(58, 259), (259, 351), (351, 528),"
+                             " (528, 682), (682, 877)]"]
