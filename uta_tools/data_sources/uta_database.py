@@ -79,8 +79,8 @@ class UTADatabase:
                 DBUsername=environ["UTA_USER"], Region=region
             )
             self.schema = environ["UTA_SCHEMA"]
-            environ["PG_PASSWORD"] = token
-            environ["UTA_DB_URL"] = f"postgresql://{environ['UTA_USER']}:@{environ['UTA_HOST']}:{environ['UTA_PORT']}/{environ['UTA_DATABASE']}/{environ['UTA_SCHEMA']}"  # noqa: E501
+            environ["PGPASSWORD"] = token
+            environ["UTA_DB_URL"] = f"postgresql://{environ['UTA_USER']}@{environ['UTA_HOST']}:{environ['UTA_PORT']}/{environ['UTA_DATABASE']}/{environ['UTA_SCHEMA']}"  # noqa: E501
             return dict(
                 host=environ["UTA_HOST"], port=int(environ["UTA_PORT"]),
                 database=environ["UTA_DATABASE"], user=environ["UTA_USER"],
