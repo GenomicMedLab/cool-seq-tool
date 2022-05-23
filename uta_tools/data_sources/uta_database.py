@@ -62,7 +62,9 @@ class UTADatabase:
                 if uta_password_in_environ and not db_pwd:
                     db_pwd = environ["UTA_PASSWORD"]
             db_url = db_url.split("@")
-            return f"{db_url[0]}:{db_pwd}@{db_url[1]}"
+            db_url_with_pass = f"{db_url[0]}:{db_pwd}@{db_url[1]}"
+            environ["UTA_DB_URL"] = db_url_with_pass
+            return db_url_with_pass
 
     def _get_conn_args(self) -> Dict:
         """Return connection arguments.
@@ -77,6 +79,8 @@ class UTADatabase:
                 DBUsername=environ["UTA_USER"], Region=region
             )
             self.schema = environ["UTA_SCHEMA"]
+            environ["PGPASSWORD"] = token
+            environ["UTA_DB_URL"] = f"postgresql://{environ['UTA_USER']}@{environ['UTA_HOST']}:{environ['UTA_PORT']}/{environ['UTA_DATABASE']}/{environ['UTA_SCHEMA']}"  # noqa: E501
             return dict(
                 host=environ["UTA_HOST"], port=int(environ["UTA_PORT"]),
                 database=environ["UTA_DATABASE"], user=environ["UTA_USER"],
