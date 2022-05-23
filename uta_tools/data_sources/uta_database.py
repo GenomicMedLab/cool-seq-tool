@@ -221,26 +221,23 @@ class UTADatabase:
         return results
 
     async def chr_to_gene_and_accessions(
-            self, chromosome: int, pos: int, strand: int = None,
-            alt_ac: str = None) -> Tuple[Optional[Dict], Optional[str]]:
+            self, chromosome: int, pos: int, strand: Optional[int] = None,
+            alt_ac: Optional[str] = None,
+            gene: Optional[str] = None) -> Tuple[Optional[Dict], Optional[str]]:
         """Return genes and genomic accessions related to a position on a chr.
 
         :param int chromosome: Chromosome number
         :param int pos: Genomic position
-        :param int strand: Strand. Must be either `-1` or `1`
-        :param str alt_ac: Genomic accession
+        :param Optional[int] strand: Strand. Must be either `-1` or `1`
+        :param Optional[str] alt_ac: Genomic accession
+        :param Optional[str] gene: Gene symbol
         :return: Dictionary containing genes and genomic accessions and
             warnings if found
         """
-        if alt_ac:
-            alt_ac_cond = f"WHERE alt_ac = '{alt_ac}'"
-        else:
-            alt_ac_cond = f"WHERE alt_ac ~ '^NC_[0-9]+0{chromosome}.[0-9]+$'"
+        alt_ac_cond = f"WHERE alt_ac = '{alt_ac}'" if alt_ac else f"WHERE alt_ac ~ '^NC_[0-9]+0{chromosome}.[0-9]+$'"  # noqa: E501
+        strand_cond = f"AND alt_strand = '{strand}'" if strand else ""
+        gene_cond = f"AND hgnc = '{gene}'" if gene else ""
 
-        if strand:
-            strand_cond = f"AND alt_strand = '{strand}'"
-        else:
-            strand_cond = ""
         query = (
             f"""
             SELECT hgnc, alt_ac
@@ -248,9 +245,11 @@ class UTADatabase:
             {alt_ac_cond}
             AND alt_aln_method = 'splign'
             AND {pos} BETWEEN alt_start_i AND alt_end_i
-            {strand_cond};
+            {strand_cond}
+            {gene_cond};
             """
         )
+
         results = await self.execute_query(query)
         if not results:
             msg = f"Unable to find a result for chromosome " \
@@ -259,6 +258,8 @@ class UTADatabase:
             if strand:
                 msg += f" on the " \
                        f"{'positive' if strand == 1 else 'negative'} strand"
+            if gene:
+                msg += f" and on gene {gene}"
             return None, msg
 
         results = self._transform_list(results)

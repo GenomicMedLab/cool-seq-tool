@@ -293,9 +293,14 @@ class UTATools:
         params = {key: None for key in TranscriptExonData.__fields__.keys()}
 
         try:
-            # Check if just chromosome number is given. If it is, we should
+            # Check if just chromosome is given. If it is, we should
             # convert this to the correct accession version
-            chromosome = int(chromosome)
+            if chromosome == "X":
+                chromosome = 23
+            elif chromosome == "Y":
+                chromosome = 24
+            else:
+                chromosome = int(chromosome)
         except ValueError:
             # Check if valid accession is given
             if not await self.uta_db.validate_genomic_ac(chromosome):
@@ -306,12 +311,12 @@ class UTATools:
             # Accession given
             genes_alt_acs, warning = \
                 await self.uta_db.chr_to_gene_and_accessions(
-                    chromosome, pos, strand=strand, alt_ac=chromosome)
+                    chromosome, pos, strand=strand, alt_ac=chromosome, gene=gene)
         else:
             # Number given
             genes_alt_acs, warning = \
                 await self.uta_db.chr_to_gene_and_accessions(
-                    chromosome, pos, strand=strand, alt_ac=None)
+                    chromosome, pos, strand=strand, alt_ac=None, gene=gene)
         if not genes_alt_acs:
             return self._return_warnings(resp, warning)
 
