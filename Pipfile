@@ -12,6 +12,8 @@ pandas = "*"
 hgvs = "*"
 "biocommons.seqrepo" = "*"
 pydantic = "*"
+fastapi = "*"
+uvicorn = "*"
 
 [dev-packages]
 uta_tools = {editable = true, path = "."}

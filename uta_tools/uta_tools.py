@@ -72,7 +72,7 @@ class UTATools:
         return resp
 
     async def transcript_to_genomic_coordinates(
-            self, gene: Optional[str] = None, transcript: str = None,
+            self, gene: Optional[str] = None, transcript: Optional[str] = None,
             exon_start: Optional[int] = None, exon_start_offset: Optional[int] = 0,  # noqa: E501
             exon_end: Optional[int] = None, exon_end_offset: Optional[int] = 0,
             **kwargs) -> GenomicDataResponse:
@@ -95,6 +95,8 @@ class UTATools:
 
         if not transcript:
             return self._return_warnings(resp, "Must provide `transcript`")
+        else:
+            transcript = transcript.strip()
 
         if exon_start is None and exon_end is None:
             return self._return_warnings(
@@ -102,9 +104,6 @@ class UTATools:
 
         if gene:
             gene = gene.upper().strip()
-
-        if transcript:
-            transcript = transcript.strip()
 
         if exon_start and exon_end:
             if exon_start > exon_end:
