@@ -71,17 +71,27 @@ seqrepo pull -i 2021-01-29
 ```
 
 #### transcript_mappings.tsv
-`uta-tools` uses [Ensembl BioMart](http://www.ensembl.org/biomart/martview) to retrieve `uta_tools/data/transcript_mappings.tsv`. We currently use `Human Genes (GRCh38.p13)` for the dataset and the following attributes we use are: Gene stable ID, Gene stable ID version, Transcript stable ID, Transcript stable ID version, Protein stable ID, Protein stable ID version, RefSeq match transcript (MANE Select), Gene name. 
+`uta-tools` uses [Ensembl BioMart](http://www.ensembl.org/biomart/martview) to retrieve `uta_tools/data/transcript_mappings.tsv`. We currently use `Human Genes (GRCh38.p13)` for the dataset and the following attributes we use are: Gene stable ID, Gene stable ID version, Transcript stable ID, Transcript stable ID version, Protein stable ID, Protein stable ID version, RefSeq match transcript (MANE Select), Gene name.
 
 ![image](biomart.png)
 
 #### LRG_RefSeqGene
 
-`uta-tools` fetches the latest version of `LRG_RefSeqGene`. This file is found can be found [here](https://ftp.ncbi.nlm.nih.gov/refseq/H_sapiens/RefSeqGene).  
+`uta-tools` fetches the latest version of `LRG_RefSeqGene`. This file is found can be found [here](https://ftp.ncbi.nlm.nih.gov/refseq/H_sapiens/RefSeqGene).
 
 #### MANE Summary Data
 
 `uta-tools` fetches the latest version of `MANE.GRCh38.*.summary.txt.gz`. This file is found can be found [here](https://ftp.ncbi.nlm.nih.gov/refseq/MANE/MANE_human/current/).
+
+## Starting the UTA Tools Service Locally
+
+To start the service, run the following:
+
+```commandline
+uvicorn uta_tools.main:app --reload
+```
+
+Next, view the FastAPI on your local machine: http://127.0.0.1:8000/uta_tools
 
 ## Init coding style tests
 Code style is managed by [flake8](https://github.com/PyCQA/flake8) and checked prior to commit.
