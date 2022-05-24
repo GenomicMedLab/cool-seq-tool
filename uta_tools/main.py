@@ -70,10 +70,6 @@ async def genomic_to_transcript_exon_coordinates(
     try:
         response = \
             await uta_tools.genomic_to_transcript_exon_coordinates(**request_body)
-    except TypeError as e:
-        error = str(e)
-        logger.error(f"genomic_to_transcript_exon_coordinates TypeError: {error}")
-        response.warnings.append(error)
     except Exception as e:
         logger.error(f"genomic_to_transcript_exon_coordinates unhandled exception {str(e)}")  # noqa: E501
         response.warnings.append(UNHANDLED_EXCEPTION_MSG)
@@ -102,12 +98,8 @@ async def transcript_to_genomic_coordinates(
 
     try:
         response = await uta_tools.transcript_to_genomic_coordinates(**request_body)
-    except TypeError as e:
-        error = str(e)
-        logger.error(f"transcript_to_genomic_coordinates TypeError: {error}")
-        response.warnings.append(error)
     except Exception as e:
-        logger.error(f"transcript_to_genomic_coordinates unhandled exception {str(e)}")  # noqa: E501
+        logger.error(f"transcript_to_genomic_coordinates unhandled exception {str(e)}")
         response.warnings.append(UNHANDLED_EXCEPTION_MSG)
 
     return response

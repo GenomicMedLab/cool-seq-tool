@@ -8,7 +8,6 @@ from pydantic import BaseModel, root_validator, validator
 from pydantic.main import Extra
 from pydantic.types import StrictStr, StrictInt
 
-
 from uta_tools.version import __version__
 
 
@@ -76,7 +75,6 @@ class TranscriptRequestBody(BaseModelForbidExtra):
     transcript: Optional[StrictStr] = None
     exon_start: Optional[StrictInt] = None
     exon_start_offset: Optional[StrictInt] = 0
-    exon_end_offset: Optional[StrictInt] = 0
     exon_end: Optional[StrictInt] = None
     exon_end_offset: Optional[StrictInt] = 0
 
