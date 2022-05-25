@@ -7,9 +7,8 @@ Steps:
 3. Select preferred compatible annotation
 4. Map back to correct annotation layer
 """
-from ast import List
 import math
-from typing import Optional, Tuple, Dict
+from typing import Optional, Tuple, Dict, List
 
 import hgvs.parser
 import pandas as pd
@@ -118,7 +117,7 @@ class MANETranscript:
         # So we want to make sure version is valid
         if ac.startswith("ENST"):
             if not self.transcript_mappings.ensembl_transcript_version_to_gene_symbol.get(ac):  # noqa: E501
-                if not self.seqrepo_access.is_valid_input_sequence(ac, 1)[0]:
+                if not self.seqrepo_access.get_reference_sequence(ac, 1)[0]:
                     logger.warning(f"Ensembl transcript not found: {ac}")
                     return None
 
@@ -346,7 +345,8 @@ class MANETranscript:
 
     def _validate_index(self, ac: str, pos: Tuple[int, int],
                         coding_start_site: int) -> bool:
-        """Validate that positions actually exist on accession
+        """Validate that positions actually exist on accession. Assumes accession
+        is a transcript on the cDNA reference sequence
 
         :param str ac: Accession
         :param Tuple[int, int] pos: Start position change, End position change
@@ -355,8 +355,7 @@ class MANETranscript:
         """
         start_pos = pos[0] + coding_start_site
         end_pos = pos[1] + coding_start_site
-        if self.seqrepo_access.is_valid_input_sequence(
-                ac, start_pos, end_pos)[0]:
+        if self.seqrepo_access.get_reference_sequence(ac, start_pos, end_pos)[0]:
             return True
         else:
             return False
@@ -378,24 +377,10 @@ class MANETranscript:
         copy_df["ac_version"] = copy_df["tx_ac"].apply(lambda x: x.split(".")[1])
         sorted_df = copy_df.sort_values(["ac_no_version_as_int", "ac_version"],
                                         ascending=[False, False])
-        filtered_df = sorted_df.drop_duplicates(["ac_no_version_as_int"],
-                                                keep="first")
-        filtered_frames = [filtered_df]
-        new_df = pd.concat(filtered_frames)
-
-        def _len_of_tx(tx_ac: str) -> int:
-            """Return length of transcript"""
-            length = 0
-            try:
-                length = len(self.seqrepo_access.seqrepo_client.fetch(tx_ac))
-            except (KeyError, ValueError) as e:
-                logger.warning(f"could not get length of transcript {tx_ac}: {str(e)}")
-            return length
-
-        new_df["len_of_tx"] = new_df["tx_ac"].apply(_len_of_tx)  # noqa: E501
+        new_df = sorted_df.drop_duplicates(["ac_no_version_as_int"], keep="first")
+        new_df["len_of_tx"] = new_df["tx_ac"].apply(lambda ac: len(self.seqrepo_access.get_reference_sequence(ac)[0]))  # noqa: E501
         new_df = new_df.sort_values(
-            ["len_of_tx", "ac_no_version_as_int"],
-            ascending=[False, True])
+            ["len_of_tx", "ac_no_version_as_int"], ascending=[False, True])
         return list(new_df["tx_ac"])
 
     async def get_longest_compatible_transcript(

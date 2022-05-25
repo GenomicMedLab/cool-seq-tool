@@ -2,6 +2,8 @@
 import copy
 
 import pytest
+from mock import patch
+import pandas as pd
 
 from uta_tools.data_sources import MANETranscript, MANETranscriptMappings,\
     SeqRepoAccess, TranscriptMappings, UTADatabase
@@ -383,6 +385,40 @@ async def test_c_to_mane_c(test_mane_transcript, braf_v600e_mane_c,
         "coding_end_site": 3943,
         "gene": "ERBB2"
     }
+
+
+@pytest.fixture(scope="function")
+@patch.object(SeqRepoAccess, "get_reference_sequence")
+def test__get_prioritized_transcripts_from_gene(test_get_seqrepo, test_mane_transcript):
+    """Test that _get_prioritized_transcripts_from_gene works as expected"""
+
+    def get_reference_sequence(ac):
+        """Return test response when getting sequence for a given accession"""
+        DUMMY_TX_REF_SEQ = {
+            "NM_004333.6": ("AC", None),
+            "NM_004333.5": ("ACTG", None),
+            "NM_001378472.1": ("A", None),
+            "NM_001374258.2": ("A", None)
+        }
+        return DUMMY_TX_REF_SEQ[ac]
+
+    test_get_seqrepo.return_value = None
+    test_mane_transcript.seqrepo_access.get_reference_sequence = get_reference_sequence
+
+    data = [
+        ["NM_004333.6", 2, "NC_000007.13"],
+        ["NM_004333.5", 4, "NC_000007.13"],
+        ["NM_001378472.1", 1, "NC_000007.13"],
+        ["NM_001374258.2", 1, "NC_000007.13"],
+        ["NM_004333.6", 2, "NC_000007.14"],
+        ["NM_004333.5", 4, "NC_000007.14"],
+        ["NM_001378472.1", 1, "NC_000007.14"],
+        ["NM_001374258.2", 1, "NC_000007.14"],
+    ]
+    test_df = pd.DataFrame(data, columns=["tx_ac", "len_of_tx", "alt_ac"])
+
+    resp = test_mane_transcript._get_prioritized_transcripts_from_gene(test_df)
+    assert resp == ["NM_004333.6", "NM_001374258.2", "NM_001378472.1"]
 
 
 @pytest.mark.asyncio

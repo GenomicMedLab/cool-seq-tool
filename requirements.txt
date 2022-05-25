@@ -11,8 +11,8 @@ backcall==0.2.0
 beautifulsoup4==4.11.1
 biocommons.seqrepo==0.6.5
 bioutils==0.5.5
-boto3==1.23.6
-botocore==1.26.6
+boto3==1.23.7
+botocore==1.26.7
 bs4==0.0.1
 certifi==2022.5.18.1
 charset-normalizer==2.0.12
