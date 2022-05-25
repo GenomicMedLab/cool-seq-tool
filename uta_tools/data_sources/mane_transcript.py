@@ -396,7 +396,8 @@ class MANETranscript:
     async def get_longest_compatible_transcript(
             self, gene: str, start_pos: int, end_pos: int,
             start_annotation_layer: str, ref: Optional[str] = None,
-            residue_mode: str = ResidueMode.RESIDUE, mane_transcripts: Set = set()
+            residue_mode: str = ResidueMode.RESIDUE,
+            mane_transcripts: Optional[Set] = None
     ) -> Optional[Dict]:
         """Get longest compatible transcript from a gene.
         Try GRCh38 first, then GRCh37.
@@ -409,7 +410,7 @@ class MANETranscript:
             Must be either `p`, or `c`.
         :param str ref: Reference at position given during input
         :param str residue_mode: Residue mode
-        :param Set mane_transcripts: Attempted mane transcripts that were not
+        :param Optional[Set] mane_transcripts: Attempted mane transcripts that were not
             compatible
         :return: Data for longest compatible transcript
         """
