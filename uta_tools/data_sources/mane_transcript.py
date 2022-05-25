@@ -249,10 +249,10 @@ class MANETranscript:
                 tx_g_pos[1] - g_pos[0], g_pos[1] - tx_g_pos[0]
             )
 
-        x_pos_range = result[2], result[3]
+        tx_pos_range = result[2], result[3]
         c_pos_change = (
-            x_pos_range[0] + g_pos_change[0] - coding_start_site,
-            x_pos_range[1] - g_pos_change[1] - coding_start_site
+            tx_pos_range[0] + g_pos_change[0] - coding_start_site,
+            tx_pos_range[1] - g_pos_change[1] - coding_start_site
         )
 
         if c_pos_change[0] > c_pos_change[1]:
@@ -283,14 +283,14 @@ class MANETranscript:
         for pos, pos_index in [(start_pos, 0), (end_pos, 1)]:
             if pos is not None:
                 og_rf = self._get_reading_frame(pos)
-                mane_rf = self._get_reading_frame(transcript_data["pos"][pos_index])
+                new_rf = self._get_reading_frame(transcript_data["pos"][pos_index])
 
-                if og_rf != mane_rf:
+                if og_rf != new_rf:
                     logger.warning(f"{ac} original reading frame ({og_rf}) "
-                                   f"does not match MANE "
+                                   f"does not match new "
                                    f"{transcript_data['ensembl']}, "
                                    f"{transcript_data['refseq']} reading "
-                                   f"frame ({mane_rf})")
+                                   f"frame ({new_rf})")
                     return False
             else:
                 if pos_index == 0:
@@ -355,8 +355,7 @@ class MANETranscript:
 
     def _validate_index(self, ac: str, pos: Tuple[int, int],
                         coding_start_site: int) -> bool:
-        """Validate that positions actually exist on accession. Assumes accession
-        is a transcript on the cDNA reference sequence
+        """Validate that positions actually exist on accession
 
         :param str ac: Accession
         :param Tuple[int, int] pos: Start position change, End position change
