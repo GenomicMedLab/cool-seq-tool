@@ -29,7 +29,7 @@ def braf_mane_data():
         "RefSeq_prot": "NP_004324.2",
         "Ensembl_nuc": "ENST00000646891.2",
         "Ensembl_prot": "ENSP00000493543.1",
-        "MANE_status": "mane_select",
+        "MANE_status": "Mane Select",
         "GRCh38_chr": "7",
         "chr_start": 140730665,
         "chr_end": 140924929,
@@ -130,21 +130,21 @@ def grch38():
     }
 
 
-def test_get_reading_frame(test_mane_transcript):
-    """Test that get_reading_frame works correctly."""
-    rf = test_mane_transcript.get_reading_frame(1797)
+def test__get_reading_frame(test_mane_transcript):
+    """Test that _get_reading_frame works correctly."""
+    rf = test_mane_transcript._get_reading_frame(1797)
     assert rf == 3
 
-    rf = test_mane_transcript.get_reading_frame(1798)
+    rf = test_mane_transcript._get_reading_frame(1798)
     assert rf == 1
 
-    rf = test_mane_transcript.get_reading_frame(1799)
+    rf = test_mane_transcript._get_reading_frame(1799)
     assert rf == 2
 
-    rf = test_mane_transcript.get_reading_frame(1800)
+    rf = test_mane_transcript._get_reading_frame(1800)
     assert rf == 3
 
-    rf = test_mane_transcript.get_reading_frame(2573)
+    rf = test_mane_transcript._get_reading_frame(2573)
     assert rf == 2
 
 
@@ -222,12 +222,13 @@ async def test_c_to_g(test_mane_transcript, nm_004333v6_g):
 
 
 @pytest.mark.asyncio
-async def test__g_to_mane_c(test_mane_transcript, braf_mane_data,
-                            nm_004333v6_g, braf_v600e_mane_c):
-    """Test that _g_to_mane_c method works correctly."""
-    mane_c = await test_mane_transcript._g_to_mane_c(
-        nm_004333v6_g, braf_mane_data
-    )
+async def test__g_to_c(test_mane_transcript, braf_mane_data,
+                       nm_004333v6_g, braf_v600e_mane_c):
+    """Test that _g_to_c method works correctly."""
+    mane_c = await test_mane_transcript._g_to_c(
+        g=nm_004333v6_g, refseq_c_ac=braf_mane_data["RefSeq_nuc"],
+        status="_".join(braf_mane_data["MANE_status"].split()).lower(),
+        ensembl_c_ac=braf_mane_data["Ensembl_nuc"])
     expected = copy.deepcopy(braf_v600e_mane_c)
     expected["pos"] = (1798, 1800)
     expected["alt_ac"] = None
