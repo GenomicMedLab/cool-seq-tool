@@ -14,16 +14,16 @@ from uta_tools.version import __version__
 class TranscriptPriorityLabel(str, Enum):
     """Create Enum for Transcript Priority labels"""
 
-    MANESelect: Literal["mane_select"] = "mane_select"
-    MANEPlusClinical: Literal["mane_plus_clinical"] = "mane_plus_clinical"
-    LongestCompatibleRemaining: Literal["longest_compatible_remaining"] = "longest_compatible_remaining"  # noqa: E501
+    MANESelect = "mane_select"
+    MANEPlusClinical = "mane_plus_clinical"
+    LongestCompatibleRemaining = "longest_compatible_remaining"
 
 
 class ResidueMode(str, Enum):
     """Create Enum for residue modes."""
 
-    RESIDUE: Literal["residue"] = "residue"
-    INTER_RESIDUE: Literal["inter-residue"] = "inter-residue"
+    RESIDUE = "residue"
+    INTER_RESIDUE = "inter-residue"
 
 
 class BaseModelForbidExtra(BaseModel):
