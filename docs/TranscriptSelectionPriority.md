@@ -9,7 +9,7 @@ More information on MANE can be found [here](https://www.ncbi.nlm.nih.gov/refseq
 1. MANE Select
 2. MANE Plus Clinical
 3. Longest Compatible Remaining\
-   a. If there is a tie, choose the first-published transcript among those transcripts meeting criterion
+   a. If there is a tie, choose the first-published transcript (lowest-numbered accession for RefSeq/Ensembl) among those transcripts meeting criterion\
    _Note: We want the most recent version of a transcript associated with an assembly_
 
 ## Compatible Transcripts
