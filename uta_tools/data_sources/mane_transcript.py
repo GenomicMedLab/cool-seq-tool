@@ -7,12 +7,14 @@ Steps:
 3. Select preferred compatible annotation
 4. Map back to correct annotation layer
 """
+from ast import List
 import math
 from typing import Optional, Tuple, Dict
 
 import hgvs.parser
+import pandas as pd
 
-from uta_tools.schemas import ResidueMode
+from uta_tools.schemas import ResidueMode, TranscriptPriorityLabel
 from uta_tools.data_sources.seqrepo_access import SeqRepoAccess
 from uta_tools.data_sources.transcript_mappings import TranscriptMappings
 from uta_tools.data_sources.mane_transcript_mappings import \
@@ -182,7 +184,7 @@ class MANETranscript:
             coding_end_site=cds_end,
             pos=mane_c_pos_change,
             strand=mane_data["chr_strand"],
-            status=mane_data["MANE_status"],
+            status="_".join(mane_data["MANE_status"].split()).lower(),
             alt_ac=grch38["ac"] if grch38 else None
         )
 
@@ -204,7 +206,7 @@ class MANETranscript:
             pos=(math.ceil(mane_c_pos_range[0] / 3),
                  math.floor(mane_c_pos_range[1] / 3)),
             strand=mane_data["chr_strand"],
-            status=mane_data["MANE_status"]
+            status="_".join(mane_data["MANE_status"].split()).lower()
         )
 
     async def _g_to_mane_c(self, g: Dict, mane_data: Dict) -> Optional[Dict]:
@@ -359,6 +361,43 @@ class MANETranscript:
         else:
             return False
 
+    def _get_prioritized_transcripts_from_gene(self,
+                                               df: pd.core.frame.DataFrame) -> List:
+        """Sort and filter transcripts from gene to get priority list
+
+        :param pd.core.frame.DataFrame df: Data frame containing transcripts from gene
+            data
+        :return: List of prioritized transcripts for a given gene. Sort by latest
+            assembly, longest length of transcript, with first-published transcripts
+            breaking ties. If there are multiple transcripts for a given accession, the
+            most recent version of a transcript associated with an assembly will be kept
+        """
+        copy_df = df.copy(deep=True)
+        copy_df = copy_df.drop(columns="alt_ac").drop_duplicates()
+        copy_df["ac_no_version_as_int"] = copy_df["tx_ac"].apply(lambda x: int(x.split(".")[0].split("NM_00")[1]))  # noqa: E501
+        copy_df["ac_version"] = copy_df["tx_ac"].apply(lambda x: x.split(".")[1])
+        sorted_df = copy_df.sort_values(["ac_no_version_as_int", "ac_version"],
+                                        ascending=[False, False])
+        filtered_df = sorted_df.drop_duplicates(["ac_no_version_as_int"],
+                                                keep="first")
+        filtered_frames = [filtered_df]
+        new_df = pd.concat(filtered_frames)
+
+        def _len_of_tx(tx_ac: str) -> int:
+            """Return length of transcript"""
+            length = 0
+            try:
+                length = len(self.seqrepo_access.seqrepo_client.fetch(tx_ac))
+            except (KeyError, ValueError) as e:
+                logger.warning(f"could not get length of transcript {tx_ac}: {str(e)}")
+            return length
+
+        new_df["len_of_tx"] = new_df["tx_ac"].apply(_len_of_tx)  # noqa: E501
+        new_df = new_df.sort_values(
+            ["len_of_tx", "ac_no_version_as_int"],
+            ascending=[False, True])
+        return list(new_df["tx_ac"])
+
     async def get_longest_compatible_transcript(
             self, gene: str, start_pos: int, end_pos: int,
             start_annotation_layer: str, ref: Optional[str] = None,
@@ -395,60 +434,63 @@ class MANETranscript:
             c_start_pos, c_end_pos = start_pos, end_pos
 
         # Data Frame that contains transcripts associated to a gene
-        df = await self.uta_db.get_transcripts_from_gene(
-            gene, c_start_pos, c_end_pos)
-        nc_acs = list(df["alt_ac"].unique())
-        nc_acs.sort(reverse=True)
+        df = await self.uta_db.get_transcripts_from_gene(gene, c_start_pos, c_end_pos)
+        if df.empty:
+            logger.warning(f"Unable to get transcripts from gene {gene}")
+            return None
 
-        for nc_ac in nc_acs:
-            # Most recent accession first
-            tmp_df = df.loc[df["alt_ac"] == nc_ac]
-            for index, row in tmp_df.iterrows():
-                g = await self._c_to_g(row["tx_ac"], (c_start_pos, c_end_pos))
-                if not g:
-                    return None
+        prioritized_tx_acs = self._get_prioritized_transcripts_from_gene(df)
 
-                # Validate references
-                if ref:
-                    if anno == "p":
-                        valid_references = self._validate_references(
-                            row["pro_ac"], row["cds_start_i"], start_pos,
-                            end_pos, {}, ref, "p", residue_mode
-                        )
-                    else:
-                        valid_references = self._validate_references(
-                            row["tx_ac"], row["cds_start_i"], c_start_pos,
-                            c_end_pos, {}, ref, "c", residue_mode
-                        )
+        for tx_ac in prioritized_tx_acs:
+            # Only need to check the one row since we do liftover in _c_to_g
+            tmp_df = df.loc[df["tx_ac"] == tx_ac].sort_values("alt_ac", ascending=False)
+            row = tmp_df.iloc[0]
 
-                    if not valid_references:
-                        continue
+            g = await self._c_to_g(row["tx_ac"], (c_start_pos, c_end_pos))
+            if not g:
+                continue
 
+            # Validate references
+            if ref:
                 if anno == "p":
-                    pos = start_pos, end_pos
-                    ac = row["pro_ac"]
-                    coding_start_site = 0
-
+                    valid_references = self._validate_references(
+                        row["pro_ac"], row["cds_start_i"], start_pos,
+                        end_pos, {}, ref, "p", residue_mode
+                    )
                 else:
-                    pos = c_start_pos, c_end_pos
-                    ac = row["tx_ac"]
-                    coding_start_site = row["cds_start_i"]
+                    valid_references = self._validate_references(
+                        row["tx_ac"], row["cds_start_i"], c_start_pos,
+                        c_end_pos, {}, ref, "c", residue_mode
+                    )
 
-                if not self._validate_index(
-                    ac, pos, coding_start_site
-                ):
-                    logger.warning(f"{pos} are not valid positions on {ac}"
-                                   f"with coding start site "
-                                   f"{coding_start_site}")
+                if not valid_references:
                     continue
 
-                return dict(
-                    refseq=ac if ac.startswith("N") else None,
-                    ensembl=ac if ac.startswith("E") else None,
-                    pos=pos,
-                    strand=g["strand"],
-                    status="Longest Compatible Remaining"
-                )
+            if anno == "p":
+                pos = start_pos, end_pos
+                ac = row["pro_ac"]
+                coding_start_site = 0
+
+            else:
+                pos = c_start_pos, c_end_pos
+                ac = row["tx_ac"]
+                coding_start_site = row["cds_start_i"]
+
+            if not self._validate_index(
+                ac, pos, coding_start_site
+            ):
+                logger.warning(f"{pos} are not valid positions on {ac}"
+                               f"with coding start site "
+                               f"{coding_start_site}")
+                continue
+
+            return dict(
+                refseq=ac if ac.startswith("N") else None,
+                ensembl=ac if ac.startswith("E") else None,
+                pos=pos,
+                strand=g["strand"],
+                status=TranscriptPriorityLabel.LongestCompatibleRemaining.value
+            )
         return None
 
     async def get_mane_transcript(
@@ -511,6 +553,8 @@ class MANETranscript:
             #  1. MANE Select
             #  2. MANE Plus Clinical
             #  3. Longest Compatible Remaining
+            #     a. If there is a tie, choose the first-published transcript among
+            #        those transcripts meeting criterion
             for i in range(mane_data_len):
                 index = mane_data_len - i - 1
                 current_mane_data = mane_data[index]
@@ -542,6 +586,7 @@ class MANETranscript:
                         continue
 
                 return mane
+
             if try_longest_compatible:
                 if anno == "p":
                     return await self.get_longest_compatible_transcript(

@@ -11,6 +11,14 @@ from pydantic.types import StrictStr, StrictInt
 from uta_tools.version import __version__
 
 
+class TranscriptPriorityLabel(str, Enum):
+    """Create Enum for Transcript Priority labels"""
+
+    MANESelect: Literal["mane_select"] = "mane_select"
+    MANEPlusClinical: Literal["mane_plus_clinical"] = "mane_plus_clinical"
+    LongestCompatibleRemaining: Literal["longest_compatible_remaining"] = "longest_compatible_remaining"  # noqa: E501
+
+
 class ResidueMode(str, Enum):
     """Create Enum for residue modes."""
 

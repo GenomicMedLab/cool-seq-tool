@@ -760,7 +760,7 @@ class UTADatabase:
         return [r[0] for r in results]
 
     async def get_transcripts_from_gene(self, gene: str, start_pos: int,
-                                        end_pos: int) -> pd.core.frame.DataFrame:  # noqa: E501
+                                        end_pos: int) -> pd.core.frame.DataFrame:
         """Get transcripts on c coordinate associated to a gene.
 
         :param str gene: Gene symbol
@@ -788,7 +788,9 @@ class UTADatabase:
         )
         results = await self.execute_query(query)
         return pd.DataFrame(
-            results, columns=["pro_ac", "tx_ac", "alt_ac", "cds_start_i"])
+            results,
+            columns=["pro_ac", "tx_ac", "alt_ac", "cds_start_i"]
+        ).drop_duplicates()
 
     async def get_chr_assembly(self, ac: str) -> Optional[Tuple[str, str]]:
         """Get chromosome and assembly for NC accession if not in GRCh38.
