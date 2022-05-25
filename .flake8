@@ -13,6 +13,7 @@ exclude =
   outputs
   docs/*
   build/*
+  codebuild/*
 per-file-ignores =
     tests/*:ANN001, ANN2
     *__init__.py:F401
