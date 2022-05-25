@@ -425,37 +425,42 @@ def test__get_prioritized_transcripts_from_gene(test_get_seqrepo, test_mane_tran
 @pytest.mark.asyncio
 async def test_get_longest_compatible_transcript(test_mane_transcript):
     """Test that get_longest_compatible_transcript method works as expected"""
+    mane_transcripts = {"ENST00000646891.2", "NM_001374258.1",
+                        "NM_004333.6", "ENST00000644969.2"}
     expected = {
-        "refseq": "NP_001361187.1",
+        "refseq": "NP_001365396.1",
         "ensembl": None,
         "pos": (599, 599),
         "strand": "-",
         "status": "longest_compatible_remaining"
     }
     resp = await test_mane_transcript.get_longest_compatible_transcript(
-        "BRAF", 599, 599, start_annotation_layer="p", residue_mode="inter-residue"
+        "BRAF", 599, 599, start_annotation_layer="p", residue_mode="inter-residue",
+        mane_transcripts=mane_transcripts
     )
     assert resp == expected
 
     resp = await test_mane_transcript.get_longest_compatible_transcript(
-        "BRAF", 600, 600, start_annotation_layer="p", residue_mode="residue"
+        "BRAF", 600, 600, start_annotation_layer="p", residue_mode="residue",
+        mane_transcripts=mane_transcripts
     )
     assert resp == expected
 
     expected = {
-        "refseq": "NM_001374258.1",
+        "refseq": "NM_001378467.1",
         "ensembl": None,
         "pos": (1798, 1798),
         "strand": "-",
         "status": "longest_compatible_remaining"
     }
     resp = await test_mane_transcript.get_longest_compatible_transcript(
-        "BRAF", 1799, 1799, start_annotation_layer="c"
-    )
+        "BRAF", 1799, 1799, start_annotation_layer="c",
+        mane_transcripts=mane_transcripts)
     assert resp == expected
 
     resp = await test_mane_transcript.get_longest_compatible_transcript(
-        "BRAF", 1798, 1798, start_annotation_layer="c", residue_mode="inter-residue"
+        "BRAF", 1798, 1798, start_annotation_layer="c", residue_mode="inter-residue",
+        mane_transcripts=mane_transcripts
     )
     assert resp == expected
 

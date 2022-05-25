@@ -8,7 +8,7 @@ Steps:
 4. Map back to correct annotation layer
 """
 import math
-from typing import Optional, Tuple, Dict, List
+from typing import Optional, Set, Tuple, Dict, List
 
 import hgvs.parser
 import pandas as pd
@@ -396,7 +396,7 @@ class MANETranscript:
     async def get_longest_compatible_transcript(
             self, gene: str, start_pos: int, end_pos: int,
             start_annotation_layer: str, ref: Optional[str] = None,
-            residue_mode: str = ResidueMode.RESIDUE
+            residue_mode: str = ResidueMode.RESIDUE, mane_transcripts: Set = set()
     ) -> Optional[Dict]:
         """Get longest compatible transcript from a gene.
         Try GRCh38 first, then GRCh37.
@@ -409,6 +409,8 @@ class MANETranscript:
             Must be either `p`, or `c`.
         :param str ref: Reference at position given during input
         :param str residue_mode: Residue mode
+        :param Set mane_transcripts: Attempted mane transcripts that were not
+            compatible
         :return: Data for longest compatible transcript
         """
         inter_residue_pos, _ = get_inter_residue_pos(
@@ -435,6 +437,11 @@ class MANETranscript:
             return None
 
         prioritized_tx_acs = self._get_prioritized_transcripts_from_gene(df)
+
+        if mane_transcripts:
+            # Dont check MANE transcripts since we know that are not compatible
+            prioritized_tx_acs = [el for el in prioritized_tx_acs
+                                  if el not in mane_transcripts]
 
         for tx_ac in prioritized_tx_acs:
             # Only need to check the one row since we do liftover in _c_to_g
@@ -549,8 +556,7 @@ class MANETranscript:
             if g is None:
                 return None
             # Get mane data for gene
-            mane_data = \
-                self.mane_transcript_mappings.get_gene_mane_data(g["gene"])
+            mane_data = self.mane_transcript_mappings.get_gene_mane_data(g["gene"])
             if not mane_data:
                 return None
             mane_data_len = len(mane_data)
@@ -561,9 +567,12 @@ class MANETranscript:
             #  3. Longest Compatible Remaining
             #     a. If there is a tie, choose the first-published transcript among
             #        those transcripts meeting criterion
+            mane_transcripts = set()
             for i in range(mane_data_len):
                 index = mane_data_len - i - 1
                 current_mane_data = mane_data[index]
+                mane_transcripts |= set((current_mane_data["RefSeq_nuc"],
+                                         current_mane_data["Ensembl_nuc"]))
                 mane = await self._g_to_c(
                     g=g, refseq_c_ac=current_mane_data["RefSeq_nuc"],
                     status="_".join(current_mane_data["MANE_status"].split()).lower(),
@@ -599,11 +608,11 @@ class MANETranscript:
                 if anno == "p":
                     return await self.get_longest_compatible_transcript(
                         g["gene"], start_pos, end_pos, "p", ref,
-                        residue_mode=residue_mode)
+                        residue_mode=residue_mode, mane_transcripts=mane_transcripts)
                 else:
                     return await self.get_longest_compatible_transcript(
                         g["gene"], c_pos[0], c_pos[1], "c", ref,
-                        residue_mode=residue_mode)
+                        residue_mode=residue_mode, mane_transcripts=mane_transcripts)
             else:
                 return None
         elif anno == "g":
@@ -739,8 +748,7 @@ class MANETranscript:
             logger.warning(f"Genomic accession does not exist: {ac}")
             return None
 
-        mane_data =\
-            self.mane_transcript_mappings.get_gene_mane_data(gene)
+        mane_data = self.mane_transcript_mappings.get_gene_mane_data(gene)
         if not mane_data:
             return None
         mane_data_len = len(mane_data)
