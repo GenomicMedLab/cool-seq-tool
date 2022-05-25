@@ -29,7 +29,7 @@ def braf_mane_data():
         "RefSeq_prot": "NP_004324.2",
         "Ensembl_nuc": "ENST00000646891.2",
         "Ensembl_prot": "ENSP00000493543.1",
-        "MANE_status": "Mane Select",
+        "MANE_status": "MANE Select",
         "GRCh38_chr": "7",
         "chr_start": 140730665,
         "chr_end": 140924929,
