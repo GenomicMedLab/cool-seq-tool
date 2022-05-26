@@ -8,11 +8,12 @@ Steps:
 4. Map back to correct annotation layer
 """
 import math
-from typing import Optional, Tuple, Dict
+from typing import Optional, Set, Tuple, Dict, List
 
 import hgvs.parser
+import pandas as pd
 
-from uta_tools.schemas import ResidueMode
+from uta_tools.schemas import ResidueMode, TranscriptPriorityLabel
 from uta_tools.data_sources.seqrepo_access import SeqRepoAccess
 from uta_tools.data_sources.transcript_mappings import TranscriptMappings
 from uta_tools.data_sources.mane_transcript_mappings import \
@@ -46,7 +47,7 @@ class MANETranscript:
         self.uta_db = uta_db
 
     @staticmethod
-    def get_reading_frame(pos: int) -> int:
+    def _get_reading_frame(pos: int) -> int:
         """Return reading frame number.
         Only used on c. coordinate
 
@@ -116,7 +117,7 @@ class MANETranscript:
         # So we want to make sure version is valid
         if ac.startswith("ENST"):
             if not self.transcript_mappings.ensembl_transcript_version_to_gene_symbol.get(ac):  # noqa: E501
-                if not self.seqrepo_access.is_valid_input_sequence(ac, 1)[0]:
+                if not self.seqrepo_access.get_reference_sequence(ac, 1)[0]:
                     logger.warning(f"Ensembl transcript not found: {ac}")
                     return None
 
@@ -151,39 +152,43 @@ class MANETranscript:
         return genomic_tx_data
 
     @staticmethod
-    def _get_mane_c(mane_data: Dict, mane_c_pos_change: Tuple[int, int],
-                    cds_start_end: Tuple[int, int],
-                    grch38: Dict = None) -> Dict:
-        """Return MANE Transcript data on c. coordinate.
+    def _get_c_data(
+        gene: str, cds_start_end: Tuple[int, int], c_pos_change: Tuple[int, int],
+        strand: str, status: TranscriptPriorityLabel, refseq_c_ac: str,
+        ensembl_c_ac: Optional[str] = None, alt_ac: Optional[str] = None
+    ) -> Dict:
+        """Return transcript data on c. coordinate.
 
-        :param Dict mane_data: MANE Transcript data (transcript accessions,
-            gene, and location information)
-        :param Tuple[int, int] mane_c_pos_change: Start and end positions
-            for change on c. coordinate
+        :param str gene: Gene symbol
         :param Tuple[int, int] cds_start_end: Coding start and end site
-            for MANE transcript
-        :param Optional[Dict] grch38: GRCh38 data
-        :return: MANE Transcript data on c. coord
+            for transcript
+        :param Tuple[int, int] c_pos_change: Start and end positions
+            for change on c. coordinate
+        :param str strand: Strand
+        :param TranscriptPriorityLabel status: Status of transcript
+        :param str refseq_c_ac: Refseq transcript
+        :param Optional[str] ensembl_c_ac: Ensembl transcript
+        :param Optional[str] alt_ac: Genomic accession
+        :return: Transcript data on c. coord
         """
         cds_start = cds_start_end[0]
         cds_end = cds_start_end[1]
-        lt_cds_start = (mane_c_pos_change[0] < cds_start and mane_c_pos_change[1] < cds_start)  # noqa: E501
-        gt_cds_end = (mane_c_pos_change[1] > cds_end and mane_c_pos_change[1] > cds_end)  # noqa: E501
+        lt_cds_start = (c_pos_change[0] < cds_start and c_pos_change[1] < cds_start)
+        gt_cds_end = (c_pos_change[1] > cds_end and c_pos_change[1] > cds_end)
 
         if lt_cds_start or gt_cds_end:
-            logger.info(f"{mane_data['RefSeq_nuc']} with position"
-                        f" {mane_c_pos_change} is not within CDS start/end")
-
+            logger.info(f"{refseq_c_ac} with position"
+                        f" {c_pos_change} is not within CDS start/end")
         return dict(
-            gene=mane_data["symbol"],
-            refseq=mane_data["RefSeq_nuc"],
-            ensembl=mane_data["Ensembl_nuc"],
+            gene=gene,
+            refseq=refseq_c_ac,
+            ensembl=ensembl_c_ac,
             coding_start_site=cds_start,
             coding_end_site=cds_end,
-            pos=mane_c_pos_change,
-            strand=mane_data["chr_strand"],
-            status=mane_data["MANE_status"],
-            alt_ac=grch38["ac"] if grch38 else None
+            pos=c_pos_change,
+            strand=strand,
+            status=status,
+            alt_ac=alt_ac
         )
 
     @staticmethod
@@ -204,85 +209,91 @@ class MANETranscript:
             pos=(math.ceil(mane_c_pos_range[0] / 3),
                  math.floor(mane_c_pos_range[1] / 3)),
             strand=mane_data["chr_strand"],
-            status=mane_data["MANE_status"]
+            status="_".join(mane_data["MANE_status"].split()).lower()
         )
 
-    async def _g_to_mane_c(self, g: Dict, mane_data: Dict) -> Optional[Dict]:
-        """Get MANE Transcript c. annotation from g. annotation.
+    async def _g_to_c(
+        self, g: Dict, refseq_c_ac: str, status: TranscriptPriorityLabel,
+        ensembl_c_ac: Optional[str] = None, alt_ac: Optional[str] = None
+    ) -> Optional[Dict]:
+        """Get transcript c. annotation data from g. annotation.
 
         :param Dict g: Genomic data
-        :param Dict mane_data: MANE Transcript data (Transcript accessions,
-            gene, and location information)
-        :return: MANE Transcripts accessions for RefSeq and Ensembl c.
-            coordinates, and position where change occurred on these accessions
+        :param str refseq_c_ac: Refseq transcript accession
+        :param TranscriptPriorityLabel status: Status of transcript
+        :param Optional[str] ensembl_c_ac: Ensembl transcript accession
+        :param Optional[str] alt_ac: Genomic accession
+        :return: Transcript data
         """
-        mane_c_ac = mane_data["RefSeq_nuc"]
         result = await self.uta_db.get_tx_exon_aln_v_data(
-            mane_c_ac, g["alt_pos_change_range"][0],
-            g["alt_pos_change_range"][1], alt_ac=g["alt_ac"], use_tx_pos=False
-        )
+            refseq_c_ac, g["alt_pos_change_range"][0],
+            g["alt_pos_change_range"][1], alt_ac=g["alt_ac"], use_tx_pos=False)
 
         if not result:
-            logger.warning(f"Unable to find MANE Transcript {mane_c_ac} "
-                           f"position change.")
+            logger.warning(f"Unable to find transcript, {refseq_c_ac}, position change")
             return None
         else:
             result = result[-1]
 
-        cds_start_end = \
-            await self.uta_db.get_cds_start_end(mane_data["RefSeq_nuc"])
+        cds_start_end = await self.uta_db.get_cds_start_end(refseq_c_ac)
         if not cds_start_end:
             return None
         coding_start_site = cds_start_end[0]
 
         g_pos = g["alt_pos_change_range"]  # start/end genomic change
-        mane_g_pos = result[5], result[6]  # alt_start_i, alt_end_i
-        g_pos_change = g_pos[0] - mane_g_pos[0], mane_g_pos[1] - g_pos[1]
-        if mane_data["chr_strand"] == "-":
+        tx_g_pos = result[5], result[6]  # alt_start_i, alt_end_i
+        g_pos_change = g_pos[0] - tx_g_pos[0], tx_g_pos[1] - g_pos[1]
+
+        if g["strand"] == "-":
             g_pos_change = (
-                mane_g_pos[1] - g_pos[0], g_pos[1] - mane_g_pos[0]
+                tx_g_pos[1] - g_pos[0], g_pos[1] - tx_g_pos[0]
             )
 
-        mane_tx_pos_range = result[2], result[3]
-        mane_c_pos_change = (
-            mane_tx_pos_range[0] + g_pos_change[0] - coding_start_site,
-            mane_tx_pos_range[1] - g_pos_change[1] - coding_start_site
+        tx_pos_range = result[2], result[3]
+        c_pos_change = (
+            tx_pos_range[0] + g_pos_change[0] - coding_start_site,
+            tx_pos_range[1] - g_pos_change[1] - coding_start_site
         )
 
-        if mane_c_pos_change[0] > mane_c_pos_change[1]:
-            mane_c_pos_change = mane_c_pos_change[1], mane_c_pos_change[0]
+        if c_pos_change[0] > c_pos_change[1]:
+            c_pos_change = c_pos_change[1], c_pos_change[0]
 
-        return self._get_mane_c(mane_data, mane_c_pos_change,
-                                cds_start_end)
+        return self._get_c_data(
+            gene=g["gene"],
+            cds_start_end=cds_start_end,
+            c_pos_change=c_pos_change,
+            strand=g["strand"],
+            alt_ac=alt_ac,
+            status=status,
+            refseq_c_ac=refseq_c_ac,
+            ensembl_c_ac=ensembl_c_ac)
 
     def _validate_reading_frames(self, ac: str, start_pos: int, end_pos: int,
-                                 mane_transcript: Dict) -> bool:
+                                 transcript_data: Dict) -> bool:
         """Return whether reading frames are the same after translation.
 
         :param str ac: Query accession
         :param int start_pos: Original start cDNA position change
         :param int end_pos: Original end cDNA position change
-        :param Dict mane_transcript: Ensembl and RefSeq transcripts with
+        :param Dict transcript_data: Ensembl and RefSeq transcripts with
             corresponding position change
         :return: `True` if reading frames are the same after translation.
             `False` otherwise
         """
-        for pos, mane_pos_index in [(start_pos, 0), (end_pos, 1)]:
+        for pos, pos_index in [(start_pos, 0), (end_pos, 1)]:
             if pos is not None:
-                og_rf = self.get_reading_frame(pos)
-                mane_rf = self.get_reading_frame(
-                    mane_transcript["pos"][mane_pos_index]
-                )
+                og_rf = self._get_reading_frame(pos)
+                new_rf = self._get_reading_frame(transcript_data["pos"][pos_index])
 
-                if og_rf != mane_rf:
+                if og_rf != new_rf:
                     logger.warning(f"{ac} original reading frame ({og_rf}) "
-                                   f"does not match MANE "
-                                   f"{mane_transcript['ensembl']}, "
-                                   f"{mane_transcript['refseq']} reading "
-                                   f"frame ({mane_rf})")
+                                   f"does not match new "
+                                   f"{transcript_data['ensembl']}, "
+                                   f"{transcript_data['refseq']} reading "
+                                   f"frame ({new_rf})")
                     return False
             else:
-                if mane_pos_index == 0:
+                if pos_index == 0:
                     logger.warning(f"{ac} must having start position")
                     return False
         return True
@@ -353,16 +364,40 @@ class MANETranscript:
         """
         start_pos = pos[0] + coding_start_site
         end_pos = pos[1] + coding_start_site
-        if self.seqrepo_access.is_valid_input_sequence(
-                ac, start_pos, end_pos)[0]:
+        if self.seqrepo_access.get_reference_sequence(ac, start_pos, end_pos,
+                                                      residue_mode=ResidueMode.INTER_RESIDUE)[0]:  # noqa E501
             return True
         else:
             return False
 
+    def _get_prioritized_transcripts_from_gene(self,
+                                               df: pd.core.frame.DataFrame) -> List:
+        """Sort and filter transcripts from gene to get priority list
+
+        :param pd.core.frame.DataFrame df: Data frame containing transcripts from gene
+            data
+        :return: List of prioritized transcripts for a given gene. Sort by latest
+            assembly, longest length of transcript, with first-published transcripts
+            breaking ties. If there are multiple transcripts for a given accession, the
+            most recent version of a transcript associated with an assembly will be kept
+        """
+        copy_df = df.copy(deep=True)
+        copy_df = copy_df.drop(columns="alt_ac").drop_duplicates()
+        copy_df["ac_no_version_as_int"] = copy_df["tx_ac"].apply(lambda x: int(x.split(".")[0].split("NM_00")[1]))  # noqa: E501
+        copy_df["ac_version"] = copy_df["tx_ac"].apply(lambda x: x.split(".")[1])
+        copy_df = copy_df.sort_values(["ac_no_version_as_int", "ac_version"],
+                                      ascending=[False, False])
+        copy_df = copy_df.drop_duplicates(["ac_no_version_as_int"], keep="first")
+        copy_df.loc[:, "len_of_tx"] = copy_df.loc[:, "tx_ac"].apply(lambda ac: len(self.seqrepo_access.get_reference_sequence(ac)[0]))  # noqa: E501
+        copy_df = copy_df.sort_values(
+            ["len_of_tx", "ac_no_version_as_int"], ascending=[False, True])
+        return list(copy_df["tx_ac"])
+
     async def get_longest_compatible_transcript(
             self, gene: str, start_pos: int, end_pos: int,
             start_annotation_layer: str, ref: Optional[str] = None,
-            residue_mode: str = ResidueMode.RESIDUE
+            residue_mode: str = ResidueMode.RESIDUE,
+            mane_transcripts: Optional[Set] = None
     ) -> Optional[Dict]:
         """Get longest compatible transcript from a gene.
         Try GRCh38 first, then GRCh37.
@@ -375,9 +410,11 @@ class MANETranscript:
             Must be either `p`, or `c`.
         :param str ref: Reference at position given during input
         :param str residue_mode: Residue mode
+        :param Optional[Set] mane_transcripts: Attempted mane transcripts that were not
+            compatible
         :return: Data for longest compatible transcript
         """
-        inter_residue_pos, warning = get_inter_residue_pos(
+        inter_residue_pos, _ = get_inter_residue_pos(
             start_pos, residue_mode, end_pos=end_pos)
         if not inter_residue_pos:
             return None
@@ -395,60 +432,79 @@ class MANETranscript:
             c_start_pos, c_end_pos = start_pos, end_pos
 
         # Data Frame that contains transcripts associated to a gene
-        df = await self.uta_db.get_transcripts_from_gene(
-            gene, c_start_pos, c_end_pos)
-        nc_acs = list(df["alt_ac"].unique())
-        nc_acs.sort(reverse=True)
+        df = await self.uta_db.get_transcripts_from_gene(gene, c_start_pos, c_end_pos)
+        if df.empty:
+            logger.warning(f"Unable to get transcripts from gene {gene}")
+            return None
 
-        for nc_ac in nc_acs:
-            # Most recent accession first
-            tmp_df = df.loc[df["alt_ac"] == nc_ac]
-            for index, row in tmp_df.iterrows():
-                g = await self._c_to_g(row["tx_ac"], (c_start_pos, c_end_pos))
-                if not g:
-                    return None
+        prioritized_tx_acs = self._get_prioritized_transcripts_from_gene(df)
 
-                # Validate references
-                if ref:
-                    if anno == "p":
-                        valid_references = self._validate_references(
-                            row["pro_ac"], row["cds_start_i"], start_pos,
-                            end_pos, {}, ref, "p", residue_mode
-                        )
-                    else:
-                        valid_references = self._validate_references(
-                            row["tx_ac"], row["cds_start_i"], c_start_pos,
-                            c_end_pos, {}, ref, "c", residue_mode
-                        )
+        if mane_transcripts:
+            # Dont check MANE transcripts since we know that are not compatible
+            prioritized_tx_acs = [el for el in prioritized_tx_acs
+                                  if el not in mane_transcripts]
 
-                    if not valid_references:
-                        continue
+        for tx_ac in prioritized_tx_acs:
+            # Only need to check the one row since we do liftover in _c_to_g
+            tmp_df = df.loc[df["tx_ac"] == tx_ac].sort_values("alt_ac", ascending=False)
+            row = tmp_df.iloc[0]
 
+            # Go from c -> g annotation (liftover as well)
+            g = await self._c_to_g(tx_ac, (c_start_pos, c_end_pos))
+            if not g:
+                continue
+
+            # Get prioritized transcript data for gene
+            # grch38 -> c
+            lcr_c_data = await self._g_to_c(
+                g=g, refseq_c_ac=tx_ac,
+                status=TranscriptPriorityLabel.LongestCompatibleRemaining.value)
+            if not lcr_c_data:
+                continue
+
+            # Validation checks
+            validate_reading_frame = self._validate_reading_frames(
+                tx_ac, c_start_pos, c_end_pos, lcr_c_data)
+            if not validate_reading_frame:
+                continue
+
+            if ref:
                 if anno == "p":
-                    pos = start_pos, end_pos
-                    ac = row["pro_ac"]
-                    coding_start_site = 0
-
+                    valid_references = self._validate_references(
+                        row["pro_ac"], row["cds_start_i"], start_pos,
+                        end_pos, {}, ref, "p", residue_mode
+                    )
                 else:
-                    pos = c_start_pos, c_end_pos
-                    ac = row["tx_ac"]
-                    coding_start_site = row["cds_start_i"]
-
-                if not self._validate_index(
-                    ac, pos, coding_start_site
-                ):
-                    logger.warning(f"{pos} are not valid positions on {ac}"
-                                   f"with coding start site "
-                                   f"{coding_start_site}")
+                    valid_references = self._validate_references(
+                        row["tx_ac"], row["cds_start_i"], c_start_pos,
+                        c_end_pos, {}, ref, "c", residue_mode
+                    )
+                if not valid_references:
                     continue
 
-                return dict(
-                    refseq=ac if ac.startswith("N") else None,
-                    ensembl=ac if ac.startswith("E") else None,
-                    pos=pos,
-                    strand=g["strand"],
-                    status="Longest Compatible Remaining"
-                )
+            if anno == "p":
+                pos = (math.ceil(lcr_c_data["pos"][0] / 3),
+                       math.floor(lcr_c_data["pos"][1] / 3))
+                ac = row["pro_ac"]
+                coding_start_site = 0
+            else:
+                pos = lcr_c_data["pos"]
+                ac = tx_ac
+                coding_start_site = lcr_c_data["coding_start_site"]
+
+            if not self._validate_index(ac, pos, coding_start_site):
+                logger.warning(f"{pos} are not valid positions on {ac}"
+                               f"with coding start site "
+                               f"{coding_start_site}")
+                continue
+
+            return dict(
+                refseq=ac if ac.startswith("N") else None,
+                ensembl=ac if ac.startswith("E") else None,
+                pos=pos,
+                strand=g["strand"],
+                status=lcr_c_data["status"]
+            )
         return None
 
     async def get_mane_transcript(
@@ -501,8 +557,7 @@ class MANETranscript:
             if g is None:
                 return None
             # Get mane data for gene
-            mane_data = \
-                self.mane_transcript_mappings.get_gene_mane_data(g["gene"])
+            mane_data = self.mane_transcript_mappings.get_gene_mane_data(g["gene"])
             if not mane_data:
                 return None
             mane_data_len = len(mane_data)
@@ -511,11 +566,18 @@ class MANETranscript:
             #  1. MANE Select
             #  2. MANE Plus Clinical
             #  3. Longest Compatible Remaining
+            #     a. If there is a tie, choose the first-published transcript among
+            #        those transcripts meeting criterion
+            mane_transcripts = set()
             for i in range(mane_data_len):
                 index = mane_data_len - i - 1
                 current_mane_data = mane_data[index]
-
-                mane = await self._g_to_mane_c(g, current_mane_data)
+                mane_transcripts |= set((current_mane_data["RefSeq_nuc"],
+                                         current_mane_data["Ensembl_nuc"]))
+                mane = await self._g_to_c(
+                    g=g, refseq_c_ac=current_mane_data["RefSeq_nuc"],
+                    status="_".join(current_mane_data["MANE_status"].split()).lower(),
+                    ensembl_c_ac=current_mane_data["Ensembl_nuc"])
                 if not mane:
                     continue
 
@@ -542,15 +604,16 @@ class MANETranscript:
                         continue
 
                 return mane
+
             if try_longest_compatible:
                 if anno == "p":
                     return await self.get_longest_compatible_transcript(
                         g["gene"], start_pos, end_pos, "p", ref,
-                        residue_mode=residue_mode)
+                        residue_mode=residue_mode, mane_transcripts=mane_transcripts)
                 else:
                     return await self.get_longest_compatible_transcript(
                         g["gene"], c_pos[0], c_pos[1], "c", ref,
-                        residue_mode=residue_mode)
+                        residue_mode=residue_mode, mane_transcripts=mane_transcripts)
             else:
                 return None
         elif anno == "g":
@@ -686,8 +749,7 @@ class MANETranscript:
             logger.warning(f"Genomic accession does not exist: {ac}")
             return None
 
-        mane_data =\
-            self.mane_transcript_mappings.get_gene_mane_data(gene)
+        mane_data = self.mane_transcript_mappings.get_gene_mane_data(gene)
         if not mane_data:
             return None
         mane_data_len = len(mane_data)
@@ -728,6 +790,12 @@ class MANETranscript:
                                f"{coding_start_site}")
                 return None
 
-            return self._get_mane_c(current_mane_data, mane_c_pos_change,
-                                    (coding_start_site, coding_end_site),
-                                    grch38)
+            return self._get_c_data(
+                gene=current_mane_data["symbol"],
+                cds_start_end=(coding_start_site, coding_end_site),
+                c_pos_change=mane_c_pos_change,
+                strand=current_mane_data["chr_strand"],
+                status="_".join(current_mane_data["MANE_status"].split()).lower(),
+                refseq_c_ac=current_mane_data["RefSeq_nuc"],
+                ensembl_c_ac=current_mane_data["Ensembl_nuc"],
+                alt_ac=grch38["ac"] if grch38 else None)
