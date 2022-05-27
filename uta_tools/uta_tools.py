@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional, Union, List, Tuple, Dict
 
 from uta_tools import logger
-from uta_tools.schemas import GenomicData, TranscriptExonData, ResidueMode, \
+from uta_tools.schemas import Assembly, GenomicData, TranscriptExonData, ResidueMode, \
     GenomicDataResponse, ServiceMeta, TranscriptExonDataResponse
 from uta_tools.data_sources import MANETranscript, MANETranscriptMappings,\
     SeqRepoAccess, TranscriptMappings, UTADatabase
@@ -465,7 +465,7 @@ class UTATools:
 
         grch38_ac = grch38_ac[0][0]
         if grch38_ac != params["chr"]:
-            # Liftover
+            # Liftover to 38
             descr = await self.uta_db.get_chr_assembly(params["chr"])
             if descr is None:
                 return f"Unable to get chromosome and assembly for " \
@@ -473,7 +473,7 @@ class UTATools:
 
             chromosome_number, assembly = descr
             liftover_data = self.uta_db.get_liftover(
-                chromosome_number, params["pos"])
+                chromosome_number, params["pos"], Assembly.GRCH38)
             if liftover_data is None:
                 return f"Position {params['pos']} does not exist on " \
                        f"chromosome {chromosome_number}"

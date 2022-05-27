@@ -11,6 +11,13 @@ from pydantic.types import StrictStr, StrictInt
 from uta_tools.version import __version__
 
 
+class Assembly(str, Enum):
+    """Create Enum for supported genomic assemblies"""
+
+    GRCH37 = "GRCh37"
+    GRCH38 = "GRCh38"
+
+
 class TranscriptPriorityLabel(str, Enum):
     """Create Enum for Transcript Priority labels"""
 

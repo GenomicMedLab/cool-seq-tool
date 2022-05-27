@@ -12,6 +12,7 @@ from asyncpg.exceptions import InvalidAuthorizationSpecificationError, \
     InterfaceError
 
 from uta_tools import UTA_DB_URL, logger
+from uta_tools.schemas import Assembly
 
 
 # use `bound` to upper-bound UTADatabase or child classes
@@ -839,14 +840,12 @@ class UTADatabase:
 
         # Get most recent assembly version position
         # Liftover range
-        self._set_liftover(
-            genomic_tx_data, "alt_pos_range", chromosome
-        )
+        self._set_liftover(genomic_tx_data, "alt_pos_range", chromosome,
+                           Assembly.GRCH38)
 
         # Liftover changes range
-        self._set_liftover(
-            genomic_tx_data, "alt_pos_change_range", chromosome
-        )
+        self._set_liftover(genomic_tx_data, "alt_pos_change_range", chromosome,
+                           Assembly.GRCH38)
 
         # Change alt_ac to most recent
         query = (
@@ -861,39 +860,49 @@ class UTADatabase:
         nc_acs = await self.execute_query(query)
         genomic_tx_data["alt_ac"] = nc_acs[0][0]
 
-    def get_liftover(self, chromosome: str, pos: int) -> Optional[Tuple]:
+    def get_liftover(self, chromosome: str, pos: int,
+                     liftover_to_assembly: Assembly) -> Optional[Tuple]:
         """Get new genome assembly data for a position on a chromosome.
 
-        :param str chromosome: The chromosome number
+        :param str chromosome: The chromosome number. Must be prefixed with `chr`
         :param int pos: Position on the chromosome
+        :param Assembly liftover_to_assembly: Assembly to liftover to
         :return: [Target chromosome, target position, target strand,
-            conversion_chain_score] for hg38 assembly
+            conversion_chain_score] for assembly
         """
-        liftover = self.liftover_37_to_38.convert_coordinate(chromosome, pos)
+        if liftover_to_assembly == Assembly.GRCH38:
+            liftover = self.liftover_37_to_38.convert_coordinate(chromosome, pos)
+        elif liftover_to_assembly == Assembly.GRCH37:
+            liftover = self.liftover_38_to_37.convert_coordinate(chromosome, pos)
+        else:
+            logger.warning(f"{liftover_to_assembly} assembly not supported")
+            liftover = None
+
         if liftover is None or len(liftover) == 0:
             logger.warning(f"{pos} does not exist on {chromosome}")
             return None
         else:
             return liftover[0]
 
-    def _set_liftover(self, genomic_tx_data: Dict, key: str,
-                      chromosome: str) -> None:
-        """Update genomic_tx_data to have hg38 coordinates.
+    def _set_liftover(self, genomic_tx_data: Dict, key: str, chromosome: str,
+                      liftover_to_assembly: Assembly) -> None:
+        """Update genomic_tx_data to have coordinates for given assembly.
 
         :param Dict genomic_tx_data: Dictionary containing gene, nc_accession,
             alt_pos, and strand
         :param str key: Key to access coordinate positions
-        :param str chromosome: Chromosome
+        :param str chromosome: Chromosome, must be prefixed with `chr`
+        :param Assembly liftover_to_assembly: Assembly to liftover to
         """
-        liftover_start_i = self.get_liftover(chromosome,
-                                             genomic_tx_data[key][0])
+        liftover_start_i = self.get_liftover(chromosome, genomic_tx_data[key][0],
+                                             liftover_to_assembly)
         if liftover_start_i is None:
             logger.warning(f"Unable to liftover position "
                            f"{genomic_tx_data[key][0]} on {chromosome}")
             return None
 
-        liftover_end_i = self.get_liftover(chromosome,
-                                           genomic_tx_data[key][1])
+        liftover_end_i = self.get_liftover(chromosome, genomic_tx_data[key][1],
+                                           liftover_to_assembly)
         if liftover_end_i is None:
             logger.warning(f"Unable to liftover position "
                            f"{genomic_tx_data[key][1]} on {chromosome}")

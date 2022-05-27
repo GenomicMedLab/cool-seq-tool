@@ -13,7 +13,7 @@ from typing import Optional, Set, Tuple, Dict, List
 import hgvs.parser
 import pandas as pd
 
-from uta_tools.schemas import ResidueMode, TranscriptPriorityLabel
+from uta_tools.schemas import Assembly, ResidueMode, TranscriptPriorityLabel
 from uta_tools.data_sources.seqrepo_access import SeqRepoAccess
 from uta_tools.data_sources.transcript_mappings import TranscriptMappings
 from uta_tools.data_sources.mane_transcript_mappings import \
@@ -653,14 +653,16 @@ class MANETranscript:
             logger.warning("Liftover only supported for GRCh37")
             return None
 
-        liftover_start_i = self.uta_db.get_liftover(chromosome, start_pos)
+        liftover_start_i = self.uta_db.get_liftover(chromosome, start_pos,
+                                                    Assembly.GRCH38)
         if liftover_start_i is None:
             return None
         else:
             start_pos = liftover_start_i[1]
 
         if not is_same_pos:
-            liftover_end_i = self.uta_db.get_liftover(chromosome, end_pos)
+            liftover_end_i = self.uta_db.get_liftover(chromosome, end_pos,
+                                                      Assembly.GRCH38)
             if liftover_end_i is None:
                 return None
             else:
