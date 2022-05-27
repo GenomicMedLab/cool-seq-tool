@@ -14,10 +14,10 @@ logger.setLevel(logging.DEBUG)
 
 if "UTA_TOOLS_EB_PROD" in environ:
     environ["UTA_DB_PROD"] = "true"
+    environ["GENE_NORM_EB_PROD"] = "true"
     LOG_FN = "/tmp/uta_tools.log"
 else:
     LOG_FN = "uta_tools.log"
-
 
 if "UTA_DB_URL" in environ:
     UTA_DB_URL = environ["UTA_DB_URL"]

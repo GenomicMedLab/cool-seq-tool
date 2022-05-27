@@ -14,11 +14,8 @@ import hgvs.parser
 import pandas as pd
 
 from uta_tools.schemas import Assembly, ResidueMode, TranscriptPriorityLabel
-from uta_tools.data_sources.seqrepo_access import SeqRepoAccess
-from uta_tools.data_sources.transcript_mappings import TranscriptMappings
-from uta_tools.data_sources.mane_transcript_mappings import \
-    MANETranscriptMappings
-from uta_tools.data_sources.uta_database import UTADatabase
+from uta_tools.data_sources import SeqRepoAccess, TranscriptMappings, \
+    MANETranscriptMappings, UTADatabase, GeneNormalizer
 from uta_tools.data_sources.residue_mode import get_inter_residue_pos
 from uta_tools import logger
 
@@ -29,7 +26,8 @@ class MANETranscript:
     def __init__(self, seqrepo_access: SeqRepoAccess,
                  transcript_mappings: TranscriptMappings,
                  mane_transcript_mappings: MANETranscriptMappings,
-                 uta_db: UTADatabase) -> None:
+                 uta_db: UTADatabase,
+                 gene_normalizer: GeneNormalizer) -> None:
         """Initialize the MANETranscript class.
 
         :param SeqRepoAccess seqrepo_access: Access to seqrepo queries
@@ -39,12 +37,14 @@ class MANETranscript:
             MANE Transcript accession mapping data
         :param UTADatabase uta_db: UTADatabase instance to give access to query
             UTA database
+        :param GeneNormalizer gene_normalizer: Access to Gene Normalizer
         """
         self.seqrepo_access = seqrepo_access
         self.hgvs_parser = hgvs.parser.Parser()
         self.transcript_mappings = transcript_mappings
         self.mane_transcript_mappings = mane_transcript_mappings
         self.uta_db = uta_db
+        self.gene_normalizer = gene_normalizer
 
     @staticmethod
     def _get_reading_frame(pos: int) -> int:
@@ -776,7 +776,7 @@ class MANETranscript:
                     mane_c_ac, ac, start_pos, end_pos
                 )
                 if not mane_tx_genomic_data:
-                    return None
+                    continue
                 else:
                     logger.info("Not using most recent assembly")
 
@@ -790,7 +790,7 @@ class MANETranscript:
                 logger.warning(f"{mane_c_pos_change} are not valid positions"
                                f" on {mane_c_ac}with coding start site "
                                f"{coding_start_site}")
-                return None
+                continue
 
             return self._get_c_data(
                 gene=current_mane_data["symbol"],
@@ -801,3 +801,91 @@ class MANETranscript:
                 refseq_c_ac=current_mane_data["RefSeq_nuc"],
                 ensembl_c_ac=current_mane_data["Ensembl_nuc"],
                 alt_ac=grch38["ac"] if grch38 else None)
+
+    async def get_mapped_mane_data(
+        self, gene: str, assembly: Assembly, genomic_position: int,
+        residue_mode: ResidueMode = ResidueMode.RESIDUE
+    ) -> Optional[Dict]:
+        """Get MANE data for gene, assembly, and position. If GRCh37 assembly is given,
+        will return mapped MANE data.
+
+        :param str gene: Gene symbol or identifier
+        :param Assembly assembly: Assembly for the provided genomic position
+        :param int genomic position: Position on the genomic reference sequence to find
+            MANE data for
+        :param ResidueMode residue_mode: Starting residue mode for `start_pos`
+            and `end_pos`. Will always return coordinates in inter-residue
+        :return: Mapped MANE or Longest Compatible Remaining data
+        """
+        hgnc_gene_data = self.gene_normalizer.get_hgnc_data(gene)
+        if not hgnc_gene_data:
+            return None
+
+        gene = hgnc_gene_data["symbol"]
+
+        mane_data = self.mane_transcript_mappings.get_gene_mane_data(gene)
+        if not mane_data:
+            return None
+        mane_data_len = len(mane_data)
+
+        chr = None
+        alt_ac = None
+        if hgnc_gene_data["locations"]:
+            chr = hgnc_gene_data["locations"][0].get("chr") or ""
+            alt_acs, _ = self.seqrepo_access.translate_identifier(f"{assembly}:{chr}",
+                                                                  "refseq")
+            if alt_acs:
+                alt_ac = alt_acs[0].split(":")[1]
+            else:
+                return None
+
+        inter_residue_pos, _ = get_inter_residue_pos(genomic_position, residue_mode)
+        g_pos = inter_residue_pos[0]
+
+        mane_transcripts = set()
+        for i in range(mane_data_len):
+            index = mane_data_len - i - 1
+            current_mane_data = mane_data[index]
+            mane_transcripts |= set((current_mane_data["RefSeq_nuc"],
+                                     current_mane_data["Ensembl_nuc"]))
+            mane_c_ac = current_mane_data["RefSeq_nuc"]
+
+            ac_query = mane_c_ac.split(".")[0]
+            tx_exon_aln_v_data = await self.uta_db.get_tx_exon_aln_v_data(
+                ac_query, g_pos, g_pos, alt_ac, False, True)
+
+            if not tx_exon_aln_v_data:
+                continue
+            else:
+                len_of_aligned_data = len(tx_exon_aln_v_data)
+                if len_of_aligned_data == 1:
+                    tx_exon_aln_v_data = tx_exon_aln_v_data[0]
+                else:
+                    logger.debug(f"Found {len_of_aligned_data} records for aligned "
+                                 f"mapped MANE data for {ac_query}, {g_pos}, {alt_ac}")
+
+                    # Try checking for MANE match
+                    filter_data = list(filter(lambda x: x[1] == mane_c_ac,
+                                              tx_exon_aln_v_data))
+                    if filter_data:
+                        tx_exon_aln_v_data = filter_data[0]
+                    else:
+                        # Try checking for older versions of MANE
+                        filter_data = list(filter(lambda x: x[1].startswith(
+                            mane_c_ac.split(".")[0]), tx_exon_aln_v_data))
+                        if filter_data:
+                            filter_data.sort(key=lambda x: x[1], reverse=True)
+                            tx_exon_aln_v_data = filter_data[0]
+
+            # TODO: See if we can get Ensembl back-alignment data
+            return {
+                "gene": gene,
+                "refseq": current_mane_data["RefSeq_nuc"],
+                "ensembl": current_mane_data["Ensembl_nuc"],
+                "strand": "-" if tx_exon_aln_v_data[7] == -1 else "+",
+                "status": "_".join(current_mane_data["MANE_status"].split()).lower(),
+                "alt_ac": alt_ac,
+                "assembly": assembly.value
+            }
+
+        # TODO: MANE match not found. Try longest compatible

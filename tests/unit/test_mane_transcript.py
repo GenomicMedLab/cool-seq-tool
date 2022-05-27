@@ -6,14 +6,15 @@ from mock import patch
 import pandas as pd
 
 from uta_tools.data_sources import MANETranscript, MANETranscriptMappings,\
-    SeqRepoAccess, TranscriptMappings, UTADatabase
+    SeqRepoAccess, TranscriptMappings, UTADatabase, GeneNormalizer
+from uta_tools.schemas import Assembly, ResidueMode
 
 
 @pytest.fixture(scope="module")
 def test_mane_transcript():
     """Build mane transcript test fixture."""
     return MANETranscript(SeqRepoAccess(), TranscriptMappings(),
-                          MANETranscriptMappings(), UTADatabase())
+                          MANETranscriptMappings(), UTADatabase(), GeneNormalizer())
 
 
 @pytest.fixture(scope="module")
@@ -553,6 +554,67 @@ async def test_g_to_mane_c(test_mane_transcript, egfr_l858r_mane_c,
         "coding_end_site": 3894,
         "gene": "EGFR"
     }
+
+
+@pytest.mark.asyncio
+async def test_get_mapped_mane_data(test_mane_transcript):
+    """Test that get_mapped_mane_data works correctly"""
+    resp = await test_mane_transcript.get_mapped_mane_data(
+        "braf", Assembly.GRCH38, 140785808, ResidueMode.INTER_RESIDUE)
+    assert resp == {
+        "gene": "BRAF",
+        "refseq": "NM_001374258.1",
+        "ensembl": "ENST00000644969.2",
+        "strand": "-",
+        "status": "mane_plus_clinical",
+        "alt_ac": "NC_000007.14",
+        "assembly": "GRCh38"
+    }
+
+    resp = await test_mane_transcript.get_mapped_mane_data(
+        "Braf", Assembly.GRCH37, 140485608, ResidueMode.INTER_RESIDUE)
+    assert resp == {
+        "gene": "BRAF",
+        "refseq": "NM_001374258.1",
+        "ensembl": "ENST00000644969.2",
+        "strand": "-",
+        "status": "mane_plus_clinical",
+        "alt_ac": "NC_000007.13",
+        "assembly": "GRCh37"
+    }
+
+    resp = await test_mane_transcript.get_mapped_mane_data(
+        "BRAF", Assembly.GRCH38, 140783157, ResidueMode.INTER_RESIDUE)
+    assert resp == {
+        "gene": "BRAF",
+        "refseq": "NM_004333.6",
+        "ensembl": "ENST00000646891.2",
+        "strand": "-",
+        "status": "mane_select",
+        "alt_ac": "NC_000007.14",
+        "assembly": "GRCh38"
+    }
+
+    resp = await test_mane_transcript.get_mapped_mane_data(
+        "BRAF", Assembly.GRCH37, 140482958)
+    assert resp == {
+        "gene": "BRAF",
+        "refseq": "NM_004333.6",
+        "ensembl": "ENST00000646891.2",
+        "strand": "-",
+        "status": "mane_select",
+        "alt_ac": "NC_000007.13",
+        "assembly": "GRCh37"
+    }
+
+    # Invalid coord given assembly
+    resp = await test_mane_transcript.get_mapped_mane_data(
+        "BRAF", Assembly.GRCH38, 140482957, ResidueMode.INTER_RESIDUE)
+    assert resp is None
+
+    # Invalid gene
+    resp = await test_mane_transcript.get_mapped_mane_data(
+        "dummy", Assembly.GRCH37, 140482958)
 
 
 @pytest.mark.asyncio

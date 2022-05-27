@@ -528,28 +528,36 @@ class UTADatabase:
                 result = None
             return result
 
-    async def get_tx_exon_aln_v_data(self, ac: str, start_pos: int,
-                                     end_pos: int, alt_ac: str = None,
-                                     use_tx_pos: bool = True) -> List:
+    async def get_tx_exon_aln_v_data(
+        self, ac: str, start_pos: int, end_pos: int, alt_ac: str = None,
+        use_tx_pos: bool = True, like_tx_ac: bool = False
+    ) -> List:
         """Return queried data from tx_exon_aln_v table.
 
-        :param str ac: Accession
+        :param str ac: Accession to query
         :param int start_pos: Start position change
         :param int end_pos: End position change
         :param str alt_ac: NC accession
         :param bool use_tx_pos: `True` if querying on transcript position.
             `False` if querying on genomic position.
+        :param bool like_tx_ac: `True` if tx_ac condition should be a like statement.
+            `False` if tx_condition will be exact match
         :return: List of tx_exon_aln_v data
         """
         if end_pos is None:
             end_pos = start_pos
 
-        if ac.startswith("ENST"):
+        if ac.startswith("EN"):
             temp_ac = ac.split(".")[0]
             aln_method = f"AND alt_aln_method='genebuild'"  # noqa: F541
         else:
             temp_ac = ac
             aln_method = f"AND alt_aln_method='splign'"  # noqa: F541
+
+        if like_tx_ac:
+            tx_q = f"WHERE tx_ac LIKE '{temp_ac}%'"  # noqa: F541
+        else:
+            tx_q = f"WHERE tx_ac='{temp_ac}'"  # noqa: F541
 
         if alt_ac:
             alt_ac_q = f"AND alt_ac = '{alt_ac}'"
@@ -566,7 +574,7 @@ class UTADatabase:
             SELECT hgnc, tx_ac, tx_start_i, tx_end_i, alt_ac, alt_start_i,
                 alt_end_i, alt_strand, alt_aln_method, tx_exon_id, alt_exon_id
             FROM {self.schema}.tx_exon_aln_v
-            WHERE tx_ac='{temp_ac}'
+            {tx_q}
             {alt_ac_q}
             {aln_method}
             AND {start_pos} BETWEEN {pos_q}
