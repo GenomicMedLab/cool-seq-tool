@@ -113,13 +113,13 @@ async def transcript_to_genomic_coordinates(
     return response
 
 
-@app.get(f"/{SERVICE_NAME}/get_mapped_mane_transcript",
+@app.get(f"/{SERVICE_NAME}/get_mapped_mane_data",
          summary="Retrieve MANE Transcript mapped to a given assembly",
          response_description=RESP_DESCR,
          description="Return mapped MANE Transcript data to a given assembly",
          response_model=MappedManeDataService,
          tags=[Tags.MANE_TRANSCRIPT])
-async def get_mapped_mane_transcript(
+async def get_mapped_mane_data(
     hgnc: str = Query(..., description="HGNC Symbol or Identifier"),
     assembly: Assembly = Query(..., description="Genomic assembly to use"),
     genomic_position: int = Query(..., description="Genomic position associated to the given gene and assembly"),  # noqa: E501
@@ -130,7 +130,7 @@ async def get_mapped_mane_transcript(
 
     :param str gene: HGNC symbol or identifier
     :param Assembly assembly: Assembly for the provided genomic position
-    :param int genomic position: Position on the genomic reference sequence to find
+    :param int genomic_position: Position on the genomic reference sequence to find
         MANE data for
     :param ResidueMode residue_mode: Starting residue mode for `start_pos`
         and `end_pos`. Will always return coordinates in inter-residue
@@ -141,12 +141,16 @@ async def get_mapped_mane_transcript(
     try:
         mapped_mane_data = await uta_tools.mane_transcript.get_mapped_mane_data(
             hgnc, assembly, genomic_position, residue_mode)
+        if not mapped_mane_data:
+            warnings.append(f"Unable to find mapped data for gene {hgnc} at position "
+                            f"{genomic_position} ({residue_mode} coordinates) on "
+                            f"assembly {assembly}")
     except MANETranscriptError as e:
         e = str(e)
         logger.exception(e)
         warnings.append(e)
     except Exception as e:
-        logger.exception(f"get_mapped_mane_transcript unhandled exception {e}")
+        logger.exception(f"get_mapped_mane_data unhandled exception {e}")
         warnings.append(UNHANDLED_EXCEPTION_MSG)
 
     return MappedManeDataService(
