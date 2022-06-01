@@ -3,10 +3,10 @@ from datetime import datetime
 from typing import Optional, Union, List, Tuple, Dict
 
 from uta_tools import logger
-from uta_tools.schemas import GenomicData, TranscriptExonData, ResidueMode, \
+from uta_tools.schemas import Assembly, GenomicData, TranscriptExonData, ResidueMode, \
     GenomicDataResponse, ServiceMeta, TranscriptExonDataResponse
 from uta_tools.data_sources import MANETranscript, MANETranscriptMappings,\
-    SeqRepoAccess, TranscriptMappings, UTADatabase
+    SeqRepoAccess, TranscriptMappings, UTADatabase, GeneNormalizer
 from uta_tools import SEQREPO_DATA_PATH, \
     TRANSCRIPT_MAPPINGS_PATH, LRG_REFSEQGENE_PATH, MANE_SUMMARY_PATH, \
     UTA_DB_URL
@@ -21,6 +21,7 @@ class UTATools:
                  lrg_refseqgene_path: str = LRG_REFSEQGENE_PATH,
                  mane_data_path: str = MANE_SUMMARY_PATH,
                  db_url: str = UTA_DB_URL, db_pwd: str = "",
+                 gene_db_url: str = "", gene_db_region: str = "us-east-2"
                  ) -> None:
         """Initialize UTATools class
 
@@ -31,6 +32,8 @@ class UTATools:
         :param str db_url: PostgreSQL connection URL
             Format: `driver://user:pass@host/database/schema`
         :param str db_pwd: User's password for uta database
+        :param str gene_db_url: URL to gene normalizer dynamodb
+        :param str gene_db_region: AWS region for gene normalizer db
         """
         self.seqrepo_access = SeqRepoAccess(
             seqrepo_data_path=seqrepo_data_path)
@@ -40,9 +43,10 @@ class UTATools:
         self.mane_transcript_mappings = MANETranscriptMappings(
             mane_data_path=mane_data_path)
         self.uta_db = UTADatabase(db_url=db_url, db_pwd=db_pwd)
+        gene_normalizer = GeneNormalizer(gene_db_url, gene_db_region)
         self.mane_transcript = MANETranscript(
             self.seqrepo_access, self.transcript_mappings,
-            self.mane_transcript_mappings, self.uta_db)
+            self.mane_transcript_mappings, self.uta_db, gene_normalizer)
 
     @staticmethod
     def service_meta() -> ServiceMeta:
@@ -465,7 +469,7 @@ class UTATools:
 
         grch38_ac = grch38_ac[0][0]
         if grch38_ac != params["chr"]:
-            # Liftover
+            # Liftover to 38
             descr = await self.uta_db.get_chr_assembly(params["chr"])
             if descr is None:
                 return f"Unable to get chromosome and assembly for " \
@@ -473,7 +477,7 @@ class UTATools:
 
             chromosome_number, assembly = descr
             liftover_data = self.uta_db.get_liftover(
-                chromosome_number, params["pos"])
+                chromosome_number, params["pos"], Assembly.GRCH38)
             if liftover_data is None:
                 return f"Position {params['pos']} does not exist on " \
                        f"chromosome {chromosome_number}"

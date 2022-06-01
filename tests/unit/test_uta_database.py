@@ -262,10 +262,14 @@ async def test_liftover_to_38(test_db, genomic_tx_data):
 
 def test_get_liftover(test_db):
     """Test that get_liftover works correctly."""
-    resp = test_db.get_liftover("chr7", 140453136)
+    resp = test_db.get_liftover("chr7", 140453136, "GRCh38")
     assert resp == ("chr7", 140753336, "+", 14633688187)
 
-    resp = test_db.get_liftover("chr17", 140453136)
+    resp = test_db.get_liftover("chr17", 140453136, "GRCh38")
+    assert resp is None
+
+    # not prefixed w chr
+    resp = test_db.get_liftover("7", 140453136, "GRCh38")
     assert resp is None
 
 
@@ -273,10 +277,10 @@ def test_set_liftover(test_db, genomic_tx_data):
     """Test that _set_liftover works correctly."""
     cpy = copy.deepcopy(genomic_tx_data)
     expected = copy.deepcopy(genomic_tx_data)
-    test_db._set_liftover(cpy, "alt_pos_range", "chr7")
+    test_db._set_liftover(cpy, "alt_pos_range", "chr7", "GRCh38")
     expected["alt_pos_range"] = (140739811, 140739946)
     assert cpy == expected
-    test_db._set_liftover(cpy, "alt_pos_change_range", "chr7")
+    test_db._set_liftover(cpy, "alt_pos_change_range", "chr7", "GRCh38")
     expected["alt_pos_change_range"] = (140739903, 140739903)
     assert cpy == expected
 

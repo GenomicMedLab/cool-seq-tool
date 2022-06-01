@@ -6,14 +6,16 @@ from mock import patch
 import pandas as pd
 
 from uta_tools.data_sources import MANETranscript, MANETranscriptMappings,\
-    SeqRepoAccess, TranscriptMappings, UTADatabase
+    SeqRepoAccess, TranscriptMappings, UTADatabase, GeneNormalizer
+from uta_tools.data_sources.mane_transcript import MANETranscriptError
+from uta_tools.schemas import AnnotationLayer, Assembly, ResidueMode
 
 
 @pytest.fixture(scope="module")
 def test_mane_transcript():
     """Build mane transcript test fixture."""
     return MANETranscript(SeqRepoAccess(), TranscriptMappings(),
-                          MANETranscriptMappings(), UTADatabase())
+                          MANETranscriptMappings(), UTADatabase(), GeneNormalizer())
 
 
 @pytest.fixture(scope="module")
@@ -343,6 +345,7 @@ async def test_c_to_mane_c(test_mane_transcript, braf_v600e_mane_c,
     # BRAF V600E Ensembl Accessions
     mane_c = await test_mane_transcript.get_mane_transcript(
         "ENST00000288602.10", 1799, "c")
+    cpy_braf_v600e_mane_c["alt_ac"] = "NC_000007.13"
     assert mane_c == cpy_braf_v600e_mane_c
 
     mane_c = await test_mane_transcript.get_mane_transcript(
@@ -366,6 +369,7 @@ async def test_c_to_mane_c(test_mane_transcript, braf_v600e_mane_c,
     # EGFR L858R Ensembl Accessions
     mane_c = await test_mane_transcript.get_mane_transcript(
         "ENST00000275493.7", 2573, "c")
+    cpy_egfr_l858r_mane_c["alt_ac"] = "NC_000007.13"
     assert mane_c == cpy_egfr_l858r_mane_c
 
     mane_c = await test_mane_transcript.get_mane_transcript(
@@ -435,15 +439,13 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         "status": "longest_compatible_remaining"
     }
     resp = await test_mane_transcript.get_longest_compatible_transcript(
-        "BRAF", 599, 599, start_annotation_layer="p", residue_mode="inter-residue",
-        mane_transcripts=mane_transcripts
-    )
+        "BRAF", 599, 599, start_annotation_layer=AnnotationLayer.PROTEIN,
+        residue_mode="inter-residue", mane_transcripts=mane_transcripts)
     assert resp == expected
 
     resp = await test_mane_transcript.get_longest_compatible_transcript(
-        "BRAF", 600, 600, start_annotation_layer="p", residue_mode="residue",
-        mane_transcripts=mane_transcripts
-    )
+        "BRAF", 600, 600, start_annotation_layer=AnnotationLayer.PROTEIN,
+        residue_mode="residue", mane_transcripts=mane_transcripts)
     assert resp == expected
 
     expected = {
@@ -454,15 +456,25 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         "status": "longest_compatible_remaining"
     }
     resp = await test_mane_transcript.get_longest_compatible_transcript(
-        "BRAF", 1799, 1799, start_annotation_layer="c",
+        "BRAF", 1799, 1799, start_annotation_layer=AnnotationLayer.CDNA,
         mane_transcripts=mane_transcripts)
     assert resp == expected
 
     resp = await test_mane_transcript.get_longest_compatible_transcript(
-        "BRAF", 1798, 1798, start_annotation_layer="c", residue_mode="inter-residue",
-        mane_transcripts=mane_transcripts
-    )
+        "BRAF", 1798, 1798, start_annotation_layer=AnnotationLayer.CDNA,
+        residue_mode="inter-residue", mane_transcripts=mane_transcripts)
     assert resp == expected
+
+    resp = await test_mane_transcript.get_longest_compatible_transcript(
+        "BRAF", 140453136, 140453136, start_annotation_layer=AnnotationLayer.GENOMIC,
+        mane_transcripts=mane_transcripts, alt_ac="NC_000007.13")
+    assert resp == {
+        "refseq": "NM_001378467.1",
+        "ensembl": None,
+        "pos": (1807, 1807),
+        "strand": "-",
+        "status": "longest_compatible_remaining"
+    }
 
 
 @pytest.mark.asyncio
@@ -553,6 +565,69 @@ async def test_g_to_mane_c(test_mane_transcript, egfr_l858r_mane_c,
         "coding_end_site": 3894,
         "gene": "EGFR"
     }
+
+
+@pytest.mark.asyncio
+async def test_get_mapped_mane_data(test_mane_transcript):
+    """Test that get_mapped_mane_data works correctly"""
+    resp = await test_mane_transcript.get_mapped_mane_data(
+        "braf", Assembly.GRCH38, 140785808, ResidueMode.INTER_RESIDUE)
+    assert resp.dict() == {
+        "gene": "BRAF",
+        "refseq": "NM_001374258.1",
+        "ensembl": "ENST00000644969.2",
+        "strand": "-",
+        "status": "mane_plus_clinical",
+        "alt_ac": "NC_000007.14",
+        "assembly": "GRCh38"
+    }
+
+    resp = await test_mane_transcript.get_mapped_mane_data(
+        "Braf", Assembly.GRCH37, 140485608, ResidueMode.INTER_RESIDUE)
+    assert resp.dict() == {
+        "gene": "BRAF",
+        "refseq": "NM_001374258.1",
+        "ensembl": "ENST00000644969.2",
+        "strand": "-",
+        "status": "mane_plus_clinical",
+        "alt_ac": "NC_000007.13",
+        "assembly": "GRCh37"
+    }
+
+    resp = await test_mane_transcript.get_mapped_mane_data(
+        "BRAF", Assembly.GRCH38, 140783157, ResidueMode.INTER_RESIDUE)
+    assert resp.dict() == {
+        "gene": "BRAF",
+        "refseq": "NM_004333.6",
+        "ensembl": "ENST00000646891.2",
+        "strand": "-",
+        "status": "mane_select",
+        "alt_ac": "NC_000007.14",
+        "assembly": "GRCh38"
+    }
+
+    resp = await test_mane_transcript.get_mapped_mane_data(
+        "BRAF", Assembly.GRCH37, 140482958)
+    assert resp.dict() == {
+        "gene": "BRAF",
+        "refseq": "NM_004333.6",
+        "ensembl": "ENST00000646891.2",
+        "strand": "-",
+        "status": "mane_select",
+        "alt_ac": "NC_000007.13",
+        "assembly": "GRCh37"
+    }
+
+    # Invalid coord given assembly, so no result should be found
+    resp = await test_mane_transcript.get_mapped_mane_data(
+        "BRAF", Assembly.GRCH38, 140482957, ResidueMode.INTER_RESIDUE)
+    assert resp is None
+
+    # Invalid gene
+    with pytest.raises(MANETranscriptError) as e:
+        await test_mane_transcript.get_mapped_mane_data(
+            "dummy", Assembly.GRCH37, 140482958)
+    assert str(e.value) == "Unable to get HGNC data for gene: dummy"
 
 
 @pytest.mark.asyncio
