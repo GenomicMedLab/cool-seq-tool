@@ -152,11 +152,12 @@ class MANETranscript:
     ) -> Optional[Dict]:
         """Get and validate genomic_tx_data
 
-        :param str ac: Accession
+        :param str tx_ac: Accession on c. coordinate
         :param Tuple[int, int] pos: (start pos, end pos)
         :param Union[AnnotationLayer.CDNA, AnnotationLayer.GENOMIC] annotation_layer:
             Annotation layer for `ac` and `pos`
         :param Optional[int] coding_start_site: Coding start site
+        :param Optional[str] alt_ac: Accession on g. coordinate
         :return: genomic_tx_data if found and validated, else None
         """
         genomic_tx_data = await self.uta_db.get_genomic_tx_data(

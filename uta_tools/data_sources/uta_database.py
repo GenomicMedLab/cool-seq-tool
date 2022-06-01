@@ -534,12 +534,14 @@ class UTADatabase:
     ) -> List:
         """Return queried data from tx_exon_aln_v table.
 
-        :param str ac: Accession to query
+        :param str tx_ac: accession on c. coordinate
         :param int start_pos: Start position change
         :param int end_pos: End position change
-        :param str alt_ac: NC accession
-        :param bool use_tx_pos: `True` if querying on transcript position.
-            `False` if querying on genomic position.
+        :param str alt_ac: accession on g. coordinate
+        :param bool use_tx_pos: `True` if querying on transcript position. This means
+            `start_pos` and `end_pos` are on the c. coordinate
+            `False` if querying on genomic position. This means `start_pos` and
+            `end_pos` are on the g. coorindate
         :param bool like_tx_ac: `True` if tx_ac condition should be a like statement.
             `False` if tx_condition will be exact match
         :return: List of tx_exon_aln_v data
@@ -687,10 +689,11 @@ class UTADatabase:
     ) -> Optional[Dict]:
         """Get transcript mapping to genomic data.
 
-        :param str ac: Accession
+        :param str tx_ac: Accession on c. coordinate
         :param Tuple pos: (start pos, end pos)
         :param Union[AnnotationLayer.CDNA, AnnotationLayer.GENOMIC] annotation_layer:
             Annotation layer for `ac` and `pos`
+        :param Optional[str] alt_ac: Accession on g. coordinate
         :return: Gene, Transcript accession and position change,
             Altered transcript accession and position change, Strand
         """
