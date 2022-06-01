@@ -1,14 +1,15 @@
 """Main application for FastAPI"""
 from enum import Enum
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from fastapi import FastAPI, Query
 from fastapi.openapi.utils import get_openapi
 
 from uta_tools import UTATools, logger
 from uta_tools.data_sources.mane_transcript import MANETranscriptError
-from uta_tools.schemas import Assembly, GenomicDataResponse, GenomicRequestBody, \
-    MappedManeDataService, ResidueMode, TranscriptRequestBody
+from uta_tools.schemas import AnnotationLayer, Assembly, GenomicDataResponse,\
+    GenomicRequestBody, ManeDataService, MappedManeDataService, ResidueMode,\
+    TranscriptRequestBody
 from uta_tools.version import __version__
 
 
@@ -111,6 +112,66 @@ async def transcript_to_genomic_coordinates(
         response.warnings.append(UNHANDLED_EXCEPTION_MSG)
 
     return response
+
+ref_descr = "Reference at position given during input. When this is set, it will "\
+            "ensure that the reference sequences match for the final result."
+try_longest_compatible_descr = "`True` if should try longest compatible remaining if"\
+                               " mane transcript was not compatible. `False` otherwise."
+
+
+@app.get(f"/{SERVICE_NAME}/get_mane_data",
+         summary="Retrieve MANE data",
+         response_description=RESP_DESCR,
+         description="Return MANE Select, MANE Plus Clinical, or Longest Remaining "
+                     "Transcript data. See our docs for more information on transcript"
+                     " priority.",
+         response_model=ManeDataService,
+         tags=[Tags.MANE_TRANSCRIPT])
+async def get_mane_data(
+    ac: str = Query(..., description="Accession"),
+    start_pos: int = Query(..., description="Start position"),
+    start_annotation_layer: AnnotationLayer = Query(..., description="Starting annotation layer for query"),  # noqa: E501
+    end_pos: Optional[int] = Query(None, description="End position. If not set, will set to `start_pos`."),  # noqa: #501
+    gene: Optional[str] = Query(None, description="HGNC gene symbol"),
+    ref: Optional[str] = Query(None, description=ref_descr),
+    try_longest_compatible: bool = Query(True, description=try_longest_compatible_descr),  # noqa: E501
+    residue_mode: ResidueMode = Query(ResidueMode.RESIDUE, description="Residue mode for position(s)")  # noqa: E501
+) -> ManeDataService:
+    """Return MANE or Longest Compatible Remaining Transcript data on inter-residue
+    coordinates
+
+    :param str ac: Accession
+    :param int start_pos: Start position
+    :param AnnotationLayer start_annotation_layer: Starting annotation layer for query
+    :param Optional[int] end_pos: End position. If `None` assumes
+        both  `start_pos` and `end_pos` have same values.
+    :param Optional[str] gene: Gene symbol
+    :param Optional[str] ref: Reference at position given during input
+    :param bool try_longest_compatible: `True` if should try longest
+        compatible remaining if mane transcript was not compatible.
+        `False` otherwise.
+    :param ResidueMode residue_mode: Starting residue mode for `start_pos`
+        and `end_pos`. Will always return coordinates in inter-residue
+    """
+    warnings = list()
+    mane_data = None
+    try:
+        mane_data = await uta_tools.mane_transcript.get_mane_transcript(
+            ac=ac, start_pos=start_pos, start_annotation_layer=start_annotation_layer,
+            end_pos=end_pos, gene=gene, ref=ref,
+            try_longest_compatible=try_longest_compatible, residue_mode=residue_mode)
+
+        if not mane_data:
+            warnings.append("Unable to retrieve MANE data")
+    except Exception as e:
+        logger.exception(f"get_mane_data unhandled exception {e}")
+        warnings.append(UNHANDLED_EXCEPTION_MSG)
+
+    return ManeDataService(
+        mane_data=mane_data,
+        warnings=warnings,
+        service_meta=uta_tools.service_meta()
+    )
 
 
 @app.get(f"/{SERVICE_NAME}/get_mapped_mane_data",

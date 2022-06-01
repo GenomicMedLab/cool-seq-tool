@@ -2,7 +2,7 @@
 from datetime import datetime
 from enum import Enum
 import re
-from typing import Literal, Optional, List, Union, Dict, Any, Type
+from typing import Literal, Optional, List, Tuple, Union, Dict, Any, Type
 
 from pydantic import BaseModel, root_validator, validator
 from pydantic.main import Extra
@@ -409,6 +409,74 @@ class MappedManeDataService(BaseModelForbidExtra):
                     "status": "mane_plus_clinical",
                     "alt_ac": "NC_000007.13",
                     "assembly": "GRCh37"
+                },
+                "warnings": list(),
+                "service_meta": {
+                    "name": "uta_tools",
+                    "version": __version__,
+                    "response_datetime": datetime.now(),
+                    "url": "https://github.com/cancervariants/uta_tools"
+                }
+            }
+
+
+class ManeData(BaseModel):
+    """Define mane data fields"""
+
+    gene: Optional[StrictStr] = None
+    refseq: Optional[StrictStr] = None
+    ensembl: Optional[StrictStr] = None
+    pos: Tuple[int, int]
+    strand: Strand
+    status: TranscriptPriorityLabel
+
+    class Config(BaseModelForbidExtra.Config):
+        """Configure model."""
+
+        @staticmethod
+        def schema_extra(schema: Dict[str, Any],
+                         model: Type["ManeData"]) -> None:
+            """Configure OpenAPI schema."""
+            if "title" in schema.keys():
+                schema.pop("title", None)
+            for prop in schema.get("properties", {}).values():
+                prop.pop("title", None)
+            schema["example"] = {
+                "gene": "BRAF",
+                "refseq": "NP_004324.2",
+                "ensembl": "ENSP00000493543.1",
+                "pos": (598, 598),
+                "strand": "-",
+                "status": "mane_select"
+            }
+
+
+class ManeDataService(BaseModelForbidExtra):
+    """Service model response for getting mane data"""
+
+    mane_data: Optional[ManeData] = None
+    warnings: List[StrictStr] = []
+    service_meta: ServiceMeta
+
+    class Config(BaseModelForbidExtra.Config):
+        """Configure model."""
+
+        @staticmethod
+        def schema_extra(schema: Dict[str, Any],
+                         model: Type["ManeDataService"]) -> None:
+            """Configure OpenAPI schema."""
+            if "title" in schema.keys():
+                schema.pop("title", None)
+            for prop in schema.get("properties", {}).values():
+                prop.pop("title", None)
+            schema["example"] = {
+                "mane_data": {
+                    "gene": "BRAF",
+                    "refseq": "NP_004324.2",
+                    "ensembl": "ENSP00000493543.1",
+                    "pos": (598, 598),
+                    "strand": "-",
+                    "status": "mane_select"
                 },
                 "warnings": list(),
                 "service_meta": {
