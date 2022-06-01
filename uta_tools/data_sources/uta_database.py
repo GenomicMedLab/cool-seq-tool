@@ -541,8 +541,9 @@ class UTADatabase:
         :param bool use_tx_pos: `True` if querying on transcript position. This means
             `start_pos` and `end_pos` are on the c. coordinate
             `False` if querying on genomic position. This means `start_pos` and
-            `end_pos` are on the g. coorindate
+            `end_pos` are on the g. coordinate
         :param bool like_tx_ac: `True` if tx_ac condition should be a like statement.
+            This is used when you want to query an accession regardless of its version
             `False` if tx_condition will be exact match
         :return: List of tx_exon_aln_v data
         """
@@ -697,12 +698,9 @@ class UTADatabase:
         :return: Gene, Transcript accession and position change,
             Altered transcript accession and position change, Strand
         """
-        if annotation_layer == AnnotationLayer.CDNA:
-            results = await self.get_tx_exon_aln_v_data(
-                tx_ac, pos[0], pos[1], use_tx_pos=True, alt_ac=alt_ac)
-        else:
-            results = await self.get_tx_exon_aln_v_data(
-                tx_ac, pos[0], pos[1], use_tx_pos=False, alt_ac=alt_ac)
+        results = await self.get_tx_exon_aln_v_data(
+            tx_ac, pos[0], pos[1], use_tx_pos=annotation_layer == AnnotationLayer.CDNA,
+            alt_ac=alt_ac)
         if not results:
             return None
         result = results[-1]
@@ -927,6 +925,10 @@ class UTADatabase:
         :return: [Target chromosome, target position, target strand,
             conversion_chain_score] for assembly
         """
+        if not chromosome.startswith("chr"):
+            logger.warning("`chromosome` must be prefixed with chr")
+            return None
+
         if liftover_to_assembly == Assembly.GRCH38:
             liftover = self.liftover_37_to_38.convert_coordinate(chromosome, pos)
         elif liftover_to_assembly == Assembly.GRCH37:
