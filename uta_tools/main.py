@@ -1,13 +1,14 @@
 """Main application for FastAPI"""
 from enum import Enum
-from typing import Dict, Optional
+from typing import Dict, List
 
 from fastapi import FastAPI, Query
 from fastapi.openapi.utils import get_openapi
 
 from uta_tools import UTATools, logger
+from uta_tools.data_sources.mane_transcript import MANETranscriptError
 from uta_tools.schemas import Assembly, GenomicDataResponse, GenomicRequestBody, \
-    ResidueMode, TranscriptRequestBody
+    MappedManeDataService, ResidueMode, TranscriptRequestBody
 from uta_tools.version import __version__
 
 
@@ -116,13 +117,14 @@ async def transcript_to_genomic_coordinates(
          summary="Retrieve MANE Transcript mapped to a given assembly",
          response_description=RESP_DESCR,
          description="Return mapped MANE Transcript data to a given assembly",
+         response_model=MappedManeDataService,
          tags=[Tags.MANE_TRANSCRIPT])
 async def get_mapped_mane_transcript(
     hgnc: str = Query(..., description="HGNC Symbol or Identifier"),
     assembly: Assembly = Query(..., description="Genomic assembly to use"),
     genomic_position: int = Query(..., description="Genomic position associated to the given gene and assembly"),  # noqa: E501
     residue_mode: ResidueMode = Query(..., description="Residue mode for position")
-) -> Optional[Dict]:
+) -> MappedManeDataService:
     """Get MANE data for gene, assembly, and position. If GRCh37 assembly is given,
     will return mapped MANE data.
 
@@ -134,5 +136,21 @@ async def get_mapped_mane_transcript(
         and `end_pos`. Will always return coordinates in inter-residue
     :return: Mapped MANE or Longest Compatible Remaining data
     """
-    return await uta_tools.mane_transcript.get_mapped_mane_data(
-        hgnc, assembly, genomic_position, residue_mode)
+    warnings: List = list()
+    mapped_mane_data = None
+    try:
+        mapped_mane_data = await uta_tools.mane_transcript.get_mapped_mane_data(
+            hgnc, assembly, genomic_position, residue_mode)
+    except MANETranscriptError as e:
+        e = str(e)
+        logger.exception(e)
+        warnings.append(e)
+    except Exception as e:
+        logger.exception(f"get_mapped_mane_transcript unhandled exception {e}")
+        warnings.append(UNHANDLED_EXCEPTION_MSG)
+
+    return MappedManeDataService(
+        mapped_mane_data=mapped_mane_data,
+        warnings=warnings,
+        service_meta=uta_tools.service_meta()
+    )

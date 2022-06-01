@@ -11,6 +11,21 @@ from pydantic.types import StrictStr, StrictInt
 from uta_tools.version import __version__
 
 
+class AnnotationLayer(str, Enum):
+    """Create enum for supported annotation layers"""
+
+    PROTEIN = "p"
+    CDNA = "c"
+    GENOMIC = "g"
+
+
+class Strand(str, Enum):
+    """Create enum for positive and negative strand"""
+
+    POSITIVE = "+"
+    NEGATIVE = "-"
+
+
 class Assembly(str, Enum):
     """Create Enum for supported genomic assemblies"""
 
@@ -323,6 +338,77 @@ class GenomicDataResponse(BaseModelForbidExtra):
                     "exon_end_offset": None,
                     "transcript": "NM_152263.3",
                     "strand": -1
+                },
+                "warnings": list(),
+                "service_meta": {
+                    "name": "uta_tools",
+                    "version": __version__,
+                    "response_datetime": datetime.now(),
+                    "url": "https://github.com/cancervariants/uta_tools"
+                }
+            }
+
+
+class MappedManeData(BaseModel):
+    """Define mapped mane data fields"""
+
+    gene: StrictStr
+    refseq: StrictStr
+    ensembl: Optional[StrictStr] = None
+    strand: Strand
+    status: TranscriptPriorityLabel
+    alt_ac: StrictStr
+    assembly: Assembly
+
+    class Config(BaseModelForbidExtra.Config):
+        """Configure model."""
+
+        @staticmethod
+        def schema_extra(schema: Dict[str, Any],
+                         model: Type["MappedManeData"]) -> None:
+            """Configure OpenAPI schema."""
+            if "title" in schema.keys():
+                schema.pop("title", None)
+            for prop in schema.get("properties", {}).values():
+                prop.pop("title", None)
+            schema["example"] = {
+                "gene": "BRAF",
+                "refseq": "NM_001374258.1",
+                "ensembl": "ENST00000644969.2",
+                "strand": "-",
+                "status": "mane_plus_clinical",
+                "alt_ac": "NC_000007.13",
+                "assembly": "GRCh37"
+            }
+
+
+class MappedManeDataService(BaseModelForbidExtra):
+    """Service model response for mapped mane data"""
+
+    mapped_mane_data: Optional[MappedManeData] = None
+    warnings: List[StrictStr] = []
+    service_meta: ServiceMeta
+
+    class Config(BaseModelForbidExtra.Config):
+        """Configure model."""
+
+        @staticmethod
+        def schema_extra(schema: Dict[str, Any],
+                         model: Type["MappedManeDataService"]) -> None:
+            """Configure OpenAPI schema."""
+            if "title" in schema.keys():
+                schema.pop("title", None)
+            for prop in schema.get("properties", {}).values():
+                prop.pop("title", None)
+            schema["example"] = {
+                "mapped_mane_data": {
+                    "gene": "BRAF",
+                    "refseq": "NM_001374258.1",
+                    "ensembl": "ENST00000644969.2",
+                    "strand": "-",
+                    "status": "mane_plus_clinical",
+                    "alt_ac": "NC_000007.13",
+                    "assembly": "GRCh37"
                 },
                 "warnings": list(),
                 "service_meta": {

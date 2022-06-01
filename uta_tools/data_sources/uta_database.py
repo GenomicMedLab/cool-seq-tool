@@ -1,5 +1,5 @@
 """Module for UTA queries."""
-from typing import Dict, List, Optional, Tuple, Any, TypeVar, Type
+from typing import Dict, List, Optional, Tuple, Any, TypeVar, Type, Union
 from os import environ
 from urllib.parse import quote, unquote
 
@@ -12,7 +12,7 @@ from asyncpg.exceptions import InvalidAuthorizationSpecificationError, \
     InterfaceError
 
 from uta_tools import UTA_DB_URL, logger
-from uta_tools.schemas import Assembly
+from uta_tools.schemas import AnnotationLayer, Assembly
 
 
 # use `bound` to upper-bound UTADatabase or child classes
@@ -529,7 +529,7 @@ class UTADatabase:
             return result
 
     async def get_tx_exon_aln_v_data(
-        self, ac: str, start_pos: int, end_pos: int, alt_ac: str = None,
+        self, tx_ac: str, start_pos: int, end_pos: int, alt_ac: str = None,
         use_tx_pos: bool = True, like_tx_ac: bool = False
     ) -> List:
         """Return queried data from tx_exon_aln_v table.
@@ -547,11 +547,11 @@ class UTADatabase:
         if end_pos is None:
             end_pos = start_pos
 
-        if ac.startswith("EN"):
-            temp_ac = ac.split(".")[0]
+        if tx_ac.startswith("EN"):
+            temp_ac = tx_ac.split(".")[0]
             aln_method = f"AND alt_aln_method='genebuild'"  # noqa: F541
         else:
-            temp_ac = ac
+            temp_ac = tx_ac
             aln_method = f"AND alt_aln_method='splign'"  # noqa: F541
 
         if like_tx_ac:
@@ -680,17 +680,26 @@ class UTADatabase:
 
         return data
 
-    async def get_genomic_tx_data(self, ac: str,
-                                  pos: Tuple[int, int]) -> Optional[Dict]:
+    async def get_genomic_tx_data(
+        self, tx_ac: str, pos: Tuple[int, int],
+        annotation_layer: Union[AnnotationLayer.CDNA, AnnotationLayer.GENOMIC] = AnnotationLayer.CDNA,  # noqa: E501
+        alt_ac: Optional[str] = None
+    ) -> Optional[Dict]:
         """Get transcript mapping to genomic data.
 
-        Used when going from c -> g
-        :param str ac: cDNA transcript
-        :param Tuple pos: [cDNA pos start, cDNA pos end]
+        :param str ac: Accession
+        :param Tuple pos: (start pos, end pos)
+        :param Union[AnnotationLayer.CDNA, AnnotationLayer.GENOMIC] annotation_layer:
+            Annotation layer for `ac` and `pos`
         :return: Gene, Transcript accession and position change,
             Altered transcript accession and position change, Strand
         """
-        results = await self.get_tx_exon_aln_v_data(ac, pos[0], pos[1])
+        if annotation_layer == AnnotationLayer.CDNA:
+            results = await self.get_tx_exon_aln_v_data(
+                tx_ac, pos[0], pos[1], use_tx_pos=True, alt_ac=alt_ac)
+        else:
+            results = await self.get_tx_exon_aln_v_data(
+                tx_ac, pos[0], pos[1], use_tx_pos=False, alt_ac=alt_ac)
         if not results:
             return None
         result = results[-1]
@@ -698,22 +707,31 @@ class UTADatabase:
         data = self.data_from_result(result)
         if not data:
             return None
-        data["tx_ac"] = ac
+        data["tx_ac"] = result[1]
         data["alt_ac"] = result[4]
+
         data["pos_change"] = (
             pos[0] - data["tx_pos_range"][0],
             data["tx_pos_range"][1] - pos[1]
         )
-        data["alt_pos_change_range"] = (
-            data["alt_pos_range"][0] + data["pos_change"][0],
-            data["alt_pos_range"][1] - data["pos_change"][1]
-        )
 
-        if data["strand"] == "-":
-            data["alt_pos_change_range"] = (
-                data["alt_pos_range"][1] - data["pos_change"][0],
-                data["alt_pos_range"][0] + data["pos_change"][1]
-            )
+        if annotation_layer == AnnotationLayer.CDNA:
+            if data["strand"] == "-":
+                data["alt_pos_change_range"] = (
+                    data["alt_pos_range"][1] - data["pos_change"][0],
+                    data["alt_pos_range"][0] + data["pos_change"][1]
+                )
+            else:
+                data["alt_pos_change_range"] = (
+                    data["alt_pos_range"][0] + data["pos_change"][0],
+                    data["alt_pos_range"][1] - data["pos_change"][1]
+                )
+        else:
+            if data["strand"] == "-":
+                data["alt_pos_change_range"] = (pos[1] + 1, pos[0] + 1)
+            else:
+                data["alt_pos_change_range"] = pos
+
         return data
 
     async def get_ac_from_gene(self, gene: str) -> Optional[List[str]]:
@@ -768,17 +786,46 @@ class UTADatabase:
 
         return [r[0] for r in results]
 
-    async def get_transcripts_from_gene(self, gene: str, start_pos: int,
-                                        end_pos: int) -> pd.core.frame.DataFrame:
-        """Get transcripts on c coordinate associated to a gene.
+    async def get_transcripts_from_gene(
+        self, gene: str, start_pos: int, end_pos: int, use_tx_pos: bool = True,
+        alt_ac: Optional[str] = None
+    ) -> pd.core.frame.DataFrame:
+        """Get transcripts associated to a gene.
 
         :param str gene: Gene symbol
-        :param int start_pos: Start position change on c. coordinate
-        :param int end_pos: End position change on c. coordinate
+        :param int start_pos: Start position change
+        :param int end_pos: End position change
+        :param bool use_tx_pos: `True` if querying on transcript position.
+            This means `start_pos` and `end_pos` are c. coordinate positions
+            `False` if querying on genomic position. This means `start_pos`
+            and `end_pos` are g. coordinate positions
+        :param Optional[str] alt_ac: Genomic accession
         :return: Data Frame containing transcripts associated with a gene.
             Transcripts are ordered by most recent NC accession, then by
             descending transcript length.
         """
+        if use_tx_pos:
+            pos_cond = (
+                f"""
+                AND {start_pos} + T.cds_start_i
+                    BETWEEN ALIGN.tx_start_i AND ALIGN.tx_end_i
+                AND {end_pos} + T.cds_start_i
+                    BETWEEN ALIGN.tx_start_i AND ALIGN.tx_end_i
+                """
+            )
+        else:
+            pos_cond = (
+                f"""
+                AND {start_pos} BETWEEN ALIGN.alt_start_i AND ALIGN.alt_end_i
+                AND {end_pos} BETWEEN ALIGN.alt_start_i AND ALIGN.alt_end_i
+                """
+            )
+
+        if alt_ac:
+            alt_ac_cond = f"AND ALIGN.alt_ac = '{alt_ac}'"
+        else:
+            alt_ac_cond = "AND ALIGN.alt_ac LIKE 'NC_00%'"
+
         query = (
             f"""
             SELECT AA.pro_ac, AA.tx_ac, ALIGN.alt_ac, T.cds_start_i
@@ -786,12 +833,9 @@ class UTADatabase:
             JOIN {self.schema}.transcript as T ON T.ac = AA.tx_ac
             JOIN {self.schema}.tx_exon_aln_v as ALIGN ON T.ac = ALIGN.tx_ac
             WHERE T.hgnc = '{gene}'
-            AND ALIGN.alt_ac LIKE 'NC_00%'
+            {alt_ac_cond}
             AND ALIGN.alt_aln_method = 'splign'
-            AND {start_pos} + T.cds_start_i
-                BETWEEN ALIGN.tx_start_i AND ALIGN.tx_end_i
-            AND {end_pos} + T.cds_start_i
-                BETWEEN ALIGN.tx_start_i AND ALIGN.tx_end_i
+            {pos_cond}
             ORDER BY ALIGN.alt_ac, ALIGN.tx_end_i - ALIGN.tx_start_i DESC;
             """
         )
@@ -830,8 +874,9 @@ class UTADatabase:
         """
         descr = await self.get_chr_assembly(genomic_tx_data["alt_ac"])
         if descr is None:
+            # already grch38
             return None
-        chromosome, assembly = descr
+        chromosome, _ = descr
 
         query = (
             f"""
@@ -841,7 +886,8 @@ class UTADatabase:
             """
         )
         nc_acs = await self.execute_query(query)
-        if len(nc_acs) == 1:
+        nc_acs = [nc_ac[0] for nc_ac in nc_acs]
+        if nc_acs == [genomic_tx_data["alt_ac"]]:
             logger.warning(f"UTA does not have GRCh38 assembly for "
                            f"{genomic_tx_data['alt_ac'].split('.')[0]}")
             return None
