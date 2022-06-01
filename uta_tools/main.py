@@ -120,7 +120,7 @@ async def transcript_to_genomic_coordinates(
          response_model=MappedManeDataService,
          tags=[Tags.MANE_TRANSCRIPT])
 async def get_mapped_mane_data(
-    hgnc: str = Query(..., description="HGNC Symbol or Identifier"),
+    gene: str = Query(..., description="HGNC Symbol or Identifier"),
     assembly: Assembly = Query(..., description="Genomic assembly to use"),
     genomic_position: int = Query(..., description="Genomic position associated to the given gene and assembly"),  # noqa: E501
     residue_mode: ResidueMode = Query(..., description="Residue mode for position")
@@ -140,9 +140,9 @@ async def get_mapped_mane_data(
     mapped_mane_data = None
     try:
         mapped_mane_data = await uta_tools.mane_transcript.get_mapped_mane_data(
-            hgnc, assembly, genomic_position, residue_mode)
+            gene, assembly, genomic_position, residue_mode)
         if not mapped_mane_data:
-            warnings.append(f"Unable to find mapped data for gene {hgnc} at position "
+            warnings.append(f"Unable to find mapped data for gene {gene} at position "
                             f"{genomic_position} ({residue_mode} coordinates) on "
                             f"assembly {assembly}")
     except MANETranscriptError as e:

@@ -895,7 +895,6 @@ class MANETranscript:
 
         mane_data_len = len(mane_data)
 
-        chr = None
         alt_ac = None
         if hgnc_gene_data["locations"]:
             chr = hgnc_gene_data["locations"][0].get("chr") or ""

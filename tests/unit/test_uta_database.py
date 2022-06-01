@@ -268,6 +268,10 @@ def test_get_liftover(test_db):
     resp = test_db.get_liftover("chr17", 140453136, "GRCh38")
     assert resp is None
 
+    # not prefixed w chr
+    resp = test_db.get_liftover("7", 140453136, "GRCh38")
+    assert resp is None
+
 
 def test_set_liftover(test_db, genomic_tx_data):
     """Test that _set_liftover works correctly."""
