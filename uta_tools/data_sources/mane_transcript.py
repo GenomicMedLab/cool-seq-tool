@@ -13,7 +13,7 @@ from typing import Optional, Set, Tuple, Dict, List, Union
 import hgvs.parser
 import pandas as pd
 
-from uta_tools.schemas import AnnotationLayer, Assembly, ResidueMode, \
+from uta_tools.schemas import AnnotationLayer, Assembly, MappedManeData, ResidueMode, \
     TranscriptPriorityLabel
 from uta_tools.data_sources import SeqRepoAccess, TranscriptMappings, \
     MANETranscriptMappings, UTADatabase, GeneNormalizer
@@ -868,18 +868,19 @@ class MANETranscript:
     async def get_mapped_mane_data(
         self, gene: str, assembly: Assembly, genomic_position: int,
         residue_mode: ResidueMode = ResidueMode.RESIDUE
-    ) -> Optional[Dict]:
+    ) -> Optional[MappedManeData]:
         """Get MANE data for gene, assembly, and position. If GRCh37 assembly is given,
         will return mapped MANE data.
 
         :param str gene: Gene symbol or identifier
         :param Assembly assembly: Assembly for the provided genomic position
-        :param int genomic position: Position on the genomic reference sequence to find
+        :param int genomic_position: Position on the genomic reference sequence to find
             MANE data for
         :param ResidueMode residue_mode: Starting residue mode for `start_pos`
             and `end_pos`. Will always return coordinates in inter-residue
         :return: Mapped MANE or Longest Compatible Remaining data if found/compatible.
-            Else, a MANETranscriptError will be raised
+            MANETranscriptError will be raised if unable to get required data for
+            retrieving mapped MANE data.
         """
         hgnc_gene_data = self.gene_normalizer.get_hgnc_data(gene)
         if not hgnc_gene_data:
@@ -942,26 +943,29 @@ class MANETranscript:
                         if filter_data:
                             filter_data.sort(key=lambda x: x[1], reverse=True)
                             tx_exon_aln_v_data = filter_data[0]
-
-            return {
-                "gene": gene,
-                "refseq": current_mane_data["RefSeq_nuc"],
-                "ensembl": current_mane_data["Ensembl_nuc"],
-                "strand": "-" if tx_exon_aln_v_data[7] == -1 else "+",
-                "status": "_".join(current_mane_data["MANE_status"].split()).lower(),
-                "alt_ac": alt_ac,
-                "assembly": assembly.value
-            }
+            return MappedManeData(
+                gene=gene,
+                refseq=current_mane_data["RefSeq_nuc"],
+                ensembl=current_mane_data["Ensembl_nuc"],
+                strand="-" if tx_exon_aln_v_data[7] == -1 else "+",
+                status="_".join(current_mane_data["MANE_status"].split()).lower(),
+                alt_ac=alt_ac,
+                assembly=assembly.value
+            )
 
         lcr_data = await self.get_longest_compatible_transcript(
             gene, g_pos, g_pos, AnnotationLayer.GENOMIC,
             residue_mode=ResidueMode.INTER_RESIDUE, mane_transcripts=mane_transcripts,
             alt_ac=alt_ac)
         if lcr_data:
-            del lcr_data["pos"]
-            lcr_data["gene"] = gene
-            lcr_data["alt_ac"] = alt_ac
-            lcr_data["assembly"] = assembly.value
-            return lcr_data
+            return MappedManeData(
+                gene=gene,
+                refseq=lcr_data["refseq"],
+                ensembl=lcr_data["ensembl"],
+                strand=lcr_data["strand"],
+                status=lcr_data["status"],
+                alt_ac=alt_ac,
+                assembly=assembly.value
+            )
 
         return None

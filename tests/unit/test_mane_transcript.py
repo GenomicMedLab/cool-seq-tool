@@ -572,7 +572,7 @@ async def test_get_mapped_mane_data(test_mane_transcript):
     """Test that get_mapped_mane_data works correctly"""
     resp = await test_mane_transcript.get_mapped_mane_data(
         "braf", Assembly.GRCH38, 140785808, ResidueMode.INTER_RESIDUE)
-    assert resp == {
+    assert resp.dict() == {
         "gene": "BRAF",
         "refseq": "NM_001374258.1",
         "ensembl": "ENST00000644969.2",
@@ -584,7 +584,7 @@ async def test_get_mapped_mane_data(test_mane_transcript):
 
     resp = await test_mane_transcript.get_mapped_mane_data(
         "Braf", Assembly.GRCH37, 140485608, ResidueMode.INTER_RESIDUE)
-    assert resp == {
+    assert resp.dict() == {
         "gene": "BRAF",
         "refseq": "NM_001374258.1",
         "ensembl": "ENST00000644969.2",
@@ -596,7 +596,7 @@ async def test_get_mapped_mane_data(test_mane_transcript):
 
     resp = await test_mane_transcript.get_mapped_mane_data(
         "BRAF", Assembly.GRCH38, 140783157, ResidueMode.INTER_RESIDUE)
-    assert resp == {
+    assert resp.dict() == {
         "gene": "BRAF",
         "refseq": "NM_004333.6",
         "ensembl": "ENST00000646891.2",
@@ -608,7 +608,7 @@ async def test_get_mapped_mane_data(test_mane_transcript):
 
     resp = await test_mane_transcript.get_mapped_mane_data(
         "BRAF", Assembly.GRCH37, 140482958)
-    assert resp == {
+    assert resp.dict() == {
         "gene": "BRAF",
         "refseq": "NM_004333.6",
         "ensembl": "ENST00000646891.2",
