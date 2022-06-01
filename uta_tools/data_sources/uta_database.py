@@ -543,6 +543,7 @@ class UTADatabase:
             `False` if querying on genomic position. This means `start_pos` and
             `end_pos` are on the g. coorindate
         :param bool like_tx_ac: `True` if tx_ac condition should be a like statement.
+            This is used when you want to query an accession regardless of its version
             `False` if tx_condition will be exact match
         :return: List of tx_exon_aln_v data
         """
