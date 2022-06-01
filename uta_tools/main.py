@@ -154,6 +154,7 @@ async def get_mane_data(
         and `end_pos`. Will always return coordinates in inter-residue
     """
     warnings = list()
+    mane_data = None
     try:
         mane_data = await uta_tools.mane_transcript.get_mane_transcript(
             ac=ac, start_pos=start_pos, start_annotation_layer=start_annotation_layer,
