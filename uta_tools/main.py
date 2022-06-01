@@ -142,11 +142,11 @@ async def get_mane_data(
 
     :param str ac: Accession
     :param int start_pos: Start position
-    :param str start_annotation_layer: Starting annotation layer for query
+    :param AnnotationLayer start_annotation_layer: Starting annotation layer for query
     :param Optional[int] end_pos: End position. If `None` assumes
         both  `start_pos` and `end_pos` have same values.
-    :param str gene: Gene symbol
-    :param str ref: Reference at position given during input
+    :param Optional[str] gene: Gene symbol
+    :param Optional[str] ref: Reference at position given during input
     :param bool try_longest_compatible: `True` if should try longest
         compatible remaining if mane transcript was not compatible.
         `False` otherwise.
