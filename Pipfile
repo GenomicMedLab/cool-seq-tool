@@ -12,6 +12,9 @@ pandas = "*"
 hgvs = "*"
 "biocommons.seqrepo" = "*"
 pydantic = "*"
+fastapi = "*"
+uvicorn = "*"
+gene-normalizer = "*"
 
 [dev-packages]
 uta_tools = {editable = true, path = "."}
@@ -28,3 +31,5 @@ coveralls = "*"
 jupyterlab = "*"
 pytest-asyncio = "*"
 ipython = "*"
+psycopg2-binary = "*"
+mock = "*"

@@ -2,27 +2,143 @@
 from datetime import datetime
 from enum import Enum
 import re
-from typing import Literal, Optional, List
+from typing import Literal, Optional, List, Tuple, Union, Dict, Any, Type
 
 from pydantic import BaseModel, root_validator, validator
 from pydantic.main import Extra
 from pydantic.types import StrictStr, StrictInt
 
+from uta_tools.version import __version__
+
+
+class AnnotationLayer(str, Enum):
+    """Create enum for supported annotation layers"""
+
+    PROTEIN = "p"
+    CDNA = "c"
+    GENOMIC = "g"
+
+
+class Strand(str, Enum):
+    """Create enum for positive and negative strand"""
+
+    POSITIVE = "+"
+    NEGATIVE = "-"
+
+
+class Assembly(str, Enum):
+    """Create Enum for supported genomic assemblies"""
+
+    GRCH37 = "GRCh37"
+    GRCH38 = "GRCh38"
+
+
+class TranscriptPriorityLabel(str, Enum):
+    """Create Enum for Transcript Priority labels"""
+
+    MANESelect = "mane_select"
+    MANEPlusClinical = "mane_plus_clinical"
+    LongestCompatibleRemaining = "longest_compatible_remaining"
+
 
 class ResidueMode(str, Enum):
     """Create Enum for residue modes."""
 
-    RESIDUE: Literal["residue"] = "residue"
-    INTER_RESIDUE: Literal["inter-residue"] = "inter-residue"
+    RESIDUE = "residue"
+    INTER_RESIDUE = "inter-residue"
 
 
-class TranscriptExonData(BaseModel):
-    """Model containing transcript exon data."""
+class BaseModelForbidExtra(BaseModel):
+    """Base Pydantic model class with extra values forbidden."""
 
     class Config:
         """Class configs."""
 
         extra = Extra.forbid
+
+
+class GenomicRequestBody(BaseModelForbidExtra):
+    """Define constraints for genomic to transcript exon coordinates request body"""
+
+    chromosome: Union[StrictStr, StrictInt]
+    start: Optional[StrictInt] = None
+    end: Optional[StrictInt] = None
+    strand: Optional[StrictInt] = None
+    transcript: Optional[StrictStr] = None
+    gene: Optional[StrictStr] = None
+    residue_mode: ResidueMode = ResidueMode.RESIDUE
+
+    @root_validator(pre=False)
+    def check_start_and_end(cls, values):
+        """Check that at least one of {`start`, `end`} is set"""
+        msg = "Must provide either `start` or `end`"
+        start, end = values.get("start"), values.get("end")
+        assert start or end, msg
+        return values
+
+    class Config(BaseModelForbidExtra.Config):
+        """Configure model."""
+
+        @staticmethod
+        def schema_extra(schema: Dict[str, Any],
+                         model: Type["GenomicRequestBody"]) -> None:
+            """Configure OpenAPI schema."""
+            if "title" in schema.keys():
+                schema.pop("title", None)
+            for prop in schema.get("properties", {}).values():
+                prop.pop("title", None)
+            schema["example"] = {
+                "chromosome": "NC_000001.11",
+                "start": 154192135,
+                "end": None,
+                "strand": -1,
+                "transcript": "NM_152263.3",
+                "gene": "TPM3",
+                "residue_mode": "residue"
+            }
+
+
+class TranscriptRequestBody(BaseModelForbidExtra):
+    """Define constraints for transcript exon to genomic coordinates request body"""
+
+    gene: Optional[StrictStr] = None
+    transcript: Optional[StrictStr] = None
+    exon_start: Optional[StrictInt] = None
+    exon_start_offset: Optional[StrictInt] = 0
+    exon_end: Optional[StrictInt] = None
+    exon_end_offset: Optional[StrictInt] = 0
+
+    @root_validator(pre=False)
+    def check_exon_start_and_exon_end(cls, values):
+        """Check that at least one of {`exon_start`, `exon_end`} is set"""
+        msg = "Must provide either `exon_start` or `exon_end`"
+        exon_start, exon_end = values.get("exon_start"), values.get("exon_end")
+        assert exon_start or exon_end, msg
+        return values
+
+    class Config(BaseModelForbidExtra.Config):
+        """Configure model."""
+
+        @staticmethod
+        def schema_extra(schema: Dict[str, Any],
+                         model: Type["TranscriptRequestBody"]) -> None:
+            """Configure OpenAPI schema."""
+            if "title" in schema.keys():
+                schema.pop("title", None)
+            for prop in schema.get("properties", {}).values():
+                prop.pop("title", None)
+            schema["example"] = {
+                "gene": "TPM3",
+                "transcript": "NM_152263.3",
+                "exon_start": 1,
+                "exon_start_offset": 1,
+                "exon_end": None,
+                "exon_end_offset": None,
+            }
+
+
+class TranscriptExonData(BaseModelForbidExtra):
+    """Model containing transcript exon data."""
 
     transcript: StrictStr
     pos: StrictInt
@@ -32,14 +148,30 @@ class TranscriptExonData(BaseModel):
     chr: StrictStr
     strand: StrictInt
 
+    class Config(BaseModelForbidExtra.Config):
+        """Configure model."""
 
-class GenomicData(BaseModel):
+        @staticmethod
+        def schema_extra(schema: Dict[str, Any],
+                         model: Type["TranscriptExonData"]) -> None:
+            """Configure OpenAPI schema."""
+            if "title" in schema.keys():
+                schema.pop("title", None)
+            for prop in schema.get("properties", {}).values():
+                prop.pop("title", None)
+            schema["example"] = {
+                "chr": "NC_000001.11",
+                "gene": "TPM3",
+                "pos": 154192135,
+                "exon": 1,
+                "exon_offset": 0,
+                "transcript": "NM_152263.3",
+                "strand": -1
+            }
+
+
+class GenomicData(BaseModelForbidExtra):
     """Model containing genomic and transcript exon data."""
-
-    class Config:
-        """Class configs."""
-
-        extra = Extra.forbid
 
     gene: StrictStr
     chr: StrictStr
@@ -77,8 +209,32 @@ class GenomicData(BaseModel):
             values["exon_end_offset"] = None
         return values
 
+    class Config(BaseModelForbidExtra.Config):
+        """Configure model."""
 
-class ServiceMeta(BaseModel):
+        @staticmethod
+        def schema_extra(schema: Dict[str, Any],
+                         model: Type["GenomicData"]) -> None:
+            """Configure OpenAPI schema."""
+            if "title" in schema.keys():
+                schema.pop("title", None)
+            for prop in schema.get("properties", {}).values():
+                prop.pop("title", None)
+            schema["example"] = {
+                "gene": "TPM3",
+                "chr": "NC_000001.11",
+                "start": 154192135,
+                "end": None,
+                "exon_start": 1,
+                "exon_end": None,
+                "exon_start_offset": 0,
+                "exon_end_offset": None,
+                "transcript": "NM_152263.3",
+                "strand": -1
+            }
+
+
+class ServiceMeta(BaseModelForbidExtra):
     """Metadata for uta_tools service"""
 
     name: Literal["uta_tools"] = "uta_tools"
@@ -95,28 +251,238 @@ class ServiceMeta(BaseModel):
         assert bool(re.match(version_regex, v))
         return v
 
+    class Config(BaseModelForbidExtra.Config):
+        """Configure model."""
 
-class TranscriptExonDataResponse(BaseModel):
+        @staticmethod
+        def schema_extra(schema: Dict[str, Any],
+                         model: Type["ServiceMeta"]) -> None:
+            """Configure OpenAPI schema."""
+            if "title" in schema.keys():
+                schema.pop("title", None)
+            for prop in schema.get("properties", {}).values():
+                prop.pop("title", None)
+            schema["example"] = {
+                "name": "uta_tools",
+                "version": __version__,
+                "response_datetime": datetime.now(),
+                "url": "https://github.com/cancervariants/uta_tools"
+            }
+
+
+class TranscriptExonDataResponse(BaseModelForbidExtra):
     """Response model for Transcript Exon Data"""
 
     transcript_exon_data: Optional[TranscriptExonData] = None
     warnings: Optional[List[StrictStr]] = []
     service_meta: ServiceMeta
 
-    class Config:
-        """Class configs."""
+    class Config(BaseModelForbidExtra.Config):
+        """Configure model."""
 
-        extra = Extra.forbid
+        @staticmethod
+        def schema_extra(schema: Dict[str, Any],
+                         model: Type["TranscriptExonDataResponse"]) -> None:
+            """Configure OpenAPI schema."""
+            if "title" in schema.keys():
+                schema.pop("title", None)
+            for prop in schema.get("properties", {}).values():
+                prop.pop("title", None)
+            schema["example"] = {
+                "transcript_exon_data": {
+                    "chr": "NC_000001.11",
+                    "gene": "TPM3",
+                    "pos": 154192135,
+                    "exon": 1,
+                    "exon_offset": 0,
+                    "transcript": "NM_152263.3",
+                    "strand": -1
+                },
+                "warnings": list(),
+                "service_meta": {
+                    "name": "uta_tools",
+                    "version": __version__,
+                    "response_datetime": datetime.now(),
+                    "url": "https://github.com/cancervariants/uta_tools"
+                }
+            }
 
 
-class GenomicDataResponse(BaseModel):
+class GenomicDataResponse(BaseModelForbidExtra):
     """Response model for Genomic Data"""
 
     genomic_data: Optional[GenomicData] = None
     warnings: Optional[List[StrictStr]] = []
     service_meta: ServiceMeta
 
-    class Config:
-        """Class configs."""
+    class Config(BaseModelForbidExtra.Config):
+        """Configure model."""
 
-        extra = Extra.forbid
+        @staticmethod
+        def schema_extra(schema: Dict[str, Any],
+                         model: Type["GenomicDataResponse"]) -> None:
+            """Configure OpenAPI schema."""
+            if "title" in schema.keys():
+                schema.pop("title", None)
+            for prop in schema.get("properties", {}).values():
+                prop.pop("title", None)
+            schema["example"] = {
+                "genomic_data": {
+                    "gene": "TPM3",
+                    "chr": "NC_000001.11",
+                    "start": 154192135,
+                    "end": None,
+                    "exon_start": 1,
+                    "exon_end": None,
+                    "exon_start_offset": 0,
+                    "exon_end_offset": None,
+                    "transcript": "NM_152263.3",
+                    "strand": -1
+                },
+                "warnings": list(),
+                "service_meta": {
+                    "name": "uta_tools",
+                    "version": __version__,
+                    "response_datetime": datetime.now(),
+                    "url": "https://github.com/cancervariants/uta_tools"
+                }
+            }
+
+
+class MappedManeData(BaseModel):
+    """Define mapped mane data fields"""
+
+    gene: StrictStr
+    refseq: StrictStr
+    ensembl: Optional[StrictStr] = None
+    strand: Strand
+    status: TranscriptPriorityLabel
+    alt_ac: StrictStr
+    assembly: Assembly
+
+    class Config(BaseModelForbidExtra.Config):
+        """Configure model."""
+
+        @staticmethod
+        def schema_extra(schema: Dict[str, Any],
+                         model: Type["MappedManeData"]) -> None:
+            """Configure OpenAPI schema."""
+            if "title" in schema.keys():
+                schema.pop("title", None)
+            for prop in schema.get("properties", {}).values():
+                prop.pop("title", None)
+            schema["example"] = {
+                "gene": "BRAF",
+                "refseq": "NM_001374258.1",
+                "ensembl": "ENST00000644969.2",
+                "strand": "-",
+                "status": "mane_plus_clinical",
+                "alt_ac": "NC_000007.13",
+                "assembly": "GRCh37"
+            }
+
+
+class MappedManeDataService(BaseModelForbidExtra):
+    """Service model response for mapped mane data"""
+
+    mapped_mane_data: Optional[MappedManeData] = None
+    warnings: List[StrictStr] = []
+    service_meta: ServiceMeta
+
+    class Config(BaseModelForbidExtra.Config):
+        """Configure model."""
+
+        @staticmethod
+        def schema_extra(schema: Dict[str, Any],
+                         model: Type["MappedManeDataService"]) -> None:
+            """Configure OpenAPI schema."""
+            if "title" in schema.keys():
+                schema.pop("title", None)
+            for prop in schema.get("properties", {}).values():
+                prop.pop("title", None)
+            schema["example"] = {
+                "mapped_mane_data": {
+                    "gene": "BRAF",
+                    "refseq": "NM_001374258.1",
+                    "ensembl": "ENST00000644969.2",
+                    "strand": "-",
+                    "status": "mane_plus_clinical",
+                    "alt_ac": "NC_000007.13",
+                    "assembly": "GRCh37"
+                },
+                "warnings": list(),
+                "service_meta": {
+                    "name": "uta_tools",
+                    "version": __version__,
+                    "response_datetime": datetime.now(),
+                    "url": "https://github.com/cancervariants/uta_tools"
+                }
+            }
+
+
+class ManeData(BaseModel):
+    """Define mane data fields"""
+
+    gene: Optional[StrictStr] = None
+    refseq: Optional[StrictStr] = None
+    ensembl: Optional[StrictStr] = None
+    pos: Tuple[int, int]
+    strand: Strand
+    status: TranscriptPriorityLabel
+
+    class Config(BaseModelForbidExtra.Config):
+        """Configure model."""
+
+        @staticmethod
+        def schema_extra(schema: Dict[str, Any],
+                         model: Type["ManeData"]) -> None:
+            """Configure OpenAPI schema."""
+            if "title" in schema.keys():
+                schema.pop("title", None)
+            for prop in schema.get("properties", {}).values():
+                prop.pop("title", None)
+            schema["example"] = {
+                "gene": "BRAF",
+                "refseq": "NP_004324.2",
+                "ensembl": "ENSP00000493543.1",
+                "pos": (598, 598),
+                "strand": "-",
+                "status": "mane_select"
+            }
+
+
+class ManeDataService(BaseModelForbidExtra):
+    """Service model response for getting mane data"""
+
+    mane_data: Optional[ManeData] = None
+    warnings: List[StrictStr] = []
+    service_meta: ServiceMeta
+
+    class Config(BaseModelForbidExtra.Config):
+        """Configure model."""
+
+        @staticmethod
+        def schema_extra(schema: Dict[str, Any],
+                         model: Type["ManeDataService"]) -> None:
+            """Configure OpenAPI schema."""
+            if "title" in schema.keys():
+                schema.pop("title", None)
+            for prop in schema.get("properties", {}).values():
+                prop.pop("title", None)
+            schema["example"] = {
+                "mane_data": {
+                    "gene": "BRAF",
+                    "refseq": "NP_004324.2",
+                    "ensembl": "ENSP00000493543.1",
+                    "pos": (598, 598),
+                    "strand": "-",
+                    "status": "mane_select"
+                },
+                "warnings": list(),
+                "service_meta": {
+                    "name": "uta_tools",
+                    "version": __version__,
+                    "response_datetime": datetime.now(),
+                    "url": "https://github.com/cancervariants/uta_tools"
+                }
+            }

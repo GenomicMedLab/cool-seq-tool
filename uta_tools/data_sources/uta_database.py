@@ -1,5 +1,5 @@
 """Module for UTA queries."""
-from typing import Dict, List, Optional, Tuple, Any, TypeVar, Type
+from typing import Dict, List, Optional, Tuple, Any, TypeVar, Type, Union
 from os import environ
 from urllib.parse import quote, unquote
 
@@ -12,6 +12,7 @@ from asyncpg.exceptions import InvalidAuthorizationSpecificationError, \
     InterfaceError
 
 from uta_tools import UTA_DB_URL, logger
+from uta_tools.schemas import AnnotationLayer, Assembly
 
 
 # use `bound` to upper-bound UTADatabase or child classes
@@ -221,26 +222,23 @@ class UTADatabase:
         return results
 
     async def chr_to_gene_and_accessions(
-            self, chromosome: int, pos: int, strand: int = None,
-            alt_ac: str = None) -> Tuple[Optional[Dict], Optional[str]]:
+            self, chromosome: int, pos: int, strand: Optional[int] = None,
+            alt_ac: Optional[str] = None,
+            gene: Optional[str] = None) -> Tuple[Optional[Dict], Optional[str]]:
         """Return genes and genomic accessions related to a position on a chr.
 
         :param int chromosome: Chromosome number
         :param int pos: Genomic position
-        :param int strand: Strand. Must be either `-1` or `1`
-        :param str alt_ac: Genomic accession
+        :param Optional[int] strand: Strand. Must be either `-1` or `1`
+        :param Optional[str] alt_ac: Genomic accession
+        :param Optional[str] gene: Gene symbol
         :return: Dictionary containing genes and genomic accessions and
             warnings if found
         """
-        if alt_ac:
-            alt_ac_cond = f"WHERE alt_ac = '{alt_ac}'"
-        else:
-            alt_ac_cond = f"WHERE alt_ac ~ '^NC_[0-9]+0{chromosome}.[0-9]+$'"
+        alt_ac_cond = f"WHERE alt_ac = '{alt_ac}'" if alt_ac else f"WHERE alt_ac ~ '^NC_[0-9]+0{chromosome}.[0-9]+$'"  # noqa: E501
+        strand_cond = f"AND alt_strand = '{strand}'" if strand else ""
+        gene_cond = f"AND hgnc = '{gene}'" if gene else ""
 
-        if strand:
-            strand_cond = f"AND alt_strand = '{strand}'"
-        else:
-            strand_cond = ""
         query = (
             f"""
             SELECT hgnc, alt_ac
@@ -248,9 +246,11 @@ class UTADatabase:
             {alt_ac_cond}
             AND alt_aln_method = 'splign'
             AND {pos} BETWEEN alt_start_i AND alt_end_i
-            {strand_cond};
+            {strand_cond}
+            {gene_cond};
             """
         )
+
         results = await self.execute_query(query)
         if not results:
             msg = f"Unable to find a result for chromosome " \
@@ -259,6 +259,8 @@ class UTADatabase:
             if strand:
                 msg += f" on the " \
                        f"{'positive' if strand == 1 else 'negative'} strand"
+            if gene:
+                msg += f" and on gene {gene}"
             return None, msg
 
         results = self._transform_list(results)
@@ -526,28 +528,39 @@ class UTADatabase:
                 result = None
             return result
 
-    async def get_tx_exon_aln_v_data(self, ac: str, start_pos: int,
-                                     end_pos: int, alt_ac: str = None,
-                                     use_tx_pos: bool = True) -> List:
+    async def get_tx_exon_aln_v_data(
+        self, tx_ac: str, start_pos: int, end_pos: int, alt_ac: str = None,
+        use_tx_pos: bool = True, like_tx_ac: bool = False
+    ) -> List:
         """Return queried data from tx_exon_aln_v table.
 
-        :param str ac: Accession
+        :param str tx_ac: accession on c. coordinate
         :param int start_pos: Start position change
         :param int end_pos: End position change
-        :param str alt_ac: NC accession
-        :param bool use_tx_pos: `True` if querying on transcript position.
-            `False` if querying on genomic position.
+        :param str alt_ac: accession on g. coordinate
+        :param bool use_tx_pos: `True` if querying on transcript position. This means
+            `start_pos` and `end_pos` are on the c. coordinate
+            `False` if querying on genomic position. This means `start_pos` and
+            `end_pos` are on the g. coordinate
+        :param bool like_tx_ac: `True` if tx_ac condition should be a like statement.
+            This is used when you want to query an accession regardless of its version
+            `False` if tx_condition will be exact match
         :return: List of tx_exon_aln_v data
         """
         if end_pos is None:
             end_pos = start_pos
 
-        if ac.startswith("ENST"):
-            temp_ac = ac.split(".")[0]
+        if tx_ac.startswith("EN"):
+            temp_ac = tx_ac.split(".")[0]
             aln_method = f"AND alt_aln_method='genebuild'"  # noqa: F541
         else:
-            temp_ac = ac
+            temp_ac = tx_ac
             aln_method = f"AND alt_aln_method='splign'"  # noqa: F541
+
+        if like_tx_ac:
+            tx_q = f"WHERE tx_ac LIKE '{temp_ac}%'"  # noqa: F541
+        else:
+            tx_q = f"WHERE tx_ac='{temp_ac}'"  # noqa: F541
 
         if alt_ac:
             alt_ac_q = f"AND alt_ac = '{alt_ac}'"
@@ -564,7 +577,7 @@ class UTADatabase:
             SELECT hgnc, tx_ac, tx_start_i, tx_end_i, alt_ac, alt_start_i,
                 alt_end_i, alt_strand, alt_aln_method, tx_exon_id, alt_exon_id
             FROM {self.schema}.tx_exon_aln_v
-            WHERE tx_ac='{temp_ac}'
+            {tx_q}
             {alt_ac_q}
             {aln_method}
             AND {start_pos} BETWEEN {pos_q}
@@ -670,17 +683,24 @@ class UTADatabase:
 
         return data
 
-    async def get_genomic_tx_data(self, ac: str,
-                                  pos: Tuple[int, int]) -> Optional[Dict]:
+    async def get_genomic_tx_data(
+        self, tx_ac: str, pos: Tuple[int, int],
+        annotation_layer: Union[AnnotationLayer.CDNA, AnnotationLayer.GENOMIC] = AnnotationLayer.CDNA,  # noqa: E501
+        alt_ac: Optional[str] = None
+    ) -> Optional[Dict]:
         """Get transcript mapping to genomic data.
 
-        Used when going from c -> g
-        :param str ac: cDNA transcript
-        :param Tuple pos: [cDNA pos start, cDNA pos end]
+        :param str tx_ac: Accession on c. coordinate
+        :param Tuple pos: (start pos, end pos)
+        :param Union[AnnotationLayer.CDNA, AnnotationLayer.GENOMIC] annotation_layer:
+            Annotation layer for `ac` and `pos`
+        :param Optional[str] alt_ac: Accession on g. coordinate
         :return: Gene, Transcript accession and position change,
             Altered transcript accession and position change, Strand
         """
-        results = await self.get_tx_exon_aln_v_data(ac, pos[0], pos[1])
+        results = await self.get_tx_exon_aln_v_data(
+            tx_ac, pos[0], pos[1], use_tx_pos=annotation_layer == AnnotationLayer.CDNA,
+            alt_ac=alt_ac)
         if not results:
             return None
         result = results[-1]
@@ -688,22 +708,31 @@ class UTADatabase:
         data = self.data_from_result(result)
         if not data:
             return None
-        data["tx_ac"] = ac
+        data["tx_ac"] = result[1]
         data["alt_ac"] = result[4]
+
         data["pos_change"] = (
             pos[0] - data["tx_pos_range"][0],
             data["tx_pos_range"][1] - pos[1]
         )
-        data["alt_pos_change_range"] = (
-            data["alt_pos_range"][0] + data["pos_change"][0],
-            data["alt_pos_range"][1] - data["pos_change"][1]
-        )
 
-        if data["strand"] == "-":
-            data["alt_pos_change_range"] = (
-                data["alt_pos_range"][1] - data["pos_change"][0],
-                data["alt_pos_range"][0] + data["pos_change"][1]
-            )
+        if annotation_layer == AnnotationLayer.CDNA:
+            if data["strand"] == "-":
+                data["alt_pos_change_range"] = (
+                    data["alt_pos_range"][1] - data["pos_change"][0],
+                    data["alt_pos_range"][0] + data["pos_change"][1]
+                )
+            else:
+                data["alt_pos_change_range"] = (
+                    data["alt_pos_range"][0] + data["pos_change"][0],
+                    data["alt_pos_range"][1] - data["pos_change"][1]
+                )
+        else:
+            if data["strand"] == "-":
+                data["alt_pos_change_range"] = (pos[1] + 1, pos[0] + 1)
+            else:
+                data["alt_pos_change_range"] = pos
+
         return data
 
     async def get_ac_from_gene(self, gene: str) -> Optional[List[str]]:
@@ -758,17 +787,46 @@ class UTADatabase:
 
         return [r[0] for r in results]
 
-    async def get_transcripts_from_gene(self, gene: str, start_pos: int,
-                                        end_pos: int) -> pd.core.frame.DataFrame:  # noqa: E501
-        """Get transcripts on c coordinate associated to a gene.
+    async def get_transcripts_from_gene(
+        self, gene: str, start_pos: int, end_pos: int, use_tx_pos: bool = True,
+        alt_ac: Optional[str] = None
+    ) -> pd.core.frame.DataFrame:
+        """Get transcripts associated to a gene.
 
         :param str gene: Gene symbol
-        :param int start_pos: Start position change on c. coordinate
-        :param int end_pos: End position change on c. coordinate
+        :param int start_pos: Start position change
+        :param int end_pos: End position change
+        :param bool use_tx_pos: `True` if querying on transcript position.
+            This means `start_pos` and `end_pos` are c. coordinate positions
+            `False` if querying on genomic position. This means `start_pos`
+            and `end_pos` are g. coordinate positions
+        :param Optional[str] alt_ac: Genomic accession
         :return: Data Frame containing transcripts associated with a gene.
             Transcripts are ordered by most recent NC accession, then by
             descending transcript length.
         """
+        if use_tx_pos:
+            pos_cond = (
+                f"""
+                AND {start_pos} + T.cds_start_i
+                    BETWEEN ALIGN.tx_start_i AND ALIGN.tx_end_i
+                AND {end_pos} + T.cds_start_i
+                    BETWEEN ALIGN.tx_start_i AND ALIGN.tx_end_i
+                """
+            )
+        else:
+            pos_cond = (
+                f"""
+                AND {start_pos} BETWEEN ALIGN.alt_start_i AND ALIGN.alt_end_i
+                AND {end_pos} BETWEEN ALIGN.alt_start_i AND ALIGN.alt_end_i
+                """
+            )
+
+        if alt_ac:
+            alt_ac_cond = f"AND ALIGN.alt_ac = '{alt_ac}'"
+        else:
+            alt_ac_cond = "AND ALIGN.alt_ac LIKE 'NC_00%'"
+
         query = (
             f"""
             SELECT AA.pro_ac, AA.tx_ac, ALIGN.alt_ac, T.cds_start_i
@@ -776,18 +834,17 @@ class UTADatabase:
             JOIN {self.schema}.transcript as T ON T.ac = AA.tx_ac
             JOIN {self.schema}.tx_exon_aln_v as ALIGN ON T.ac = ALIGN.tx_ac
             WHERE T.hgnc = '{gene}'
-            AND ALIGN.alt_ac LIKE 'NC_00%'
+            {alt_ac_cond}
             AND ALIGN.alt_aln_method = 'splign'
-            AND {start_pos} + T.cds_start_i
-                BETWEEN ALIGN.tx_start_i AND ALIGN.tx_end_i
-            AND {end_pos} + T.cds_start_i
-                BETWEEN ALIGN.tx_start_i AND ALIGN.tx_end_i
+            {pos_cond}
             ORDER BY ALIGN.alt_ac, ALIGN.tx_end_i - ALIGN.tx_start_i DESC;
             """
         )
         results = await self.execute_query(query)
         return pd.DataFrame(
-            results, columns=["pro_ac", "tx_ac", "alt_ac", "cds_start_i"])
+            results,
+            columns=["pro_ac", "tx_ac", "alt_ac", "cds_start_i"]
+        ).drop_duplicates()
 
     async def get_chr_assembly(self, ac: str) -> Optional[Tuple[str, str]]:
         """Get chromosome and assembly for NC accession if not in GRCh38.
@@ -818,8 +875,9 @@ class UTADatabase:
         """
         descr = await self.get_chr_assembly(genomic_tx_data["alt_ac"])
         if descr is None:
+            # already grch38
             return None
-        chromosome, assembly = descr
+        chromosome, _ = descr
 
         query = (
             f"""
@@ -829,21 +887,20 @@ class UTADatabase:
             """
         )
         nc_acs = await self.execute_query(query)
-        if len(nc_acs) == 1:
+        nc_acs = [nc_ac[0] for nc_ac in nc_acs]
+        if nc_acs == [genomic_tx_data["alt_ac"]]:
             logger.warning(f"UTA does not have GRCh38 assembly for "
                            f"{genomic_tx_data['alt_ac'].split('.')[0]}")
             return None
 
         # Get most recent assembly version position
         # Liftover range
-        self._set_liftover(
-            genomic_tx_data, "alt_pos_range", chromosome
-        )
+        self._set_liftover(genomic_tx_data, "alt_pos_range", chromosome,
+                           Assembly.GRCH38)
 
         # Liftover changes range
-        self._set_liftover(
-            genomic_tx_data, "alt_pos_change_range", chromosome
-        )
+        self._set_liftover(genomic_tx_data, "alt_pos_change_range", chromosome,
+                           Assembly.GRCH38)
 
         # Change alt_ac to most recent
         query = (
@@ -858,39 +915,53 @@ class UTADatabase:
         nc_acs = await self.execute_query(query)
         genomic_tx_data["alt_ac"] = nc_acs[0][0]
 
-    def get_liftover(self, chromosome: str, pos: int) -> Optional[Tuple]:
+    def get_liftover(self, chromosome: str, pos: int,
+                     liftover_to_assembly: Assembly) -> Optional[Tuple]:
         """Get new genome assembly data for a position on a chromosome.
 
-        :param str chromosome: The chromosome number
+        :param str chromosome: The chromosome number. Must be prefixed with `chr`
         :param int pos: Position on the chromosome
+        :param Assembly liftover_to_assembly: Assembly to liftover to
         :return: [Target chromosome, target position, target strand,
-            conversion_chain_score] for hg38 assembly
+            conversion_chain_score] for assembly
         """
-        liftover = self.liftover_37_to_38.convert_coordinate(chromosome, pos)
+        if not chromosome.startswith("chr"):
+            logger.warning("`chromosome` must be prefixed with chr")
+            return None
+
+        if liftover_to_assembly == Assembly.GRCH38:
+            liftover = self.liftover_37_to_38.convert_coordinate(chromosome, pos)
+        elif liftover_to_assembly == Assembly.GRCH37:
+            liftover = self.liftover_38_to_37.convert_coordinate(chromosome, pos)
+        else:
+            logger.warning(f"{liftover_to_assembly} assembly not supported")
+            liftover = None
+
         if liftover is None or len(liftover) == 0:
             logger.warning(f"{pos} does not exist on {chromosome}")
             return None
         else:
             return liftover[0]
 
-    def _set_liftover(self, genomic_tx_data: Dict, key: str,
-                      chromosome: str) -> None:
-        """Update genomic_tx_data to have hg38 coordinates.
+    def _set_liftover(self, genomic_tx_data: Dict, key: str, chromosome: str,
+                      liftover_to_assembly: Assembly) -> None:
+        """Update genomic_tx_data to have coordinates for given assembly.
 
         :param Dict genomic_tx_data: Dictionary containing gene, nc_accession,
             alt_pos, and strand
         :param str key: Key to access coordinate positions
-        :param str chromosome: Chromosome
+        :param str chromosome: Chromosome, must be prefixed with `chr`
+        :param Assembly liftover_to_assembly: Assembly to liftover to
         """
-        liftover_start_i = self.get_liftover(chromosome,
-                                             genomic_tx_data[key][0])
+        liftover_start_i = self.get_liftover(chromosome, genomic_tx_data[key][0],
+                                             liftover_to_assembly)
         if liftover_start_i is None:
             logger.warning(f"Unable to liftover position "
                            f"{genomic_tx_data[key][0]} on {chromosome}")
             return None
 
-        liftover_end_i = self.get_liftover(chromosome,
-                                           genomic_tx_data[key][1])
+        liftover_end_i = self.get_liftover(chromosome, genomic_tx_data[key][1],
+                                           liftover_to_assembly)
         if liftover_end_i is None:
             logger.warning(f"Unable to liftover position "
                            f"{genomic_tx_data[key][1]} on {chromosome}")

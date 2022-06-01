@@ -20,54 +20,35 @@ class SeqRepoAccess:
         self.seqrepo_client = SeqRepo(seqrepo_data_path)
 
     def get_reference_sequence(
-            self, ac: str, start: int, end: Optional[int] = None,
+            self, ac: str, start: Optional[int] = None, end: Optional[int] = None,
             residue_mode: str = ResidueMode.RESIDUE
-    ) -> Tuple[Optional[str], Optional[str]]:
-        """Get reference sequence for transcript at given positions
+    ) -> Tuple[str, Optional[str]]:
+        """Get reference sequence for an accession given a start and end position.
+        If `start` and `end` are not given, it will return the entire reference sequence
 
         :param str ac: Accession
-        :param int start: Start pos change
-        :param Optional[int] end: End pos change
-        :param str residue_mode: Residue mode for start/end positions
-            Must be either `inter-residue` or `residue`
-        :return: Sequence at position, warning
-        """
-        sequence, warnings = self.check_sequence(
-            ac, start, end, residue_mode)
-        if warnings:
-            return None, warnings
-        else:
-            return sequence, None
-
-    def check_sequence(
-            self, ac: str, start: int, end: Optional[int] = None,
-            residue_mode: str = ResidueMode.RESIDUE
-    ) -> Tuple[Optional[str], Optional[str]]:
-        """Check that accession and positions actually exist
-
-        :param str ac: Accession
-        :param int start: Start pos change
+        :param Optional[int] start: Start pos change
         :param Optional[int] end: End pos change. If `None` assumes both
-            `start` and `end` have same values.
+            `start` and `end` have same values, if `start` exists.
         :param str residue_mode: Residue mode for start/end positions
             Must be either `inter-residue` or `residue`
         :return: Sequence at position (if accession and positions actually
-            exist), warning
+            exist, else return empty string), warning if any
         """
-        pos, warning = get_inter_residue_pos(start, residue_mode, end_pos=end)
-        if pos is None:
-            return None, warning
-        else:
-            start, end = pos
-            if start == end:
-                end += 1
-
+        if start or end:
+            pos, warning = get_inter_residue_pos(start, residue_mode, end_pos=end)
+            if pos is None:
+                return "", warning
+            else:
+                start, end = pos
+                if start == end:
+                    end += 1
         try:
             sequence = self.seqrepo_client.fetch(ac, start=start, end=end)
         except KeyError:
             msg = f"Accession, {ac}, not found in SeqRepo"
             logger.warning(msg)
-            return None, msg
+            return "", msg
         except ValueError as e:
             error = str(e)
             if error.startswith("start out of range"):
@@ -82,36 +63,17 @@ class SeqRepoAccess:
             else:
                 msg = f"{e}"
             logger.warning(msg)
-            return None, msg
+            return "", msg
         else:
             # If start is valid, but end is invalid, SeqRepo still returns
             # the sequence from valid positions. So we want to make sure
             # that both start and end positions are valid
-            expected_len_of_seq = end - start
-            if len(sequence) != expected_len_of_seq:
-                return None, f"End inter-residue coordinate ({end})" \
-                             f" is out of index on {ac}"
+            if start and end:
+                expected_len_of_seq = end - start
+                if len(sequence) != expected_len_of_seq:
+                    return "", f"End inter-residue coordinate ({end})" \
+                               f" is out of index on {ac}"
             return sequence, None
-
-    def is_valid_input_sequence(
-            self, ac: str, start: int, end: Optional[int] = None,
-            residue_mode: ResidueMode = ResidueMode.RESIDUE
-    ) -> Tuple[bool, Optional[str]]:
-        """Determine whether or not input sequence is valid.
-
-        :param str ac: Accession
-        :param int start: Start pos change
-        :param Optional[int] end: End pos change
-        :param ResidueMode residue_mode: Residue mode for start/end positions
-            Must be either `inter-residue` or `residue`
-        :return: Bool on whether or not input is valid, warning
-        """
-        seq, warning = self.check_sequence(
-            ac, start, end, residue_mode)
-        if warning:
-            return False, warning
-        else:
-            return True, None
 
     def translate_identifier(
             self, ac: str, target_namespace: str = None

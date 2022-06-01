@@ -619,6 +619,18 @@ async def test_valid_inputs(test_uta_tools):
     resp = await test_uta_tools.transcript_to_genomic_coordinates(**inputs)
     assert resp.genomic_data
 
+    # Test X/Y chromosome bug
+    inputs = {
+        "chromosome": "X",
+        "strand": 1,
+        "start": 154437254,
+        "end": 154437299,
+        "gene": "GDI1",
+        "residue_mode": "inter-residue"
+    }
+    resp = await test_uta_tools.genomic_to_transcript_exon_coordinates(**inputs)
+    assert resp.genomic_data
+
 
 @pytest.mark.asyncio
 async def test_invalid(test_uta_tools):
@@ -641,8 +653,10 @@ async def test_invalid(test_uta_tools):
         "NC_000001.11", start=154192135, end=154170399, strand=-1,
         transcript="NM_152263.3", gene="dummy gene")
     genomic_data_assertion_checks(resp, is_valid=False)
-    assert resp.warnings == ["Input gene, DUMMY GENE, does not match "
-                             "expected output gene, TPM3"]
+    assert resp.warnings == ["Unable to find a result for chromosome NC_000001.11 "
+                             "where genomic coordinate 154192134 is mapped between an "
+                             "exon's start and end coordinates on the negative strand "
+                             "and on gene DUMMY GENE"]
 
     # Invalid chromosome
     resp = await test_uta_tools.genomic_to_transcript_exon_coordinates(
@@ -678,7 +692,7 @@ async def test_invalid(test_uta_tools):
     assert resp.warnings == [
         "Unable to find a result for chromosome NC_000001.11 where genomic "
         "coordinate 154192135 is mapped between an exon's start and end "
-        "coordinates on the positive strand"
+        "coordinates on the positive strand and on gene TPM3"
     ]
 
     # Must supply either gene or transcript
