@@ -246,7 +246,8 @@ class MANETranscript:
 
     async def _g_to_c(
         self, g: Dict, refseq_c_ac: str, status: TranscriptPriorityLabel,
-        ensembl_c_ac: Optional[str] = None, alt_ac: Optional[str] = None
+        ensembl_c_ac: Optional[str] = None, alt_ac: Optional[str] = None,
+        found_result: bool = False
     ) -> Optional[Dict]:
         """Get transcript c. annotation data from g. annotation.
 
@@ -255,17 +256,28 @@ class MANETranscript:
         :param TranscriptPriorityLabel status: Status of transcript
         :param Optional[str] ensembl_c_ac: Ensembl transcript accession
         :param Optional[str] alt_ac: Genomic accession
+        :param bool found_result: `True` if found result, so do not need to query
+            tx_exon_aln_v table. This is because the user did not need to liftover.
+            `False` if need to get result from tx_exon_aln_v table.
         :return: Transcript data
         """
-        result = await self.uta_db.get_tx_exon_aln_v_data(
-            refseq_c_ac, g["alt_pos_change_range"][0],
-            g["alt_pos_change_range"][1], alt_ac=g["alt_ac"], use_tx_pos=False)
-
-        if not result:
-            logger.warning(f"Unable to find transcript, {refseq_c_ac}, position change")
-            return None
+        if found_result:
+            tx_g_pos = g["alt_pos_range"]
+            tx_pos_range = g["tx_pos_range"]
         else:
-            result = result[-1]
+            result = await self.uta_db.get_tx_exon_aln_v_data(
+                refseq_c_ac, g["alt_pos_change_range"][0],
+                g["alt_pos_change_range"][1], alt_ac=alt_ac if alt_ac else g["alt_ac"],
+                use_tx_pos=False)
+
+            if not result:
+                logger.warning(f"Unable to find transcript, {refseq_c_ac}, "
+                               f"position change")
+                return None
+            else:
+                result = result[-1]
+                tx_g_pos = result[5], result[6]  # alt_start_i, alt_end_i
+                tx_pos_range = result[2], result[3]  # tx_start_i, tx_end_i
 
         cds_start_end = await self.uta_db.get_cds_start_end(refseq_c_ac)
         if not cds_start_end:
@@ -273,7 +285,6 @@ class MANETranscript:
         coding_start_site = cds_start_end[0]
 
         g_pos = g["alt_pos_change_range"]  # start/end genomic change
-        tx_g_pos = result[5], result[6]  # alt_start_i, alt_end_i
         g_pos_change = g_pos[0] - tx_g_pos[0], tx_g_pos[1] - g_pos[1]
 
         if g["strand"] == "-":
@@ -281,7 +292,6 @@ class MANETranscript:
                 tx_g_pos[1] - g_pos[0], g_pos[1] - tx_g_pos[0]
             )
 
-        tx_pos_range = result[2], result[3]
         c_pos_change = (
             tx_pos_range[0] + g_pos_change[0] - coding_start_site,
             tx_pos_range[1] - g_pos_change[1] - coding_start_site
@@ -487,6 +497,7 @@ class MANETranscript:
             if alt_ac is None:
                 alt_ac = row["alt_ac"]
 
+            found_tx_exon_aln_v_result = False
             if is_p_or_c_start_anno:
                 # Go from c -> g annotation (liftover as well)
                 g = await self._c_to_g(tx_ac, (c_start_pos, c_end_pos))
@@ -495,6 +506,7 @@ class MANETranscript:
                 g = await self._get_and_validate_genomic_tx_data(
                     tx_ac, (start_pos, end_pos),
                     annotation_layer=AnnotationLayer.GENOMIC, alt_ac=alt_ac)
+                found_tx_exon_aln_v_result = True
             if not g:
                 continue
 
@@ -502,7 +514,8 @@ class MANETranscript:
             # grch38 -> c
             lcr_c_data = await self._g_to_c(
                 g=g, refseq_c_ac=tx_ac,
-                status=TranscriptPriorityLabel.LongestCompatibleRemaining.value)
+                status=TranscriptPriorityLabel.LongestCompatibleRemaining.value,
+                found_result=found_tx_exon_aln_v_result)
 
             if not lcr_c_data:
                 continue
