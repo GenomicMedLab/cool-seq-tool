@@ -607,7 +607,7 @@ async def test_get_mapped_mane_data(test_mane_transcript):
     }
 
     resp = await test_mane_transcript.get_mapped_mane_data(
-        "BRAF", Assembly.GRCH37, 140482958)
+        "BRAF", Assembly.GRCH37, 140482958, ResidueMode.RESIDUE)
     assert resp.dict() == {
         "gene": "BRAF",
         "refseq": "NM_004333.6",
@@ -626,7 +626,7 @@ async def test_get_mapped_mane_data(test_mane_transcript):
     # Invalid gene
     with pytest.raises(MANETranscriptError) as e:
         await test_mane_transcript.get_mapped_mane_data(
-            "dummy", Assembly.GRCH37, 140482958)
+            "dummy", Assembly.GRCH37, 140482958, ResidueMode.RESIDUE)
     assert str(e.value) == "Unable to get HGNC data for gene: dummy"
 
 
