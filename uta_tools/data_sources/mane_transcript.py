@@ -868,7 +868,7 @@ class MANETranscript:
 
     async def get_mapped_mane_data(
         self, gene: str, assembly: Assembly, genomic_position: int,
-        residue_mode: ResidueMode = ResidueMode.RESIDUE
+        residue_mode: ResidueMode = ResidueMode.INTER_RESIDUE
     ) -> Optional[MappedManeData]:
         """Get MANE data for gene, assembly, and position. If GRCh37 assembly is given,
         will return mapped MANE data.

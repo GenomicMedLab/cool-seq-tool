@@ -120,11 +120,11 @@ try_longest_compatible_descr = "`True` if should try longest compatible remainin
 
 
 @app.get(f"/{SERVICE_NAME}/get_mane_data",
-         summary="Retrieve MANE data",
+         summary="Retrieve MANE data in inter-residue coordinates",
          response_description=RESP_DESCR,
          description="Return MANE Select, MANE Plus Clinical, or Longest Remaining "
-                     "Transcript data. See our docs for more information on transcript"
-                     " priority.",
+                     "Transcript data in inter-residue coordinates. See our docs for "
+                     "more information on transcript priority.",
          response_model=ManeDataService,
          tags=[Tags.MANE_TRANSCRIPT])
 async def get_mane_data(
@@ -184,7 +184,8 @@ async def get_mapped_mane_data(
     gene: str = Query(..., description="HGNC Symbol or Identifier"),
     assembly: Assembly = Query(..., description="Genomic assembly to use"),
     genomic_position: int = Query(..., description="Genomic position associated to the given gene and assembly"),  # noqa: E501
-    residue_mode: ResidueMode = Query(..., description="Residue mode for position")
+    residue_mode: ResidueMode = Query(ResidueMode.INTER_RESIDUE,
+                                      description="Residue mode for `genomic_position`")
 ) -> MappedManeDataService:
     """Get MANE data for gene, assembly, and position. If GRCh37 assembly is given,
     will return mapped MANE data.
