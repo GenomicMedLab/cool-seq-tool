@@ -6,7 +6,7 @@ servicecatalog = boto3.client('servicecatalog')
 terminate_time = 12
 eb_app_name = "UTATools"
 eb_env_name = "UTATools-staging-env"
-sc_product_id = "prod-mmw6ymv2ntzl2"
+sc_product_id = "prod-qg2twc66t544g"
 print(f'Launching new Service Catalog Product for staging environment: '
       f'{eb_app_name}')
 sc_product_artifacts =\
@@ -46,5 +46,5 @@ try:
         eb_provisioned_product_status = \
             product_status['ProvisionedProductDetail']['Status']
         print(eb_provisioned_product_status)
-except:  # noqa: E722
-    print("The EB environment is already running...")
+except Exception as e:
+    print(str(e))
