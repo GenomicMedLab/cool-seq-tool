@@ -1,4 +1,6 @@
 """Module for UTA queries."""
+import ast
+import base64
 from typing import Dict, List, Optional, Tuple, Any, TypeVar, Type, Union
 from os import environ
 from urllib.parse import quote, unquote
@@ -10,6 +12,7 @@ import boto3
 from pyliftover import LiftOver
 from asyncpg.exceptions import InvalidAuthorizationSpecificationError, \
     InterfaceError
+from botocore.exceptions import ClientError
 
 from uta_tools import UTA_DB_URL, logger
 from uta_tools.schemas import AnnotationLayer, Assembly
@@ -73,19 +76,20 @@ class UTADatabase:
         :return: Database credentials
         """
         if "UTA_DB_PROD" in environ:
-            region = "us-east-2"
-            client = boto3.client("rds", region_name=region)
-            token = client.generate_db_auth_token(
-                DBHostname=environ["UTA_HOST"], Port=environ["UTA_PORT"],
-                DBUsername=environ["UTA_USER"], Region=region
-            )
-            self.schema = environ["UTA_SCHEMA"]
-            environ["PGPASSWORD"] = token
-            environ["UTA_DB_URL"] = f"postgresql://{environ['UTA_USER']}@{environ['UTA_HOST']}:{environ['UTA_PORT']}/{environ['UTA_DATABASE']}/{environ['UTA_SCHEMA']}"  # noqa: E501
-            return dict(
-                host=environ["UTA_HOST"], port=int(environ["UTA_PORT"]),
-                database=environ["UTA_DATABASE"], user=environ["UTA_USER"],
-                password=token)
+            secret = ast.literal_eval(self.get_secret())
+
+            password = secret["password"]
+            username = secret["username"]
+            port = secret["port"]
+            host = secret["host"]
+            database = secret["dbname"]
+            schema = secret["schema"]
+            self.schema = schema
+
+            environ["PGPASSWORD"] = password
+            environ["UTA_DB_URL"] = f"postgresql://{username}@{host}:{port}/{database}/{schema}"  # noqa: E501
+            return dict(host=host, port=int(port), database=database, user=username,
+                        password=password)
         else:
             db_url = self._update_db_url(self.db_pwd, self.db_url)
             original_pwd = db_url.split("//")[-1].split("@")[0].split(":")[-1]
@@ -1010,6 +1014,54 @@ class UTADatabase:
         if not results:
             return []
         return [item for sublist in results for item in sublist]
+
+    @staticmethod
+    def get_secret() -> str:
+        """Get secrets for UTA DB instances."""
+        secret_name = environ["UTA_DB_SECRET"]
+        region_name = "us-east-2"
+
+        # Create a Secrets Manager client
+        session = boto3.session.Session()
+        client = session.client(
+            service_name="secretsmanager",
+            region_name=region_name
+        )
+
+        try:
+            get_secret_value_response = client.get_secret_value(
+                SecretId=secret_name
+            )
+        except ClientError as e:
+            logger.warning(e)
+            if e.response["Error"]["Code"] == "DecryptionFailureException":
+                # Secrets Manager can"t decrypt the protected
+                # secret text using the provided KMS key.
+                raise e
+            elif e.response["Error"]["Code"] == "InternalServiceErrorException":
+                # An error occurred on the server side.
+                raise e
+            elif e.response["Error"]["Code"] == "InvalidParameterException":
+                # You provided an invalid value for a parameter.
+                raise e
+            elif e.response["Error"]["Code"] == "InvalidRequestException":
+                # You provided a parameter value that is not valid for
+                # the current state of the resource.
+                raise e
+            elif e.response["Error"]["Code"] == "ResourceNotFoundException":
+                # We can"t find the resource that you asked for.
+                raise e
+        else:
+            # Decrypts secret using the associated KMS CMK.
+            # Depending on whether the secret is a string or binary,
+            # one of these fields will be populated.
+            if "SecretString" in get_secret_value_response:
+                secret = get_secret_value_response["SecretString"]
+                return secret
+            else:
+                decoded_binary_secret = base64.b64decode(
+                    get_secret_value_response["SecretBinary"])
+                return decoded_binary_secret
 
 
 class ParseResult(urlparse.ParseResult):
