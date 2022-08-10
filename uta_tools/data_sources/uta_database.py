@@ -1018,7 +1018,7 @@ class UTADatabase:
     @staticmethod
     def get_secret() -> str:
         """Get secrets for UTA DB instances."""
-        secret_name = environ["UTA_DB_SECRET_NAME"]
+        secret_name = environ["UTA_DB_SECRET"]
         region_name = "us-east-2"
 
         # Create a Secrets Manager client
