@@ -26,6 +26,7 @@ Install backend dependencies and enter Pipenv environment:
 ```commandline
 pipenv shell
 pipenv lock && pipenv sync
+pipenv install --dev
 ```
 
 ### UTA Database Installation
@@ -51,11 +52,14 @@ curl -O http://dl.biocommons.org/uta/$UTA_VERSION
 gzip -cdq ${UTA_VERSION} | grep -v "^REFRESH MATERIALIZED VIEW" | psql -h localhost -U uta_admin --echo-errors --single-transaction -v ON_ERROR_STOP=1 -d uta -p 5433
 ```
 
+##### UTA Installation Issues
+If you have trouble installing UTA, you can visit [these two READMEs](https://github.com/ga4gh/vrs-python/tree/main/docs/setup_help).
+
 #### Connecting to the database
 
 To connect to the UTA database, you can use the default url (`postgresql://uta_admin@localhost:5433/uta/uta_20210129`). If you use the default url, you must either set the password using environment variable `UTA_PASSWORD` or setting the parameter `db_pwd` in the UTA class.
 
-If you do not wish to use the default, you must set the environment variable `UTA_DB_URL` which has the format of `driver://user:pass@host/database/schema`.
+If you do not wish to use the default, you must set the environment variable `UTA_DB_URL` which has the format of `driver://user:pass@host:port/database/schema`.
 
 ### Data Downloads
 
@@ -67,7 +71,19 @@ From the _root_ directory:
 pip install seqrepo
 sudo mkdir /usr/local/share/seqrepo
 sudo chown $USER /usr/local/share/seqrepo
-seqrepo pull -i 2021-01-29
+seqrepo pull -i 2021-01-29  # Replace with latest version using `seqrepo list-remote-instances` if outdated
+```
+
+If you get an error similar to the one below:
+```
+PermissionError: [Error 13] Permission denied: '/usr/local/share/seqrepo/2021-01-29._fkuefgd' -> '/usr/local/share/seqrepo/2021-01-29'
+```
+
+You will want to do the following:\
+(*Might not be ._fkuefgd, so replace with your error message path*)
+```console
+sudo mv /usr/local/share/seqrepo/2021-01-29._fkuefgd /usr/local/share/seqrepo/2021-01-29
+exit
 ```
 
 #### transcript_mappings.tsv
