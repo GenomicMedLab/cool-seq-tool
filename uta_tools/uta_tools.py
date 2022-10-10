@@ -571,11 +571,28 @@ class UTATools:
             i += 1
         return i
 
+    def _get_fasta_aliases(self, sequence_id: str, prefixes: List[str]) -> List[str]:
+        """Retrieve equivalent aliases for FASTA headers
+        :param sequence_id: ID to look up aliases for
+        :param prefixes: ordered list of requested namespaces, case-sensitive
+        :return: List (possibly empty) of matching aliases
+        :raise: KeyError if SeqRepo raises a translation error
+        """
+        other_ids, warnings = self.seqrepo_access.translate_identifier(sequence_id)
+        if warnings:
+            raise KeyError(f"Unable to find other IDs for {sequence_id}")
+        aliases = []
+        for prefix in prefixes:
+            for other_id in other_ids:
+                if other_id and other_id.startswith(prefix):
+                    aliases.append(other_id)
+        return aliases
+
     def get_fasta_file(
         self, sequence_id: str, outfile_path: Path
     ) -> None:
         """Retrieve FASTA file containing sequence for requested sequence ID.
-        :param sequence_id: accession ID, sans namespace
+        :param sequence_id: accession ID, sans namespace, eg `NM_152263.3`
         :param outfile_path: path to save file to
         :return: None, but saves sequence data to `outfile_path` if successful
         :raise: KeyError if SeqRepo doesn't have sequence data for the given ID
@@ -597,16 +614,32 @@ class UTATools:
             "YP_",
             "WP_"
         ]
+        ENSEMBL_PREFIXES = [
+            "ENSE",
+            "ENSFM",
+            "ENSG",
+            "ENSGT",
+            "ENSP",
+            "ENSR",
+            "ENST"
+        ]
 
         if sequence_id[:3] in REFSEQ_PREFIXES:
-            header = f">ref|{sequence_id}|"
+            aliases = self._get_fasta_aliases(sequence_id, ["ensembl", "ga4gh"])
+            header = f">ref|refseq:{sequence_id}|{'|'.join(aliases)}"
+        elif sequence_id[:4] in ENSEMBL_PREFIXES:
+            aliases = self._get_fasta_aliases(sequence_id, ["refseq", "ga4gh"])
+            header = f">emb|ensembl:{sequence_id}|{'|'.join(aliases)}"
         else:
-            header = f">gnl|ID|{sequence_id}"
+            aliases = self._get_fasta_aliases(
+                sequence_id, ["refseq", "ensembl", "ga4gh"]
+            )
+            header = f">gnl|ID|{sequence_id}|{'|'.join(aliases)}"
 
         sequence = self.seqrepo_access.get_reference_sequence(sequence_id)[0]
         if not sequence:
             raise KeyError
-        LINE_LENGTH = 80
+        LINE_LENGTH = 60
         file_data = [header] + [sequence[i: i + LINE_LENGTH]
                                 for i in range(0, len(sequence), LINE_LENGTH)]
         text = "\n".join(file_data)
