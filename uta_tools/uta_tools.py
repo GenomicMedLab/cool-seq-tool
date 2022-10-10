@@ -1,6 +1,7 @@
 """Module for initializing data sources."""
 from datetime import datetime
 from typing import Optional, Union, List, Tuple, Dict
+from pathlib import Path
 
 from uta_tools import logger
 from uta_tools.schemas import Assembly, GenomicData, TranscriptExonData, ResidueMode, \
@@ -569,3 +570,44 @@ class UTATools:
                 break
             i += 1
         return i
+
+    def get_fasta_file(
+        self, sequence_id: str, outfile_path: Path
+    ) -> None:
+        """Retrieve FASTA file containing sequence for requested sequence ID.
+        :param sequence_id: accession ID, sans namespace
+        :param outfile_path: path to save file to
+        :return: None, but saves sequence data to `outfile_path` if successful
+        :raise: KeyError if SeqRepo doesn't have sequence data for the given ID
+        """
+        REFSEQ_PREFIXES = [
+            "NC_",
+            "AC_",
+            "NZ_",
+            "NT_",
+            "NW_",
+            "NG_",
+            "NM_",
+            "XM_",
+            "NR_",
+            "XR_",
+            "NP_",
+            "AP_",
+            "XP_",
+            "YP_",
+            "WP_"
+        ]
+
+        if sequence_id[:3] in REFSEQ_PREFIXES:
+            header = f">ref|{sequence_id}|"
+        else:
+            header = f">gnl|ID|{sequence_id}"
+
+        sequence = self.seqrepo_access.get_reference_sequence(sequence_id)[0]
+        if not sequence:
+            raise KeyError
+        LINE_LENGTH = 80
+        file_data = [header] + [sequence[i: i + LINE_LENGTH]
+                                for i in range(0, len(sequence), LINE_LENGTH)]
+        text = "\n".join(file_data)
+        outfile_path.write_text(text)
