@@ -237,10 +237,13 @@ async def get_mapped_mane_data(
 )
 async def get_sequence(
     background_tasks: BackgroundTasks,
-    sequence_id: str = Query(..., description="ID of sequence to retrieve"),
+    sequence_id: str = Query(
+        ...,
+        description="ID of sequence to retrieve, sans namespace"
+    ),
 ) -> FileResponse:
     """Get sequence for requested sequence ID.
-    :param sequence_id: accession ID, sans namespace
+    :param sequence_id: accession ID, sans namespace, eg `NM_152263.3`
     :param background_tasks: Starlette background tasks object. Use to clean up
         tempfile after get method returns.
     :return: FASTA file if successful, or 404 if unable to find matching resource
