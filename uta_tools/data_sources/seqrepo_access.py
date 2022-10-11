@@ -1,5 +1,5 @@
 """A module for accessing SeqRepo."""
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Union
 from os import environ
 
 from biocommons.seqrepo import SeqRepo
@@ -76,12 +76,12 @@ class SeqRepoAccess:
             return sequence, None
 
     def translate_identifier(
-            self, ac: str, target_namespace: str = None
-    ) -> Tuple[List[Optional[str]], Optional[str]]:
+            self, ac: str, target_namespace: Optional[Union[str, List[str]]] = None
+    ) -> Tuple[List[str], Optional[str]]:
         """Return list of identifiers for accession.
 
-        :param str ac: Identifier accession
-        :param str target_namespace: The namespace of identifiers to return
+        :param ac: Identifier accession
+        :param target_namespace: The namespace(s) of identifier to return
         :return: List of identifiers, warning
         """
         try:

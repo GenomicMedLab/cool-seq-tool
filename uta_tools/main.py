@@ -1,9 +1,14 @@
 """Main application for FastAPI"""
 from enum import Enum
 from typing import Dict, List, Optional
+import os
+import tempfile
+from pathlib import Path
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, HTTPException
+from fastapi.responses import FileResponse
 from fastapi.openapi.utils import get_openapi
+from starlette.background import BackgroundTasks
 
 from uta_tools import UTATools, logger
 from uta_tools.data_sources.mane_transcript import MANETranscriptError
@@ -220,3 +225,39 @@ async def get_mapped_mane_data(
         warnings=warnings,
         service_meta=uta_tools.service_meta()
     )
+
+
+@app.get(
+    f"/{SERVICE_NAME}/download_sequence",
+    summary="Get sequence for ID",
+    response_description=RESP_DESCR,
+    description="Given a known accession identifier, retrieve sequence data and return"
+                "as a FASTA file",
+    response_class=FileResponse
+)
+async def get_sequence(
+    background_tasks: BackgroundTasks,
+    sequence_id: str = Query(
+        ...,
+        description="ID of sequence to retrieve, sans namespace"
+    ),
+) -> FileResponse:
+    """Get sequence for requested sequence ID.
+    :param sequence_id: accession ID, sans namespace, eg `NM_152263.3`
+    :param background_tasks: Starlette background tasks object. Use to clean up
+        tempfile after get method returns.
+    :return: FASTA file if successful, or 404 if unable to find matching resource
+    """
+    _, path = tempfile.mkstemp(suffix=".fasta")
+    try:
+        uta_tools.get_fasta_file(sequence_id, Path(path))
+    except KeyError:
+        raise HTTPException(
+            status_code=404,
+            detail="No sequence available for requested identifier"
+        )
+    background_tasks.add_task(
+        lambda p: os.unlink(p),
+        path
+    )
+    return FileResponse(path)
