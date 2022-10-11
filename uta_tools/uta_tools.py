@@ -578,14 +578,10 @@ class UTATools:
         :return: List (possibly empty) of matching aliases
         :raise: KeyError if SeqRepo raises a translation error
         """
-        other_ids, warnings = self.seqrepo_access.translate_identifier(sequence_id)
+        aliases, warnings = self.seqrepo_access.translate_identifier(sequence_id,
+                                                                     prefixes)
         if warnings:
             raise KeyError(f"Unable to find other IDs for {sequence_id}")
-        aliases = []
-        for prefix in prefixes:
-            for other_id in other_ids:
-                if other_id and other_id.startswith(prefix):
-                    aliases.append(other_id)
         return aliases
 
     def get_fasta_file(
