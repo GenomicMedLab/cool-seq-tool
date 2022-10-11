@@ -81,7 +81,7 @@ class SeqRepoAccess:
         """Return list of identifiers for accession.
 
         :param ac: Identifier accession
-        :param target_namespace: The namespace of identifier(s) to return
+        :param target_namespace: The namespace(s) of identifier to return
         :return: List of identifiers, warning
         """
         try:
