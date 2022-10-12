@@ -82,7 +82,7 @@ class UTATools:
             exon_end: Optional[int] = None, exon_end_offset: Optional[int] = 0,
             **kwargs) -> GenomicDataResponse:
         """Get genomic data given transcript data.
-        Will liftover to GRCh38 coordinates if possible.
+        Will use GRCh38 coordinates if possible
 
         :param Optional[str] gene: Gene symbol
         :param Optional[str] transcript: Transcript accession
@@ -90,7 +90,7 @@ class UTATools:
         :param Optional[int] exon_end: Ending transcript exon number
         :param Optional[int] exon_start_offset: Starting exon offset
         :param Optional[int] exon_end_offset: Ending exon offset
-        :return: Genomic data (inter-residue coordinates)
+        :return: GRCh38 genomic data (inter-residue coordinates)
         """
         resp = GenomicDataResponse(
             genomic_data=None,
@@ -551,9 +551,8 @@ class UTATools:
         tx_exons, _ = await self.uta_db.get_tx_exons(transcript)
         if not tx_exons:
             return result
-        for tx_exon in tx_exons:
-            coords = tx_exon.split(",")
-            result.append((int(coords[0]), int(coords[1])))
+        for coords in tx_exons:
+            result.append((coords[0], coords[1]))
         return result
 
     @staticmethod
