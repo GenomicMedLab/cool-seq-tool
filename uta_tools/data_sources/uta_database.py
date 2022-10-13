@@ -275,25 +275,41 @@ class UTADatabase:
             alt_acs.add(r[1])
         return dict(genes=genes, alt_acs=alt_acs), None
 
-    async def get_tx_exons(self, tx_ac: str) -> Tuple[Optional[List[Tuple[int, int]]], Optional[str]]:  # noqa: E501
+    async def get_tx_exons(
+        self, tx_ac: str, alt_ac: Optional[str] = None
+    ) -> Tuple[Optional[List[Tuple[int, int]]], Optional[str]]:  # noqa: E501
         """Get list of transcript exons start/end coordinates.
-        This assumes using GRCh38
 
         :param str tx_ac: Transcript accession
+        :param Optional[str] alt_ac: Genomic accession
         :return: List of a transcript's accessions and warnings if found
         """
-        query = (
-            f"""
-            SELECT DISTINCT tx_start_i, tx_end_i
-            FROM {self.schema}.tx_exon_aln_v as t
-            INNER JOIN {self.schema}._seq_anno_most_recent as s
-            ON t.alt_ac = s.ac
-            WHERE s.descr = ''
-            AND t.tx_ac = '{tx_ac}'
-            AND t.alt_aln_method = 'splign'
-            AND t.alt_ac like 'NC_000%'
-            """
-        )
+        if alt_ac:
+            # We know what asesmbly we're looking for since we have the
+            # genomic accession
+            query = (
+                f"""
+                SELECT DISTINCT tx_start_i, tx_end_i
+                FROM {self.schema}.tx_exon_aln_v
+                WHERE tx_ac = '{tx_ac}'
+                AND alt_aln_method = 'splign'
+                AND alt_ac = '{alt_ac}'
+                """
+            )
+        else:
+            # Use GRCh38 by default if no genomic accession is provided
+            query = (
+                f"""
+                SELECT DISTINCT tx_start_i, tx_end_i
+                FROM {self.schema}.tx_exon_aln_v as t
+                INNER JOIN {self.schema}._seq_anno_most_recent as s
+                ON t.alt_ac = s.ac
+                WHERE s.descr = ''
+                AND t.tx_ac = '{tx_ac}'
+                AND t.alt_aln_method = 'splign'
+                AND t.alt_ac like 'NC_000%'
+                """
+            )
         result = await self.execute_query(query)
 
         if not result:
