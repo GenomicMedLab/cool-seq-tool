@@ -631,6 +631,10 @@ async def test_valid_inputs(test_uta_tools):
     resp = await test_uta_tools.genomic_to_transcript_exon_coordinates(**inputs)
     assert resp.genomic_data
 
+    resp = await test_uta_tools.transcript_to_genomic_coordinates(
+        gene="PDGFRB", transcript="NM_002609.4", exon_start=11, exon_end=23)
+    assert resp.genomic_data
+
 
 @pytest.mark.asyncio
 async def test_invalid(test_uta_tools):
@@ -738,7 +742,7 @@ async def test_invalid(test_uta_tools):
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == [
         "Unable to find a result where NM_152263.3 has transcript coordinates"
-        " 117 and 234 between an exon's start and end coordinates on gene "
+        " 0 and 234 between an exon's start and end coordinates on gene "
         "NTKR1"]
 
     # No transcript given
@@ -758,16 +762,6 @@ async def test_invalid(test_uta_tools):
         exon_start=None, exon_end=None, transcript="NM_152263.3")
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Must provide either `exon_start` or `exon_end`"]
-
-    # Does not live on exon
-    params = {"chromosome": 1, "strand": 1, "start": 3629864, "gene": "TPRG1L",
-              "residue_mode": "inter-residue"}
-    resp = await test_uta_tools.genomic_to_transcript_exon_coordinates(
-        **params)
-    genomic_data_assertion_checks(resp, is_valid=False)
-    assert resp.warnings == ["NM_182752.4 with position 2138 does not exist"
-                             " on exons: [(58, 259), (259, 351), (351, 528),"
-                             " (528, 682), (682, 877)]"]
 
 
 def test_get_fasta_file(test_uta_tools, tmp_path):

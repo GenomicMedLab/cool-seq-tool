@@ -17,8 +17,8 @@ async def test_db():
 @pytest.fixture(scope="module")
 def nm_152263_exons():
     """Create test fixture for NM_152263.3 exons."""
-    return ["117,234", "234,360", "360,494", "494,612", "612,683", "683,759",
-            "759,822", "822,892", "892,971", "971,975"]
+    return [(0, 234), (234, 360), (360, 494), (494, 612), (612, 683), (683, 759),
+            (759, 822), (822, 892), (892, 971), (971, 7099)]
 
 
 @pytest.fixture(scope="module")
@@ -299,7 +299,7 @@ async def test_p_to_c_ac(test_db):
 async def test_get_tx_exon_coords(test_db, nm_152263_exons):
     """Test that get_tx_exon_coords works correctly."""
     resp = test_db.get_tx_exon_coords("NM_152263.3", nm_152263_exons, 1, 8)
-    assert resp[0] == (["117", "234"], ["822", "892"])
+    assert resp[0] == ((0, 234), (822, 892))
     assert resp[1] is None
 
     resp = test_db.get_tx_exon_coords("NM_152263.3", nm_152263_exons, 1, 11)

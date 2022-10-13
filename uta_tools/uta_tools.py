@@ -82,7 +82,7 @@ class UTATools:
             exon_end: Optional[int] = None, exon_end_offset: Optional[int] = 0,
             **kwargs) -> GenomicDataResponse:
         """Get genomic data given transcript data.
-        Will liftover to GRCh38 coordinates if possible.
+        Will use GRCh38 coordinates if possible
 
         :param Optional[str] gene: Gene symbol
         :param Optional[str] transcript: Transcript accession
@@ -90,7 +90,7 @@ class UTATools:
         :param Optional[int] exon_end: Ending transcript exon number
         :param Optional[int] exon_start_offset: Starting exon offset
         :param Optional[int] exon_end_offset: Ending exon offset
-        :return: Genomic data (inter-residue coordinates)
+        :return: GRCh38 genomic data (inter-residue coordinates)
         """
         resp = GenomicDataResponse(
             genomic_data=None,
@@ -421,7 +421,7 @@ class UTATools:
         params["gene"] = mane_data["gene"]
         params["transcript"] = mane_data["refseq"] if mane_data["refseq"] \
             else mane_data["ensembl"] if mane_data["ensembl"] else None
-        tx_exons = await self._structure_exons(params["transcript"])
+        tx_exons = await self._structure_exons(params["transcript"], alt_ac=alt_ac)
         if not tx_exons:
             return f"Unable to get exons for {params['transcript']}"
         tx_pos = mane_data["pos"][0] + mane_data["coding_start_site"]
@@ -469,7 +469,7 @@ class UTATools:
             return f"Invalid genomic accession: {params['chr']}"
 
         grch38_ac = grch38_ac[0][0]
-        if grch38_ac != params["chr"]:
+        if grch38_ac != params["chr"]:  # params["chr"] is genomic accession
             # Liftover to 38
             descr = await self.uta_db.get_chr_assembly(params["chr"])
             if descr is None:
@@ -486,7 +486,7 @@ class UTATools:
             params["pos"] = liftover_data[1]
             params["chr"] = grch38_ac
 
-        tx_exons = await self._structure_exons(params["transcript"])
+        tx_exons = await self._structure_exons(params["transcript"], alt_ac=grch38_ac)
         if not tx_exons:
             return f"Unable to get exons for {params['transcript']}"
         data = await self.uta_db.get_tx_exon_aln_v_data(
@@ -541,19 +541,21 @@ class UTATools:
             else:
                 params["exon_offset"] = pos - start
 
-    async def _structure_exons(self, transcript: str) -> List[Tuple[int, int]]:
+    async def _structure_exons(
+        self, transcript: str, alt_ac: Optional[str] = None
+    ) -> List[Tuple[int, int]]:
         """Structure exons as list of tuples.
 
         :param str transcript: Transcript accession
+        :param Optional[str] alt_ac: Genomic accession
         :return: List of tuples containing transcript exon coordinates
         """
         result = list()
-        tx_exons, _ = await self.uta_db.get_tx_exons(transcript)
+        tx_exons, _ = await self.uta_db.get_tx_exons(transcript, alt_ac=alt_ac)
         if not tx_exons:
             return result
-        for tx_exon in tx_exons:
-            coords = tx_exon.split(",")
-            result.append((int(coords[0]), int(coords[1])))
+        for coords in tx_exons:
+            result.append((coords[0], coords[1]))
         return result
 
     @staticmethod
