@@ -132,7 +132,7 @@ Pipfile.lock
 pyproject.toml
 
 # Data files
-uta_tools/data/seqrepo/
-uta_tools/data/*.txt
-uta_tools/data/LRG_RefSeqGene*
-uta_tools/data/notebooks/
+cool_seq_tool/data/seqrepo/
+cool_seq_tool/data/*.txt
+cool_seq_tool/data/LRG_RefSeqGene*
+cool_seq_tool/data/notebooks/

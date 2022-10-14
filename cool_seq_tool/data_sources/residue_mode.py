@@ -1,8 +1,8 @@
 """Module for converting positions to inter-residue coordinates"""
 from typing import Optional, Tuple
 
-from uta_tools.schemas import ResidueMode
-from uta_tools import logger
+from cool_seq_tool.schemas import ResidueMode
+from cool_seq_tool import logger
 
 
 def get_inter_residue_pos(

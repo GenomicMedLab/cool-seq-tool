@@ -7,7 +7,7 @@ import datetime
 
 from dateutil import parser
 
-from uta_tools import APP_ROOT
+from cool_seq_tool import APP_ROOT
 
 
 class DataDownload:
@@ -24,7 +24,7 @@ class DataDownload:
         self._data_dir.mkdir(exist_ok=True, parents=True)
 
     def _download_data(self) -> None:
-        """Download data files needed for uta_tools."""
+        """Download data files needed for cool_seq_tool."""
         with FTP("ftp.ncbi.nlm.nih.gov") as ftp:
             ftp.login()
             self._download_mane_summary(ftp)

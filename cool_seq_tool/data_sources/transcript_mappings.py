@@ -2,7 +2,7 @@
 import csv
 from typing import Dict, List, Optional
 
-from uta_tools import TRANSCRIPT_MAPPINGS_PATH, LRG_REFSEQGENE_PATH
+from cool_seq_tool import TRANSCRIPT_MAPPINGS_PATH, LRG_REFSEQGENE_PATH
 
 
 class TranscriptMappings:

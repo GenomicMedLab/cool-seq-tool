@@ -17,7 +17,7 @@ uvicorn = "*"
 gene-normalizer = "*"
 
 [dev-packages]
-uta_tools = {editable = true, path = "."}
+cool_seq_tool = {editable = true, path = "."}
 pytest = "*"
 pre-commit = "*"
 flake8 = "*"
@@ -29,7 +29,7 @@ coverage = "*"
 pytest-cov = "*"
 coveralls = "*"
 jupyterlab = "*"
-pytest-asyncio = "*"
+pytest-asyncio = "==0.18.3"
 ipython = "*"
 psycopg2-binary = "*"
 mock = "*"

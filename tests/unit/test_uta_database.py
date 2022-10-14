@@ -3,7 +3,7 @@ import copy
 
 import pytest
 
-from uta_tools.data_sources import UTADatabase
+from cool_seq_tool.data_sources import UTADatabase
 
 
 @pytest.fixture(scope="module")

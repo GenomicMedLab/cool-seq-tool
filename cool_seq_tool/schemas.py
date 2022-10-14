@@ -8,7 +8,7 @@ from pydantic import BaseModel, root_validator, validator
 from pydantic.main import Extra
 from pydantic.types import StrictStr, StrictInt
 
-from uta_tools.version import __version__
+from cool_seq_tool.version import __version__
 
 
 class AnnotationLayer(str, Enum):
@@ -235,12 +235,12 @@ class GenomicData(BaseModelForbidExtra):
 
 
 class ServiceMeta(BaseModelForbidExtra):
-    """Metadata for uta_tools service"""
+    """Metadata for cool_seq_tool service"""
 
-    name: Literal["uta_tools"] = "uta_tools"
+    name: Literal["cool_seq_tool"] = "cool_seq_tool"
     version: StrictStr
     response_datetime: datetime
-    url: Literal["https://github.com/cancervariants/uta_tools"] = "https://github.com/cancervariants/uta_tools"  # noqa: E501
+    url: Literal["https://github.com/GenomicMedLab/cool-seq-tool"] = "https://github.com/GenomicMedLab/cool-seq-tool"  # noqa: E501
 
     @validator("version")
     def validate_version(cls, v):
@@ -263,10 +263,10 @@ class ServiceMeta(BaseModelForbidExtra):
             for prop in schema.get("properties", {}).values():
                 prop.pop("title", None)
             schema["example"] = {
-                "name": "uta_tools",
+                "name": "cool_seq_tool",
                 "version": __version__,
                 "response_datetime": datetime.now(),
-                "url": "https://github.com/cancervariants/uta_tools"
+                "url": "https://github.com/GenomicMedLab/cool-seq-tool"
             }
 
 
@@ -300,10 +300,10 @@ class TranscriptExonDataResponse(BaseModelForbidExtra):
                 },
                 "warnings": list(),
                 "service_meta": {
-                    "name": "uta_tools",
+                    "name": "cool_seq_tool",
                     "version": __version__,
                     "response_datetime": datetime.now(),
-                    "url": "https://github.com/cancervariants/uta_tools"
+                    "url": "https://github.com/GenomicMedLab/cool-seq-tool"
                 }
             }
 
@@ -341,10 +341,10 @@ class GenomicDataResponse(BaseModelForbidExtra):
                 },
                 "warnings": list(),
                 "service_meta": {
-                    "name": "uta_tools",
+                    "name": "cool_seq_tool",
                     "version": __version__,
                     "response_datetime": datetime.now(),
-                    "url": "https://github.com/cancervariants/uta_tools"
+                    "url": "https://github.com/GenomicMedLab/cool-seq-tool"
                 }
             }
 
@@ -412,10 +412,10 @@ class MappedManeDataService(BaseModelForbidExtra):
                 },
                 "warnings": list(),
                 "service_meta": {
-                    "name": "uta_tools",
+                    "name": "cool_seq_tool",
                     "version": __version__,
                     "response_datetime": datetime.now(),
-                    "url": "https://github.com/cancervariants/uta_tools"
+                    "url": "https://github.com/GenomicMedLab/cool-seq-tool"
                 }
             }
 
@@ -480,9 +480,9 @@ class ManeDataService(BaseModelForbidExtra):
                 },
                 "warnings": list(),
                 "service_meta": {
-                    "name": "uta_tools",
+                    "name": "cool_seq_tool",
                     "version": __version__,
                     "response_datetime": datetime.now(),
-                    "url": "https://github.com/cancervariants/uta_tools"
+                    "url": "https://github.com/GenomicMedLab/cool-seq-tool"
                 }
             }

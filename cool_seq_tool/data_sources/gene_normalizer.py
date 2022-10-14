@@ -4,7 +4,7 @@ from typing import Dict
 from gene.query import QueryHandler
 from gene.schemas import SourceName
 
-from uta_tools import logger
+from cool_seq_tool import logger
 
 
 class GeneNormalizer:

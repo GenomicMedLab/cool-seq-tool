@@ -1,7 +1,7 @@
 """Module for testing seqrepo access class"""
 import pytest
 
-from uta_tools.data_sources import SeqRepoAccess
+from cool_seq_tool.data_sources import SeqRepoAccess
 
 
 @pytest.fixture(scope="module")
