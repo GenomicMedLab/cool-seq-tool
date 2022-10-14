@@ -14,8 +14,8 @@ from asyncpg.exceptions import InvalidAuthorizationSpecificationError, \
     InterfaceError
 from botocore.exceptions import ClientError
 
-from uta_tools import UTA_DB_URL, logger
-from uta_tools.schemas import AnnotationLayer, Assembly
+from cool_seq_tool import UTA_DB_URL, logger
+from cool_seq_tool.schemas import AnnotationLayer, Assembly
 
 
 # use `bound` to upper-bound UTADatabase or child classes

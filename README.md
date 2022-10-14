@@ -1,13 +1,18 @@
-# uta-tools
+# **C**ommon **O**perations **O**n **L**ots-of **Seq**uences Tool
 
-Service for querying the [UTA](https://github.com/biocommons/uta) database
+The **cool-seq-tool** provides:
+
+  - Transcript alignment data from the [UTA](https://github.com/biocommons/uta) database
+  - Fast access to sequence data using [SeqRepo](https://github.com/biocommons/biocommons.seqrepo)
+  - Liftover between assemblies (GRCh38 <--> GRCh37) from [PyLiftover](https://github.com/konstantint/pyliftover)
+  - Lifting over to preferred [MANE](https://www.ncbi.nlm.nih.gov/refseq/MANE/) compatible transcript. See [here](docs/TranscriptSelectionPriority.md) for more information.
 
 ## Installation
 
 ### pip
 
 ```commandline
-pip install uta-tools
+pip install cool-seq-tool
 ```
 
 ### Development
@@ -15,8 +20,8 @@ pip install uta-tools
 Clone the repo:
 
 ```commandline
-git clone https://github.com/cancervariants/uta-tools
-cd uta_tools
+git clone https://github.com/GenomicMedLab/cool-seq-tool
+cd cool_seq_tool
 ```
 
 [Install Pipenv](https://pipenv-fork.readthedocs.io/en/latest/#install-pipenv-today) if necessary.
@@ -31,7 +36,7 @@ pipenv install --dev
 
 ### UTA Database Installation
 
-`uta-tools` uses intalls local UTA database. For other ways to install, visit [biocommons.uta](https://github.com/biocommons/uta).
+`cool-seq-tool` uses intalls local UTA database. For other ways to install, visit [biocommons.uta](https://github.com/biocommons/uta).
 
 #### Local Installation
 
@@ -45,7 +50,7 @@ _The following commands will likely need modification appropriate for the instal
     $ createdb -U postgres -O uta_admin uta
     ```
 
-3. To install locally, from the _uta_tools/data_ directory:
+3. To install locally, from the _cool_seq_tool/data_ directory:
 ```
 export UTA_VERSION=uta_20210129.pgd.gz
 curl -O http://dl.biocommons.org/uta/$UTA_VERSION
@@ -64,7 +69,7 @@ If you do not wish to use the default, you must set the environment variable `UT
 ### Data Downloads
 
 #### SeqRepo
-`uta-tools` relies on [seqrepo](https://github.com/biocommons/biocommons.seqrepo), which you must download yourself.
+`cool-seq-tool` relies on [seqrepo](https://github.com/biocommons/biocommons.seqrepo), which you must download yourself.
 
 From the _root_ directory:
 ```
@@ -87,27 +92,27 @@ exit
 ```
 
 #### transcript_mappings.tsv
-`uta-tools` uses [Ensembl BioMart](http://www.ensembl.org/biomart/martview) to retrieve `uta_tools/data/transcript_mappings.tsv`. We currently use `Human Genes (GRCh38.p13)` for the dataset and the following attributes we use are: Gene stable ID, Gene stable ID version, Transcript stable ID, Transcript stable ID version, Protein stable ID, Protein stable ID version, RefSeq match transcript (MANE Select), Gene name.
+`cool-seq-tool` uses [Ensembl BioMart](http://www.ensembl.org/biomart/martview) to retrieve `cool_seq_tool/data/transcript_mappings.tsv`. We currently use `Human Genes (GRCh38.p13)` for the dataset and the following attributes we use are: Gene stable ID, Gene stable ID version, Transcript stable ID, Transcript stable ID version, Protein stable ID, Protein stable ID version, RefSeq match transcript (MANE Select), Gene name.
 
 ![image](biomart.png)
 
 #### LRG_RefSeqGene
 
-`uta-tools` fetches the latest version of `LRG_RefSeqGene`. This file is found can be found [here](https://ftp.ncbi.nlm.nih.gov/refseq/H_sapiens/RefSeqGene).
+`cool-seq-tool` fetches the latest version of `LRG_RefSeqGene`. This file is found can be found [here](https://ftp.ncbi.nlm.nih.gov/refseq/H_sapiens/RefSeqGene).
 
 #### MANE Summary Data
 
-`uta-tools` fetches the latest version of `MANE.GRCh38.*.summary.txt.gz`. This file is found can be found [here](https://ftp.ncbi.nlm.nih.gov/refseq/MANE/MANE_human/current/).
+`cool-seq-tool` fetches the latest version of `MANE.GRCh38.*.summary.txt.gz`. This file is found can be found [here](https://ftp.ncbi.nlm.nih.gov/refseq/MANE/MANE_human/current/).
 
 ## Starting the UTA Tools Service Locally
 
 To start the service, run the following:
 
 ```commandline
-uvicorn uta_tools.main:app --reload
+uvicorn cool_seq_tool.main:app --reload
 ```
 
-Next, view the FastAPI on your local machine: http://127.0.0.1:8000/uta_tools
+Next, view the FastAPI on your local machine: http://127.0.0.1:8000/cool_seq_tool
 
 ## Init coding style tests
 Code style is managed by [flake8](https://github.com/PyCQA/flake8) and checked prior to commit.
