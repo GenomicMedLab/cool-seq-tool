@@ -5,10 +5,10 @@ import pytest
 from mock import patch
 import pandas as pd
 
-from uta_tools.data_sources import MANETranscript, MANETranscriptMappings,\
+from cool_seq_tool.data_sources import MANETranscript, MANETranscriptMappings,\
     SeqRepoAccess, TranscriptMappings, UTADatabase, GeneNormalizer
-from uta_tools.data_sources.mane_transcript import MANETranscriptError
-from uta_tools.schemas import AnnotationLayer, Assembly, ResidueMode
+from cool_seq_tool.data_sources.mane_transcript import MANETranscriptError
+from cool_seq_tool.schemas import AnnotationLayer, Assembly, ResidueMode
 
 
 @pytest.fixture(scope="module")

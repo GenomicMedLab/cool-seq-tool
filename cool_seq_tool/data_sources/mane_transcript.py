@@ -13,12 +13,12 @@ from typing import Optional, Set, Tuple, Dict, List, Union
 import hgvs.parser
 import pandas as pd
 
-from uta_tools.schemas import AnnotationLayer, Assembly, MappedManeData, ResidueMode, \
-    TranscriptPriorityLabel
-from uta_tools.data_sources import SeqRepoAccess, TranscriptMappings, \
+from cool_seq_tool.schemas import AnnotationLayer, Assembly, MappedManeData, \
+    ResidueMode, TranscriptPriorityLabel
+from cool_seq_tool.data_sources import SeqRepoAccess, TranscriptMappings, \
     MANETranscriptMappings, UTADatabase, GeneNormalizer
-from uta_tools.data_sources.residue_mode import get_inter_residue_pos
-from uta_tools import logger
+from cool_seq_tool.data_sources.residue_mode import get_inter_residue_pos
+from cool_seq_tool import logger
 
 
 class MANETranscriptError(Exception):

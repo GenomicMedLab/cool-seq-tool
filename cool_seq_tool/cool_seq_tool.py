@@ -3,18 +3,18 @@ from datetime import datetime
 from typing import Optional, Union, List, Tuple, Dict
 from pathlib import Path
 
-from uta_tools import logger
-from uta_tools.schemas import Assembly, GenomicData, TranscriptExonData, ResidueMode, \
-    GenomicDataResponse, ServiceMeta, TranscriptExonDataResponse
-from uta_tools.data_sources import MANETranscript, MANETranscriptMappings,\
+from cool_seq_tool import logger
+from cool_seq_tool.schemas import Assembly, GenomicData, TranscriptExonData, \
+    ResidueMode, GenomicDataResponse, ServiceMeta, TranscriptExonDataResponse
+from cool_seq_tool.data_sources import MANETranscript, MANETranscriptMappings,\
     SeqRepoAccess, TranscriptMappings, UTADatabase, GeneNormalizer
-from uta_tools import SEQREPO_DATA_PATH, \
+from cool_seq_tool import SEQREPO_DATA_PATH, \
     TRANSCRIPT_MAPPINGS_PATH, LRG_REFSEQGENE_PATH, MANE_SUMMARY_PATH, \
     UTA_DB_URL
-from uta_tools.version import __version__
+from cool_seq_tool.version import __version__
 
 
-class UTATools:
+class CoolSeqTool:
     """Class to initialize data sources."""
 
     def __init__(self, seqrepo_data_path: str = SEQREPO_DATA_PATH,
@@ -24,7 +24,7 @@ class UTATools:
                  db_url: str = UTA_DB_URL, db_pwd: str = "",
                  gene_db_url: str = "", gene_db_region: str = "us-east-2"
                  ) -> None:
-        """Initialize UTATools class
+        """Initialize CoolSeqTool class
 
         :param str seqrepo_data_path: The path to the seqrepo directory.
         :param str transcript_file_path: The path to transcript_mappings.tsv
@@ -51,7 +51,7 @@ class UTATools:
 
     @staticmethod
     def service_meta() -> ServiceMeta:
-        """Return ServiceMeta for uta_tools
+        """Return ServiceMeta for cool_seq_tool
 
         :return: ServiceMeta object
         """

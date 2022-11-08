@@ -4,9 +4,9 @@ from os import environ
 
 from biocommons.seqrepo import SeqRepo
 
-from uta_tools.schemas import ResidueMode
-from uta_tools import SEQREPO_DATA_PATH, logger
-from uta_tools.data_sources.residue_mode import get_inter_residue_pos
+from cool_seq_tool.schemas import ResidueMode
+from cool_seq_tool import SEQREPO_DATA_PATH, logger
+from cool_seq_tool.data_sources.residue_mode import get_inter_residue_pos
 
 
 class SeqRepoAccess:

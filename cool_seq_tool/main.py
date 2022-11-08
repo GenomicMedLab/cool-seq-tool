@@ -10,15 +10,15 @@ from fastapi.responses import FileResponse
 from fastapi.openapi.utils import get_openapi
 from starlette.background import BackgroundTasks
 
-from uta_tools import UTATools, logger
-from uta_tools.data_sources.mane_transcript import MANETranscriptError
-from uta_tools.schemas import AnnotationLayer, Assembly, GenomicDataResponse,\
+from cool_seq_tool import CoolSeqTool, logger
+from cool_seq_tool.data_sources.mane_transcript import MANETranscriptError
+from cool_seq_tool.schemas import AnnotationLayer, Assembly, GenomicDataResponse,\
     GenomicRequestBody, ManeDataService, MappedManeDataService, ResidueMode,\
     TranscriptRequestBody
-from uta_tools.version import __version__
+from cool_seq_tool.version import __version__
 
 
-SERVICE_NAME = "uta_tools"
+SERVICE_NAME = "cool_seq_tool"
 
 
 class Tags(str, Enum):
@@ -39,9 +39,9 @@ def custom_openapi() -> Dict:
     if app.openapi_schema:
         return app.openapi_schema
     openapi_schema = get_openapi(
-        title="The GenomicMedLab UTA Tools",
+        title="The GenomicMedLab Cool Seq Tool",
         version=__version__,
-        description="Service for querying data in the biocommons UTA database and retrieving MANE data.",  # noqa: E501
+        description="Common Operations On Lots-of Sequences Tool.",
         routes=app.routes
     )
 
@@ -56,7 +56,7 @@ def custom_openapi() -> Dict:
 
 app.openapi = custom_openapi
 
-uta_tools = UTATools()
+cool_seq_tool = CoolSeqTool()
 
 RESP_DESCR = "A response to a validly-formed query."
 UNHANDLED_EXCEPTION_MSG = "Unhandled exception occurred. Check logs for more details."
@@ -79,11 +79,11 @@ async def genomic_to_transcript_exon_coordinates(
     request_body = request_body.dict()
 
     response = GenomicDataResponse(
-        genomic_data=None, warnings=list(), service_meta=uta_tools.service_meta())
+        genomic_data=None, warnings=list(), service_meta=cool_seq_tool.service_meta())
 
     try:
         response = \
-            await uta_tools.genomic_to_transcript_exon_coordinates(**request_body)
+            await cool_seq_tool.genomic_to_transcript_exon_coordinates(**request_body)
     except Exception as e:
         logger.error(f"genomic_to_transcript_exon_coordinates unhandled exception {str(e)}")  # noqa: E501
         response.warnings.append(UNHANDLED_EXCEPTION_MSG)
@@ -108,10 +108,10 @@ async def transcript_to_genomic_coordinates(
     request_body = request_body.dict()
 
     response = GenomicDataResponse(
-        genomic_data=None, warnings=list(), service_meta=uta_tools.service_meta())
+        genomic_data=None, warnings=list(), service_meta=cool_seq_tool.service_meta())
 
     try:
-        response = await uta_tools.transcript_to_genomic_coordinates(**request_body)
+        response = await cool_seq_tool.transcript_to_genomic_coordinates(**request_body)
     except Exception as e:
         logger.error(f"transcript_to_genomic_coordinates unhandled exception {str(e)}")
         response.warnings.append(UNHANDLED_EXCEPTION_MSG)
@@ -161,7 +161,7 @@ async def get_mane_data(
     warnings = list()
     mane_data = None
     try:
-        mane_data = await uta_tools.mane_transcript.get_mane_transcript(
+        mane_data = await cool_seq_tool.mane_transcript.get_mane_transcript(
             ac=ac, start_pos=start_pos, start_annotation_layer=start_annotation_layer,
             end_pos=end_pos, gene=gene, ref=ref,
             try_longest_compatible=try_longest_compatible, residue_mode=residue_mode)
@@ -175,7 +175,7 @@ async def get_mane_data(
     return ManeDataService(
         mane_data=mane_data,
         warnings=warnings,
-        service_meta=uta_tools.service_meta()
+        service_meta=cool_seq_tool.service_meta()
     )
 
 
@@ -206,7 +206,7 @@ async def get_mapped_mane_data(
     warnings: List = list()
     mapped_mane_data = None
     try:
-        mapped_mane_data = await uta_tools.mane_transcript.get_mapped_mane_data(
+        mapped_mane_data = await cool_seq_tool.mane_transcript.get_mapped_mane_data(
             gene, assembly, genomic_position, residue_mode)
         if not mapped_mane_data:
             warnings.append(f"Unable to find mapped data for gene {gene} at position "
@@ -223,7 +223,7 @@ async def get_mapped_mane_data(
     return MappedManeDataService(
         mapped_mane_data=mapped_mane_data,
         warnings=warnings,
-        service_meta=uta_tools.service_meta()
+        service_meta=cool_seq_tool.service_meta()
     )
 
 
@@ -250,7 +250,7 @@ async def get_sequence(
     """
     _, path = tempfile.mkstemp(suffix=".fasta")
     try:
-        uta_tools.get_fasta_file(sequence_id, Path(path))
+        cool_seq_tool.get_fasta_file(sequence_id, Path(path))
     except KeyError:
         raise HTTPException(
             status_code=404,

@@ -1,6 +1,6 @@
 [run]
 source =
-   uta_tools/
+   cool_seq_tool/
    tests/
 omit =
    setup.py

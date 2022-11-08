@@ -1,7 +1,7 @@
 """Module for testing MANE Transcript Mapping class."""
 import pytest
 
-from uta_tools.data_sources import MANETranscriptMappings
+from cool_seq_tool.data_sources import MANETranscriptMappings
 
 
 @pytest.fixture(scope="module")
