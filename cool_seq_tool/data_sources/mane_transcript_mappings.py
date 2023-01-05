@@ -50,3 +50,19 @@ class MANETranscriptMappings:
         if len(result) == 0:
             return []
         return result.to_dict("records")
+
+    def get_mane_data_from_chr_pos(self, chromosome: str, start: int,
+                                   end: int) -> List[Dict]:
+        """Get MANE data given chromosome, start pos, end end pos. Assumes GRCh38.
+        :param str chromosome: Chromosome. Case sensitive for X, Y chromosomes.
+            Do not prefix. Valid examples: "1" ... "22", "X", "Y"
+        :param int start: Start genomic position. Assumes residue coordinates.
+        :param int end: End genomic position. Assumes residue coordinates.
+        :return: List of MANE data. Will return sorted list:
+            MANE Select then MANE Plus Clinical.
+        """
+        mane_rows = self.df[(start >= self.df["chr_start"].astype(int)) & (end <= self.df["chr_end"].astype(int)) & (self.df["GRCh38_chr"] == chromosome)]  # noqa: E501
+        if len(mane_rows) == 0:
+            return []
+        mane_rows = mane_rows.sort_values("MANE_status", ascending=False)
+        return mane_rows.to_dict("records")
