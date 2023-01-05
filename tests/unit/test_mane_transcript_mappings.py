@@ -153,3 +153,37 @@ def test_get_mane_from_transcripts(test_mane_transcript_mappings,
     resp = test_mane_transcript_mappings.get_mane_from_transcripts(
         ["NM_012334.34"])
     assert resp == []
+
+
+def test_get_mane_data_from_chr_pos(test_mane_transcript_mappings, braf_select,
+                                    braf_plus_clinical):
+    """Test that get_mane_data_from_chr_pos method works correctly"""
+    resp = test_mane_transcript_mappings.get_mane_data_from_chr_pos(
+        "7", 140753336, 140753336)
+    assert len(resp) == 2
+    assert resp == [braf_select, braf_plus_clinical]
+
+    resp = test_mane_transcript_mappings.get_mane_data_from_chr_pos(
+        "X", 37994300, 37994310)
+    assert len(resp) == 1
+    assert resp == [{
+        "#NCBI_GeneID": "GeneID:115482686",
+        "Ensembl_Gene": "ENSG00000229674.3",
+        "HGNC_ID": "HGNC:53960",
+        "symbol": "H2AL3",
+        "name": "H2A.L variant histone 3",
+        "RefSeq_nuc": "NM_001395555.1",
+        "RefSeq_prot": "NP_001382484.1",
+        "Ensembl_nuc": "ENST00000448797.3",
+        "Ensembl_prot": "ENSP00000498087.1",
+        "MANE_status": "MANE Select",
+        "GRCh38_chr": "X",
+        "chr_start": 37994272,
+        "chr_end": 37994904,
+        "chr_strand": "+"
+    }]
+
+    # Invalid chromosome
+    resp = test_mane_transcript_mappings.get_mane_data_from_chr_pos(
+        "x", 37994300, 37994310)
+    assert resp == []
