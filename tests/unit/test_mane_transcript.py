@@ -631,6 +631,14 @@ async def test_get_mapped_mane_data(test_mane_transcript):
 
 
 @pytest.mark.asyncio
+async def test_valid(test_mane_transcript):
+    """Test that valid queries do not raise any exceptions"""
+    resp = await test_mane_transcript.get_mane_transcript(
+        "NP_001296812.1", 201, "p", end_pos=201, ref="R", try_longest_compatible=True)
+    assert resp
+
+
+@pytest.mark.asyncio
 async def test_no_matches(test_mane_transcript):
     """Test that invalid queries return None."""
     # Invalid ENST version
