@@ -714,7 +714,8 @@ class UTADatabase:
     async def get_genomic_tx_data(
         self, tx_ac: str, pos: Tuple[int, int],
         annotation_layer: Union[AnnotationLayer.CDNA, AnnotationLayer.GENOMIC] = AnnotationLayer.CDNA,  # noqa: E501
-        alt_ac: Optional[str] = None
+        alt_ac: Optional[str] = None,
+        target_genome_assembly: Assembly = Assembly.GRCH38
     ) -> Optional[Dict]:
         """Get transcript mapping to genomic data.
 
@@ -723,6 +724,8 @@ class UTADatabase:
         :param Union[AnnotationLayer.CDNA, AnnotationLayer.GENOMIC] annotation_layer:
             Annotation layer for `ac` and `pos`
         :param Optional[str] alt_ac: Accession on g. coordinate
+        :param Assembly target_genome_assembly: Genome assembly to get genomic data for.
+            If `alt_ac` is provided, it will return the associated assembly.
         :return: Gene, Transcript accession and position change,
             Altered transcript accession and position change, Strand
         """
@@ -731,7 +734,11 @@ class UTADatabase:
             alt_ac=alt_ac)
         if not results:
             return None
-        result = results[-1]
+
+        if alt_ac or target_genome_assembly == Assembly.GRCH38:
+            result = results[-1]
+        else:
+            result = results[0]
 
         data = self.data_from_result(result)
         if not data:

@@ -4,6 +4,7 @@ from typing import Optional, Union, List, Tuple, Dict
 from pathlib import Path
 
 from cool_seq_tool import logger
+from cool_seq_tool.data_sources.alignment_mapper import AlignmentMapper
 from cool_seq_tool.schemas import Assembly, GenomicData, TranscriptExonData, \
     ResidueMode, GenomicDataResponse, ServiceMeta, TranscriptExonDataResponse
 from cool_seq_tool.data_sources import MANETranscript, MANETranscriptMappings,\
@@ -45,6 +46,8 @@ class CoolSeqTool:
             mane_data_path=mane_data_path)
         self.uta_db = UTADatabase(db_url=db_url, db_pwd=db_pwd)
         gene_normalizer = GeneNormalizer(gene_db_url, gene_db_region)
+        self.alignment_mapper = AlignmentMapper(
+            self.seqrepo_access, self.transcript_mappings, self.uta_db)
         self.mane_transcript = MANETranscript(
             self.seqrepo_access, self.transcript_mappings,
             self.mane_transcript_mappings, self.uta_db, gene_normalizer)
