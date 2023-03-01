@@ -610,7 +610,8 @@ class UTADatabase:
             {aln_method}
             AND {start_pos} BETWEEN {pos_q}
             AND {end_pos} BETWEEN {pos_q}
-            ORDER BY alt_ac;
+            ORDER BY (CAST(SUBSTR(alt_ac, position('.' in alt_ac) + 1,
+                LENGTH(alt_ac)) AS INT))
             """
         )
         result = await self.execute_query(query)

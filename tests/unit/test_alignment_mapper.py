@@ -96,6 +96,22 @@ def delins_grch37():
     }
 
 
+@pytest.fixture(scope="module")
+def hras_t2a():
+    """Create test fixture for CA10582926 representation"""
+
+    def _expected(assembly):
+        g_ac = "NC_000011.9" if assembly == Assembly.GRCH37 else "NC_000011.10"
+        return {
+            "g_ac": g_ac,
+            "g_start_pos": 534316,
+            "g_end_pos": 534319,
+            "residue_mode": "inter-residue"
+        }
+
+    return _expected
+
+
 @pytest.mark.asyncio
 async def test_get_cds_start(test_alignment_mapper):
     """Test that _get_cds_start method works correctly"""
@@ -223,7 +239,7 @@ async def test_c_to_g_invalid(test_alignment_mapper):
 @pytest.mark.asyncio
 async def test_p_to_g(
     test_alignment_mapper, braf_v600e_grch37, braf_v600e_grch38, egfr_l858r_grch37,
-    egfr_l858r_grch38, delins_grch37
+    egfr_l858r_grch38, delins_grch37, hras_t2a
 ):
     """Test that p_to_g works as expected"""
     # BRAF V600E
@@ -264,6 +280,19 @@ async def test_p_to_g(
             ac, start, end, residue_mode=residue_mode, target_genome_assembly=assembly)
         assert w is None, params
         assert resp == delins_grch37, params
+
+    # Example not using mane accession: CA10582926
+    for params in [
+        ("NP_001123914.1", 2, 2, ResidueMode.RESIDUE, Assembly.GRCH37),
+        ("NP_001123914.1", 1, 2, ResidueMode.INTER_RESIDUE, Assembly.GRCH37),
+        ("NP_001123914.1", 2, 2, ResidueMode.RESIDUE, Assembly.GRCH38),
+        ("NP_001123914.1", 1, 2, ResidueMode.INTER_RESIDUE, Assembly.GRCH38)
+    ]:
+        ac, start, end, residue_mode, assembly = params
+        resp, w = await test_alignment_mapper.p_to_g(
+            ac, start, end, residue_mode=residue_mode, target_genome_assembly=assembly)
+        assert w is None, params
+        assert resp == hras_t2a(assembly), params
 
 
 @pytest.mark.asyncio
