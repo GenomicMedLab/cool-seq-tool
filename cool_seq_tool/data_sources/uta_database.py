@@ -448,8 +448,8 @@ class UTADatabase:
             AND {tx_exon_end} BETWEEN T.tx_start_i AND T.tx_end_i
             AND T.alt_aln_method = 'splign'
             AND T.alt_ac LIKE 'NC_00%'
-            ORDER BY (CAST(SUBSTR(T.alt_ac, position('.' in T.alt_ac) + 1,
-                LENGTH(T.alt_ac)) AS INT)) DESC;
+            ORDER BY CAST(SUBSTR(T.alt_ac, position('.' in T.alt_ac) + 1,
+                LENGTH(T.alt_ac)) AS INT) DESC;
             """
         )
         result = await self.execute_query(query)
@@ -491,28 +491,34 @@ class UTADatabase:
                            f"accession: {tx_ac}")
             return None
 
-    async def get_newest_assembly_ac(self, ac: str) -> List:
-        """Find most recent genomic accession version.
+    async def get_newest_assembly_ac(self, ac: str) -> List[str]:
+        """Find accession associated to latest genomic assembly
 
-        :param str ac: Genomic accession
-        :return: List of most recent genomic accession version
+        :param str ac: Accession
+        :return: List of accessions associated to latest genomic assembly. Order by
+            desc
         """
+        # Ensembl accessions do not have versions
+        if ac.startswith("EN"):
+            order_by_cond = "ORDER BY ac;"
+        else:
+            order_by_cond = "ORDER BY SUBSTR(ac, 0, position('.' in ac)),"\
+                            "CAST(SUBSTR(ac, position('.' in ac) + 1, LENGTH(ac)) AS INT) DESC;"  # noqa: E501
+
         query = (
             f"""
             SELECT ac
             FROM {self.schema}._seq_anno_most_recent
             WHERE ac LIKE '{ac.split('.')[0]}%'
             AND ((descr IS NULL) OR (descr = ''))
-            ORDER BY ac;
+            {order_by_cond}
             """
         )
-        result = await self.execute_query(query)
-        if result:
-            ret = list()
-            for r in result:
-                ret.append([field for field in r])
-            return ret
-        return []
+        results = await self.execute_query(query)
+        if not results:
+            return []
+
+        return [r["ac"] for r in results]
 
     async def validate_genomic_ac(self, ac: str) -> bool:
         """Return whether or not genomic accession exists.
@@ -590,8 +596,12 @@ class UTADatabase:
         else:
             tx_q = f"WHERE tx_ac='{temp_ac}'"  # noqa: F541
 
+        order_by_cond = \
+            "ORDER BY CAST(SUBSTR(alt_ac, position('.' in alt_ac) + 1, LENGTH(alt_ac)) AS INT)"  # noqa: E501
         if alt_ac:
             alt_ac_q = f"AND alt_ac = '{alt_ac}'"
+            if alt_ac.startswith("EN"):
+                order_by_cond = "ORDER BY alt_ac"
         else:
             alt_ac_q = f"AND alt_ac LIKE 'NC_00%'"  # noqa: F541
 
@@ -610,8 +620,7 @@ class UTADatabase:
             {aln_method}
             AND {start_pos} BETWEEN {pos_q}
             AND {end_pos} BETWEEN {pos_q}
-            ORDER BY (CAST(SUBSTR(alt_ac, position('.' in alt_ac) + 1,
-                LENGTH(alt_ac)) AS INT))
+            {order_by_cond}
             """
         )
         result = await self.execute_query(query)
@@ -771,11 +780,11 @@ class UTADatabase:
 
         return data
 
-    async def get_ac_from_gene(self, gene: str) -> Optional[List[str]]:
-        """Return genomic accession for a gene.
+    async def get_ac_from_gene(self, gene: str) -> List[str]:
+        """Return genomic accession(s) associated to a gene.
 
         :param str gene: Gene symbol
-        :return: List of genomic accessions
+        :return: List of genomic accessions, sorted in desc order
         """
         query = (
             f"""
@@ -783,13 +792,17 @@ class UTADatabase:
             FROM {self.schema}.genomic
             WHERE hgnc = '{gene}'
             AND alt_ac LIKE 'NC_00%'
-            ORDER BY alt_ac DESC;
+            ORDER BY alt_ac;
             """
         )
-        results = await self.execute_query(query)
-        if not results:
+
+        records = await self.execute_query(query)
+        if not records:
             return []
-        return [item for sublist in results for item in sublist]
+
+        alt_acs = [r["alt_ac"] for r in records]
+        alt_acs.sort(key=lambda x: int(x.split(".")[-1]), reverse=True)
+        return alt_acs
 
     async def get_gene_from_ac(self, ac: str, start_pos: int,
                                end_pos: int) -> Optional[List[str]]:
@@ -858,8 +871,16 @@ class UTADatabase:
                 """
             )
 
+        order_by_cond = """
+        ORDER BY SUBSTR(ALIGN.alt_ac, 0, position('.' in ALIGN.alt_ac)),
+        CAST(SUBSTR(ALIGN.alt_ac, position('.' in ALIGN.alt_ac) + 1,
+            LENGTH(ALIGN.alt_ac)) AS INT) DESC,
+        ALIGN.tx_end_i - ALIGN.tx_start_i DESC;
+        """
         if alt_ac:
             alt_ac_cond = f"AND ALIGN.alt_ac = '{alt_ac}'"
+            if alt_ac.startswith("EN"):
+                order_by_cond = "ORDER BY ALIGN.alt_ac;"
         else:
             alt_ac_cond = "AND ALIGN.alt_ac LIKE 'NC_00%'"
 
@@ -873,7 +894,7 @@ class UTADatabase:
             {alt_ac_cond}
             AND ALIGN.alt_aln_method = 'splign'
             {pos_cond}
-            ORDER BY ALIGN.alt_ac, ALIGN.tx_end_i - ALIGN.tx_start_i DESC;
+            {order_by_cond}
             """
         )
         results = await self.execute_query(query)
@@ -939,13 +960,19 @@ class UTADatabase:
                            Assembly.GRCH38)
 
         # Change alt_ac to most recent
+        if genomic_tx_data["alt_ac"].startswith("EN"):
+            order_by_cond = "ORDER BY alt_ac DESC;"
+        else:
+            order_by_cond = """
+            ORDER BY CAST(SUBSTR(alt_ac, position('.' in alt_ac) + 1,
+            LENGTH(alt_ac)) AS INT) DESC;
+            """
         query = (
             f"""
             SELECT alt_ac
             FROM {self.schema}.genomic
             WHERE alt_ac LIKE '{genomic_tx_data['alt_ac'].split('.')[0]}%'
-            ORDER BY (CAST(SUBSTR(alt_ac, position('.' in alt_ac) + 1,
-                LENGTH(alt_ac)) AS INT)) DESC;
+            {order_by_cond}
             """
         )
         nc_acs = await self.execute_query(query)
@@ -1010,19 +1037,28 @@ class UTADatabase:
 
         :param str p_ac: Protein accession
         :return: List of rows containing c. accessions that are associated
-            with the given p. accession.
+            with the given p. accession. In ascending order.
         """
+        # Ensembl accessions do not have versions
+        if p_ac.startswith("EN"):
+            order_by_cond = "ORDER BY tx_ac;"
+        else:
+            order_by_cond = """
+            ORDER BY SUBSTR(tx_ac, 0, position('.' in tx_ac)),
+            CAST(SUBSTR(tx_ac, position('.' in tx_ac) + 1, LENGTH(tx_ac)) AS INT);
+            """
+
         query = (
             f"""
             SELECT tx_ac
             FROM {self.schema}.associated_accessions
             WHERE pro_ac = '{p_ac}'
-            ORDER BY tx_ac;
+            {order_by_cond}
             """
         )
         result = await self.execute_query(query)
         if result:
-            result = [r[0] for r in result]
+            result = [r["tx_ac"] for r in result]
         return result
 
     async def get_transcripts_from_genomic_pos(

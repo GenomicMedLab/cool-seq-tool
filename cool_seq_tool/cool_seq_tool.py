@@ -471,7 +471,7 @@ class CoolSeqTool:
         if not grch38_ac:
             return f"Invalid genomic accession: {params['chr']}"
 
-        grch38_ac = grch38_ac[0][0]
+        grch38_ac = grch38_ac[0]
         if grch38_ac != params["chr"]:  # params["chr"] is genomic accession
             # Liftover to 38
             descr = await self.uta_db.get_chr_assembly(params["chr"])
