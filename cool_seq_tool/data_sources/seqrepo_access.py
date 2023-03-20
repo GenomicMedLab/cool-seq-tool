@@ -1,6 +1,7 @@
 """A module for accessing SeqRepo."""
 from typing import Optional, List, Tuple, Union
 from os import environ
+from pathlib import Path
 
 from biocommons.seqrepo import SeqRepo
 
@@ -12,9 +13,9 @@ from cool_seq_tool.data_sources.residue_mode import get_inter_residue_pos
 class SeqRepoAccess:
     """The SeqRepoAccess class."""
 
-    def __init__(self, seqrepo_data_path: str = SEQREPO_DATA_PATH) -> None:
+    def __init__(self, seqrepo_data_path: Path = SEQREPO_DATA_PATH) -> None:
         """Initialize the SeqRepoAccess class.
-        :param str seqrepo_data_path: The path to the seqrepo directory.
+        :param Path seqrepo_data_path: The path to the seqrepo directory.
         """
         environ["SEQREPO_LRU_CACHE_MAXSIZE"] = "none"
         self.seqrepo_client = SeqRepo(seqrepo_data_path)

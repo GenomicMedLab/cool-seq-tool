@@ -21,20 +21,20 @@ class CoolSeqTool:
     """Class to initialize data sources."""
 
     def __init__(
-        self, seqrepo_data_path: str = SEQREPO_DATA_PATH,
-        transcript_file_path: str = TRANSCRIPT_MAPPINGS_PATH,
-        lrg_refseqgene_path: str = LRG_REFSEQGENE_PATH,
-        mane_data_path: str = MANE_SUMMARY_PATH,
+        self, seqrepo_data_path: Path = SEQREPO_DATA_PATH,
+        transcript_file_path: Path = TRANSCRIPT_MAPPINGS_PATH,
+        lrg_refseqgene_path: Path = LRG_REFSEQGENE_PATH,
+        mane_data_path: Path = MANE_SUMMARY_PATH,
         db_url: str = UTA_DB_URL, db_pwd: str = "",
         gene_query_handler: GeneQueryHandler = None,
         gene_db_url: str = "", gene_db_region: str = "us-east-2"
     ) -> None:
         """Initialize CoolSeqTool class
 
-        :param str seqrepo_data_path: The path to the seqrepo directory.
-        :param str transcript_file_path: The path to transcript_mappings.tsv
-        :param str lrg_refseqgene_path: The path to LRG_RefSeqGene
-        :param str mane_data_path: Path to RefSeq MANE summary data
+        :param Path seqrepo_data_path: The path to the seqrepo directory.
+        :param Path transcript_file_path: The path to transcript_mappings.tsv
+        :param Path lrg_refseqgene_path: The path to LRG_RefSeqGene
+        :param Path mane_data_path: Path to RefSeq MANE summary data
         :param str db_url: PostgreSQL connection URL
             Format: `driver://user:pass@host/database/schema`
         :param str db_pwd: User's password for uta database
