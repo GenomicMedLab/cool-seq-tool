@@ -71,6 +71,8 @@ If you do not wish to use the default, you must set the environment variable `UT
 #### SeqRepo
 `cool-seq-tool` relies on [seqrepo](https://github.com/biocommons/biocommons.seqrepo), which you must download yourself.
 
+Use the `SEQREPO_DATA_PATH` environment variable to set the path of an already existing SeqRepo directory. The default is `/usr/local/share/seqrepo/latest`.
+
 From the _root_ directory:
 ```
 pip install seqrepo
@@ -96,13 +98,15 @@ exit
 
 ![image](biomart.png)
 
+Use the `TRANSCRIPT_MAPPINGS_PATH` environment variable to set the path of an already existing `transcript_mappings.tsv`. The default is `cool_seq_tool/data/transcript_mapping.tsv`.
+
 #### LRG_RefSeqGene
 
-`cool-seq-tool` fetches the latest version of `LRG_RefSeqGene`. This file is found can be found [here](https://ftp.ncbi.nlm.nih.gov/refseq/H_sapiens/RefSeqGene).
+`cool-seq-tool` fetches the latest version of `LRG_RefSeqGene` if the environment variable `LRG_REFSEQGENE_PATH` is not set. When `LRG_REFSEQGENE_PATH` is set, `cool-seq-tool` will look at this path and expect the LRG_RefSeqGene file. This file is found can be found [here](https://ftp.ncbi.nlm.nih.gov/refseq/H_sapiens/RefSeqGene).
 
 #### MANE Summary Data
 
-`cool-seq-tool` fetches the latest version of `MANE.GRCh38.*.summary.txt.gz`. This file is found can be found [here](https://ftp.ncbi.nlm.nih.gov/refseq/MANE/MANE_human/current/).
+`cool-seq-tool` fetches the latest version of `MANE.GRCh38.*.summary.txt.gz` if the environment variable `MANE_SUMMARY_PATH` is not set. When `MANE_SUMMARY_PATH` is set, `cool-seq-tool` will look at this path and expect the MANE Summary Data file. This file is found can be found [here](https://ftp.ncbi.nlm.nih.gov/refseq/MANE/MANE_human/current/).
 
 ## Starting the UTA Tools Service Locally
 
