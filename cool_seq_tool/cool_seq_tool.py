@@ -3,6 +3,8 @@ from datetime import datetime
 from typing import Optional, Union, List, Tuple, Dict
 from pathlib import Path
 
+from gene.query import QueryHandler as GeneQueryHandler
+
 from cool_seq_tool import logger
 from cool_seq_tool.data_sources.alignment_mapper import AlignmentMapper
 from cool_seq_tool.schemas import Assembly, GenomicData, TranscriptExonData, \
@@ -18,24 +20,31 @@ from cool_seq_tool.version import __version__
 class CoolSeqTool:
     """Class to initialize data sources."""
 
-    def __init__(self, seqrepo_data_path: str = SEQREPO_DATA_PATH,
-                 transcript_file_path: str = TRANSCRIPT_MAPPINGS_PATH,
-                 lrg_refseqgene_path: str = LRG_REFSEQGENE_PATH,
-                 mane_data_path: str = MANE_SUMMARY_PATH,
-                 db_url: str = UTA_DB_URL, db_pwd: str = "",
-                 gene_db_url: str = "", gene_db_region: str = "us-east-2"
-                 ) -> None:
+    def __init__(
+        self, seqrepo_data_path: Path = SEQREPO_DATA_PATH,
+        transcript_file_path: Path = TRANSCRIPT_MAPPINGS_PATH,
+        lrg_refseqgene_path: Path = LRG_REFSEQGENE_PATH,
+        mane_data_path: Path = MANE_SUMMARY_PATH,
+        db_url: str = UTA_DB_URL, db_pwd: str = "",
+        gene_query_handler: GeneQueryHandler = None,
+        gene_db_url: str = "", gene_db_region: str = "us-east-2"
+    ) -> None:
         """Initialize CoolSeqTool class
 
-        :param str seqrepo_data_path: The path to the seqrepo directory.
-        :param str transcript_file_path: The path to transcript_mappings.tsv
-        :param str lrg_refseqgene_path: The path to LRG_RefSeqGene
-        :param str mane_data_path: Path to RefSeq MANE summary data
+        :param Path seqrepo_data_path: The path to the seqrepo directory.
+        :param Path transcript_file_path: The path to transcript_mappings.tsv
+        :param Path lrg_refseqgene_path: The path to LRG_RefSeqGene
+        :param Path mane_data_path: Path to RefSeq MANE summary data
         :param str db_url: PostgreSQL connection URL
             Format: `driver://user:pass@host/database/schema`
         :param str db_pwd: User's password for uta database
-        :param str gene_db_url: URL to gene normalizer dynamodb
-        :param str gene_db_region: AWS region for gene normalizer db
+        :param GeneQueryHandler gene_query_handler: Gene normalizer query handler
+            instance. If this is provided, will use a current instance. If this is not
+            provided, will create a new instance.
+        :param str gene_db_url: URL to gene normalizer dynamodb. Only used when
+            `gene_query_handler` is `None`.
+        :param str gene_db_region: AWS region for gene normalizer db. Only used when
+            `gene_query_handler` is `None`.
         """
         self.seqrepo_access = SeqRepoAccess(
             seqrepo_data_path=seqrepo_data_path)
@@ -45,7 +54,8 @@ class CoolSeqTool:
         self.mane_transcript_mappings = MANETranscriptMappings(
             mane_data_path=mane_data_path)
         self.uta_db = UTADatabase(db_url=db_url, db_pwd=db_pwd)
-        gene_normalizer = GeneNormalizer(gene_db_url, gene_db_region)
+        gene_normalizer = GeneNormalizer(gene_query_handler, gene_db_url,
+                                         gene_db_region)
         self.alignment_mapper = AlignmentMapper(
             self.seqrepo_access, self.transcript_mappings, self.uta_db)
         self.mane_transcript = MANETranscript(
@@ -471,7 +481,7 @@ class CoolSeqTool:
         if not grch38_ac:
             return f"Invalid genomic accession: {params['chr']}"
 
-        grch38_ac = grch38_ac[0][0]
+        grch38_ac = grch38_ac[0]
         if grch38_ac != params["chr"]:  # params["chr"] is genomic accession
             # Liftover to 38
             descr = await self.uta_db.get_chr_assembly(params["chr"])

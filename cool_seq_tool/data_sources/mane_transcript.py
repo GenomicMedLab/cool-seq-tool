@@ -736,7 +736,7 @@ class MANETranscript:
 
         newest_ac = await self.uta_db.get_newest_assembly_ac(ac)
         if newest_ac:
-            ac = newest_ac[0][0]
+            ac = newest_ac[0]
             if self._validate_index(ac, (start_pos, end_pos), 0):
                 return dict(
                     ac=ac,

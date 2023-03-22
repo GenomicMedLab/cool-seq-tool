@@ -10,13 +10,24 @@ from cool_seq_tool import logger
 class GeneNormalizer:
     """Gene Normalizer class for getting gene data"""
 
-    def __init__(self, db_url: str = "", db_region: str = "us-east-2") -> None:
+    def __init__(
+        self, query_handler: QueryHandler = None, db_url: str = "",
+        db_region: str = "us-east-2"
+    ) -> None:
         """Initialize gene normalizer class
 
-        :param str db_url: URL to gene normalizer dynamodb
-        :param str db_region: AWS region for gene normalizer db
+        :param QueryHandler query_handler: Gene normalizer query handler instance.
+            If this is provided, will use a current instance. If this is not provided,
+            will create a new instance.
+        :param str db_url: URL to gene normalizer dynamodb. Only used when
+            `query_handler` is `None`.
+        :param str db_region: AWS region for gene normalizer db. Only used when
+            `query_handler` is `None`.
         """
-        self.query_handler = QueryHandler(db_url, db_region)
+        if query_handler:
+            self.query_handler = query_handler
+        else:
+            self.query_handler = QueryHandler(db_url, db_region)
 
     def get_hgnc_data(self, gene: str) -> Dict:
         """Return HGNC data for a given gene

@@ -14,21 +14,27 @@ logger.setLevel(logging.DEBUG)
 
 LOG_FN = "cool_seq_tool.log"
 
-if "UTA_DB_URL" in environ:
-    UTA_DB_URL = environ["UTA_DB_URL"]
-else:
-    UTA_DB_URL = "postgresql://uta_admin@localhost:5433/uta/uta_20210129"
+UTA_DB_URL = environ.get("UTA_DB_URL",
+                         "postgresql://uta_admin@localhost:5433/uta/uta_20210129")
+SEQREPO_DATA_PATH = Path(environ.get("SEQREPO_DATA_PATH",
+                                     "/usr/local/share/seqrepo/latest"))
+TRANSCRIPT_MAPPINGS_PATH = Path(environ.get("TRANSCRIPT_MAPPINGS_PATH",
+                                            f"{APP_ROOT}/data/transcript_mapping.tsv"))
 
-if "SEQREPO_DATA_PATH" in environ:
-    SEQREPO_DATA_PATH = environ["SEQREPO_DATA_PATH"]
-else:
-    SEQREPO_DATA_PATH = "/usr/local/share/seqrepo/latest"
 
-TRANSCRIPT_MAPPINGS_PATH = f"{APP_ROOT}/data/transcript_mapping.tsv"
+MANE_SUMMARY_PATH = environ.get("MANE_SUMMARY_PATH")
+LRG_REFSEQGENE_PATH = environ.get("LRG_REFSEQGENE_PATH")
+if not all((MANE_SUMMARY_PATH, LRG_REFSEQGENE_PATH)):
+    from cool_seq_tool.data import DataDownload  # noqa: E402, I202
+    d = DataDownload()
 
-from cool_seq_tool.data import DataDownload  # noqa: E402, I202
-d = DataDownload()
-MANE_SUMMARY_PATH = d._mane_summary_path
-LRG_REFSEQGENE_PATH = d._lrg_refseqgene_path
+    if not MANE_SUMMARY_PATH:
+        MANE_SUMMARY_PATH = d._mane_summary_path
+
+    if not LRG_REFSEQGENE_PATH:
+        LRG_REFSEQGENE_PATH = d._lrg_refseqgene_path
+MANE_SUMMARY_PATH = Path(MANE_SUMMARY_PATH)
+LRG_REFSEQGENE_PATH = Path(LRG_REFSEQGENE_PATH)
+
 
 from cool_seq_tool.cool_seq_tool import CoolSeqTool  # noqa: E402, F401, I202

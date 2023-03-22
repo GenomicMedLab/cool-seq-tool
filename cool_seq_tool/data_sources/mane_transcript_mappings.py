@@ -1,4 +1,5 @@
 """The module for loading MANE Transcript mappings to genes."""
+from pathlib import Path
 from typing import Dict, Optional, List
 
 import pandas as pd
@@ -9,9 +10,9 @@ from cool_seq_tool import MANE_SUMMARY_PATH, logger
 class MANETranscriptMappings:
     """The MANE Transcript mappings class."""
 
-    def __init__(self, mane_data_path: str = MANE_SUMMARY_PATH) -> None:
+    def __init__(self, mane_data_path: Path = MANE_SUMMARY_PATH) -> None:
         """Initialize the MANE Transcript mappings class.
-        :param str mane_data_path: Path to RefSeq MANE summary data
+        :param Path mane_data_path: Path to RefSeq MANE summary data
         """
         self.mane_data_path = mane_data_path
         self.df = self._load_mane_transcript_data()
