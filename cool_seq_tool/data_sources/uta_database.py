@@ -21,25 +21,53 @@ from cool_seq_tool.schemas import AnnotationLayer, Assembly
 # use `bound` to upper-bound UTADatabase or child classes
 UTADatabaseType = TypeVar("UTADatabaseType", bound="UTADatabase")
 
+# Environment variables for paths to chain files for pyliftover
+LIFTOVER_CHAIN_37_TO_38 = environ.get("LIFTOVER_CHAIN_37_TO_38")
+LIFTOVER_CHAIN_38_TO_37 = environ.get("LIFTOVER_CHAIN_38_TO_37")
+
 
 class UTADatabase:
     """Class for connecting and querying UTA database."""
 
-    def __init__(self, db_url: str = UTA_DB_URL, db_pwd: str = "") -> None:
+    def __init__(
+        self,
+        db_url: str = UTA_DB_URL,
+        db_pwd: str = "",
+        chain_file_37_to_38: Optional[str] = None,
+        chain_file_38_to_37: Optional[str] = None
+    ) -> None:
         """Initialize DB class. Downstream libraries should use the create()
         method to construct a new instance: await UTADatabase.create()
 
-        :param str db_url: PostgreSQL connection URL
+        :param db_url: PostgreSQL connection URL
             Format: `driver://user:pass@host/database/schema`
-        :param str db_pwd: User's password for uta database
+        :param db_pwd: User's password for uta database
+        :param chain_file_37_to_38: Optional path to chain file for 37 to 38 assembly.
+            This is used for pyliftover. If this is not provided, will check to see if
+            LIFTOVER_CHAIN_37_TO_38 env var is set. If neither is provided, will allow
+            pyliftover to download a chain file from UCSC
+        :param chain_file_38_to_37: Optional path to chain file for 38 to 37 assembly.
+            This is used for pyliftover. If this is not provided, will check to see if
+            LIFTOVER_CHAIN_38_TO_37 env var is set. If neither is provided, will allow
+            pyliftover to download a chain file from UCSC
         """
         self.schema = None
         self.db_url = db_url
         self.db_pwd = db_pwd
         self._connection_pool = None
         self.args = self._get_conn_args()
-        self.liftover_37_to_38 = LiftOver("hg19", "hg38")
-        self.liftover_38_to_37 = LiftOver("hg38", "hg19")
+
+        chain_file_37_to_38 = chain_file_37_to_38 or LIFTOVER_CHAIN_37_TO_38
+        if chain_file_37_to_38:
+            self.liftover_37_to_38 = LiftOver(chain_file_37_to_38)
+        else:
+            self.liftover_37_to_38 = LiftOver("hg19", "hg38")
+
+        chain_file_38_to_37 = chain_file_38_to_37 or LIFTOVER_CHAIN_38_TO_37
+        if chain_file_38_to_37:
+            self.liftover_38_to_37 = LiftOver(chain_file_38_to_37)
+        else:
+            self.liftover_38_to_37 = LiftOver("hg38", "hg19")
 
     @staticmethod
     def _update_db_url(db_pwd: str, db_url: str) -> str:
