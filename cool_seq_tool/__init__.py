@@ -16,8 +16,7 @@ LOG_FN = "cool_seq_tool.log"
 
 UTA_DB_URL = environ.get("UTA_DB_URL",
                          "postgresql://uta_admin@localhost:5433/uta/uta_20210129")
-SEQREPO_DATA_PATH = Path(environ.get("SEQREPO_DATA_PATH",
-                                     "/usr/local/share/seqrepo/latest"))
+SEQREPO_ROOT_DIR = environ.get("SEQREPO_ROOT_DIR", "/usr/local/share/seqrepo/latest")
 TRANSCRIPT_MAPPINGS_PATH = Path(environ.get("TRANSCRIPT_MAPPINGS_PATH",
                                             f"{APP_ROOT}/data/transcript_mapping.tsv"))
 

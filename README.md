@@ -71,7 +71,7 @@ If you do not wish to use the default, you must set the environment variable `UT
 #### SeqRepo
 `cool-seq-tool` relies on [seqrepo](https://github.com/biocommons/biocommons.seqrepo), which you must download yourself.
 
-Use the `SEQREPO_DATA_PATH` environment variable to set the path of an already existing SeqRepo directory. The default is `/usr/local/share/seqrepo/latest`.
+Use the `SEQREPO_ROOT_DIR` environment variable to set the path of an already existing SeqRepo directory. The default is `/usr/local/share/seqrepo/latest`.
 
 From the _root_ directory:
 ```
