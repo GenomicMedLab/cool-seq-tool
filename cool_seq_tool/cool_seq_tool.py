@@ -4,10 +4,11 @@ from typing import Optional, Union, List, Tuple, Dict
 from pathlib import Path
 
 from cool_seq_tool import logger
-from cool_seq_tool.data_sources.alignment_mapper import AlignmentMapper
-from cool_seq_tool.schemas import Assembly, GenomicData, TranscriptExonData, \
+from cool_seq_tool.alignment_mapper import AlignmentMapper
+from cool_seq_tool.mane_transcript import MANETranscript
+from cool_seq_tool.schemas import AnnotationLayer, Assembly, GenomicData, TranscriptExonData, \
     ResidueMode, GenomicDataResponse, ServiceMeta, TranscriptExonDataResponse
-from cool_seq_tool.data_sources import MANETranscript, MANETranscriptMappings,\
+from cool_seq_tool.data_sources import MANETranscriptMappings,\
     SeqRepoAccess, TranscriptMappings, UTADatabase, GeneNormalizer
 from cool_seq_tool import SEQREPO_DATA_PATH, \
     TRANSCRIPT_MAPPINGS_PATH, LRG_REFSEQGENE_PATH, MANE_SUMMARY_PATH, \
@@ -49,8 +50,8 @@ class CoolSeqTool:
         self.alignment_mapper = AlignmentMapper(
             self.seqrepo_access, self.transcript_mappings, self.uta_db)
         self.mane_transcript = MANETranscript(
-            self.seqrepo_access, self.transcript_mappings,
-            self.mane_transcript_mappings, self.uta_db, gene_normalizer)
+            self.seqrepo_access, self.transcript_mappings, self.uta_db,
+            self.mane_transcript_mappings, gene_normalizer)
 
     @staticmethod
     def service_meta() -> ServiceMeta:
@@ -406,7 +407,7 @@ class CoolSeqTool:
         :return: Warnings if found
         """
         mane_data = await self.mane_transcript.get_mane_transcript(
-            alt_ac, pos, "g", gene=gene,
+            alt_ac, pos, pos, AnnotationLayer.GENOMIC, gene=gene,
             try_longest_compatible=True, residue_mode=residue_mode
         )
         if not mane_data:

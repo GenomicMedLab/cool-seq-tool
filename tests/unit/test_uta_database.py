@@ -162,30 +162,6 @@ async def test_data_from_result(test_db, tx_exon_aln_v_data, data_from_result):
 
 
 @pytest.mark.asyncio
-async def test_mane_c_genomic_data(test_db):
-    """Test that get_mane_c_genomic_data works correctly."""
-    resp = await test_db.get_mane_c_genomic_data(
-        "NM_001374258.1", None, 140753335, 140753335
-    )
-    expected = dict(
-        gene="BRAF",
-        strand="-",
-        tx_pos_range=(2087, 2206),
-        alt_pos_range=(140753274, 140753393),
-        alt_aln_method="splign",
-        tx_exon_id=8439617,
-        alt_exon_id=9353476,
-        coding_start_site=226,
-        coding_end_site=2650,
-        alt_pos_change=(57, 62),
-        alt_pos_change_range=(140753336, 140753336),
-        tx_ac="NM_001374258.1",
-        alt_ac="NC_000007.14"
-    )
-    assert resp == expected
-
-
-@pytest.mark.asyncio
 async def test_get_genomic_tx_data(test_db, genomic_tx_data):
     """Test that get_genomic_tx_data works correctly."""
     resp = await test_db.get_genomic_tx_data("NM_004333.4", (2145, 2145))

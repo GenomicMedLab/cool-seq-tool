@@ -663,55 +663,6 @@ class UTADatabase:
             alt_exon_id=alt_exon_id,
         )
 
-    async def get_mane_c_genomic_data(self, ac: str, alt_ac: Optional[str],
-                                      start_pos: int,
-                                      end_pos: int) -> Optional[Dict]:
-        """Get MANE Transcript and genomic data.
-
-        Used when going from g -> MANE c
-        :param str ac: MANE Transcript accession
-        :param str alt_ac: NC Accession
-        :param int start_pos: Genomic start position change
-        :param int end_pos: Genomic end position change
-        """
-        results = await self.get_tx_exon_aln_v_data(
-            ac, start_pos, end_pos, alt_ac=alt_ac, use_tx_pos=False
-        )
-        if not results:
-            return None
-        result = results[0]
-
-        data = self.data_from_result(result)
-        if not data:
-            return None
-
-        coding_start_site = await self.get_cds_start_end(ac)
-        if coding_start_site is None:
-            logger.warning(f"Accession {ac} not found in UTA")
-            return None
-
-        data["tx_ac"] = result[1]
-        data["alt_ac"] = result[4]
-        data["coding_start_site"] = coding_start_site[0]
-        data["coding_end_site"] = coding_start_site[1]
-
-        if data["strand"] == "-":
-            end_pos += 1
-            start_pos += 1
-            data["alt_pos_change_range"] = (end_pos, start_pos)
-            data["alt_pos_change"] = (
-                data["alt_pos_range"][1] - data["alt_pos_change_range"][0],
-                data["alt_pos_change_range"][1] - data["alt_pos_range"][0]
-            )
-        else:
-            data["alt_pos_change_range"] = (start_pos, end_pos)
-            data["alt_pos_change"] = (
-                data["alt_pos_change_range"][0] - data["alt_pos_range"][0],
-                data["alt_pos_range"][1] - data["alt_pos_change_range"][1]
-            )
-
-        return data
-
     async def get_genomic_tx_data(
         self, tx_ac: str, pos: Tuple[int, int],
         annotation_layer: Union[AnnotationLayer.CDNA, AnnotationLayer.GENOMIC] = AnnotationLayer.CDNA,  # noqa: E501
@@ -744,6 +695,14 @@ class UTADatabase:
         data = self.data_from_result(result)
         if not data:
             return None
+
+        coding_start_site = await self.get_cds_start_end(tx_ac)
+        if coding_start_site is None:
+            logger.warning(f"Accession {tx_ac} not found in UTA")
+            return None
+        data["coding_start_site"] = coding_start_site[0]
+        data["coding_end_site"] = coding_start_site[1]
+
         data["tx_ac"] = result[1]
         data["alt_ac"] = result[4]
 
@@ -764,10 +723,22 @@ class UTADatabase:
                     data["alt_pos_range"][1] - data["pos_change"][1]
                 )
         else:
-            if data["strand"] == "-":
-                data["alt_pos_change_range"] = (pos[1] + 1, pos[0] + 1)
-            else:
-                data["alt_pos_change_range"] = pos
+            # genomic annotation layer
+            data["alt_pos_change_range"] = pos
+
+        if data["strand"] == "-":
+            # TODO: Why does this work if we add 1 to each 
+            data["alt_pos_change_range"] = (data["alt_pos_change_range"][0],
+                                            data["alt_pos_change_range"][1])
+            data["alt_pos_change"] = (
+                data["alt_pos_range"][1] - data["alt_pos_change_range"][0],
+                data["alt_pos_change_range"][1] - data["alt_pos_range"][0]
+            )
+        else:
+            data["alt_pos_change"] = (
+                data["alt_pos_change_range"][0] - data["alt_pos_range"][0],
+                data["alt_pos_range"][1] - data["alt_pos_change_range"][1]
+            )
 
         return data
 

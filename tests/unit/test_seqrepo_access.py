@@ -12,38 +12,29 @@ def test_seqrepo_access():
 
 def test_get_reference_sequence(test_seqrepo_access):
     """Test that get_reference_sequence method works correctly"""
-    resp = test_seqrepo_access.get_reference_sequence("NP_004324.2", 600)
-    assert resp == ("V", None)
-
     resp = test_seqrepo_access.get_reference_sequence("NP_004324.2", 600, 600)
     assert resp == ("V", None)
 
     resp = test_seqrepo_access.get_reference_sequence("NP_004324.2", 600, 601)
-    assert resp == ("V", None)
+    assert resp == ("VK", None)
 
     resp = test_seqrepo_access.get_reference_sequence(
         "NP_004324.2", 599, 600, residue_mode="inter-residue")
     assert resp == ("V", None)
 
     resp = test_seqrepo_access.get_reference_sequence("NP_004324.2", 601, 600)
-    assert resp == ("", "Invalid inter-residue coordinates: start (600)"
-                    " cannot be greater than end (599)")
+    assert resp == ("", "start (601) cannot be greater than end (600)")
 
-    resp = test_seqrepo_access.get_reference_sequence("NP_0043241311412", 600)
+    resp = test_seqrepo_access.get_reference_sequence("NP_0043241311412", 600, 600)
     assert resp == ("", "Accession, NP_0043241311412, not found in SeqRepo")
 
     resp = test_seqrepo_access.get_reference_sequence("NP_004324.2", 600, 800)
-    assert resp == ("", "End inter-residue coordinate (799) "
-                    "is out of index on NP_004324.2")
-
-    resp = test_seqrepo_access.get_reference_sequence(
-        "NP_004324.2", 4654645645654, 1)
-    assert resp == ("", "Start inter-residue coordinate (4654645645653) is "
-                    "out of index on NP_004324.2")
+    assert resp == ("", "End inter-residue coordinate (800) is out of index on "
+                    "NP_004324.2")
 
     resp = test_seqrepo_access.get_reference_sequence(
         "NP_004324.2", 600, 4654645645654)
-    assert resp == ("", "End inter-residue coordinate (4654645645653) "
+    assert resp == ("", "End inter-residue coordinate (4654645645654) "
                     "is out of index on NP_004324.2")
 
 

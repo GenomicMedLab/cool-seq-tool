@@ -6,7 +6,7 @@ from biocommons.seqrepo import SeqRepo
 
 from cool_seq_tool.schemas import ResidueMode
 from cool_seq_tool import SEQREPO_DATA_PATH, logger
-from cool_seq_tool.data_sources.residue_mode import get_inter_residue_pos
+from cool_seq_tool.utils.positions import get_inter_residue_pos
 
 
 class SeqRepoAccess:
@@ -36,13 +36,14 @@ class SeqRepoAccess:
             exist, else return empty string), warning if any
         """
         if start or end:
-            pos, warning = get_inter_residue_pos(start, residue_mode, end_pos=end)
-            if pos is None:
-                return "", warning
-            else:
-                start, end = pos
-                if start == end:
-                    end += 1
+            if (start and end) and (start > end):
+                msg = f"start ({start}) cannot be greater than end ({end})"
+                return "", msg
+
+            pos = get_inter_residue_pos(start, end, residue_mode)
+            start, end = pos
+            if start == end:
+                end += 1
         try:
             sequence = self.seqrepo_client.fetch(ac, start=start, end=end)
         except KeyError:
@@ -57,9 +58,6 @@ class SeqRepoAccess:
             elif error.startswith("stop out of range"):
                 msg = f"End inter-residue coordinate ({end}) is out of " \
                       f"index on {ac}"
-            elif error.startswith("invalid coordinates") and ">" in error:
-                msg = f"Invalid inter-residue coordinates: start ({start}) " \
-                      f"cannot be greater than end ({end})"
             else:
                 msg = f"{e}"
             logger.warning(msg)

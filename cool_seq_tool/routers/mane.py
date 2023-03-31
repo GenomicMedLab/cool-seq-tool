@@ -8,7 +8,7 @@ from fastapi import Query
 from cool_seq_tool import logger
 from cool_seq_tool.routers import cool_seq_tool, SERVICE_NAME, RESP_DESCR, \
     UNHANDLED_EXCEPTION_MSG, Tags
-from cool_seq_tool.data_sources.mane_transcript import MANETranscriptError
+from cool_seq_tool.mane_transcript import MANETranscriptError
 from cool_seq_tool.schemas import AnnotationLayer, Assembly, ManeDataService, \
     MappedManeDataService, ResidueMode
 
@@ -35,8 +35,8 @@ try_longest_compatible_descr = "`True` if should try longest compatible remainin
 async def get_mane_data(
     ac: str = Query(..., description="Accession"),
     start_pos: int = Query(..., description="Start position"),
+    end_pos: int = Query(..., description="End position"),
     start_annotation_layer: AnnotationLayer = Query(..., description="Starting annotation layer for query"),  # noqa: E501
-    end_pos: Optional[int] = Query(None, description="End position. If not set, will set to `start_pos`."),  # noqa: #501
     gene: Optional[str] = Query(None, description="HGNC gene symbol"),
     ref: Optional[str] = Query(None, description=ref_descr),
     try_longest_compatible: bool = Query(True, description=try_longest_compatible_descr),  # noqa: E501
@@ -47,9 +47,8 @@ async def get_mane_data(
 
     :param str ac: Accession
     :param int start_pos: Start position
+    :param int end_pos: End position
     :param AnnotationLayer start_annotation_layer: Starting annotation layer for query
-    :param Optional[int] end_pos: End position. If `None` assumes
-        both  `start_pos` and `end_pos` have same values.
     :param Optional[str] gene: Gene symbol
     :param Optional[str] ref: Reference at position given during input
     :param bool try_longest_compatible: `True` if should try longest
@@ -62,8 +61,8 @@ async def get_mane_data(
     mane_data = None
     try:
         mane_data = await cool_seq_tool.mane_transcript.get_mane_transcript(
-            ac=ac, start_pos=start_pos, start_annotation_layer=start_annotation_layer,
-            end_pos=end_pos, gene=gene, ref=ref,
+            ac=ac, start_pos=start_pos, end_pos=end_pos,
+            start_annotation_layer=start_annotation_layer, gene=gene, ref=ref,
             try_longest_compatible=try_longest_compatible, residue_mode=residue_mode)
 
         if not mane_data:

@@ -24,7 +24,7 @@ router = APIRouter(prefix=f"/{SERVICE_NAME}/alignment_mapper")
     tags=[Tags.ALIGNMENT_MAPPER]
 )
 async def p_to_c(
-    p_ac: str = Query(..., description="Protein RefSeq accession"),
+    p_ac: str = Query(..., description="Protein accession"),
     p_start_pos: int = Query(..., description="Protein start position"),
     p_end_pos: int = Query(..., description="Protein end position"),
     residue_mode: ResidueMode = Query(
@@ -33,7 +33,7 @@ async def p_to_c(
 ) -> ToCdnaService:
     """Translate protein representation to cDNA representation
 
-    :param str p_ac: Protein RefSeq accession
+    :param str p_ac: Protein accession
     :param int p_start_pos: Protein start position
     :param int p_end_pos: Protein end position
     :param ResidueMode residue_mode: Residue mode for `p_start_pos` and `p_end_pos`.
