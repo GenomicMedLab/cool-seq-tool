@@ -3,17 +3,17 @@ from datetime import datetime
 from typing import Optional, Union, List, Tuple, Dict
 from pathlib import Path
 
+from biocommons.seqrepo import SeqRepo
 from gene.query import QueryHandler as GeneQueryHandler
 
-from cool_seq_tool import logger
+from cool_seq_tool import logger, SEQREPO_ROOT_DIR
 from cool_seq_tool.data_sources.alignment_mapper import AlignmentMapper
 from cool_seq_tool.schemas import Assembly, GenomicData, TranscriptExonData, \
     ResidueMode, GenomicDataResponse, ServiceMeta, TranscriptExonDataResponse
 from cool_seq_tool.data_sources import MANETranscript, MANETranscriptMappings,\
     SeqRepoAccess, TranscriptMappings, UTADatabase, GeneNormalizer
-from cool_seq_tool import SEQREPO_DATA_PATH, \
-    TRANSCRIPT_MAPPINGS_PATH, LRG_REFSEQGENE_PATH, MANE_SUMMARY_PATH, \
-    UTA_DB_URL
+from cool_seq_tool import TRANSCRIPT_MAPPINGS_PATH, LRG_REFSEQGENE_PATH, \
+    MANE_SUMMARY_PATH, UTA_DB_URL
 from cool_seq_tool.version import __version__
 
 
@@ -21,33 +21,36 @@ class CoolSeqTool:
     """Class to initialize data sources."""
 
     def __init__(
-        self, seqrepo_data_path: Path = SEQREPO_DATA_PATH,
+        self,
         transcript_file_path: Path = TRANSCRIPT_MAPPINGS_PATH,
         lrg_refseqgene_path: Path = LRG_REFSEQGENE_PATH,
         mane_data_path: Path = MANE_SUMMARY_PATH,
         db_url: str = UTA_DB_URL, db_pwd: str = "",
-        gene_query_handler: GeneQueryHandler = None,
-        gene_db_url: str = "", gene_db_region: str = "us-east-2"
+        gene_query_handler: Optional[GeneQueryHandler] = None,
+        gene_db_url: str = "", gene_db_region: str = "us-east-2",
+        sr: Optional[SeqRepo] = None
     ) -> None:
         """Initialize CoolSeqTool class
 
-        :param Path seqrepo_data_path: The path to the seqrepo directory.
         :param Path transcript_file_path: The path to transcript_mappings.tsv
         :param Path lrg_refseqgene_path: The path to LRG_RefSeqGene
         :param Path mane_data_path: Path to RefSeq MANE summary data
         :param str db_url: PostgreSQL connection URL
             Format: `driver://user:pass@host/database/schema`
         :param str db_pwd: User's password for uta database
-        :param GeneQueryHandler gene_query_handler: Gene normalizer query handler
-            instance. If this is provided, will use a current instance. If this is not
-            provided, will create a new instance.
+        :param Optional[GeneQueryHandler] gene_query_handler: Gene normalizer query
+            handler instance. If this is provided, will use a current instance. If this
+            is not provided, will create a new instance.
         :param str gene_db_url: URL to gene normalizer dynamodb. Only used when
             `gene_query_handler` is `None`.
         :param str gene_db_region: AWS region for gene normalizer db. Only used when
             `gene_query_handler` is `None`.
+        :param Optional[SeqRepo] sr: SeqRepo instance. If this is not provided, will
+            create a new instance.
         """
-        self.seqrepo_access = SeqRepoAccess(
-            seqrepo_data_path=seqrepo_data_path)
+        if not sr:
+            sr = SeqRepo(root_dir=SEQREPO_ROOT_DIR)
+        self.seqrepo_access = SeqRepoAccess(sr)
         self.transcript_mappings = TranscriptMappings(
             transcript_file_path=transcript_file_path,
             lrg_refseqgene_path=lrg_refseqgene_path)
