@@ -12,7 +12,7 @@ The **cool-seq-tool** provides:
 ### pip
 
 ```commandline
-pip install cool-seq-tool
+pip install cool-seq-tool[dev,tests]
 ```
 
 ### Development
@@ -30,7 +30,7 @@ Install backend dependencies and enter Pipenv environment:
 
 ```commandline
 pipenv shell
-pipenv lock && pipenv sync
+pipenv update
 pipenv install --dev
 ```
 
