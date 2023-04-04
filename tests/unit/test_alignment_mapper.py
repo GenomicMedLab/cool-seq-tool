@@ -1,15 +1,14 @@
 """Module for testing the Alignment Mapper class"""
 import pytest
 
-from cool_seq_tool.data_sources import AlignmentMapper, SeqRepoAccess, \
-    TranscriptMappings, UTADatabase
+from cool_seq_tool.data_sources import AlignmentMapper, TranscriptMappings, UTADatabase
 from cool_seq_tool.schemas import Assembly, ResidueMode
 
 
 @pytest.fixture(scope="module")
-def test_alignment_mapper():
+def test_alignment_mapper(test_seqrepo_access):
     """Build AlignmentMapper test fixture"""
-    return AlignmentMapper(SeqRepoAccess(), TranscriptMappings(), UTADatabase())
+    return AlignmentMapper(test_seqrepo_access, TranscriptMappings(), UTADatabase())
 
 
 @pytest.fixture(scope="module")

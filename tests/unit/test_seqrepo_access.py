@@ -1,13 +1,15 @@
 """Module for testing seqrepo access class"""
 import pytest
+from biocommons.seqrepo import SeqRepo
 
+from cool_seq_tool import SEQREPO_ROOT_DIR
 from cool_seq_tool.data_sources import SeqRepoAccess
 
 
 @pytest.fixture(scope="module")
 def test_seqrepo_access():
     """Create SeqRepoAccess test fixture"""
-    return SeqRepoAccess()
+    return SeqRepoAccess(SeqRepo(root_dir=SEQREPO_ROOT_DIR))
 
 
 def test_get_reference_sequence(test_seqrepo_access):
@@ -51,11 +53,11 @@ def test_translate_identifier(test_seqrepo_access):
     """Test that translate_identifier method works correctly"""
     expected = (["ga4gh:SQ.ijXOSP3XSsuLWZhXQ7_TJ5JXu4RJO6VT"], None)
     resp = test_seqrepo_access.translate_identifier(
-        "NM_152263.3", target_namespace="ga4gh")
+        "NM_152263.3", target_namespaces="ga4gh")
     assert resp == expected
 
     resp = test_seqrepo_access.translate_identifier(
-        "refseq:NM_152263.3", target_namespace="ga4gh")
+        "refseq:NM_152263.3", target_namespaces="ga4gh")
     assert resp == expected
 
     resp = test_seqrepo_access.translate_identifier("refseq:NM_152263.3")
@@ -81,20 +83,20 @@ def test_translate_identifier(test_seqrepo_access):
 def test_aliases(test_seqrepo_access):
     """Test that aliases method works correctly"""
     expected = (["ga4gh:SQ.ijXOSP3XSsuLWZhXQ7_TJ5JXu4RJO6VT"], None)
-    resp = test_seqrepo_access.aliases("NM_152263.3")
+    resp = test_seqrepo_access.translate_alias("NM_152263.3")
     assert len(resp[0]) > 0
     assert resp[1] is None
     assert expected[0][0] in resp[0]
 
-    resp = test_seqrepo_access.aliases("NC_000002.12")
+    resp = test_seqrepo_access.translate_alias("NC_000002.12")
     assert len(resp[0]) > 0
     assert resp[1] is None
     assert "GRCh38:2" in resp[0]
 
-    resp = test_seqrepo_access.aliases("refseq_152263.3")
+    resp = test_seqrepo_access.translate_alias("refseq_152263.3")
     assert resp == ([], "SeqRepo could not translate alias refseq_152263.3")
 
-    resp = test_seqrepo_access.aliases("GRCh38:2")
+    resp = test_seqrepo_access.translate_alias("GRCh38:2")
     assert resp == ([], "SeqRepo could not translate alias GRCh38:2")
 
 
