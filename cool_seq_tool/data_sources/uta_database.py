@@ -23,7 +23,6 @@ UTADatabaseType = TypeVar("UTADatabaseType", bound="UTADatabase")
 
 # Environment variables for paths to chain files for pyliftover
 LIFTOVER_CHAIN_37_TO_38 = environ.get("LIFTOVER_CHAIN_37_TO_38")
-LIFTOVER_CHAIN_38_TO_37 = environ.get("LIFTOVER_CHAIN_38_TO_37")
 
 
 class UTADatabase:
@@ -33,8 +32,7 @@ class UTADatabase:
         self,
         db_url: str = UTA_DB_URL,
         db_pwd: str = "",
-        chain_file_37_to_38: Optional[str] = None,
-        chain_file_38_to_37: Optional[str] = None
+        chain_file_37_to_38: Optional[str] = None
     ) -> None:
         """Initialize DB class. Downstream libraries should use the create()
         method to construct a new instance: await UTADatabase.create()
@@ -45,10 +43,6 @@ class UTADatabase:
         :param chain_file_37_to_38: Optional path to chain file for 37 to 38 assembly.
             This is used for pyliftover. If this is not provided, will check to see if
             LIFTOVER_CHAIN_37_TO_38 env var is set. If neither is provided, will allow
-            pyliftover to download a chain file from UCSC
-        :param chain_file_38_to_37: Optional path to chain file for 38 to 37 assembly.
-            This is used for pyliftover. If this is not provided, will check to see if
-            LIFTOVER_CHAIN_38_TO_37 env var is set. If neither is provided, will allow
             pyliftover to download a chain file from UCSC
         """
         self.schema = None
@@ -62,12 +56,6 @@ class UTADatabase:
             self.liftover_37_to_38 = LiftOver(chain_file_37_to_38)
         else:
             self.liftover_37_to_38 = LiftOver("hg19", "hg38")
-
-        chain_file_38_to_37 = chain_file_38_to_37 or LIFTOVER_CHAIN_38_TO_37
-        if chain_file_38_to_37:
-            self.liftover_38_to_37 = LiftOver(chain_file_38_to_37)
-        else:
-            self.liftover_38_to_37 = LiftOver("hg38", "hg19")
 
     @staticmethod
     def _update_db_url(db_pwd: str, db_url: str) -> str:
@@ -1022,8 +1010,6 @@ class UTADatabase:
 
         if liftover_to_assembly == Assembly.GRCH38:
             liftover = self.liftover_37_to_38.convert_coordinate(chromosome, pos)
-        elif liftover_to_assembly == Assembly.GRCH37:
-            liftover = self.liftover_38_to_37.convert_coordinate(chromosome, pos)
         else:
             logger.warning(f"{liftover_to_assembly} assembly not supported")
             liftover = None

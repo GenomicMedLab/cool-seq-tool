@@ -10,7 +10,6 @@ Steps:
 import math
 from typing import Optional, Set, Tuple, Dict, List, Union
 
-import hgvs.parser
 import pandas as pd
 
 from cool_seq_tool.schemas import AnnotationLayer, Assembly, MappedManeData, \
@@ -47,7 +46,6 @@ class MANETranscript:
         :param GeneNormalizer gene_normalizer: Access to Gene Normalizer
         """
         self.seqrepo_access = seqrepo_access
-        self.hgvs_parser = hgvs.parser.Parser()
         self.transcript_mappings = transcript_mappings
         self.mane_transcript_mappings = mane_transcript_mappings
         self.uta_db = uta_db
