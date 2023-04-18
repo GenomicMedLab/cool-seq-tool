@@ -1,6 +1,7 @@
 """Module for accessing Gene Normalizer"""
 from typing import Dict
 
+from gene.database.dynamodb import DynamoDbDatabase
 from gene.query import QueryHandler
 from gene.schemas import SourceName
 
@@ -27,7 +28,8 @@ class GeneNormalizer:
         if query_handler:
             self.query_handler = query_handler
         else:
-            self.query_handler = QueryHandler(db_url, db_region)
+            ddb = DynamoDbDatabase(db_url=db_url, region_name=db_region)
+            self.query_handler = QueryHandler(ddb)
 
     def get_hgnc_data(self, gene: str) -> Dict:
         """Return HGNC data for a given gene
