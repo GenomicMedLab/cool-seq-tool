@@ -59,6 +59,7 @@ class CoolSeqTool:
         self.uta_db = UTADatabase(db_url=db_url, db_pwd=db_pwd)
         gene_normalizer = GeneNormalizer(gene_query_handler, gene_db_url,
                                          gene_db_region)
+        self.gene_query_handler = gene_normalizer.query_handler
         self.alignment_mapper = AlignmentMapper(
             self.seqrepo_access, self.transcript_mappings, self.uta_db)
         self.mane_transcript = MANETranscript(
