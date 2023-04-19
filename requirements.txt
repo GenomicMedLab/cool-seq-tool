@@ -54,7 +54,7 @@ ptyprocess==0.7.0
 pure-eval==0.2.2
 pydantic==1.10.7
 pyee==8.2.2
-pygments==2.15.0 ; python_version >= '3.7'
+pygments==2.15.1 ; python_version >= '3.7'
 pyliftover==0.4
 pyppeteer==1.0.2 ; python_version >= '3.7' and python_version < '4.0'
 pyquery==2.0.0
