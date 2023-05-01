@@ -24,7 +24,7 @@ def braf_select():
         "Ensembl_nuc": "ENST00000646891.2",
         "Ensembl_prot": "ENSP00000493543.1",
         "MANE_status": "MANE Select",
-        "GRCh38_chr": "7",
+        "GRCh38_chr": "NC_000007.14",
         "chr_start": 140730665,
         "chr_end": 140924929,
         "chr_strand": "-"
@@ -45,7 +45,7 @@ def braf_plus_clinical():
         "Ensembl_nuc": "ENST00000644969.2",
         "Ensembl_prot": "ENSP00000496776.1",
         "MANE_status": "MANE Plus Clinical",
-        "GRCh38_chr": "7",
+        "GRCh38_chr": "NC_000007.14",
         "chr_start": 140719337,
         "chr_end": 140924929,
         "chr_strand": "-"
@@ -66,7 +66,7 @@ def ercc6_plus_clinical():
         "Ensembl_nuc": "ENST00000447839.7",
         "Ensembl_prot": "ENSP00000387966.2",
         "MANE_status": "MANE Plus Clinical",
-        "GRCh38_chr": "10",
+        "GRCh38_chr": "NC_000010.11",
         "chr_start": 49515198,
         "chr_end": 49539121,
         "chr_strand": "-"
@@ -87,7 +87,7 @@ def ercc6_select():
         "Ensembl_nuc": "ENST00000355832.10",
         "Ensembl_prot": "ENSP00000348089.5",
         "MANE_status": "MANE Select",
-        "GRCh38_chr": "10",
+        "GRCh38_chr": "NC_000010.11",
         "chr_start": 49454470,
         "chr_end": 49539121,
         "chr_strand": "-"
@@ -159,12 +159,12 @@ def test_get_mane_data_from_chr_pos(test_mane_transcript_mappings, braf_select,
                                     braf_plus_clinical):
     """Test that get_mane_data_from_chr_pos method works correctly"""
     resp = test_mane_transcript_mappings.get_mane_data_from_chr_pos(
-        "7", 140753336, 140753336)
+        "NC_000007.14", 140753336, 140753336)
     assert len(resp) == 2
     assert resp == [braf_select, braf_plus_clinical]
 
     resp = test_mane_transcript_mappings.get_mane_data_from_chr_pos(
-        "X", 37994300, 37994310)
+        "NC_000023.11", 37994300, 37994310)
     assert len(resp) == 1
     assert resp == [{
         "#NCBI_GeneID": "GeneID:115482686",
@@ -177,13 +177,13 @@ def test_get_mane_data_from_chr_pos(test_mane_transcript_mappings, braf_select,
         "Ensembl_nuc": "ENST00000448797.3",
         "Ensembl_prot": "ENSP00000498087.1",
         "MANE_status": "MANE Select",
-        "GRCh38_chr": "X",
+        "GRCh38_chr": "NC_000023.11",
         "chr_start": 37994272,
         "chr_end": 37994904,
         "chr_strand": "+"
     }]
 
-    # Invalid chromosome
+    # Invalid alt_ac (no version)
     resp = test_mane_transcript_mappings.get_mane_data_from_chr_pos(
-        "x", 37994300, 37994310)
+        "NC_000023", 37994300, 37994310)
     assert resp == []
