@@ -1,4 +1,5 @@
 """The module for loading MANE Transcript mappings to genes."""
+from pathlib import Path
 from typing import Dict, Optional, List
 
 import pandas as pd
@@ -9,9 +10,9 @@ from cool_seq_tool import MANE_SUMMARY_PATH, logger
 class MANETranscriptMappings:
     """The MANE Transcript mappings class."""
 
-    def __init__(self, mane_data_path: str = MANE_SUMMARY_PATH) -> None:
+    def __init__(self, mane_data_path: Path = MANE_SUMMARY_PATH) -> None:
         """Initialize the MANE Transcript mappings class.
-        :param str mane_data_path: Path to RefSeq MANE summary data
+        :param Path mane_data_path: Path to RefSeq MANE summary data
         """
         self.mane_data_path = mane_data_path
         self.df = self._load_mane_transcript_data()
@@ -52,17 +53,17 @@ class MANETranscriptMappings:
             return []
         return result.to_dict("records")
 
-    def get_mane_data_from_chr_pos(self, chromosome: str, start: int,
-                                   end: int) -> List[Dict]:
+    def get_mane_data_from_chr_pos(
+        self, alt_ac: str, start: int, end: int
+    ) -> List[Dict]:
         """Get MANE data given chromosome, start pos, end end pos. Assumes GRCh38.
-        :param str chromosome: Chromosome. Case sensitive for X, Y chromosomes.
-            Do not prefix. Valid examples: "1" ... "22", "X", "Y"
+        :param str alt_ac: NC Accession
         :param int start: Start genomic position. Assumes residue coordinates.
         :param int end: End genomic position. Assumes residue coordinates.
         :return: List of MANE data. Will return sorted list:
             MANE Select then MANE Plus Clinical.
         """
-        mane_rows = self.df[(start >= self.df["chr_start"].astype(int)) & (end <= self.df["chr_end"].astype(int)) & (self.df["GRCh38_chr"] == chromosome)]  # noqa: E501
+        mane_rows = self.df[(start >= self.df["chr_start"].astype(int)) & (end <= self.df["chr_end"].astype(int)) & (self.df["GRCh38_chr"] == alt_ac)]  # noqa: E501
         if len(mane_rows) == 0:
             return []
         mane_rows = mane_rows.sort_values("MANE_status", ascending=False)

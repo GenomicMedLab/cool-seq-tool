@@ -100,10 +100,19 @@ async def test_get_cds_start_end(test_db):
 
 
 @pytest.mark.asyncio
-async def test_get_newest_assembly(test_db):
-    """Test that get_newest_assembly works correctly."""
+async def test_get_newest_assembly_ac(test_db):
+    """Test that get_newest_assembly_ac works correctly."""
     resp = await test_db.get_newest_assembly_ac("NC_000007.13")
-    assert resp == [["NC_000007.14"]]
+    assert resp == ["NC_000007.14"]
+
+    resp = await test_db.get_newest_assembly_ac("NC_000011.9")
+    assert resp == ["NC_000011.10"]
+
+    resp = await test_db.get_newest_assembly_ac("NC_000011.10")
+    assert resp == ["NC_000011.10"]
+
+    resp = await test_db.get_newest_assembly_ac("ENST00000288602")
+    assert resp == ["ENST00000288602"]
 
     resp = await test_db.get_newest_assembly_ac("NC_0000077.1")
     assert resp == []
@@ -162,13 +171,14 @@ async def test_data_from_result(test_db, tx_exon_aln_v_data, data_from_result):
 
 
 @pytest.mark.asyncio
-async def test_get_genomic_tx_data(test_db, genomic_tx_data):
+async def test_get_genomic_tx_data(test_db):
     """Test that get_genomic_tx_data works correctly."""
     resp = await test_db.get_genomic_tx_data("NM_004333.4", (2145, 2145))
     assert resp == {
         "gene": "BRAF",
         "strand": "-",
         "tx_pos_range": (2053, 2188),
+        "alt_pos_change": (92, 43),
         "alt_pos_range": (140739811, 140739946),
         "alt_aln_method": "splign",
         "tx_exon_id": 780496,
@@ -176,7 +186,9 @@ async def test_get_genomic_tx_data(test_db, genomic_tx_data):
         "tx_ac": "NM_004333.4",
         "alt_ac": "NC_000007.14",
         "pos_change": (92, 43),
-        "alt_pos_change_range": (140739854, 140739854)
+        "alt_pos_change_range": (140739854, 140739854),
+        "coding_start_site": 61,
+        "coding_end_site": 2362
     }
 
 
@@ -185,6 +197,12 @@ async def test_get_ac_from_gene(test_db):
     """Test that get_ac_from_gene works correctly."""
     resp = await test_db.get_ac_from_gene("BRAF")
     assert resp == ["NC_000007.14", "NC_000007.13"]
+
+    resp = await test_db.get_ac_from_gene("HRAS")
+    assert resp == ["NC_000011.10", "NC_000011.9"]
+
+    resp = await test_db.get_ac_from_gene("dummy")
+    assert resp == []
 
 
 @pytest.mark.asyncio
@@ -266,6 +284,9 @@ async def test_p_to_c_ac(test_db):
     """Test that p_to_c_ac works correctly."""
     resp = await test_db.p_to_c_ac("NP_004324.2")
     assert resp == ["NM_004333.4", "NM_004333.5", "NM_004333.6"]
+
+    resp = await test_db.p_to_c_ac("NP_064502.9")
+    assert resp == ["NM_020117.9", "NM_020117.10", "NM_020117.11"]
 
     resp = await test_db.p_to_c_ac("NP_004324.22")
     assert resp == []

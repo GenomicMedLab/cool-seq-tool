@@ -13,10 +13,10 @@ from cool_seq_tool.schemas import AnnotationLayer, Assembly, ResidueMode
 
 
 @pytest.fixture(scope="module")
-def test_mane_transcript():
+def test_mane_transcript(test_seqrepo_access):
     """Build mane transcript test fixture."""
-    return MANETranscript(SeqRepoAccess(), TranscriptMappings(), UTADatabase(),
-                          MANETranscriptMappings(), GeneNormalizer())
+    return MANETranscript(test_seqrepo_access, TranscriptMappings(),
+                          UTADatabase(), MANETranscriptMappings(), GeneNormalizer())
 
 
 @pytest.fixture(scope="module")

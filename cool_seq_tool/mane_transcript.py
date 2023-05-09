@@ -205,8 +205,8 @@ class MANETranscript(AlignmentMapper):
                 begin_residue_mode)
 
             if start_annotation_layer == AnnotationLayer.PROTEIN:
-                pos = (math.ceil(c_data["pos"][0] / 3),
-                       math.floor(c_data["pos"][1] / 3))
+                pos = (math.ceil(c_data["c_start_pos"] / 3),
+                       math.floor(c_data["c_end_pos"] / 3))
                 ac = row["pro_ac"]
                 coding_start_site = 0
             else:
@@ -526,8 +526,10 @@ class MANETranscript(AlignmentMapper):
         alt_ac = None
         if hgnc_gene_data["locations"]:
             chr = hgnc_gene_data["locations"][0].get("chr") or ""
-            alt_acs, _ = self.seqrepo_access.translate_identifier(f"{assembly}:{chr}",
-                                                                  "refseq")
+            alt_acs, _ = self.seqrepo_access.translate_identifier(
+                f"{assembly.value}:{chr}", "refseq"
+            )
+
             if alt_acs:
                 alt_ac = alt_acs[0].split(":")[1]
             else:

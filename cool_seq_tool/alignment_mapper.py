@@ -6,7 +6,7 @@ from typing import Optional, Tuple, Dict
 from cool_seq_tool.schemas import AnnotationLayer, Assembly, ResidueMode
 from cool_seq_tool.data_sources import SeqRepoAccess, TranscriptMappings, \
     UTADatabase
-from cool_seq_tool.utils.positions import get_inter_residue_pos, zero_based_to_inter_residue, to_zero_based
+from cool_seq_tool.utils.positions import zero_based_to_inter_residue, to_zero_based
 from cool_seq_tool.utils.validation import validate_index
 
 
@@ -354,7 +354,7 @@ class AlignmentMapper:
 
         newest_ac = await self.uta_db.get_newest_assembly_ac(ac)
         if newest_ac:
-            ac = newest_ac[0][0]
+            ac = newest_ac[0]
             # Will raise ValidationError if checks do not pass
             validate_index(self.seqrepo_access, ac, (start_pos, end_pos), 0)
             return {

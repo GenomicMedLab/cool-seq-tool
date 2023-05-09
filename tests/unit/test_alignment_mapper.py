@@ -2,14 +2,14 @@
 import pytest
 
 from cool_seq_tool.alignment_mapper import AlignmentMapper
-from cool_seq_tool.data_sources import SeqRepoAccess, TranscriptMappings, UTADatabase
+from cool_seq_tool.data_sources import TranscriptMappings, UTADatabase
 from cool_seq_tool.schemas import Assembly, ResidueMode
 
 
 @pytest.fixture(scope="module")
-def test_alignment_mapper():
+def test_alignment_mapper(test_seqrepo_access):
     """Build AlignmentMapper test fixture"""
-    return AlignmentMapper(SeqRepoAccess(), TranscriptMappings(), UTADatabase())
+    return AlignmentMapper(test_seqrepo_access, TranscriptMappings(), UTADatabase())
 
 
 @pytest.fixture(scope="module")
@@ -49,7 +49,8 @@ def braf_v600e_grch37():
         "g_start_pos": 140453134,
         "g_end_pos": 140453137,
         "residue_mode": "inter-residue",
-        "gene": "BRAF"
+        "gene": "BRAF",
+        "strand": "-"
     }
 
 
@@ -61,7 +62,8 @@ def braf_v600e_grch38():
         "g_start_pos": 140753334,
         "g_end_pos": 140753337,
         "residue_mode": "inter-residue",
-        "gene": "BRAF"
+        "gene": "BRAF",
+        "strand": "-"
     }
 
 
@@ -73,7 +75,8 @@ def egfr_l858r_grch37():
         "g_start_pos": 55259513,
         "g_end_pos": 55259516,
         "residue_mode": "inter-residue",
-        "gene": "EGFR"
+        "gene": "EGFR",
+        "strand": "+"
     }
 
 
@@ -85,7 +88,8 @@ def egfr_l858r_grch38():
         "g_start_pos": 55191820,
         "g_end_pos": 55191823,
         "residue_mode": "inter-residue",
-        "gene": "EGFR"
+        "gene": "EGFR",
+        "strand": "+"
     }
 
 
@@ -97,7 +101,8 @@ def delins_grch37():
         "g_start_pos": 140453131,
         "g_end_pos": 140453137,
         "residue_mode": "inter-residue",
-        "gene": "BRAF"
+        "gene": "BRAF",
+        "strand": "-"
     }
 
 
@@ -112,7 +117,8 @@ def hras_t2a():
             "g_start_pos": 534316,
             "g_end_pos": 534319,
             "residue_mode": "inter-residue",
-            "gene": "HRAS"
+            "gene": "HRAS",
+            "strand": "-"
         }
 
     return _expected

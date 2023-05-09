@@ -1,5 +1,6 @@
 """The module for Transcript Mappings."""
 import csv
+from pathlib import Path
 from typing import Dict, List, Optional
 
 from cool_seq_tool import TRANSCRIPT_MAPPINGS_PATH, LRG_REFSEQGENE_PATH
@@ -8,12 +9,12 @@ from cool_seq_tool import TRANSCRIPT_MAPPINGS_PATH, LRG_REFSEQGENE_PATH
 class TranscriptMappings:
     """The transcript mappings class."""
 
-    def __init__(self, transcript_file_path: str = TRANSCRIPT_MAPPINGS_PATH,
-                 lrg_refseqgene_path: str = LRG_REFSEQGENE_PATH) -> None:
+    def __init__(self, transcript_file_path: Path = TRANSCRIPT_MAPPINGS_PATH,
+                 lrg_refseqgene_path: Path = LRG_REFSEQGENE_PATH) -> None:
         """Initialize the transcript mappings class.
 
-        :param str transcript_file_path: Path to transcript mappings file
-        :param str lrg_refseqgene_path: Path to LRG RefSeqGene file
+        :param Path transcript_file_path: Path to transcript mappings file
+        :param Path lrg_refseqgene_path: Path to LRG RefSeqGene file
         """
         # ENSP <-> Gene Symbol
         self.ensembl_protein_version_for_gene_symbol: Dict[str, List[str]] = {}
@@ -51,11 +52,10 @@ class TranscriptMappings:
         self._load_transcript_mappings_data(transcript_file_path)
         self._load_refseq_gene_symbol_data(lrg_refseqgene_path)
 
-    def _load_transcript_mappings_data(self,
-                                       transcript_file_path: str) -> None:
+    def _load_transcript_mappings_data(self, transcript_file_path: Path) -> None:
         """Load transcript mappings file to dictionaries.
 
-        :param str transcript_file_path: Path to transcript mappings file
+        :param Path transcript_file_path: Path to transcript mappings file
         """
         with open(transcript_file_path) as file:
             reader = csv.DictReader(file, delimiter="\t")
@@ -96,10 +96,10 @@ class TranscriptMappings:
                         self.ensp_to_enst[versioned_protein_transcript] = \
                             versioned_transcript
 
-    def _load_refseq_gene_symbol_data(self, lrg_refseqgene_path: str) -> None:
+    def _load_refseq_gene_symbol_data(self, lrg_refseqgene_path: Path) -> None:
         """Load data from RefSeq Gene Symbol file to dictionaries.
 
-        :param str lrg_refseqgene_path: Path to LRG RefSeqGene file
+        :param Path lrg_refseqgene_path: Path to LRG RefSeqGene file
         """
         with open(lrg_refseqgene_path) as file:
             reader = csv.DictReader(file, delimiter="\t")

@@ -2,26 +2,21 @@
 from typing import Optional, List, Tuple, Union
 from os import environ
 
-from biocommons.seqrepo import SeqRepo
+from ga4gh.vrs.dataproxy import SeqRepoDataProxy
 
 from cool_seq_tool.schemas import ResidueMode
-from cool_seq_tool import SEQREPO_DATA_PATH, logger
+from cool_seq_tool import logger
 from cool_seq_tool.utils.positions import get_inter_residue_pos
 
 
-class SeqRepoAccess:
+class SeqRepoAccess(SeqRepoDataProxy):
     """The SeqRepoAccess class."""
 
-    def __init__(self, seqrepo_data_path: str = SEQREPO_DATA_PATH) -> None:
-        """Initialize the SeqRepoAccess class.
-        :param str seqrepo_data_path: The path to the seqrepo directory.
-        """
-        environ["SEQREPO_LRU_CACHE_MAXSIZE"] = "none"
-        self.seqrepo_client = SeqRepo(seqrepo_data_path)
+    environ["SEQREPO_LRU_CACHE_MAXSIZE"] = "none"
 
     def get_reference_sequence(
-            self, ac: str, start: Optional[int] = None, end: Optional[int] = None,
-            residue_mode: str = ResidueMode.RESIDUE
+        self, ac: str, start: Optional[int] = None, end: Optional[int] = None,
+        residue_mode: str = ResidueMode.RESIDUE
     ) -> Tuple[str, Optional[str]]:
         """Get reference sequence for an accession given a start and end position.
         If `start` and `end` are not given, it will return the entire reference sequence
@@ -45,7 +40,7 @@ class SeqRepoAccess:
             if start == end:
                 end += 1
         try:
-            sequence = self.seqrepo_client.fetch(ac, start=start, end=end)
+            sequence = self.sr.fetch(ac, start=start, end=end)
         except KeyError:
             msg = f"Accession, {ac}, not found in SeqRepo"
             logger.warning(msg)
@@ -74,7 +69,7 @@ class SeqRepoAccess:
             return sequence, None
 
     def translate_identifier(
-            self, ac: str, target_namespace: Optional[Union[str, List[str]]] = None
+        self, ac: str, target_namespaces: Optional[Union[str, List[str]]] = None
     ) -> Tuple[List[str], Optional[str]]:
         """Return list of identifiers for accession.
 
@@ -83,8 +78,8 @@ class SeqRepoAccess:
         :return: List of identifiers, warning
         """
         try:
-            ga4gh_identifiers = self.seqrepo_client.translate_identifier(
-                ac, target_namespaces=target_namespace)
+            ga4gh_identifiers = self.sr.translate_identifier(
+                ac, target_namespaces=target_namespaces)
         except KeyError:
             msg = f"SeqRepo unable to get translated identifiers for {ac}"
             logger.warning(msg)
@@ -92,22 +87,23 @@ class SeqRepoAccess:
         else:
             return ga4gh_identifiers, None
 
-    def aliases(self,
-                input_str: str) -> Tuple[List[Optional[str]], Optional[str]]:
+    def translate_alias(
+        self, input_str: str
+    ) -> Tuple[List[Optional[str]], Optional[str]]:
         """Get aliases for a given input.
 
         :param str input_str: Input to get aliases for
         :return: List of aliases, warning
         """
         try:
-            return self.seqrepo_client.translate_alias(input_str), None
+            return self.sr.translate_alias(input_str), None
         except KeyError:
             msg = f"SeqRepo could not translate alias {input_str}"
             logger.warning(msg)
             return [], msg
 
     def chromosome_to_acs(
-            self, chromosome: str
+        self, chromosome: str
     ) -> Tuple[Optional[List[str]], Optional[str]]:
         """Get accessions for a chromosome
 
@@ -116,8 +112,8 @@ class SeqRepoAccess:
         """
         acs = []
         for assembly in ["GRCh38", "GRCh37"]:
-            tmp_acs = self.translate_identifier(f"{assembly}:chr{chromosome}",
-                                                target_namespace="refseq")[0]
+            tmp_acs, _ = self.translate_identifier(f"{assembly}:chr{chromosome}",
+                                                   target_namespaces="refseq")
             for ac in tmp_acs:
                 acs.append(ac.split("refseq:")[-1])
         if acs:
@@ -131,7 +127,7 @@ class SeqRepoAccess:
         :param str ac: Accession
         :return: Chromosome, warning
         """
-        aliases, warning = self.aliases(ac)
+        aliases, _ = self.translate_alias(ac)
         aliases = ([a.split(":")[-1] for a in aliases
                     if a.startswith("GRCh") and "." not in a and "chr" not in a] or [None])[0]  # noqa: E501
         if aliases is None:
