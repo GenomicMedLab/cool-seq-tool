@@ -6,17 +6,21 @@ from mock import patch
 import pandas as pd
 
 from cool_seq_tool.mane_transcript import MANETranscript
-from cool_seq_tool.data_sources import MANETranscriptMappings,\
-    SeqRepoAccess, TranscriptMappings, UTADatabase, GeneNormalizer
+from cool_seq_tool.data_sources import SeqRepoAccess, GeneNormalizer
 from cool_seq_tool.mane_transcript import MANETranscriptError
 from cool_seq_tool.schemas import AnnotationLayer, Assembly, ResidueMode
 
 
 @pytest.fixture(scope="module")
-def test_mane_transcript(test_seqrepo_access):
+async def test_mane_transcript(
+    test_seqrepo_access, test_transcript_mappings, test_uta_db,
+    test_mane_transcript_mappings,
+):
     """Build mane transcript test fixture."""
-    return MANETranscript(test_seqrepo_access, TranscriptMappings(),
-                          UTADatabase(), MANETranscriptMappings(), GeneNormalizer())
+    return MANETranscript(
+        test_seqrepo_access, test_transcript_mappings, test_uta_db,
+        test_mane_transcript_mappings, GeneNormalizer()
+    )
 
 
 @pytest.fixture(scope="module")
@@ -380,7 +384,9 @@ async def test_g_to_mane_c(test_mane_transcript, egfr_l858r_mane_c,
     assert resp == grch38
 
     resp = await test_mane_transcript.get_mane_transcript(
-        "NC_000007.13", 55259514, 55259515, AnnotationLayer.GENOMIC, residue_mode="inter-residue")
+        "NC_000007.13", 55259514, 55259515, AnnotationLayer.GENOMIC,
+        residue_mode="inter-residue"
+    )
     assert resp == grch38
 
     resp = await test_mane_transcript.get_mane_transcript(

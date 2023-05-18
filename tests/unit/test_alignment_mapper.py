@@ -2,14 +2,13 @@
 import pytest
 
 from cool_seq_tool.alignment_mapper import AlignmentMapper
-from cool_seq_tool.data_sources import TranscriptMappings, UTADatabase
 from cool_seq_tool.schemas import Assembly, ResidueMode
 
 
 @pytest.fixture(scope="module")
-def test_alignment_mapper(test_seqrepo_access):
+def test_alignment_mapper(test_seqrepo_access, test_transcript_mappings, test_uta_db):
     """Build AlignmentMapper test fixture"""
-    return AlignmentMapper(test_seqrepo_access, TranscriptMappings(), UTADatabase())
+    return AlignmentMapper(test_seqrepo_access, test_transcript_mappings, test_uta_db)
 
 
 @pytest.fixture(scope="module")
@@ -326,7 +325,7 @@ async def g_to_c(test_alignment_mapper):
     """Test that g_to_c works correctly"""
     # NEGATIVE STRAND (CA123643)
     for params in [
-        ("NC_000007.13", 140453136, 140453136, ResidueMode.RESIDUE), # GRCh37
+        ("NC_000007.13", 140453136, 140453136, ResidueMode.RESIDUE),  # GRCh37
         ("NC_000007.14", 140753336, 140753336, ResidueMode.RESIDUE)  # GRCh38
     ]:
         alt_ac, start_pos, end_pos, residue_mode = params
