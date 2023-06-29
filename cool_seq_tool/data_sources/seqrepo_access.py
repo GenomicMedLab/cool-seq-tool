@@ -1,12 +1,15 @@
 """A module for accessing SeqRepo."""
+import logging
 from typing import Optional, List, Tuple, Union
 from os import environ
 
 from ga4gh.vrs.dataproxy import SeqRepoDataProxy
 
 from cool_seq_tool.schemas import ResidueMode
-from cool_seq_tool import logger
 from cool_seq_tool.data_sources.residue_mode import get_inter_residue_pos
+
+
+logger = logging.getLogger("cool_seq_tool")
 
 
 class SeqRepoAccess(SeqRepoDataProxy):

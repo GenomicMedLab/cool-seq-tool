@@ -1,18 +1,20 @@
 """Module for accessing Gene Normalizer"""
-from typing import Dict
+import logging
+from typing import Dict, Optional
 
 from gene.database.dynamodb import DynamoDbDatabase
 from gene.query import QueryHandler
 from gene.schemas import SourceName
 
-from cool_seq_tool import logger
+
+logger = logging.getLogger("cool_seq_tool")
 
 
 class GeneNormalizer:
     """Gene Normalizer class for getting gene data"""
 
     def __init__(
-        self, query_handler: QueryHandler = None, db_url: str = "",
+        self, query_handler: Optional[QueryHandler] = None, db_url: str = "",
         db_region: str = "us-east-2"
     ) -> None:
         """Initialize gene normalizer class
