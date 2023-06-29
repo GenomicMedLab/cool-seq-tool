@@ -4,7 +4,8 @@ from typing import Dict, Optional, List
 
 import pandas as pd
 
-from cool_seq_tool import MANE_SUMMARY_PATH, logger
+from cool_seq_tool import logger
+from cool_seq_tool.paths import MANE_SUMMARY_PATH
 
 
 class MANETranscriptMappings:
