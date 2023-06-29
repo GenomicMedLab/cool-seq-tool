@@ -17,6 +17,7 @@ Cool Seq Tool is a library created to support efforts to `normalize variation de
 
     Installation<install>
     Usage<usage>
-    Data API<data_sources_api/index>
+    Transcript Policy<transcript_policy>
+    API Reference<api/index>
     Contributing<contributing>
     License<license>

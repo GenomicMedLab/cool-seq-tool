@@ -1,4 +1,4 @@
-"""Module for initializing data sources."""
+"""Module for accessing data sources."""
 from datetime import datetime
 from typing import Optional, Union, List, Tuple, Dict
 from pathlib import Path
@@ -22,7 +22,7 @@ logger = logging.getLogger("cool_seq_tool")
 
 
 class CoolSeqTool:
-    """Class to initialize data sources."""
+    """Class to construct and access data sources."""
 
     def __init__(
         self,
@@ -34,23 +34,23 @@ class CoolSeqTool:
         gene_db_url: str = "", gene_db_region: str = "us-east-2",
         sr: Optional[SeqRepo] = None
     ) -> None:
-        """Initialize CoolSeqTool class
+        """Initialize CoolSeqTool class.
 
-        :param Path transcript_file_path: The path to transcript_mappings.tsv
-        :param Path lrg_refseqgene_path: The path to LRG_RefSeqGene
-        :param Path mane_data_path: Path to RefSeq MANE summary data
-        :param str db_url: PostgreSQL connection URL
-            Format: `driver://user:pass@host/database/schema`
-        :param str db_pwd: User's password for uta database
-        :param Optional[GeneQueryHandler] gene_query_handler: Gene normalizer query
-            handler instance. If this is provided, will use a current instance. If this
-            is not provided, will create a new instance.
-        :param str gene_db_url: URL to gene normalizer dynamodb. Only used when
-            `gene_query_handler` is `None`.
-        :param str gene_db_region: AWS region for gene normalizer db. Only used when
-            `gene_query_handler` is `None`.
-        :param Optional[SeqRepo] sr: SeqRepo instance. If this is not provided, will
-            create a new instance.
+        :param transcript_file_path: The path to transcript_mappings.tsv
+        :param lrg_refseqgene_path: The path to LRG_RefSeqGene
+        :param mane_data_path: Path to RefSeq MANE summary data
+        :param db_url: PostgreSQL connection URL. Format:
+            ``driver://user:pass@host/database/schema``
+        :param db_pwd: User's password for uta database
+        :param gene_query_handler: Gene normalizer query handler instance. If this is
+            provided, will use a current instance. If this is not provided, will create
+            a new instance.
+        :param gene_db_url: URL to gene normalizer dynamodb. Only used when
+            ``gene_query_handler`` is ``None``.
+        :param gene_db_region: AWS region for gene normalizer db. Only used when
+            ``gene_query_handler`` is ``None``.
+        :param sr: SeqRepo instance. If this is not provided, will create a new
+            instance.
         """
         if not sr:
             sr = SeqRepo(root_dir=SEQREPO_ROOT_DIR)
@@ -87,10 +87,9 @@ class CoolSeqTool:
             warning_msg: str) -> Union[GenomicDataResponse, TranscriptExonDataResponse]:
         """Add warnings to response object
 
-        :param Union[GenomicDataResponse, TranscriptExonDataResponse] resp:
-            Response object
-        :param str warning_msg: Warning message on why `transcript_exon_data`
-            or `genomic_data` field is None
+        :param resp: Response object
+        :param warning_msg: Warning message on why ``transcript_exon_data`` or
+            ``genomic_data`` field is None
         :return: Response object with warning message
         """
         logger.warning(warning_msg)
@@ -99,18 +98,18 @@ class CoolSeqTool:
 
     async def transcript_to_genomic_coordinates(
             self, gene: Optional[str] = None, transcript: Optional[str] = None,
-            exon_start: Optional[int] = None, exon_start_offset: Optional[int] = 0,  # noqa: E501
+            exon_start: Optional[int] = None, exon_start_offset: Optional[int] = 0,
             exon_end: Optional[int] = None, exon_end_offset: Optional[int] = 0,
             **kwargs) -> GenomicDataResponse:
         """Get genomic data given transcript data.
         Will use GRCh38 coordinates if possible
 
-        :param Optional[str] gene: Gene symbol
-        :param Optional[str] transcript: Transcript accession
-        :param Optional[int] exon_start: Starting transcript exon number
-        :param Optional[int] exon_end: Ending transcript exon number
-        :param Optional[int] exon_start_offset: Starting exon offset
-        :param Optional[int] exon_end_offset: Ending exon offset
+        :param gene: Gene symbol
+        :param transcript: Transcript accession
+        :param exon_start: Starting transcript exon number
+        :param exon_end: Ending transcript exon number
+        :param exon_start_offset: Starting exon offset
+        :param exon_end_offset: Ending exon offset
         :return: GRCh38 genomic data (inter-residue coordinates)
         """
         resp = GenomicDataResponse(
@@ -200,22 +199,21 @@ class CoolSeqTool:
             transcript: Optional[str] = None, gene: Optional[str] = None,
             residue_mode: ResidueMode = ResidueMode.RESIDUE,
             **kwargs) -> GenomicDataResponse:
-        """Get transcript data for genomic data.
-        MANE Transcript data will be returned iff `transcript` is not supplied.
-            `gene` must be supplied in order to retrieve MANE Transcript data.
-        Liftovers genomic coordinates to GRCh38
+        """Get transcript data for genomic data. MANE Transcript data will be returned
+        iff `transcript` is not supplied. `gene` must be supplied in order to retrieve
+        MANE Transcript data. Liftovers genomic coordinates to GRCh38.  TODO!!
 
-        :param str chromosome: Chromosome. Must either give chromosome number
-            (i.e. `1`) or accession (i.e. `NC_000001.11`).
-        :param int start: Start genomic position
-        :param int end: End genomic position
-        :param str strand: Strand. Must be either `-1` or `1`.
-        :param str transcript: The transcript to use. If this is not given,
-            we will try the following transcripts: MANE Select, MANE Clinical
-            Plus, Longest Remaining Compatible Transcript
-        :param str gene: Gene symbol
-        :param str residue_mode: Default is `resiude` (1-based).
-            Must be either `residue` or `inter-residue` (0-based).
+        :param chromosome: Chromosome. Must either give chromosome number (i.e. ``1``)
+            or accession (i.e. ``NC_000001.11``).
+        :param start: Start genomic position
+        :param end: End genomic position
+        :param strand: Strand. Must be either `-1` or `1`.
+        :param transcript: The transcript to use. If this is not given, we will try the
+            following transcripts: MANE Select, MANE Clinical Plus, Longest Remaining
+            Compatible Transcript.
+        :param gene: Gene symbol
+        :param residue_mode: Default is ``residue`` (1-based). Must be either
+            ``residue`` or ``inter-residue`` (0-based).
         :return: Genomic data (inter-residue coordinates)
         """
         resp = GenomicDataResponse(
@@ -286,23 +284,24 @@ class CoolSeqTool:
         return resp
 
     async def _genomic_to_transcript_exon_coordinate(
-            self, chromosome: Union[str, int], pos: int, strand: int = None,
-            transcript: str = None, gene: str = None, is_start: bool = True,
-            residue_mode: ResidueMode = ResidueMode.RESIDUE) -> TranscriptExonDataResponse:  # noqa: E501
+            self, chromosome: Union[str, int], pos: int, strand: Optional[int] = None,
+            transcript: Optional[str] = None, gene: Optional[str] = None,
+            is_start: bool = True, residue_mode: ResidueMode = ResidueMode.RESIDUE
+    ) -> TranscriptExonDataResponse:
         """Convert individual genomic data to transcript data
 
-        :param str chromosome: Chromosome. Must either give chromosome number
-            (i.e. `1`) or accession (i.e. `NC_000001.11`).
-        :param int pos: Genomic position
-        :param str strand: Strand. Must be either `-1` or `1`.
-        :param str transcript: The transcript to use. If this is not given,
+        :param chromosome: Chromosome. Must either give chromosome number
+            (i.e. ``1``) or accession (i.e. ``NC_000001.11``).
+        :param pos: Genomic position
+        :param strand: Strand. Must be either ``-1`` or ``1``.
+        :param transcript: The transcript to use. If this is not given,
             we will try the following transcripts: MANE Select, MANE Clinical
             Plus, Longest Remaining Compatible Transcript
-        :param str gene: Gene symbol
-        :param bool is_start: `True` if `pos` is start position. `False` if
-            `pos` is end position.
-        :param str residue_mode: Default is `resiude` (1-based).
-            Must be either `residue` or `inter-residue` (0-based).
+        :param gene: Gene symbol
+        :param is_start: ``True`` if ``pos`` is start position. ``False`` if
+            ``pos`` is end position.
+        :param residue_mode: Default is ``residue`` (1-based). Must be either
+            ``residue`` or ``inter-residue`` (0-based).
         :return: Transcript data (inter-residue coordinates)
         """
         resp = TranscriptExonDataResponse(
@@ -374,9 +373,8 @@ class CoolSeqTool:
     ) -> Tuple[Optional[Tuple[str, str]], Optional[str]]:
         """Return gene genomic accession
 
-        :param Dict genes_alt_acs: Dictionary containing genes and
-            genomic accessions
-        :param Optional[str] gene: Gene symbol
+        :param genes_alt_acs: Dictionary containing genes and genomic accessions
+        :param gene: Gene symbol
         :return: [Gene, Genomic accession] if both exist
         """
         alt_acs = genes_alt_acs["alt_acs"]
@@ -412,15 +410,15 @@ class CoolSeqTool:
     ) -> Optional[str]:
         """Set genomic data in `params` found from MANE.
 
-        :param Dict params: Parameters for response
-        :param str gene: Gene symbol
-        :param str alt_ac: Genomic accession
-        :param int pos: Genomic position
-        :param int strand: Strand
-        :param bool is_start: `True` if `pos` is start position. `False` if
-            `pos` is end position.
-        :param str residue_mode: Residue mode for start/end positions
-            Must be either `inter-residue` or `residue`
+        :param params: Parameters for response
+        :param gene: Gene symbol
+        :param alt_ac: Genomic accession
+        :param pos: Genomic position
+        :param strand: Strand
+        :param is_start: ``True`` if ``pos`` is start position. ``False`` if
+            ``pos`` is end position.
+        :param residue_mode: Residue mode for start/end positions. Must be either
+            ``inter-residue`` or ``residue``
         :return: Warnings if found
         """
         mane_data = await self.mane_transcript.get_mane_transcript(
@@ -476,12 +474,12 @@ class CoolSeqTool:
 
     async def _set_genomic_data(self, params: Dict, strand: int,
                                 is_start: bool) -> Optional[str]:
-        """Set genomic data in `params`.
+        """Set genomic data in ``params``.
 
-        :param Dict params: Parameters for response
-        :param int strand: Strand
-        :param bool is_start: `True` if `pos` is start position. `False` if
-            `pos` is end position.
+        :param params: Parameters for response
+        :param strand: Strand
+        :param is_start: ``True`` if ``pos`` is start position. ``False`` if ``pos`` is
+            end position.
         :return: Warnings if found
         """
         # We should always try to liftover
@@ -543,12 +541,12 @@ class CoolSeqTool:
                          is_start: bool, strand: int) -> None:
         """Set `exon_offset` in params.
 
-        :param Dict params: Parameters for response
-        :param int start: Start exon coord (can be transcript or genomic)
-        :param int end: End exon coord (can be transcript or genomic)
-        :param int pos: Position change (can be transcript or genomic)
-        :param bool is_start: `True` if `pos` is start position.
-            `False` if `pos` is end position
+        :param params: Parameters for response
+        :param start: Start exon coord (can be transcript or genomic)
+        :param end: End exon coord (can be transcript or genomic)
+        :param pos: Position change (can be transcript or genomic)
+        :param is_start: ``True`` if ``pos`` is start position. ``False`` if ``pos`` is
+            end position
         :param int strand: Strand
         """
         if is_start:
@@ -567,8 +565,8 @@ class CoolSeqTool:
     ) -> List[Tuple[int, int]]:
         """Structure exons as list of tuples.
 
-        :param str transcript: Transcript accession
-        :param Optional[str] alt_ac: Genomic accession
+        :param transcript: Transcript accession
+        :param alt_ac: Genomic accession
         :return: List of tuples containing transcript exon coordinates
         """
         result = list()
@@ -583,8 +581,8 @@ class CoolSeqTool:
     def _get_exon_number(tx_exons: List, tx_pos: int) -> int:
         """Find exon number.
 
-        :param List tx_exons: List of exon coordinates
-        :param int tx_pos: Transcript position change
+        :param tx_exons: List of exon coordinates
+        :param tx_pos: Transcript position change
         :return: Exon number associated to transcript position change
         """
         i = 1
@@ -598,6 +596,7 @@ class CoolSeqTool:
         self, sequence_id: str, outfile_path: Path
     ) -> None:
         """Retrieve FASTA file containing sequence for requested sequence ID.
+
         :param sequence_id: accession ID, sans namespace, eg `NM_152263.3`
         :param outfile_path: path to save file to
         :return: None, but saves sequence data to `outfile_path` if successful

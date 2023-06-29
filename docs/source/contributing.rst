@@ -41,7 +41,7 @@ Before your first commit, run: ::
 
 When running the web server, enable hot-reloading on new code changes: ::
 
-    uvicorn cool_seq_tool.main:app --reload
+    uvicorn cool_seq_tool.api:app --reload
 
 Style
 -----

@@ -1,8 +1,10 @@
-Data Sources API Reference
+API Reference
 ==========================
 
 .. toctree::
 
+
+   CoolSeqTool<cool_seq_tool>
    Alignment Mapper<alignment_mapper>
    Gene Normalizer<gene_normalizer>
    MANE Transcript<mane_transcript>
