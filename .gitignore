@@ -131,8 +131,14 @@ dmypy.json
 Pipfile.lock
 pyproject.toml
 
+# File things
+.DS_Store
+
 # Data files
 cool_seq_tool/data/seqrepo/
 cool_seq_tool/data/*.txt
 cool_seq_tool/data/LRG_RefSeqGene*
 cool_seq_tool/data/notebooks/
+
+# Docs
+docs/build

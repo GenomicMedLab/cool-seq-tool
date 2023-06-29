@@ -19,13 +19,13 @@ class GeneNormalizer:
     ) -> None:
         """Initialize gene normalizer class
 
-        :param QueryHandler query_handler: Gene normalizer query handler instance.
-            If this is provided, will use a current instance. If this is not provided,
-            will create a new instance.
-        :param str db_url: URL to gene normalizer dynamodb. Only used when
-            `query_handler` is `None`.
-        :param str db_region: AWS region for gene normalizer db. Only used when
-            `query_handler` is `None`.
+        :param query_handler: Gene normalizer query handler instance that will be
+            reused by cool_seq_tool. If left empty or given ``None``, will create a
+            new instance instead.
+        :param db_url: URL to gene normalizer dynamodb. Ignored unless ``query_handler``
+            is ``None``.
+        :param db_region: AWS region for gene normalizer db. Ignored unless
+            ``query_handler`` is ``None``.
         """
         if query_handler:
             self.query_handler = query_handler
@@ -33,11 +33,12 @@ class GeneNormalizer:
             ddb = DynamoDbDatabase(db_url=db_url, region_name=db_region)
             self.query_handler = QueryHandler(ddb)
 
-    def get_hgnc_data(self, gene: str) -> Dict:
+    def get_hgnc_data(self, gene: str) -> Optional[Dict]:
         """Return HGNC data for a given gene
 
-        :param str gene: Gene query
-        :return: HGNC data
+        :param gene: Gene query
+        :return: HGNC data corresponding to normalized concept matching given gene term,
+            if available
         """
         hgnc_data = dict()
         gene_resp = self.query_handler.normalize_unmerged(gene)

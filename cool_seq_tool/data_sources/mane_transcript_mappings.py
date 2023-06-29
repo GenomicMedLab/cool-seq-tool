@@ -13,22 +13,25 @@ class MANETranscriptMappings:
 
     def __init__(self, mane_data_path: Path = MANE_SUMMARY_PATH) -> None:
         """Initialize the MANE Transcript mappings class.
-        :param Path mane_data_path: Path to RefSeq MANE summary data
+
+        :param mane_data_path: Path to RefSeq MANE summary data
         """
         self.mane_data_path = mane_data_path
         self.df = self._load_mane_transcript_data()
 
     def _load_mane_transcript_data(self) -> pd.core.frame.DataFrame:
         """Load RefSeq MANE data file into DataFrame.
+
         :return: DataFrame containing RefSeq MANE Transcript data
         """
         return pd.read_csv(self.mane_data_path, delimiter="\t")
 
     def get_gene_mane_data(self, gene_symbol: str) -> Optional[List[Dict]]:
         """Return MANE Transcript data for a gene.
-        :param str gene_symbol: HGNC Gene Symbol
-        :return: MANE Transcript data (Transcript accessions,
-            gene, and location information)
+
+        :param gene_symbol: HGNC Gene Symbol
+        :return: MANE Transcript data (Transcript accessions, gene, and location
+            information)
         """
         data = self.df.loc[self.df["symbol"] == gene_symbol.upper()]
 
@@ -44,7 +47,7 @@ class MANETranscriptMappings:
     def get_mane_from_transcripts(self, transcripts: List[str]) -> List[Dict]:
         """Get mane transcripts from a list of transcripts
 
-        :param List[str] transcripts: RefSeq transcripts on c. coordinate
+        :param transcripts: RefSeq transcripts on c. coordinate
         :return: MANE data
         """
         mane_rows = self.df["RefSeq_nuc"].isin(transcripts)
@@ -57,11 +60,12 @@ class MANETranscriptMappings:
         self, alt_ac: str, start: int, end: int
     ) -> List[Dict]:
         """Get MANE data given chromosome, start pos, end end pos. Assumes GRCh38.
-        :param str alt_ac: NC Accession
-        :param int start: Start genomic position. Assumes residue coordinates.
-        :param int end: End genomic position. Assumes residue coordinates.
-        :return: List of MANE data. Will return sorted list:
-            MANE Select then MANE Plus Clinical.
+
+        :param alt_ac: NC Accession
+        :param start: Start genomic position. Assumes residue coordinates.
+        :param end: End genomic position. Assumes residue coordinates.
+        :return: List of MANE data, sorted with MANE Select first, then MANE Plus
+            Clinical.
         """
         mane_rows = self.df[(start >= self.df["chr_start"].astype(int)) & (end <= self.df["chr_end"].astype(int)) & (self.df["GRCh38_chr"] == alt_ac)]  # noqa: E501
         if len(mane_rows) == 0:

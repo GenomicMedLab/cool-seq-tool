@@ -113,7 +113,7 @@ Use the `TRANSCRIPT_MAPPINGS_PATH` environment variable to set the path of an al
 To start the service, run the following:
 
 ```commandline
-uvicorn cool_seq_tool.main:app --reload
+uvicorn cool_seq_tool.api:app --reload
 ```
 
 Next, view the FastAPI on your local machine: http://127.0.0.1:8000/cool_seq_tool

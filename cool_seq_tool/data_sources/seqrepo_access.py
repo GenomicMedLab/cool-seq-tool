@@ -22,14 +22,15 @@ class SeqRepoAccess(SeqRepoDataProxy):
         residue_mode: str = ResidueMode.RESIDUE
     ) -> Tuple[str, Optional[str]]:
         """Get reference sequence for an accession given a start and end position.
-        If `start` and `end` are not given, it will return the entire reference sequence
+        If ``start`` and ``end`` are not given, it will return the entire reference
+        sequence.
 
-        :param str ac: Accession
-        :param Optional[int] start: Start pos change
-        :param Optional[int] end: End pos change. If `None` assumes both
-            `start` and `end` have same values, if `start` exists.
-        :param str residue_mode: Residue mode for start/end positions
-            Must be either `inter-residue` or `residue`
+        :param ac: Accession
+        :param start: Start pos change
+        :param end: End pos change. If ``None`` assumes both ``start`` and ``end`` have
+            same values, if ``start`` exists.
+        :param residue_mode: Residue mode for start/end positions. Must be either
+            ``inter-residue`` or ``residue``
         :return: Sequence at position (if accession and positions actually
             exist, else return empty string), warning if any
         """
@@ -97,7 +98,7 @@ class SeqRepoAccess(SeqRepoDataProxy):
     ) -> Tuple[List[Optional[str]], Optional[str]]:
         """Get aliases for a given input.
 
-        :param str input_str: Input to get aliases for
+        :param input_str: Input to get aliases for
         :return: List of aliases, warning
         """
         try:
@@ -112,7 +113,7 @@ class SeqRepoAccess(SeqRepoDataProxy):
     ) -> Tuple[Optional[List[str]], Optional[str]]:
         """Get accessions for a chromosome
 
-        :param str chromosome: Chromosome number. Must be either 1-22, X, or Y
+        :param chromosome: Chromosome number. Must be either 1-22, X, or Y
         :return: Accessions for chromosome (ordered by latest assembly)
         """
         acs = []
@@ -129,7 +130,7 @@ class SeqRepoAccess(SeqRepoDataProxy):
     def ac_to_chromosome(self, ac: str) -> Tuple[Optional[str], Optional[str]]:
         """Get chromosome for accession.
 
-        :param str ac: Accession
+        :param ac: Accession
         :return: Chromosome, warning
         """
         aliases, _ = self.translate_alias(ac)

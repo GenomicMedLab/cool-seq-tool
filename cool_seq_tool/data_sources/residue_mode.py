@@ -13,11 +13,11 @@ def get_inter_residue_pos(
 ) -> Tuple[Optional[Tuple[int, int]], Optional[str]]:
     """Return inter-residue position
 
-    :param int start_pos: Start position
-    :param str residue_mode: `inter-residue` if start/end are 0 based coords.
-        `residue` if start/end are 1 based coords
-    :param Optional[int] end_pos: End position. If `None` assumes both
-        `start` and `end` have same values.
+    :param start_pos: Start position
+    :param residue_mode: ``inter`-residue` if start/end are 0 based coords.
+        ``residue`` if start/end are 1 based coords
+    :param end_pos: End position. If ``None`` assumes both ``start`` and ``end`` have
+        same values.
     :return: Inter-residue coordinates, warning
     """
     residue_mode = residue_mode.lower()

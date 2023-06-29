@@ -2,7 +2,7 @@
 import ast
 import base64
 import logging
-from typing import Dict, List, Optional, Tuple, Any, TypeVar, Type, Union
+from typing import Dict, List, Literal, Optional, Tuple, Any, TypeVar, Type, Union
 from os import environ
 from urllib.parse import quote, unquote
 
@@ -42,7 +42,10 @@ class UTADatabase:
         chain_file_38_to_37: Optional[str] = None
     ) -> None:
         """Initialize DB class. Downstream libraries should use the create()
-        method to construct a new instance: await UTADatabase.create()
+        method to construct a new instance:
+
+        >>> from cool_seq_tool.data_sources import UTADatabase
+        >>> await UTADatabase.create()
 
         :param db_url: PostgreSQL connection URL
             Format: `driver://user:pass@host/database/schema`
@@ -78,9 +81,9 @@ class UTADatabase:
     def _update_db_url(db_pwd: str, db_url: str) -> str:
         """Return new db_url containing password.
 
-        :param str db_pwd: User's password for uta database
-        :param str db_url: PostgreSQL connection URL
-            Format: `driver://user:pass@host/database/schema`
+        :param db_pwd: User's password for uta database
+        :param db_url: PostgreSQL connection URL. Format:
+            ``driver://user:pass@host/database/schema``
         :return: PostgreSQL connection URL
         """
         if "UTA_DB_URL" in environ:
@@ -161,9 +164,9 @@ class UTADatabase:
             cls: Type[UTADatabaseType], db_url: str = UTA_DB_URL,
             db_pwd: str = "") -> UTADatabaseType:
         """Provide fully-initialized class instance (a la factory pattern)
-        :param UTADatabaseType cls: supplied implicitly
-        :param str db_url: PostgreSQL connection URL
-            Format: `driver://user:pass@host/database/schema`
+
+        :param db_url: PostgreSQL connection URL. Format:
+            ``driver://user:pass@host/database/schema``
         :param str db_pwd: User's password for uta database
         :return: UTA DB access class instance
         """
@@ -175,7 +178,7 @@ class UTADatabase:
     async def execute_query(self, query: str) -> Any:  # noqa: ANN401
         """Execute a query and return its result.
 
-        :param str query: Query to make on database
+        :param query: Query to make on database
         :return: Query's result
         """
         async def _execute_query(q: str) -> Any:  # noqa: ANN401
@@ -264,13 +267,13 @@ class UTADatabase:
             gene: Optional[str] = None) -> Tuple[Optional[Dict], Optional[str]]:
         """Return genes and genomic accessions related to a position on a chr.
 
-        :param int chromosome: Chromosome number
-        :param int pos: Genomic position
-        :param Optional[int] strand: Strand. Must be either `-1` or `1`
-        :param Optional[str] alt_ac: Genomic accession
-        :param Optional[str] gene: Gene symbol
-        :return: Dictionary containing genes and genomic accessions and
-            warnings if found
+        :param chromosome: Chromosome number
+        :param pos: Genomic position
+        :param strand: Strand. Must be either `-1` or `1`
+        :param alt_ac: Genomic accession
+        :param gene: Gene symbol
+        :return: Dictionary containing genes and genomic accessions and warnings if
+            found
         """
         alt_ac_cond = f"WHERE alt_ac = '{alt_ac}'" if alt_ac else f"WHERE alt_ac ~ '^NC_[0-9]+0{chromosome}.[0-9]+$'"  # noqa: E501
         strand_cond = f"AND alt_strand = '{strand}'" if strand else ""
@@ -313,8 +316,8 @@ class UTADatabase:
     ) -> Tuple[Optional[List[Tuple[int, int]]], Optional[str]]:  # noqa: E501
         """Get list of transcript exons start/end coordinates.
 
-        :param str tx_ac: Transcript accession
-        :param Optional[str] alt_ac: Genomic accession
+        :param tx_ac: Transcript accession
+        :param alt_ac: Genomic accession
         :return: List of a transcript's accessions and warnings if found
         """
         if alt_ac:
@@ -359,9 +362,9 @@ class UTADatabase:
             exon_number: Optional[int] = None) -> Tuple[Optional[List], Optional[str]]:  # noqa: E501
         """Validate that exon number is valid
 
-        :param str transcript: Transcript accession
-        :param List tx_exons: List of transcript's exons
-        :param Optional[int] exon_number: Exon number to validate
+        :param transcript: Transcript accession
+        :param tx_exons: List of transcript's exons
+        :param exon_number: Exon number to validate
         :return: Transcript coordinates and warnings if found
         """
         msg = f"Exon {exon_number} does not exist on {transcript}"
@@ -379,10 +382,10 @@ class UTADatabase:
             exon_end: Optional[int] = None) -> Tuple[Optional[Tuple[List, List]], Optional[str]]:  # noqa: E501
         """Get transcript exon coordinates
 
-        :param str transcript: Transcript accession
-        :param List tx_exons: List of transcript exons
-        :param Optional[int] exon_start: Start exon number
-        :param Optional[int] exon_end: End exon number
+        :param transcript: Transcript accession
+        :param tx_exons: List of transcript exons
+        :param exon_start: Start exon number
+        :param exon_end: End exon number
         :return: [Transcript start exon coords, Transcript end exon coords],
             and warnings if found
         """
@@ -406,15 +409,15 @@ class UTADatabase:
     async def get_alt_ac_start_and_end(
             self, tx_ac: str, tx_exon_start: Optional[List[str]] = None,
             tx_exon_end: Optional[List[str]] = None,
-            gene: str = None) -> Tuple[Optional[Tuple[Tuple, Tuple]], Optional[str]]:  # noqa: E501
+            gene: Optional[str] = None) -> Tuple[Optional[Tuple[Tuple, Tuple]], Optional[str]]:  # noqa: E501
         """Get genomic coordinates for related transcript exon start and end.
 
-        :param str tx_ac: Transcript accession
-        :param Optional[List[str]] tx_exon_start: Transcript's exon start
+        :param tx_ac: Transcript accession
+        :param tx_exon_start: Transcript's exon start
             coordinates
-        :param Optional[List[str]] tx_exon_end: Transcript's exon end
+        :param tx_exon_end: Transcript's exon end
             coordinates
-        :param str gene: Gene symbol
+        :param gene: Gene symbol
         :return: Alt ac start and end data, and warnings if found
         """
         if tx_exon_start:
@@ -457,10 +460,10 @@ class UTADatabase:
             -> Tuple[Optional[Tuple[str, str, int, int, int]], Optional[str]]:
         """Get genomic data for related transcript exon start or end.
 
-        :param str tx_ac: Transcript accession
-        :param int tx_exon_start: Transcript's exon start coordinate
-        :param int tx_exon_end: Transcript's exon end coordinate
-        :param Optional[str] gene: Gene symbol
+        :param tx_ac: Transcript accession
+        :param tx_exon_start: Transcript's exon start coordinate
+        :param tx_exon_end: Transcript's exon end coordinate
+        :param gene: Gene symbol
         :return: [hgnc symbol, genomic accession for chromosome,
             start exon's end coordinate, end exon's start coordinate, strand],
             and warnings if found
@@ -501,7 +504,7 @@ class UTADatabase:
     async def get_cds_start_end(self, tx_ac: str) -> Optional[Tuple[int, int]]:
         """Get coding start and end site
 
-        :param str tx_ac: Transcript accession
+        :param tx_ac: Transcript accession
         :return: [Coding start site, Coding end site]
         """
         if tx_ac.startswith("ENS"):
@@ -527,7 +530,7 @@ class UTADatabase:
     async def get_newest_assembly_ac(self, ac: str) -> List[str]:
         """Find accession associated to latest genomic assembly
 
-        :param str ac: Accession
+        :param ac: Accession
         :return: List of accessions associated to latest genomic assembly. Order by
             desc
         """
@@ -556,8 +559,8 @@ class UTADatabase:
     async def validate_genomic_ac(self, ac: str) -> bool:
         """Return whether or not genomic accession exists.
 
-        :param str ac: Genomic accession
-        :return: `True` if genomic accession exists. `False` otherwise.
+        :param ac: Genomic accession
+        :return: ``True`` if genomic accession exists. ``False`` otherwise.
         """
         query = (
             f"""
@@ -601,17 +604,17 @@ class UTADatabase:
     ) -> List:
         """Return queried data from tx_exon_aln_v table.
 
-        :param str tx_ac: accession on c. coordinate
-        :param int start_pos: Start position change
-        :param int end_pos: End position change
-        :param str alt_ac: accession on g. coordinate
-        :param bool use_tx_pos: `True` if querying on transcript position. This means
-            `start_pos` and `end_pos` are on the c. coordinate
-            `False` if querying on genomic position. This means `start_pos` and
-            `end_pos` are on the g. coordinate
-        :param bool like_tx_ac: `True` if tx_ac condition should be a like statement.
-            This is used when you want to query an accession regardless of its version
-            `False` if tx_condition will be exact match
+        :param tx_ac: accession on c. coordinate
+        :param start_pos: Start position change
+        :param end_pos: End position change
+        :param alt_ac: accession on g. coordinate
+        :param use_tx_pos: ``True`` if querying on transcript position. This means
+            ``start_pos`` and ``end_pos`` are on the c. coordinate
+            ``False`` if querying on genomic position. This means ``start_pos`` and
+            ``end_pos`` are on the g. coordinate
+        :param like_tx_ac: ``True`` if tx_ac condition should be a like statement.
+            This is used when you want to query an accession regardless of its version.
+            ``False`` if tx_condition will be exact match.
         :return: List of tx_exon_aln_v data
         """
         if end_pos is None:
@@ -674,7 +677,7 @@ class UTADatabase:
     def data_from_result(result: List) -> Optional[Dict]:
         """Return data found from result.
 
-        :param List result: Data from tx_exon_aln_v table
+        :param result: Data from tx_exon_aln_v table
         :return: Gene, strand, and position ranges for tx and alt_ac
         """
         gene = result[0]
@@ -711,10 +714,10 @@ class UTADatabase:
         """Get MANE Transcript and genomic data.
 
         Used when going from g -> MANE c
-        :param str ac: MANE Transcript accession
-        :param str alt_ac: NC Accession
-        :param int start_pos: Genomic start position change
-        :param int end_pos: Genomic end position change
+        :param ac: MANE Transcript accession
+        :param alt_ac: NC Accession
+        :param start_pos: Genomic start position change
+        :param end_pos: Genomic end position change
         """
         results = await self.get_tx_exon_aln_v_data(
             ac, start_pos, end_pos, alt_ac=alt_ac, use_tx_pos=False
@@ -756,19 +759,18 @@ class UTADatabase:
 
     async def get_genomic_tx_data(
         self, tx_ac: str, pos: Tuple[int, int],
-        annotation_layer: Union[AnnotationLayer.CDNA, AnnotationLayer.GENOMIC] = AnnotationLayer.CDNA,  # noqa: E501
+        annotation_layer: Union[Literal[AnnotationLayer.CDNA], Literal[AnnotationLayer.GENOMIC]] = AnnotationLayer.CDNA,  # noqa: E501
         alt_ac: Optional[str] = None,
         target_genome_assembly: Assembly = Assembly.GRCH38
     ) -> Optional[Dict]:
         """Get transcript mapping to genomic data.
 
-        :param str tx_ac: Accession on c. coordinate
-        :param Tuple pos: (start pos, end pos)
-        :param Union[AnnotationLayer.CDNA, AnnotationLayer.GENOMIC] annotation_layer:
-            Annotation layer for `ac` and `pos`
-        :param Optional[str] alt_ac: Accession on g. coordinate
-        :param Assembly target_genome_assembly: Genome assembly to get genomic data for.
-            If `alt_ac` is provided, it will return the associated assembly.
+        :param tx_ac: Accession on c. coordinate
+        :param pos: (start pos, end pos)
+        :param annotation_layer: Annotation layer for ``ac`` and ``pos``
+        :param alt_ac: Accession on g. coordinate
+        :param target_genome_assembly: Genome assembly to get genomic data for.
+            If ``alt_ac`` is provided, it will return the associated assembly.
         :return: Gene, Transcript accession and position change,
             Altered transcript accession and position change, Strand
         """
@@ -816,7 +818,7 @@ class UTADatabase:
     async def get_ac_from_gene(self, gene: str) -> List[str]:
         """Return genomic accession(s) associated to a gene.
 
-        :param str gene: Gene symbol
+        :param gene: Gene symbol
         :return: List of genomic accessions, sorted in desc order
         """
         query = (
@@ -841,9 +843,9 @@ class UTADatabase:
                                end_pos: int) -> Optional[List[str]]:
         """Get transcripts from NC accession and positions.
 
-        :param str ac: NC Accession
-        :param int start_pos: Start position change
-        :param int end_pos: End position change
+        :param ac: NC Accession
+        :param start_pos: Start position change
+        :param end_pos: End position change
         :return: List of HGNC gene symbols
         """
         if end_pos is None:
@@ -875,14 +877,14 @@ class UTADatabase:
     ) -> pd.core.frame.DataFrame:
         """Get transcripts associated to a gene.
 
-        :param str gene: Gene symbol
-        :param int start_pos: Start position change
-        :param int end_pos: End position change
-        :param bool use_tx_pos: `True` if querying on transcript position.
-            This means `start_pos` and `end_pos` are c. coordinate positions
-            `False` if querying on genomic position. This means `start_pos`
-            and `end_pos` are g. coordinate positions
-        :param Optional[str] alt_ac: Genomic accession
+        :param gene: Gene symbol
+        :param start_pos: Start position change
+        :param end_pos: End position change
+        :param use_tx_pos: ``True`` if querying on transcript position.
+            This means ``start_pos`` and `end_pos` are c. coordinate positions
+            ``False`` if querying on genomic position. This means ``start_pos``
+            and ``end_pos`` are g. coordinate positions
+        :param alt_ac: Genomic accession
         :return: Data Frame containing transcripts associated with a gene.
             Transcripts are ordered by most recent NC accession, then by
             descending transcript length.
@@ -939,7 +941,7 @@ class UTADatabase:
     async def get_chr_assembly(self, ac: str) -> Optional[Tuple[str, str]]:
         """Get chromosome and assembly for NC accession if not in GRCh38.
 
-        :param str ac: NC accession
+        :param ac: NC accession
         :return: Chromosome and Assembly accession is on
         """
         descr = await self.get_ac_descr(ac)
@@ -960,8 +962,8 @@ class UTADatabase:
     async def liftover_to_38(self, genomic_tx_data: Dict) -> None:
         """Liftover genomic_tx_data to hg38 assembly.
 
-        :param Dict genomic_tx_data: Dictionary containing gene, nc_accession,
-            alt_pos, and strand
+        :param genomic_tx_data: Dictionary containing gene, nc_accession, alt_pos, and
+            strand
         """
         descr = await self.get_chr_assembly(genomic_tx_data["alt_ac"])
         if descr is None:
@@ -1015,9 +1017,9 @@ class UTADatabase:
                      liftover_to_assembly: Assembly) -> Optional[Tuple]:
         """Get new genome assembly data for a position on a chromosome.
 
-        :param str chromosome: The chromosome number. Must be prefixed with `chr`
-        :param int pos: Position on the chromosome
-        :param Assembly liftover_to_assembly: Assembly to liftover to
+        :param chromosome: The chromosome number. Must be prefixed with ``"chr"``
+        :param pos: Position on the chromosome
+        :param liftover_to_assembly: Assembly to liftover to
         :return: [Target chromosome, target position, target strand,
             conversion_chain_score] for assembly
         """
@@ -1043,10 +1045,10 @@ class UTADatabase:
                       liftover_to_assembly: Assembly) -> None:
         """Update genomic_tx_data to have coordinates for given assembly.
 
-        :param Dict genomic_tx_data: Dictionary containing gene, nc_accession,
-            alt_pos, and strand
-        :param str key: Key to access coordinate positions
-        :param str chromosome: Chromosome, must be prefixed with `chr`
+        :param genomic_tx_data: Dictionary containing gene, nc_accession, alt_pos, and
+            strand
+        :param key: Key to access coordinate positions
+        :param chromosome: Chromosome, must be prefixed with ``"chr"``
         :param Assembly liftover_to_assembly: Assembly to liftover to
         """
         liftover_start_i = self.get_liftover(chromosome, genomic_tx_data[key][0],
@@ -1068,7 +1070,7 @@ class UTADatabase:
     async def p_to_c_ac(self, p_ac: str) -> List[str]:
         """Return c. accession from p. accession.
 
-        :param str p_ac: Protein accession
+        :param p_ac: Protein accession
         :return: List of rows containing c. accessions that are associated
             with the given p. accession. In ascending order.
         """
@@ -1098,8 +1100,8 @@ class UTADatabase:
             self, alt_ac: str, g_pos: int) -> List[str]:
         """Get transcripts associated to a genomic ac and position.
 
-        :param str alt_ac: Genomic accession
-        :param int g_pos: Genomic position
+        :param alt_ac: Genomic accession
+        :param g_pos: Genomic position
         :return: RefSeq transcripts on c. coordinate
         """
         query = (

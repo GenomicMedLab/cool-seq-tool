@@ -13,8 +13,8 @@ class TranscriptMappings:
                  lrg_refseqgene_path: Path = LRG_REFSEQGENE_PATH) -> None:
         """Initialize the transcript mappings class.
 
-        :param Path transcript_file_path: Path to transcript mappings file
-        :param Path lrg_refseqgene_path: Path to LRG RefSeqGene file
+        :param transcript_file_path: Path to transcript mappings file
+        :param lrg_refseqgene_path: Path to LRG RefSeqGene file
         """
         # ENSP <-> Gene Symbol
         self.ensembl_protein_version_for_gene_symbol: Dict[str, List[str]] = {}
@@ -55,7 +55,7 @@ class TranscriptMappings:
     def _load_transcript_mappings_data(self, transcript_file_path: Path) -> None:
         """Load transcript mappings file to dictionaries.
 
-        :param Path transcript_file_path: Path to transcript mappings file
+        :param transcript_file_path: Path to transcript mappings file
         """
         with open(transcript_file_path) as file:
             reader = csv.DictReader(file, delimiter="\t")
@@ -99,7 +99,7 @@ class TranscriptMappings:
     def _load_refseq_gene_symbol_data(self, lrg_refseqgene_path: Path) -> None:
         """Load data from RefSeq Gene Symbol file to dictionaries.
 
-        :param Path lrg_refseqgene_path: Path to LRG RefSeqGene file
+        :param lrg_refseqgene_path: Path to LRG RefSeqGene file
         """
         with open(lrg_refseqgene_path) as file:
             reader = csv.DictReader(file, delimiter="\t")
@@ -153,7 +153,7 @@ class TranscriptMappings:
     def protein_transcripts(self, identifier: str) -> List[str]:
         """Return a list of protein transcripts for a gene symbol.
 
-        :param str identifier: Gene identifier to get protein transcripts for
+        :param identifier: Gene identifier to get protein transcripts for
         :return: Protein transcripts for a gene symbol
         """
         protein_transcripts = list()
@@ -169,7 +169,7 @@ class TranscriptMappings:
     def coding_dna_transcripts(self, identifier: str) -> List[str]:
         """Return transcripts from a coding dna refseq for a gene symbol.
 
-        :param str identifier: Gene identifier to find transcripts for
+        :param identifier: Gene identifier to find transcripts for
         :return: cDNA transcripts for a gene symbol
         """
         genomic_transcripts = list()
@@ -185,7 +185,7 @@ class TranscriptMappings:
     def get_gene_symbol_from_ensembl_protein(self, q: str) -> Optional[str]:
         """Return the gene symbol for a Ensembl Protein.
 
-        :param str q: ensembl protein accession
+        :param q: ensembl protein accession
         :return: Gene symbol
         """
         gene_symbol = self.ensembl_protein_version_to_gene_symbol.get(q)
@@ -198,7 +198,7 @@ class TranscriptMappings:
     def get_gene_symbol_from_refeq_protein(self, q: str) -> Optional[str]:
         """Return the gene symbol for a Refseq Protein.
 
-        :param str q: RefSeq protein accession
+        :param q: RefSeq protein accession
         :return: Gene symbol
         """
         return self.refseq_protein_to_gene_symbol.get(q)
@@ -219,7 +219,7 @@ class TranscriptMappings:
     def get_gene_symbol_from_ensembl_transcript(self, q: str) -> Optional[str]:
         """Return gene symbol for an Ensembl Transcript.
 
-        :param str q: Ensembl transcript accession
+        :param q: Ensembl transcript accession
         :return: Gene symbol
         """
         gene_symbol = self.ensembl_transcript_version_to_gene_symbol.get(q)
@@ -232,7 +232,7 @@ class TranscriptMappings:
     def get_gene_symbol_from_lrg(self, q: str) -> Optional[str]:
         """Return gene symbol for LRG.
 
-        :param str q: LRG accession
+        :param q: LRG accession
         :return: Gene symbol
         """
         return self.refseq_lrg_to_gene_symbol.get(q)
