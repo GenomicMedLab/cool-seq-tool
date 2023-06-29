@@ -14,4 +14,4 @@ logger.setLevel(logging.DEBUG)
 
 LOG_FN = "cool_seq_tool.log"
 
-from .main import CoolSeqTool  # noqa: E402, F401, I202
+from .app import CoolSeqTool  # noqa: E402, F401, I202
