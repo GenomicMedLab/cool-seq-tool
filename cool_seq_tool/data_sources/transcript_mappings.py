@@ -3,8 +3,6 @@ import csv
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from apybiomart import query
-
 from cool_seq_tool import TRANSCRIPT_MAPPINGS_PATH, LRG_REFSEQGENE_PATH
 
 
@@ -53,24 +51,6 @@ class TranscriptMappings:
 
         self._load_transcript_mappings_data(transcript_file_path)
         self._load_refseq_gene_symbol_data(lrg_refseqgene_path)
-
-    def download_transcript_mappings_data(self, transcript_file_path: Path) -> None:
-        """TODO"""
-        result = query(
-            dataset="hsapiens_gene_ensembl",
-            filters={},
-            attributes=[
-                "ensembl_gene_id",
-                "ensembl_gene_id_version",
-                "ensembl_transcript_id",
-                "ensembl_transcript_id_version",
-                "ensembl_peptide_id",
-                "ensembl_peptide_id_version",
-                "transcript_mane_select",
-                "external_gene_name"
-            ]
-        )
-        result.to_csv(transcript_file_path, sep="\t")
 
     def _load_transcript_mappings_data(self, transcript_file_path: Path) -> None:
         """Load transcript mappings file to dictionaries.
