@@ -1,15 +1,16 @@
 """Module containing routes related to alignment mapping"""
+import logging
 from typing import Optional
 
 from fastapi import APIRouter
 from fastapi import Query
 
 
-from cool_seq_tool import logger
 from cool_seq_tool.routers import cool_seq_tool, SERVICE_NAME, RESP_DESCR, Tags
 from cool_seq_tool.schemas import Assembly, ToGenomicService, ToCdnaService, \
     ResidueMode
 
+logger = logging.getLogger("cool_seq_tool")
 
 router = APIRouter(prefix=f"/{SERVICE_NAME}/alignment_mapper")
 
