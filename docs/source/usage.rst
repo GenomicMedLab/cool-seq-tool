@@ -1,4 +1,4 @@
-Using Cool Seq Tool
+Using cool-seq-tool
 ===================
 
 

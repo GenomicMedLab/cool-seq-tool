@@ -9,7 +9,7 @@
 project = 'cool-seq-tool'
 copyright = "2023, Wagner Lab, Nationwide Children's Hospital"
 author = "Wagner Lab, Nationwide Children's Hospital"
-html_title = "Cool Seq Tool"
+html_title = "cool-seq-tool"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
