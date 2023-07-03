@@ -1,7 +1,9 @@
 """Module for downloading data files."""
 from ftplib import FTP
+import logging
 from os import remove
 import gzip
+from pathlib import Path
 import shutil
 import datetime
 
@@ -9,6 +11,9 @@ from dateutil import parser
 from apybiomart import query
 
 from cool_seq_tool import APP_ROOT
+
+
+logger = logging.getLogger("cool_seq_tool")
 
 
 class DataDownload:
@@ -23,9 +28,16 @@ class DataDownload:
         self._data_dir = APP_ROOT / "data"
         self._data_dir.mkdir(exist_ok=True, parents=True)
 
-    def download_transcript_mappings_data(self) -> None:
-        """Acquire transcript mapping data from Ensembl BioMart."""
+    def get_transcript_mappings_data(self) -> Path:
+        """Acquire transcript mapping data. If unavailable locally, download from
+        Ensembl BioMart.
+
+        :return: path to transcript mappings file
+        """
         transcript_file_path = self._data_dir / "transcript_mapping.tsv"
+        if transcript_file_path.exists():
+            return transcript_file_path
+        logger.info("Downloading transcript mapping file from Ensembl BioMart.")
         result = query(
             dataset="hsapiens_gene_ensembl",
             filters={},
@@ -41,9 +53,15 @@ class DataDownload:
             ]
         )
         result.to_csv(transcript_file_path, sep="\t")
+        logger.info("Transcript mapping file download complete.")
+        return transcript_file_path
 
-    def _download_mane_summary(self) -> None:
-        """Download latest MANE summary data file."""
+    def get_mane_summary(self) -> Path:
+        """Identify latest MANE summary data. If unavailable locally, download from
+        source.
+
+        :return: path to MANE summary file
+        """
         with FTP("ftp.ncbi.nlm.nih.gov") as ftp:
             ftp.login()
             ftp.cwd("/refseq/MANE/MANE_human/current")
@@ -57,15 +75,22 @@ class DataDownload:
                 self._data_dir / mane_summary_file[:-3]
             mane_data_path = self._data_dir / mane_summary_file
             if not self._mane_summary_path.exists():
+                logger.info("Downloading MANE summary file from NCBI.")
                 with open(mane_data_path, "wb") as fp:
                     ftp.retrbinary(f"RETR {mane_summary_file}", fp.write)
                 with gzip.open(mane_data_path, "rb") as f_in:
                     with open(self._mane_summary_path, "wb") as f_out:
                         shutil.copyfileobj(f_in, f_out)
                 remove(mane_data_path)
+                logger.info("MANE summary file download complete.")
+        return self._mane_summary_path
 
-    def _download_lrg_refseq_gene_data(self) -> None:
-        """Download latest LRG_RefSeqGene file."""
+    def get_lrg_refseq_gene_data(self) -> Path:
+        """Identify latest LRG RefSeq Gene file. If unavailable locally, download from
+        source.
+
+        :return: path to acquired LRG RefSeq Gene data file
+        """
         with FTP("ftp.ncbi.nlm.nih.gov") as ftp:
             ftp.login()
             lrg_refseqgene_file = "LRG_RefSeqGene"
@@ -80,6 +105,7 @@ class DataDownload:
             lrg_refseqgene_path = self._data_dir / lrg_refseqgene_file
             self._lrg_refseqgene_path = self._data_dir / fn_versioned
             if not self._lrg_refseqgene_path.exists():
+                logger.info("Downloading LRG RefSeq data from NCBI.")
                 ftp.cwd(ftp_dir_path)
                 with open(lrg_refseqgene_path, "wb") as fp:
                     ftp.retrbinary(f"RETR {lrg_refseqgene_file}", fp.write)
@@ -87,3 +113,5 @@ class DataDownload:
                     with open(self._lrg_refseqgene_path, "wb") as f_out:
                         shutil.copyfileobj(f_in, f_out)
                 remove(lrg_refseqgene_path)
+                logger.info("LRG RefSeq data download complete.")
+        return self._lrg_refseqgene_path
