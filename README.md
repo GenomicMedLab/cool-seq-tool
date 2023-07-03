@@ -94,11 +94,20 @@ exit
 ```
 
 #### transcript_mappings.tsv
-`cool-seq-tool` uses [Ensembl BioMart](http://www.ensembl.org/biomart/martview) to retrieve `cool_seq_tool/data/transcript_mappings.tsv`. We currently use `Human Genes (GRCh38.p13)` for the dataset and the following attributes we use are: Gene stable ID, Gene stable ID version, Transcript stable ID, Transcript stable ID version, Protein stable ID, Protein stable ID version, RefSeq match transcript (MANE Select), Gene name.
+`cool-seq-tool` fetches transcript mapping data from [Ensembl BioMart](http://www.ensembl.org/biomart/martview) if the environment variable `TRANSCRIPT_MAPPINGS_PATH` is not set. When `TRANSCRIPT_MAPPINGS_PATH` is set, `cool_seq_tool` will look at this path and expect to find the transcript mapping TSV file.
+
+To acquire this data manually from the [BioMart](https://www.ensembl.org/biomart/martview), select the `Human Genes (GRCh38.p13)` dataset and choose the following attributes:
+
+* Gene stable ID
+* Gene stable ID version
+* Transcript stable ID
+* Transcript stable ID version
+* Protein stable ID
+* Protein stable ID version
+* RefSeq match transcript (MANE Select)
+* Gene name
 
 ![image](biomart.png)
-
-Use the `TRANSCRIPT_MAPPINGS_PATH` environment variable to set the path of an already existing `transcript_mappings.tsv`. The default is `cool_seq_tool/data/transcript_mapping.tsv`.
 
 #### LRG_RefSeqGene
 
