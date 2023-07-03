@@ -21,10 +21,6 @@ class DataDownload:
 
     def __init__(self) -> None:
         """Initialize DataDownload."""
-        self._make_data_dir()
-
-    def _make_data_dir(self) -> None:
-        """Make data directory"""
         self._data_dir = APP_ROOT / "data"
         self._data_dir.mkdir(exist_ok=True, parents=True)
 
