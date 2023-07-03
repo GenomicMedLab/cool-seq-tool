@@ -1,6 +1,7 @@
 """Module for UTA queries."""
 import ast
 import base64
+import logging
 from typing import Dict, List, Optional, Tuple, Any, TypeVar, Type, Union
 from os import environ
 from urllib.parse import quote, unquote
@@ -14,7 +15,6 @@ from asyncpg.exceptions import InvalidAuthorizationSpecificationError, \
     InterfaceError
 from botocore.exceptions import ClientError
 
-from cool_seq_tool import UTA_DB_URL, logger
 from cool_seq_tool.schemas import AnnotationLayer, Assembly
 
 
@@ -24,6 +24,11 @@ UTADatabaseType = TypeVar("UTADatabaseType", bound="UTADatabase")
 # Environment variables for paths to chain files for pyliftover
 LIFTOVER_CHAIN_37_TO_38 = environ.get("LIFTOVER_CHAIN_37_TO_38")
 LIFTOVER_CHAIN_38_TO_37 = environ.get("LIFTOVER_CHAIN_38_TO_37")
+
+UTA_DB_URL = environ.get("UTA_DB_URL",
+                         "postgresql://uta_admin@localhost:5433/uta/uta_20210129")
+
+logger = logging.getLogger("cool_seq_tool")
 
 
 class UTADatabase:

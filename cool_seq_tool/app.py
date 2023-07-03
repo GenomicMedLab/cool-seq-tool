@@ -2,19 +2,23 @@
 from datetime import datetime
 from typing import Optional, Union, List, Tuple, Dict
 from pathlib import Path
+import logging
 
 from biocommons.seqrepo import SeqRepo
 from gene.query import QueryHandler as GeneQueryHandler
 
-from cool_seq_tool import logger, SEQREPO_ROOT_DIR
 from cool_seq_tool.data_sources.alignment_mapper import AlignmentMapper
+from cool_seq_tool.data_sources.uta_database import UTA_DB_URL
+from cool_seq_tool.paths import LRG_REFSEQGENE_PATH, MANE_SUMMARY_PATH, \
+    SEQREPO_ROOT_DIR, TRANSCRIPT_MAPPINGS_PATH
 from cool_seq_tool.schemas import Assembly, GenomicData, TranscriptExonData, \
     ResidueMode, GenomicDataResponse, ServiceMeta, TranscriptExonDataResponse
 from cool_seq_tool.data_sources import MANETranscript, MANETranscriptMappings,\
     SeqRepoAccess, TranscriptMappings, UTADatabase, GeneNormalizer
-from cool_seq_tool import TRANSCRIPT_MAPPINGS_PATH, LRG_REFSEQGENE_PATH, \
-    MANE_SUMMARY_PATH, UTA_DB_URL
 from cool_seq_tool.version import __version__
+
+
+logger = logging.getLogger("cool_seq_tool")
 
 
 class CoolSeqTool:
@@ -80,7 +84,7 @@ class CoolSeqTool:
     @staticmethod
     def _return_warnings(
             resp: Union[GenomicDataResponse, TranscriptExonDataResponse],
-            warning_msg: str) -> Union[GenomicDataResponse, TranscriptExonDataResponse]:  # noqa: E501
+            warning_msg: str) -> Union[GenomicDataResponse, TranscriptExonDataResponse]:
         """Add warnings to response object
 
         :param Union[GenomicDataResponse, TranscriptExonDataResponse] resp:
