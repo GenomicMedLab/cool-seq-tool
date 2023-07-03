@@ -3,7 +3,6 @@ from os import environ
 from pathlib import Path
 import logging
 
-
 APP_ROOT = Path(__file__).resolve().parents[0]
 
 logging.basicConfig(
