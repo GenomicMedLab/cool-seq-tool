@@ -889,8 +889,9 @@ class MANETranscript:
         alt_ac = None
         if hgnc_gene_data["locations"]:
             chr = hgnc_gene_data["locations"][0].get("chr") or ""
-            alt_acs, _ = self.seqrepo_access.translate_identifier(f"{assembly}:{chr}",
-                                                                  "refseq")
+            alt_acs, _ = self.seqrepo_access.translate_identifier(
+                f"{assembly.value}:{chr}", "refseq"
+            )
             if alt_acs:
                 alt_ac = alt_acs[0].split(":")[1]
             else:
