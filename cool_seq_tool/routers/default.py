@@ -1,4 +1,5 @@
 """Module containing default routes"""
+import logging
 import os
 import tempfile
 from pathlib import Path
@@ -9,12 +10,13 @@ from fastapi.responses import FileResponse
 from starlette.background import BackgroundTasks
 
 
-from cool_seq_tool import logger
 from cool_seq_tool.routers import cool_seq_tool, SERVICE_NAME, RESP_DESCR, \
     UNHANDLED_EXCEPTION_MSG
 from cool_seq_tool.schemas import GenomicDataResponse, GenomicRequestBody, \
     TranscriptRequestBody
 
+
+logger = logging.getLogger("cool_seq_tool")
 
 router = APIRouter(prefix=f"/{SERVICE_NAME}")
 
