@@ -55,6 +55,33 @@ Tests are executed with `pytest <https://docs.pytest.org/en/7.1.x/getting-starte
 
     pytest
 
+Data
+----
+
+Transcript mapping data is acquired from the Ensembl BioMart. It should be fairly static, but can be regenerated via Python script using ``apybiomart``:
+
+.. code-block:: python
+
+   from pathlib import Path
+
+   from apybiomart import query
+
+   result = query(
+       dataset="hsapiens_gene_ensembl",
+       filters={},
+       attributes=[
+           "ensembl_gene_id",
+           "ensembl_gene_id_version",
+           "ensembl_transcript_id",
+           "ensembl_transcript_id_version",
+           "ensembl_peptide_id",
+           "ensembl_peptide_id_version",
+           "transcript_mane_select",
+           "external_gene_name"
+       ]
+   )
+   result.to_csv(Path(".") / "cool_seq_tool" / "data" / "transcript_mapping.tsv", sep="\t")
+
 Documentation
 -------------
 
