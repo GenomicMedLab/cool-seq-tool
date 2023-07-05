@@ -1,4 +1,4 @@
-"""Module for downloading data files."""
+"""Module for handling downloadable data files."""
 from ftplib import FTP
 import logging
 from os import remove
@@ -12,17 +12,20 @@ from apybiomart import query
 
 from cool_seq_tool import APP_ROOT
 
+logger = logging.getLogger("cool_seq_tool")
+
 
 logger = logging.getLogger("cool_seq_tool")
 
 
 class DataDownload:
-    """Class for downloading data files."""
+    """Class for managing downloadable data files. Responsible for checking if files
+    are available under default locations, and fetching them if not.
+    """
 
     def __init__(self) -> None:
-        """Initialize DataDownload."""
+        """Initialize downloadable data locations."""
         self._data_dir = APP_ROOT / "data"
-        self._data_dir.mkdir(exist_ok=True, parents=True)
 
     def get_transcript_mappings_data(self) -> Path:
         """Acquire transcript mapping data. If unavailable locally, download from

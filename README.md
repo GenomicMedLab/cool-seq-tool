@@ -93,8 +93,17 @@ sudo mv /usr/local/share/seqrepo/2021-01-29._fkuefgd /usr/local/share/seqrepo/20
 exit
 ```
 
-#### transcript_mappings.tsv
-`cool-seq-tool` fetches transcript mapping data from [Ensembl BioMart](http://www.ensembl.org/biomart/martview) if the environment variable `TRANSCRIPT_MAPPINGS_PATH` is not set. When `TRANSCRIPT_MAPPINGS_PATH` is set, `cool_seq_tool` will look at this path and expect to find the transcript mapping TSV file.
+#### LRG_RefSeqGene
+
+`cool-seq-tool` fetches the latest version of `LRG_RefSeqGene` if the environment variable `LRG_REFSEQGENE_PATH` is not set. When `LRG_REFSEQGENE_PATH` is set, `cool-seq-tool` will look at this path and expect the LRG_RefSeqGene file. This file is found can be found [here](https://ftp.ncbi.nlm.nih.gov/refseq/H_sapiens/RefSeqGene).
+
+#### MANE Summary Data
+
+`cool-seq-tool` fetches the latest version of `MANE.GRCh38.*.summary.txt.gz` if the environment variable `MANE_SUMMARY_PATH` is not set. When `MANE_SUMMARY_PATH` is set, `cool-seq-tool` will look at this path and expect the MANE Summary Data file. This file is found can be found [here](https://ftp.ncbi.nlm.nih.gov/refseq/MANE/MANE_human/current/).
+
+#### transcript_mapping.tsv
+
+`cool-seq-tool` is packaged with transcript mapping data acquired from [Ensembl BioMart](http://www.ensembl.org/biomart/martview). If the environment variable `TRANSCRIPT_MAPPINGS_PATH` is not set, `cool-seq-tool` will use the built-in file. When `TRANSCRIPT_MAPPINGS_PATH` is set, `cool_seq_tool` will look at this path and expect to find the transcript mapping TSV file.
 
 To acquire this data manually from the [BioMart](https://www.ensembl.org/biomart/martview), select the `Human Genes (GRCh38.p13)` dataset and choose the following attributes:
 
@@ -108,14 +117,6 @@ To acquire this data manually from the [BioMart](https://www.ensembl.org/biomart
 * Gene name
 
 ![image](biomart.png)
-
-#### LRG_RefSeqGene
-
-`cool-seq-tool` fetches the latest version of `LRG_RefSeqGene` if the environment variable `LRG_REFSEQGENE_PATH` is not set. When `LRG_REFSEQGENE_PATH` is set, `cool-seq-tool` will look at this path and expect the LRG_RefSeqGene file. This file is found can be found [here](https://ftp.ncbi.nlm.nih.gov/refseq/H_sapiens/RefSeqGene).
-
-#### MANE Summary Data
-
-`cool-seq-tool` fetches the latest version of `MANE.GRCh38.*.summary.txt.gz` if the environment variable `MANE_SUMMARY_PATH` is not set. When `MANE_SUMMARY_PATH` is set, `cool-seq-tool` will look at this path and expect the MANE Summary Data file. This file is found can be found [here](https://ftp.ncbi.nlm.nih.gov/refseq/MANE/MANE_human/current/).
 
 ## Starting the UTA Tools Service Locally
 
