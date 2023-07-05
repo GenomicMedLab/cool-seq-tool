@@ -131,9 +131,6 @@ dmypy.json
 Pipfile.lock
 pyproject.toml
 
-# Editor configs
-.idea
-
 # Data files
 cool_seq_tool/data/seqrepo/
 cool_seq_tool/data/LRG_RefSeqGene*
