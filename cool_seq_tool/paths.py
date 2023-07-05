@@ -11,7 +11,7 @@ provided_transcript_mappings_path = environ.get("TRANSCRIPT_MAPPINGS_PATH")
 if provided_transcript_mappings_path:
     TRANSCRIPT_MAPPINGS_PATH = Path(provided_transcript_mappings_path)
 else:
-    TRANSCRIPT_MAPPINGS_PATH = d.get_transcript_mappings_data()
+    TRANSCRIPT_MAPPINGS_PATH = d._data_dir / "transcript_mapping.tsv"
 
 provided_mane_summary_path = environ.get("MANE_SUMMARY_PATH", "")
 if provided_mane_summary_path:

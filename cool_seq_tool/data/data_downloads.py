@@ -8,7 +8,6 @@ import shutil
 import datetime
 
 from dateutil import parser
-from apybiomart import query
 
 from cool_seq_tool import APP_ROOT
 
@@ -23,34 +22,6 @@ class DataDownload:
         """Initialize DataDownload."""
         self._data_dir = APP_ROOT / "data"
         self._data_dir.mkdir(exist_ok=True, parents=True)
-
-    def get_transcript_mappings_data(self) -> Path:
-        """Acquire transcript mapping data. If unavailable locally, download from
-        Ensembl BioMart.
-
-        :return: path to transcript mappings file
-        """
-        transcript_file_path = self._data_dir / "transcript_mapping.tsv"
-        if transcript_file_path.exists():
-            return transcript_file_path
-        logger.info("Downloading transcript mapping file from Ensembl BioMart.")
-        result = query(
-            dataset="hsapiens_gene_ensembl",
-            filters={},
-            attributes=[
-                "ensembl_gene_id",
-                "ensembl_gene_id_version",
-                "ensembl_transcript_id",
-                "ensembl_transcript_id_version",
-                "ensembl_peptide_id",
-                "ensembl_peptide_id_version",
-                "transcript_mane_select",
-                "external_gene_name"
-            ]
-        )
-        result.to_csv(transcript_file_path, sep="\t")
-        logger.info("Transcript mapping file download complete.")
-        return transcript_file_path
 
     def get_mane_summary(self) -> Path:
         """Identify latest MANE summary data. If unavailable locally, download from
