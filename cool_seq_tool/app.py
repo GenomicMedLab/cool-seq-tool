@@ -36,7 +36,7 @@ class CoolSeqTool:
     ) -> None:
         """Initialize CoolSeqTool class
 
-        :param Path transcript_file_path: The path to transcript_mappings.tsv
+        :param Path transcript_file_path: The path to transcript_mapping.tsv
         :param Path lrg_refseqgene_path: The path to LRG_RefSeqGene
         :param Path mane_data_path: Path to RefSeq MANE summary data
         :param str db_url: PostgreSQL connection URL
