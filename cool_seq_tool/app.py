@@ -29,28 +29,26 @@ class CoolSeqTool:
         transcript_file_path: Path = TRANSCRIPT_MAPPINGS_PATH,
         lrg_refseqgene_path: Path = LRG_REFSEQGENE_PATH,
         mane_data_path: Path = MANE_SUMMARY_PATH,
-        db_url: str = UTA_DB_URL, db_pwd: str = "",
-        gene_query_handler: Optional[GeneQueryHandler] = None,
+        db_url: str = UTA_DB_URL, gene_query_handler: Optional[GeneQueryHandler] = None,
         gene_db_url: str = "", gene_db_region: str = "us-east-2",
         sr: Optional[SeqRepo] = None
     ) -> None:
-        """Initialize CoolSeqTool class.
+        """Initialize CoolSeqTool class
 
-        :param transcript_file_path: The path to transcript_mappings.tsv
+        :param transcript_file_path: The path to transcript_mapping.tsv
         :param lrg_refseqgene_path: The path to LRG_RefSeqGene
         :param mane_data_path: Path to RefSeq MANE summary data
-        :param db_url: PostgreSQL connection URL. Format:
-            ``driver://user:pass@host/database/schema``
-        :param db_pwd: User's password for uta database
-        :param gene_query_handler: Gene normalizer query handler instance. If this is
-            provided, will use a current instance. If this is not provided, will create
-            a new instance.
+        :param db_url: PostgreSQL connection URL
+            Format: `driver://user:password@host/database/schema`
+        :param gene_query_handler: Gene normalizer query
+            handler instance. If this is provided, will use a current instance. If this
+            is not provided, will create a new instance.
         :param gene_db_url: URL to gene normalizer dynamodb. Only used when
-            ``gene_query_handler`` is ``None``.
+            `gene_query_handler` is `None`.
         :param gene_db_region: AWS region for gene normalizer db. Only used when
-            ``gene_query_handler`` is ``None``.
-        :param sr: SeqRepo instance. If this is not provided, will create a new
-            instance.
+            `gene_query_handler` is `None`.
+        :param sr: SeqRepo instance. If this is not provided, will
+            create a new instance.
         """
         if not sr:
             sr = SeqRepo(root_dir=SEQREPO_ROOT_DIR)
@@ -60,7 +58,7 @@ class CoolSeqTool:
             lrg_refseqgene_path=lrg_refseqgene_path)
         self.mane_transcript_mappings = MANETranscriptMappings(
             mane_data_path=mane_data_path)
-        self.uta_db = UTADatabase(db_url=db_url, db_pwd=db_pwd)
+        self.uta_db = UTADatabase(db_url=db_url)
         gene_normalizer = GeneNormalizer(gene_query_handler, gene_db_url,
                                          gene_db_region)
         self.gene_query_handler = gene_normalizer.query_handler
