@@ -135,4 +135,5 @@ pyproject.toml
 cool_seq_tool/data/seqrepo/
 cool_seq_tool/data/*.txt
 cool_seq_tool/data/LRG_RefSeqGene*
+cool_seq_tool/data/MANE*
 cool_seq_tool/data/notebooks/

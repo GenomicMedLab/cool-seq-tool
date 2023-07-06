@@ -1,17 +1,18 @@
 """Module containing routes related to MANE data"""
+import logging
 from typing import List, Optional
 
 from fastapi import APIRouter
 from fastapi import Query
 
-
-from cool_seq_tool import logger
 from cool_seq_tool.routers import cool_seq_tool, SERVICE_NAME, RESP_DESCR, \
     UNHANDLED_EXCEPTION_MSG, Tags
 from cool_seq_tool.data_sources.mane_transcript import MANETranscriptError
 from cool_seq_tool.schemas import AnnotationLayer, Assembly, ManeDataService, \
     MappedManeDataService, ResidueMode
 
+
+logger = logging.getLogger("cool_seq_tool")
 
 router = APIRouter(prefix=f"/{SERVICE_NAME}/mane")
 

@@ -7,6 +7,7 @@ Steps:
 3. Select preferred compatible annotation
 4. Map back to correct annotation layer
 """
+import logging
 import math
 from typing import Optional, Set, Tuple, Dict, List, Union
 
@@ -17,7 +18,9 @@ from cool_seq_tool.schemas import AnnotationLayer, Assembly, MappedManeData, \
 from cool_seq_tool.data_sources import SeqRepoAccess, TranscriptMappings, \
     MANETranscriptMappings, UTADatabase, GeneNormalizer
 from cool_seq_tool.data_sources.residue_mode import get_inter_residue_pos
-from cool_seq_tool import logger
+
+
+logger = logging.getLogger("cool_seq_tool")
 
 
 class MANETranscriptError(Exception):
@@ -1068,8 +1071,9 @@ class MANETranscript:
         alt_ac = None
         if hgnc_gene_data["locations"]:
             chr = hgnc_gene_data["locations"][0].get("chr") or ""
-            alt_acs, _ = self.seqrepo_access.translate_identifier(f"{assembly}:{chr}",
-                                                                  "refseq")
+            alt_acs, _ = self.seqrepo_access.translate_identifier(
+                f"{assembly.value}:{chr}", "refseq"
+            )
             if alt_acs:
                 alt_ac = alt_acs[0].split(":")[1]
             else:

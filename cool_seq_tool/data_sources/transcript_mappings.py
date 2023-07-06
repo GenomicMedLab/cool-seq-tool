@@ -3,7 +3,7 @@ import csv
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from cool_seq_tool import TRANSCRIPT_MAPPINGS_PATH, LRG_REFSEQGENE_PATH
+from cool_seq_tool.paths import LRG_REFSEQGENE_PATH, TRANSCRIPT_MAPPINGS_PATH
 
 
 class TranscriptMappings:

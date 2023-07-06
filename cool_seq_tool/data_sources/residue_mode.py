@@ -1,8 +1,11 @@
 """Module for converting positions to inter-residue coordinates"""
+import logging
 from typing import Optional, Tuple
 
 from cool_seq_tool.schemas import ResidueMode
-from cool_seq_tool import logger
+
+
+logger = logging.getLogger("cool_seq_tool")
 
 
 def get_inter_residue_pos(
