@@ -29,8 +29,7 @@ class CoolSeqTool:
         transcript_file_path: Path = TRANSCRIPT_MAPPINGS_PATH,
         lrg_refseqgene_path: Path = LRG_REFSEQGENE_PATH,
         mane_data_path: Path = MANE_SUMMARY_PATH,
-        db_url: str = UTA_DB_URL, db_pwd: str = "",
-        gene_query_handler: Optional[GeneQueryHandler] = None,
+        db_url: str = UTA_DB_URL, gene_query_handler: Optional[GeneQueryHandler] = None,
         gene_db_url: str = "", gene_db_region: str = "us-east-2",
         sr: Optional[SeqRepo] = None
     ) -> None:
@@ -41,7 +40,6 @@ class CoolSeqTool:
         :param Path mane_data_path: Path to RefSeq MANE summary data
         :param str db_url: PostgreSQL connection URL
             Format: `driver://user:pass@host/database/schema`
-        :param str db_pwd: User's password for uta database
         :param Optional[GeneQueryHandler] gene_query_handler: Gene normalizer query
             handler instance. If this is provided, will use a current instance. If this
             is not provided, will create a new instance.
@@ -60,7 +58,7 @@ class CoolSeqTool:
             lrg_refseqgene_path=lrg_refseqgene_path)
         self.mane_transcript_mappings = MANETranscriptMappings(
             mane_data_path=mane_data_path)
-        self.uta_db = UTADatabase(db_url=db_url, db_pwd=db_pwd)
+        self.uta_db = UTADatabase(db_url=db_url)
         gene_normalizer = GeneNormalizer(gene_query_handler, gene_db_url,
                                          gene_db_region)
         self.gene_query_handler = gene_normalizer.query_handler

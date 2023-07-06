@@ -26,7 +26,7 @@ LIFTOVER_CHAIN_37_TO_38 = environ.get("LIFTOVER_CHAIN_37_TO_38")
 LIFTOVER_CHAIN_38_TO_37 = environ.get("LIFTOVER_CHAIN_38_TO_37")
 
 UTA_DB_URL = environ.get("UTA_DB_URL",
-                         "postgresql://uta_admin@localhost:5433/uta/uta_20210129")
+                         "postgresql://uta_admin:uta@localhost:5433/uta/uta_20210129")
 
 logger = logging.getLogger("cool_seq_tool")
 
@@ -37,7 +37,6 @@ class UTADatabase:
     def __init__(
         self,
         db_url: str = UTA_DB_URL,
-        db_pwd: str = "",
         chain_file_37_to_38: Optional[str] = None,
         chain_file_38_to_37: Optional[str] = None
     ) -> None:
@@ -46,7 +45,6 @@ class UTADatabase:
 
         :param db_url: PostgreSQL connection URL
             Format: `driver://user:pass@host/database/schema`
-        :param db_pwd: User's password for uta database
         :param chain_file_37_to_38: Optional path to chain file for 37 to 38 assembly.
             This is used for pyliftover. If this is not provided, will check to see if
             LIFTOVER_CHAIN_37_TO_38 env var is set. If neither is provided, will allow
@@ -57,9 +55,9 @@ class UTADatabase:
             pyliftover to download a chain file from UCSC
         """
         self.schema = None
-        self.db_url = db_url
-        self.db_pwd = db_pwd
         self._connection_pool = None
+        original_pwd = db_url.split("//")[-1].split("@")[0].split(":")[-1]
+        self.db_url = db_url.replace(original_pwd, quote(original_pwd))
         self.args = self._get_conn_args()
 
         chain_file_37_to_38 = chain_file_37_to_38 or LIFTOVER_CHAIN_37_TO_38
@@ -74,38 +72,10 @@ class UTADatabase:
         else:
             self.liftover_38_to_37 = LiftOver("hg38", "hg19")
 
-    @staticmethod
-    def _update_db_url(db_pwd: str, db_url: str) -> str:
-        """Return new db_url containing password.
-
-        :param str db_pwd: User's password for uta database
-        :param str db_url: PostgreSQL connection URL
-            Format: `driver://user:pass@host/database/schema`
-        :return: PostgreSQL connection URL
-        """
-        if "UTA_DB_URL" in environ:
-            return environ["UTA_DB_URL"]
-        if not db_pwd and "UTA_PASSWORD" not in environ:
-            raise Exception("Environment variable UTA_PASSWORD "
-                            "or `db_pwd` param must be set")
-        else:
-            uta_password_in_environ = "UTA_PASSWORD" in environ
-            if uta_password_in_environ and db_pwd:
-                if db_pwd != environ["UTA_PASSWORD"]:
-                    raise Exception("If both environment variable UTA_PASSWORD"
-                                    " and param db_pwd is set, they must "
-                                    "both be the same")
-            else:
-                if uta_password_in_environ and not db_pwd:
-                    db_pwd = environ["UTA_PASSWORD"]
-            db_url = db_url.split("@")
-            db_url_with_pass = f"{db_url[0]}:{db_pwd}@{db_url[1]}"
-            environ["UTA_DB_URL"] = db_url_with_pass
-            return db_url_with_pass
-
     def _get_conn_args(self) -> Dict:
         """Return connection arguments.
 
+        :param db_url: raw connection URL
         :return: Database credentials
         """
         if "UTA_DB_PROD" in environ:
@@ -124,11 +94,7 @@ class UTADatabase:
             return dict(host=host, port=int(port), database=database, user=username,
                         password=password)
         else:
-            db_url = self._update_db_url(self.db_pwd, self.db_url)
-            original_pwd = db_url.split("//")[-1].split("@")[0].split(":")[-1]
-            db_url = db_url.replace(original_pwd, quote(original_pwd))
-
-            url = ParseResult(urlparse.urlparse(db_url))
+            url = ParseResult(urlparse.urlparse(self.db_url))
             self.schema = url.schema
             password = unquote(url.password) if url.password else ""
             return dict(host=url.hostname, port=url.port,
@@ -158,16 +124,14 @@ class UTADatabase:
 
     @classmethod
     async def create(
-            cls: Type[UTADatabaseType], db_url: str = UTA_DB_URL,
-            db_pwd: str = "") -> UTADatabaseType:
+            cls: Type[UTADatabaseType], db_url: str = UTA_DB_URL) -> UTADatabaseType:
         """Provide fully-initialized class instance (a la factory pattern)
         :param UTADatabaseType cls: supplied implicitly
         :param str db_url: PostgreSQL connection URL
             Format: `driver://user:pass@host/database/schema`
-        :param str db_pwd: User's password for uta database
         :return: UTA DB access class instance
         """
-        self = cls(db_url, db_pwd)
+        self = cls(db_url)
         await self._create_genomic_table()
         await self.create_pool()
         return self
