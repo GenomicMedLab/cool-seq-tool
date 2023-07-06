@@ -12,12 +12,19 @@ Requirements
 Package installation
 --------------------
 
+We recommend installing from PyPI:
+
 .. code-block:: shell
 
    pip install cool-seq-tool
 
-Data source: UTA
-----------------
+Data source setup
+-----------------
+
+``cool-seq-tool`` makes use of data drawn from several parent libraries. Some additional setup is required to make this data available upon installation.
+
+Universal Transcript Archive (UTA)
+++++++++++++++++++++++++++++++++++
 
 ``cool-seq-tool`` requires access to the `Universal Transcript Archive <https://github.com/biocommons/uta>`_ PostgreSQL database. See the UTA readme for all setup options and more detailed instructions.
 
@@ -26,7 +33,7 @@ By default, ``cool-seq-tool`` will attempt to connect to the UTA database at ``p
 If you do not wish to use the default, you must set the environment variable ``UTA_DB_URL`` with a `valid PostgreSQL connection string <https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING>`_.
 
 Local UTA setup
-+++++++++++++++
+_______________
 
 The most accessible way to set up UTA is from a local PostgreSQL instance. Depending on the environment, something like the following should be sufficient:
 
@@ -47,13 +54,10 @@ The most accessible way to set up UTA is from a local PostgreSQL instance. Depen
     curl -O http://dl.biocommons.org/uta/$UTA_VERSION
     gzip -cdq ${UTA_VERSION} | grep -v "^REFRESH MATERIALIZED VIEW" | psql -h localhost -U uta_admin --echo-errors --single-transaction -v ON_ERROR_STOP=1 -d uta -p 5433
 
-Troubleshooting UTA setup
-+++++++++++++++++++++++++
+For troubleshooting, see additional documentation `here <https://github.com/ga4gh/vrs-python/tree/main/docs/setup_help>`_.
 
-See additional documentation `here <https://github.com/ga4gh/vrs-python/tree/main/docs/setup_help>`_.
-
-Data source: SeqRepo
---------------------
+SeqRepo
++++++++
 
 ``cool-seq-tool`` relies on `SeqRepo <https://github.com/biocommons/biocommons.seqrepo>`_ for sequence metadata.
 
@@ -66,7 +70,7 @@ The following commands will acquire the latest SeqRepo data:
    seqrepo pull -i 2021-01-29
 
 Troubleshooting SeqRepo setup
-+++++++++++++++++++++++++++++
+_____________________________
 
 If you get a PermissionError similar to the following:
 
@@ -81,7 +85,7 @@ You will want to do the following:
     # replace XXXXXXX with correct file path
     sudo mv /usr/local/share/seqrepo/2021-01-29._XXXXXXX /usr/local/share/seqrepo/2021-01-29
 
-Data source: transcript_mappings.tsv
-------------------------------------
+Static data files
++++++++++++++++++
 
-``cool-seq-tool`` uses `Ensembl BioMart <http://www.ensembl.org/biomart/martview>`
+``cool-seq-tool`` makes use of some additional gene and transcript data acquired from Ensembl and NCBI. On startup, it should automatically acquire the most recent available versions. See :ref:`static-files` for more information and for configuration options.

@@ -8,7 +8,7 @@ Bugs and new feature requests can be submitted to the `issue tracker on GitHub <
 
 Development prerequisites
 -------------------------
-For a development install, we recommend using Pipenv. See the `pipenv docs <https://pipenv-fork.readthedocs.io/en/latest/#install-pipenv-today>`_ for direction on installing Pipenv in your environment.
+For a development install, we recommend using Pipenv. See the `Pipenv docs <https://pipenv.pypa.io/en/latest/installation/>`_ for direction on installing Pipenv in your environment.
 
 Setup
 -----
@@ -58,7 +58,7 @@ Tests are executed with `pytest <https://docs.pytest.org/en/7.1.x/getting-starte
 Data
 ----
 
-Transcript mapping data is acquired from the Ensembl BioMart. It should be fairly static, but can be regenerated via Python script using ``apybiomart``:
+Transcript mapping data (``cool_seq_tool/data/transcript_mapping.tsv``) is acquired from the Ensembl BioMart. It should be fairly static, but can be regenerated via Python script using ``apybiomart``:
 
 .. code-block:: python
 
@@ -81,6 +81,24 @@ Transcript mapping data is acquired from the Ensembl BioMart. It should be fairl
        ]
    )
    result.to_csv(Path(".") / "cool_seq_tool" / "data" / "transcript_mapping.tsv", sep="\t")
+
+To acquire this data manually from the `BioMart <https://www.ensembl.org/biomart/martview>`_, select the ``Human Genes (GRCh38.p13)`` dataset and choose the following attributes:
+
+* Gene stable ID
+* Gene stable ID version
+* Transcript stable ID
+* Transcript stable ID version
+* Protein stable ID
+* Protein stable ID version
+* RefSeq match transcript (MANE Select)
+* Gene name
+
+The result will look like this:
+
+.. image:: _static/images/biomart.png
+   :alt: example of relevant BioMart fields
+
+Press the ``Go`` button to initiate the download.
 
 Documentation
 -------------
