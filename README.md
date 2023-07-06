@@ -64,7 +64,7 @@ If you have trouble installing UTA, you can visit [these two READMEs](https://gi
 
 To connect to the UTA database, you can use the default url (`postgresql://uta_admin:uta@localhost:5433/uta/uta_20210129`).
 
-If you do not wish to use the default, you must set the environment variable `UTA_DB_URL` which has the format of `driver://user:pass@host:port/database/schema`.
+If you do not wish to use the default, you must set the environment variable `UTA_DB_URL` which has the format of `driver://user:password@host:port/database/schema`.
 
 ### Data Downloads
 

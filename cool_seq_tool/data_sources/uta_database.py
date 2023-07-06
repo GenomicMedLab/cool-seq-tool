@@ -44,7 +44,7 @@ class UTADatabase:
         method to construct a new instance: await UTADatabase.create()
 
         :param db_url: PostgreSQL connection URL
-            Format: `driver://user:pass@host/database/schema`
+            Format: `driver://user:password@host/database/schema`
         :param chain_file_37_to_38: Optional path to chain file for 37 to 38 assembly.
             This is used for pyliftover. If this is not provided, will check to see if
             LIFTOVER_CHAIN_37_TO_38 env var is set. If neither is provided, will allow
@@ -128,7 +128,7 @@ class UTADatabase:
         """Provide fully-initialized class instance (a la factory pattern)
         :param UTADatabaseType cls: supplied implicitly
         :param str db_url: PostgreSQL connection URL
-            Format: `driver://user:pass@host/database/schema`
+            Format: `driver://user:password@host/database/schema`
         :return: UTA DB access class instance
         """
         self = cls(db_url)

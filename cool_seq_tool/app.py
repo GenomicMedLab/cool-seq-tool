@@ -39,7 +39,7 @@ class CoolSeqTool:
         :param Path lrg_refseqgene_path: The path to LRG_RefSeqGene
         :param Path mane_data_path: Path to RefSeq MANE summary data
         :param str db_url: PostgreSQL connection URL
-            Format: `driver://user:pass@host/database/schema`
+            Format: `driver://user:password@host/database/schema`
         :param Optional[GeneQueryHandler] gene_query_handler: Gene normalizer query
             handler instance. If this is provided, will use a current instance. If this
             is not provided, will create a new instance.
