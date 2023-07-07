@@ -1,4 +1,4 @@
-"""Module for accessing data sources."""
+"""Core ``cool-seq-tool`` module."""
 from datetime import datetime
 from typing import Optional, Union, List, Tuple, Dict
 from pathlib import Path
@@ -22,7 +22,9 @@ logger = logging.getLogger("cool_seq_tool")
 
 
 class CoolSeqTool:
-    """Class to construct and access data sources."""
+    """Handler for all ``cool-seq-tool`` lookup capabilities. Constructs all requisite
+    data interfaces and provides genomic/transcript conversion and querying utilities.
+    """
 
     def __init__(
         self,
@@ -33,22 +35,47 @@ class CoolSeqTool:
         gene_db_url: str = "", gene_db_region: str = "us-east-2",
         sr: Optional[SeqRepo] = None
     ) -> None:
-        """Initialize CoolSeqTool class
+        """Initialize CoolSeqTool class. When called with no arguments, will assume
+        that all static files are in their default locations (and will fetch them if
+        unavailable), will use the default UTA connection URL, and will create new Gene
+        Normalizer and SeqRepo instances using default connection parameters.
+
+        .. code-block:: python
+
+           from cool_seq_tool import CoolSeqTool
+           cst = CoolSeqTool()
+
+        If available, existing SeqRepo and Gene Normalizer instances can be reused:
+
+        .. code-block:: python
+
+           from cool_seq_tool import CoolSeqTool
+           from cool_seq_tool.paths import SEQREPO_ROOT_DIR
+           from biocommons.seqrepo import SeqRepo
+           from gene.query import QueryHandler
+           from gene.database import create_db as create_gene_db
+
+           reusable_gene_normalizer = QueryHandler(create_gene_db())
+           reusable_seqrepo = SeqRepo(SEQREPO_ROOT_DIR)
+           cst = CoolSeqTool(
+               gene_query_handler=reusable_gene_normalizer,
+               sr=reusable_seqrepo
+           )
 
         :param transcript_file_path: The path to transcript_mapping.tsv
         :param lrg_refseqgene_path: The path to LRG_RefSeqGene
         :param mane_data_path: Path to RefSeq MANE summary data
         :param db_url: PostgreSQL connection URL
             Format: `driver://user:password@host/database/schema`
-        :param gene_query_handler: Gene normalizer query
-            handler instance. If this is provided, will use a current instance. If this
-            is not provided, will create a new instance.
-        :param gene_db_url: URL to gene normalizer dynamodb. Only used when
+        :param gene_query_handler: Gene normalizer query handler instance. If this is
+            provided, will use a current instance. If this is not provided, will create
+            a new instance, attempting to connect to a DynamoDB endpoint.
+        :param gene_db_url: URL to gene normalizer DynamoDB endpoint. Only used when
             `gene_query_handler` is `None`.
         :param gene_db_region: AWS region for gene normalizer db. Only used when
             `gene_query_handler` is `None`.
-        :param sr: SeqRepo instance. If this is not provided, will
-            create a new instance.
+        :param sr: SeqRepo instance. If this is not provided, will create a new
+            instance.
         """
         if not sr:
             sr = SeqRepo(root_dir=SEQREPO_ROOT_DIR)
@@ -70,7 +97,7 @@ class CoolSeqTool:
 
     @staticmethod
     def service_meta() -> ServiceMeta:
-        """Return ServiceMeta for cool_seq_tool
+        """Return ServiceMeta for cool_seq_tool containing relevant metadata
 
         :return: ServiceMeta object
         """
@@ -99,11 +126,28 @@ class CoolSeqTool:
             exon_start: Optional[int] = None, exon_start_offset: Optional[int] = 0,
             exon_end: Optional[int] = None, exon_end_offset: Optional[int] = 0,
             **kwargs) -> GenomicDataResponse:
-        """Get genomic data given transcript data.
-        Will use GRCh38 coordinates if possible
+        """Get genomic data given transcript data. Targets GRCh38 coordinates if
+        available. Caller must provide  ``transcript`` argument, and at least one of
+        {``exon_start``, ``exon_end``}, which are 1-indexed.
 
-        :param gene: Gene symbol
-        :param transcript: Transcript accession
+        .. code-block:: pycon
+
+           >>> from cool_seq_tool import CoolSeqTool
+           >>> cst = CoolSeqTool()
+           >>> result = await cst.transcript_to_genomic_coordinates(
+           ...     transcript="NM_004333.4",
+           ...     exon_start=1,
+           ...     exon_end=5
+           ... )
+           >>> result.genomic_data.chr
+           'NC_000007.14'
+           >>> result.genomic_data.start
+           140924764
+           >>> result.strand
+           -1
+
+        :param gene: Gene symbol, e.g. ``"BRAF"``
+        :param transcript: Transcript accession, e.g. ``"NM_002529.3"``
         :param exon_start: Starting transcript exon number
         :param exon_end: Ending transcript exon number
         :param exon_start_offset: Starting exon offset
@@ -202,16 +246,16 @@ class CoolSeqTool:
         MANE Transcript data. Liftovers genomic coordinates to GRCh38.  TODO!!
 
         :param chromosome: Chromosome. Must either give chromosome number (i.e. ``1``)
-            or accession (i.e. ``NC_000001.11``).
+            or accession (i.e. ``"NC_000001.11"``).
         :param start: Start genomic position
         :param end: End genomic position
-        :param strand: Strand. Must be either `-1` or `1`.
+        :param strand: Strand. Must be either ``-1`` or ``1``.
         :param transcript: The transcript to use. If this is not given, we will try the
             following transcripts: MANE Select, MANE Clinical Plus, Longest Remaining
             Compatible Transcript.
         :param gene: Gene symbol
-        :param residue_mode: Default is ``residue`` (1-based). Must be either
-            ``residue`` or ``inter-residue`` (0-based).
+        :param residue_mode: Default is ``"residue"`` (1-based). Must be either
+            ``"residue"`` or ``"inter-residue"`` (0-based).
         :return: Genomic data (inter-residue coordinates)
         """
         resp = GenomicDataResponse(
@@ -298,8 +342,8 @@ class CoolSeqTool:
         :param gene: Gene symbol
         :param is_start: ``True`` if ``pos`` is start position. ``False`` if
             ``pos`` is end position.
-        :param residue_mode: Default is ``residue`` (1-based). Must be either
-            ``residue`` or ``inter-residue`` (0-based).
+        :param residue_mode: Default is ``"residue"`` (1-based). Must be either
+            ``"residue"`` or ``"inter-residue"`` (0-based).
         :return: Transcript data (inter-residue coordinates)
         """
         resp = TranscriptExonDataResponse(
@@ -416,7 +460,7 @@ class CoolSeqTool:
         :param is_start: ``True`` if ``pos`` is start position. ``False`` if
             ``pos`` is end position.
         :param residue_mode: Residue mode for start/end positions. Must be either
-            ``inter-residue`` or ``residue``
+            ``"inter-residue"`` or ``"residue"``
         :return: Warnings if found
         """
         mane_data = await self.mane_transcript.get_mane_transcript(
@@ -594,6 +638,13 @@ class CoolSeqTool:
         self, sequence_id: str, outfile_path: Path
     ) -> None:
         """Retrieve FASTA file containing sequence for requested sequence ID.
+
+        .. code-block:: python
+
+           from cool_seq_tool import CoolSeqTool
+           from pathlib import Path
+           cst = CoolSeqTool()
+           cst.get_fasta_file("NM_002529.3", Path(".") / "ntrk1_transcript.fasta")
 
         :param sequence_id: accession ID, sans namespace, eg `NM_152263.3`
         :param outfile_path: path to save file to

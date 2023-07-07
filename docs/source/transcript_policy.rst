@@ -1,12 +1,27 @@
-Transcript Selection Policy
+.. _transcript-policy:
+
+Transcript selection policy
 ===========================
 
 Often, user transcript queries match to multiple known transcripts. This section describes our decisionmaking policy for selecting a representative transcript using sequence attributes and MANE annotations from the :py:mod:`cool_seq_tool.data_sources.mane_transcript` module.
 
 For more information on the MANE project, see the `RefSeq documentation <https://www.ncbi.nlm.nih.gov/refseq/MANE/>`_.
 
+Transcript compatibility
+------------------------
+
+A compatible transcript must pass the following validation checks:
+
+.. TODO more descriptive for each
+
+* Validating that the position exists on an accession
+* Validating against reference sequences
+* Validating exon structure
+
 Representative transcript priority
 ----------------------------------
+
+.. TODO reword
 
 We evaluate all compatible transcripts against each of the below criteria, and select as representative the transcript which meets the earliest criterion.
 
@@ -18,15 +33,6 @@ We evaluate all compatible transcripts against each of the below criteria, and s
 
 .. note::
 
-   .. TODO explain more?
+   .. TODO clarify?
 
    We want the most recent version of a transcript associated with an assembly.
-
-Compatible Transcripts
-----------------------
-
-Compatible transcripts are those that pass validation checks. The checks that we make are:
-
-* Validating that the position exists on an accession
-* Validating against reference sequences
-* Validating exon structure

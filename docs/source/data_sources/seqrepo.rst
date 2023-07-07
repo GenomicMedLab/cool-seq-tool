@@ -1,2 +1,4 @@
+.. _seqrepo-data:
+
 SeqRepo
 =======

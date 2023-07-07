@@ -129,6 +129,7 @@ class UTADatabase:
     async def create(
             cls: Type[UTADatabaseType], db_url: str = UTA_DB_URL) -> UTADatabaseType:
         """Provide fully-initialized class instance (a la factory pattern)
+
         :param cls: supplied implicitly
         :param db_url: PostgreSQL connection URL
             Format: `driver://user:password@host/database/schema`
@@ -1133,8 +1134,7 @@ class UTADatabase:
 
 class ParseResult(urlparse.ParseResult):
     """Subclass of url.ParseResult that adds database and schema methods,
-    and provides stringification.
-    Source: https://github.com/biocommons/hgvs
+    and provides stringification. Source: https://github.com/biocommons/hgvs
     """
 
     def __new__(cls, pr):  # noqa
