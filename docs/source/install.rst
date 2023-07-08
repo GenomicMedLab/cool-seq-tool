@@ -54,7 +54,10 @@ The most accessible way to set up UTA is from a local PostgreSQL instance. Depen
     curl -O http://dl.biocommons.org/uta/$UTA_VERSION
     gzip -cdq ${UTA_VERSION} | grep -v "^REFRESH MATERIALIZED VIEW" | psql -h localhost -U uta_admin --echo-errors --single-transaction -v ON_ERROR_STOP=1 -d uta -p 5433
 
-For troubleshooting, see additional documentation `here <https://github.com/ga4gh/vrs-python/tree/main/docs/setup_help>`_.
+Troubleshooting UTA setup
+_________________________
+
+See additional documentation `here <https://github.com/ga4gh/vrs-python/tree/main/docs/setup_help>`_.
 
 SeqRepo
 +++++++
