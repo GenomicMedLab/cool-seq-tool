@@ -589,24 +589,25 @@ class MANETranscript:
         :param end_pos: End position on `start_annotation_layer`
         :param start_annotation_layer: Starting annotation layer. `start_pos`, `end_pos`
             and `ac` (if set), will correspond to this annotation layer.
-        :param gene: Gene symbol. If provided, will ignore `ac` if `ac` is set and will
-            use `gene` to get mane data (more efficient). If `gene` provided and
-            `start_annotation_layer == AnnotationLayer.GENOMIC`, will return cDNA
-            representation. If `gene` not provided and
-            `start_annotation_layer == AnnotationLayer.GENOMIC`, will return GRCh38
-            genomic representation.
+        :param gene: Gene symbol. If provided, will ignore `ac` and will use `gene` to
+            get mane data (more efficient).
+            When `start_annotation_layer == AnnotationLayer.GENOMIC`
+                If `gene` provided, will return cDNA representation. If `gene` not
+                provided, will return GRCh38 representation.
         :param ac: Accession on `start_annotation_layer`. Only used for
             `start_annotation_layer == AnnotationLayer.PROTEIN` and
-            `start_annotation_layer == AnnotationLayer.CDNA` If `gene` and `ac` are both
-            provided, will look at `gene` to get mane data. When using
-            `start_annotation_layer == AnnotationLayer.GENOMIC`, use `alt_acs` instead.
+            `start_annotation_layer == AnnotationLayer.CDNA`.
+            If `gene` and `ac` are both provided, will look at `gene` to get mane data.
+            When `start_annotation_layer == AnnotationLayer.GENOMIC`, use `alt_acs`
+            instead.
         :param ref: Reference sequence. If provided, will perform a validation check to
             ensure that reference actually exists on accession with given positions.
         :param try_longest_compatible: `True` if should try longest compatible remaining
             if mane transcripts were not compatible. `False` otherwise.
         :param alt_acs: List of RefSeq genomic accessions associated to gene. Only
-            required when `start_annotation_layer == AnnotationLayer.GENOMIC` and `gene`
-            is provided. If not set, will perform a lookup to get the genomic accessions
+            used when `start_annotation_layer == AnnotationLayer.GENOMIC`. If not
+            provided, `gene` must be set to perform a lookup to get the genomic
+            accessions.
         :param residue_mode: Residue mode for `start_pos` and `end_pos`
         :return: MANE data or longest compatible data if validation checks are correct.
             Will return as inter-residue coordinates. Else, `None`
