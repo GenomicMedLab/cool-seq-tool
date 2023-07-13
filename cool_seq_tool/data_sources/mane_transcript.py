@@ -363,7 +363,11 @@ class MANETranscript:
             start_pos += coding_start_site
             end_pos += coding_start_site
 
-        ref, warnings = self.seqrepo_access.get_reference_sequence(
+        if residue_mode == ResidueMode.INTER_RESIDUE:
+            if end_pos - start_pos != 0:
+                end_pos += 1
+
+        ref, _ = self.seqrepo_access.get_reference_sequence(
             ac, start_pos, end=end_pos, residue_mode=residue_mode
         )
         if ref is None:
@@ -572,25 +576,37 @@ class MANETranscript:
             )
         return None
 
-    async def get_mane_data_from_gene_change(
-        self, gene: str, start_pos: int, end_pos: int,
-        start_annotation_layer: AnnotationLayer, ref: Optional[str] = None,
+    async def get_mane_transcript(
+        self, start_pos: int, end_pos: int, start_annotation_layer: AnnotationLayer,
+        gene: Optional[str] = None, ac: Optional[str] = None, ref: Optional[str] = None,
         try_longest_compatible: bool = False, alt_acs: List[str] = [],
         residue_mode: ResidueMode = ResidueMode.RESIDUE
     ) -> Optional[Dict]:
         """Return mane data (or transcript priority, if trying longest compatible) given
         gene and change.
 
-        :param gene: Gene symbol
-        :param start_pos: Start position
-        :param end_pos: End position
-        :param start_annotation_layer: Starting annotation layer
-        :param ref: Reference sequence
+        :param start_pos: Start position on `start_annotation_layer`
+        :param end_pos: End position on `start_annotation_layer`
+        :param start_annotation_layer: Starting annotation layer. `start_pos`, `end_pos`
+            and `ac` (if set), will correspond to this annotation layer.
+        :param gene: Gene symbol. If provided, will ignore `ac` if `ac` is set and will
+            use `gene` to get mane data (more efficient). If `gene` provided and
+            `start_annotation_layer == AnnotationLayer.GENOMIC`, will return cDNA
+            representation. If `gene` not provided and
+            `start_annotation_layer == AnnotationLayer.GENOMIC`, will return GRCh38
+            genomic representation.
+        :param ac: Accession on `start_annotation_layer`. Only used for
+            `start_annotation_layer == AnnotationLayer.PROTEIN` and
+            `start_annotation_layer == AnnotationLayer.CDNA` If `gene` and `ac` are both
+            provided, will look at `gene` to get mane data. When using
+            `start_annotation_layer == AnnotationLayer.GENOMIC`, use `alt_acs` instead.
+        :param ref: Reference sequence. If provided, will perform a validation check to
+            ensure that reference actually exists on accession with given positions.
         :param try_longest_compatible: `True` if should try longest compatible remaining
-            if mane transcript was not compatible. `False` otherwise.
-        :param alt_acs: List of alt acs associated to gene. Only required when
-        `start_annotation_layer == AnnotationLayer.GENOMIC`. If not set, will perform
-            a lookup.
+            if mane transcripts were not compatible. `False` otherwise.
+        :param alt_acs: List of RefSeq genomic accessions associated to gene. Only
+            required when `start_annotation_layer == AnnotationLayer.GENOMIC` and `gene`
+            is provided. If not set, will perform a lookup to get the genomic accessions
         :param residue_mode: Residue mode for `start_pos` and `end_pos`
         :return: MANE data or longest compatible data if validation checks are correct.
             Will return as inter-residue coordinates. Else, `None`
@@ -604,22 +620,19 @@ class MANETranscript:
         start_pos, end_pos = inter_residue_pos
         residue_mode = ResidueMode.INTER_RESIDUE
 
-        if ref:
-            ref = ref[:end_pos - start_pos]
-
-        # Get mane data for gene
-        mane_data = self.mane_transcript_mappings.get_gene_mane_data(gene)
-        mane_transcripts = set()
-
         grch38 = None
         if start_annotation_layer == AnnotationLayer.GENOMIC:
             if alt_acs:
+                # Ensure that alt_acs are sorted in desc order
                 alt_acs.sort(key=lambda x: int(x.split(".")[-1]), reverse=True)
             else:
-                alt_acs = await self.uta_db.get_ac_from_gene(gene)
+                if gene:
+                    alt_acs = await self.uta_db.get_ac_from_gene(gene)
+                else:
+                    logger.warning("If no `alt_acs` provided, must provide `gene`")
 
             if not alt_acs:
-                logger.debug("Genomic accession is required")
+                logger.warning("Could not get `alt_acs`")
                 return None
 
             for alt_ac in alt_acs:
@@ -628,12 +641,52 @@ class MANETranscript:
                     break
 
             if not grch38:
-                logger.debug(
+                logger.warning(
                     f"Unable to liftover genomic data: {alt_ac} on positions "
                     f"{start_pos}, {end_pos}"
                 )
                 return None
 
+            if not gene:
+                return {
+                    "gene": None,
+                    "refseq": grch38["ac"],
+                    "ensembl": None,
+                    "coding_start_site": None,
+                    "coding_end_site": None,
+                    "pos": grch38["pos"],
+                    "strand": None,
+                    "status": "GRCh38",
+                    "alt_ac": grch38["ac"]
+                }
+
+        # Get mane data
+        if gene:
+            mane_data = self.mane_transcript_mappings.get_gene_mane_data(gene)
+        else:
+            if start_annotation_layer != AnnotationLayer.GENOMIC:
+                # Get accession and position on c. coordinate
+                if start_annotation_layer == AnnotationLayer.PROTEIN:
+                    c = await self._p_to_c(ac, start_pos, end_pos)
+                    if not c:
+                        return None
+                    c_ac, c_pos = c
+                else:
+                    c_ac = ac
+                    c_pos = start_pos, end_pos
+
+                # Go from c -> g annotation (liftover as well)
+                g = await self._c_to_g(c_ac, c_pos)
+                if g is None:
+                    return None
+
+                if not gene:
+                    gene = g["gene"]
+
+                # Get mane data for gene
+                mane_data = self.mane_transcript_mappings.get_gene_mane_data(gene)
+
+        mane_transcripts = set()
         if mane_data:
             mane_data_len = len(mane_data)
 
@@ -644,22 +697,20 @@ class MANETranscript:
             #     a. If there is a tie, choose the first-published transcript among
             #        those transcripts meeting criterion
             for i in range(mane_data_len):
-                index = mane_data_len - i - 1
-                current_mane_data = mane_data[index]
+                current_mane_data = mane_data[i]
                 mane_transcripts |= set((current_mane_data["RefSeq_nuc"],
                                          current_mane_data["Ensembl_nuc"]))
 
                 if start_annotation_layer == AnnotationLayer.GENOMIC:
                     mane_c_ac = current_mane_data["RefSeq_nuc"]
 
-                    # Liftover to GRCh38
-                    mane_tx_genomic_data = None
+                    # GRCh38 -> MANE C
+                    mane_tx_genomic_data = await self.uta_db.get_mane_c_genomic_data(  # noqa: E501
+                        mane_c_ac, None, grch38["pos"][0], grch38["pos"][1]
+                    )
 
-                    if grch38:
-                        # GRCh38 -> MANE C
-                        mane_tx_genomic_data = await self.uta_db.get_mane_c_genomic_data(  # noqa: E501
-                            mane_c_ac, None, grch38["pos"][0], grch38["pos"][1]
-                        )
+                    if not mane_tx_genomic_data:
+                        continue
 
                     coding_start_site = mane_tx_genomic_data["coding_start_site"]
                     coding_end_site = mane_tx_genomic_data["coding_end_site"]
@@ -683,7 +734,7 @@ class MANETranscript:
                         status="_".join(current_mane_data["MANE_status"].split()).lower(),  # noqa: E501
                         refseq_c_ac=current_mane_data["RefSeq_nuc"],
                         ensembl_c_ac=current_mane_data["Ensembl_nuc"],
-                        alt_ac=grch38["ac"] if grch38 else None
+                        alt_ac=grch38["ac"]
                     )
                 else:
                     if start_annotation_layer == AnnotationLayer.PROTEIN:
@@ -733,129 +784,29 @@ class MANETranscript:
 
         if try_longest_compatible:
             if start_annotation_layer == AnnotationLayer.GENOMIC:
-                pass
+                if not gene:
+                    genes = self.uta_db.get_gene_from_ac(
+                        grch38["ac"], grch38["pos"][0], grch38["pos"][1]
+                    )
+
+                    if len(genes) != 1:
+                        logger.warning("A single gene could not be found")
+                        return None
+                    else:
+                        gene = genes[0]
+
+                return await self.get_longest_compatible_transcript(
+                    gene, grch38["pos"][0], grch38["pos"][1], start_annotation_layer,
+                    ref=ref, residue_mode=residue_mode,
+                    mane_transcripts=mane_transcripts
+                )
             else:
                 return await self.get_longest_compatible_transcript(
-                    gene, start_pos, end_pos, start_annotation_layer, ref,
+                    gene, start_pos, end_pos, start_annotation_layer, ref=ref,
                     residue_mode=residue_mode, mane_transcripts=mane_transcripts
                 )
 
         return None
-
-    async def get_mane_transcript(
-            self, ac: str, start_pos: int, start_annotation_layer: str,
-            end_pos: Optional[int] = None, gene: Optional[str] = None,
-            ref: Optional[str] = None, try_longest_compatible: bool = False,
-            residue_mode: ResidueMode = ResidueMode.RESIDUE
-    ) -> Optional[Dict]:
-        """Return mane transcript.
-
-        :param str ac: Accession
-        :param int start_pos: Start position change
-        :param str start_annotation_layer: Starting annotation layer.
-            Must be either `p`, `c`, or `g`.
-        :param Optional[int] end_pos: End position change. If `None` assumes
-            both  `start_pos` and `end_pos` have same values.
-        :param str gene: Gene symbol
-        :param str ref: Reference at position given during input
-        :param bool try_longest_compatible: `True` if should try longest
-            compatible remaining if mane transcript was not compatible.
-            `False` otherwise.
-        :param ResidueMode residue_mode: Starting residue mode for `start_pos`
-            and `end_pos`. Will always return coordinates in inter-residue
-        :return: MANE data or longest transcript compatible data if validation
-            checks are correct. Will return inter-residue coordinates.
-            Else, `None`
-        """
-        inter_residue_pos, warning = get_inter_residue_pos(
-            start_pos, residue_mode, end_pos=end_pos)
-        if not inter_residue_pos:
-            return None
-        start_pos, end_pos = inter_residue_pos
-        residue_mode = ResidueMode.INTER_RESIDUE
-        if ref:
-            ref = ref[:end_pos - start_pos]
-
-        anno = start_annotation_layer.lower()
-        if anno in ["p", "c"]:
-            # Get accession and position on c. coordinate
-            if anno == "p":
-                c = await self._p_to_c(ac, start_pos, end_pos)
-                if not c:
-                    return None
-                c_ac, c_pos = c
-            else:
-                c_ac = ac
-                c_pos = start_pos, end_pos
-            # Go from c -> g annotation (liftover as well)
-            g = await self._c_to_g(c_ac, c_pos)
-            if g is None:
-                return None
-            # Get mane data for gene
-            mane_data = self.mane_transcript_mappings.get_gene_mane_data(g["gene"])
-            if not mane_data:
-                return None
-            mane_data_len = len(mane_data)
-
-            # Transcript Priority (Must pass validation checks):
-            #  1. MANE Select
-            #  2. MANE Plus Clinical
-            #  3. Longest Compatible Remaining
-            #     a. If there is a tie, choose the first-published transcript among
-            #        those transcripts meeting criterion
-            mane_transcripts = set()
-            for i in range(mane_data_len):
-                index = mane_data_len - i - 1
-                current_mane_data = mane_data[index]
-                mane_transcripts |= set((current_mane_data["RefSeq_nuc"],
-                                         current_mane_data["Ensembl_nuc"]))
-                mane = await self._g_to_c(
-                    g=g, refseq_c_ac=current_mane_data["RefSeq_nuc"],
-                    status="_".join(current_mane_data["MANE_status"].split()).lower(),
-                    ensembl_c_ac=current_mane_data["Ensembl_nuc"])
-                if not mane:
-                    continue
-
-                if not mane["alt_ac"]:
-                    g_alt_ac = g.get("alt_ac")
-                    if g_alt_ac:
-                        mane["alt_ac"] = g_alt_ac
-
-                valid_reading_frame = self._validate_reading_frames(
-                    c_ac, c_pos[0], c_pos[1], mane
-                )
-                if not valid_reading_frame:
-                    continue
-
-                if anno == "p":
-                    mane = self._get_mane_p(current_mane_data, mane["pos"])
-
-                if ref:
-                    valid_references = self._validate_references(
-                        ac, g["coding_start_site"], start_pos, end_pos,
-                        mane, ref, anno, residue_mode
-                    )
-                    if not valid_references:
-                        continue
-
-                return mane
-
-            if try_longest_compatible:
-                if anno == "p":
-                    return await self.get_longest_compatible_transcript(
-                        g["gene"], start_pos, end_pos, "p", ref,
-                        residue_mode=residue_mode, mane_transcripts=mane_transcripts)
-                else:
-                    return await self.get_longest_compatible_transcript(
-                        g["gene"], c_pos[0], c_pos[1], "c", ref,
-                        residue_mode=residue_mode, mane_transcripts=mane_transcripts)
-            else:
-                return None
-        elif anno == "g":
-            return await self.g_to_mane_c(ac, start_pos, end_pos, gene=gene,
-                                          residue_mode=residue_mode)
-        else:
-            logger.warning(f"Annotation layer not supported: {anno}")
 
     async def g_to_grch38(self, ac: str, start_pos: int,
                           end_pos: int) -> Optional[Dict]:
@@ -939,106 +890,6 @@ class MANETranscript:
             mane_c_pos_change = mane_c_pos_change[1], mane_c_pos_change[0]
         return mane_c_pos_change
 
-    async def g_to_mane_c(
-        self, ac: str, start_pos: int, end_pos: int,
-        gene: Optional[str] = None,
-        residue_mode: ResidueMode = ResidueMode.RESIDUE
-    ) -> Optional[Dict]:
-        """Return MANE Transcript on the c. coordinate.
-        If gene is provided, g->GRCh38->MANE c.
-            If MANE c. cannot be found, we return the genomic coordinate on
-                GRCh38
-        If gene is not provided, g -> GRCh38
-
-        :param str ac: Transcript accession on g. coordinate
-        :param int start_pos: genomic change start position
-        :param int end_pos: genomic change end position
-        :param str gene: Gene symbol
-        :param ResidueMode residue_mode: Starting residue mode for `start_pos`
-            and `end_pos`. Will always return coordinates in inter-residue
-        :return: MANE Transcripts with cDNA change on c. coordinate if gene
-            is provided. Else, GRCh38 data
-        """
-        inter_residue_pos, _ = get_inter_residue_pos(
-            start_pos, residue_mode, end_pos=end_pos)
-        if not inter_residue_pos:
-            return None
-        start_pos, end_pos = inter_residue_pos
-        residue_mode = ResidueMode.INTER_RESIDUE
-
-        # If gene not provided, return GRCh38
-        if not gene:
-            grch38 = await self.g_to_grch38(ac, start_pos, end_pos)
-            if not grch38:
-                return None
-
-            return dict(
-                gene=None,
-                refseq=grch38["ac"],
-                ensembl=None,
-                coding_start_site=None,
-                coding_end_site=None,
-                pos=grch38["pos"],
-                strand=None,
-                status="GRCh38",
-                alt_ac=grch38["ac"]
-            )
-
-        if not await self.uta_db.validate_genomic_ac(ac):
-            logger.warning(f"Genomic accession does not exist: {ac}")
-            return None
-
-        mane_data = self.mane_transcript_mappings.get_gene_mane_data(gene)
-        if not mane_data:
-            return None
-        mane_data_len = len(mane_data)
-
-        for i in range(mane_data_len):
-            index = mane_data_len - i - 1
-            current_mane_data = mane_data[index]
-            mane_c_ac = current_mane_data["RefSeq_nuc"]
-
-            # Liftover to GRCh38
-            grch38 = await self.g_to_grch38(ac, start_pos, end_pos)
-            mane_tx_genomic_data = None
-            if grch38:
-                # GRCh38 -> MANE C
-                mane_tx_genomic_data = await self.uta_db.get_mane_c_genomic_data(  # noqa: E501
-                    mane_c_ac, None, grch38["pos"][0], grch38["pos"][1]
-                )
-
-            if not grch38 or not mane_tx_genomic_data:
-                # GRCh38 did not work, so let's try original assembly (37)
-                mane_tx_genomic_data = await self.uta_db.get_mane_c_genomic_data(  # noqa: E501
-                    mane_c_ac, ac, start_pos, end_pos
-                )
-                if not mane_tx_genomic_data:
-                    continue
-                else:
-                    logger.info("Not using most recent assembly")
-
-            coding_start_site = mane_tx_genomic_data["coding_start_site"]
-            coding_end_site = mane_tx_genomic_data["coding_end_site"]
-            mane_c_pos_change = self.get_mane_c_pos_change(
-                mane_tx_genomic_data, coding_start_site)
-
-            if not self._validate_index(mane_c_ac, mane_c_pos_change,
-                                        coding_start_site):
-                logger.warning(f"{mane_c_pos_change} are not valid positions"
-                               f" on {mane_c_ac}with coding start site "
-                               f"{coding_start_site}")
-                continue
-
-            return self._get_c_data(
-                gene=current_mane_data["symbol"],
-                cds_start_end=(coding_start_site, coding_end_site),
-                c_pos_change=mane_c_pos_change,
-                strand=current_mane_data["chr_strand"],
-                status="_".join(current_mane_data["MANE_status"].split()).lower(),
-                refseq_c_ac=current_mane_data["RefSeq_nuc"],
-                ensembl_c_ac=current_mane_data["Ensembl_nuc"],
-                alt_ac=grch38["ac"] if grch38 else None)
-
     async def get_mapped_mane_data(
         self, gene: str, assembly: Assembly, genomic_position: int,
         residue_mode: ResidueMode = ResidueMode.INTER_RESIDUE
@@ -1085,8 +936,7 @@ class MANETranscript:
 
         mane_transcripts = set()
         for i in range(mane_data_len):
-            index = mane_data_len - i - 1
-            current_mane_data = mane_data[index]
+            current_mane_data = mane_data[i]
             mane_transcripts |= set((current_mane_data["RefSeq_nuc"],
                                      current_mane_data["Ensembl_nuc"]))
             mane_c_ac = current_mane_data["RefSeq_nuc"]

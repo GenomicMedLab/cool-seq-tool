@@ -1,7 +1,7 @@
 """The module for loading MANE Transcript mappings to genes."""
 import logging
 from pathlib import Path
-from typing import Dict, Optional, List
+from typing import Dict, List
 
 import pandas as pd
 
@@ -27,21 +27,21 @@ class MANETranscriptMappings:
         """
         return pd.read_csv(self.mane_data_path, delimiter="\t")
 
-    def get_gene_mane_data(self, gene_symbol: str) -> Optional[List[Dict]]:
+    def get_gene_mane_data(self, gene_symbol: str) -> List[Dict]:
         """Return MANE Transcript data for a gene.
         :param str gene_symbol: HGNC Gene Symbol
         :return: MANE Transcript data (Transcript accessions,
-            gene, and location information)
+            gene, and location information). Will return sorted list:
+            MANE Select then MANE Plus Clinical.
         """
         data = self.df.loc[self.df["symbol"] == gene_symbol.upper()]
 
         if len(data) == 0:
             logger.warning(f"Unable to get MANE Transcript data for gene: "
                            f"{gene_symbol}")
-            return None
+            return []
 
-        # Ordering: MANE Plus Clinical (If it exists), MANE Select
-        data = data.sort_values("MANE_status")
+        data = data.sort_values("MANE_status", ascending=False)
         return data.to_dict("records")
 
     def get_mane_from_transcripts(self, transcripts: List[str]) -> List[Dict]:

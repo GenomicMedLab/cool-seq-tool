@@ -11,8 +11,10 @@ from cool_seq_tool.data_sources.alignment_mapper import AlignmentMapper
 from cool_seq_tool.data_sources.uta_database import UTA_DB_URL
 from cool_seq_tool.paths import LRG_REFSEQGENE_PATH, MANE_SUMMARY_PATH, \
     SEQREPO_ROOT_DIR, TRANSCRIPT_MAPPINGS_PATH
-from cool_seq_tool.schemas import Assembly, GenomicData, TranscriptExonData, \
-    ResidueMode, GenomicDataResponse, ServiceMeta, TranscriptExonDataResponse
+from cool_seq_tool.schemas import (
+    AnnotationLayer, Assembly, GenomicData, TranscriptExonData, ResidueMode,
+    GenomicDataResponse, ServiceMeta, TranscriptExonDataResponse
+)
 from cool_seq_tool.data_sources import MANETranscript, MANETranscriptMappings,\
     SeqRepoAccess, TranscriptMappings, UTADatabase, GeneNormalizer
 from cool_seq_tool.version import __version__
@@ -424,7 +426,7 @@ class CoolSeqTool:
         :return: Warnings if found
         """
         mane_data = await self.mane_transcript.get_mane_transcript(
-            alt_ac, pos, "g", gene=gene,
+            pos, pos, AnnotationLayer.GENOMIC, ac=alt_ac, gene=gene,
             try_longest_compatible=True, residue_mode=residue_mode
         )
         if not mane_data:
