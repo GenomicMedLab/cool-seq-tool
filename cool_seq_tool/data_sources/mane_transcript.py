@@ -706,10 +706,9 @@ class MANETranscript:
                     mane_c_ac = current_mane_data["RefSeq_nuc"]
 
                     # GRCh38 -> MANE C
-                    mane_tx_genomic_data = await self.uta_db.get_mane_c_genomic_data(  # noqa: E501
+                    mane_tx_genomic_data = await self.uta_db.get_mane_c_genomic_data(
                         mane_c_ac, None, grch38["pos"][0], grch38["pos"][1]
                     )
-
                     if not mane_tx_genomic_data:
                         continue
 
@@ -721,7 +720,7 @@ class MANETranscript:
                     if not self._validate_index(
                         mane_c_ac, mane_c_pos_change, coding_start_site
                     ):
-                        logger.debug(
+                        logger.warning(
                             f"{mane_c_pos_change} are not valid positions on "
                             f"{mane_c_ac} with coding start site {coding_start_site}"
                         )
@@ -749,7 +748,7 @@ class MANETranscript:
 
                     # Go from c -> g annotation (liftover as well)
                     g = await self._c_to_g(c_ac, (c_start_pos, c_end_pos))
-                    if g is None:
+                    if not g:
                         continue
 
                     mane = await self._g_to_c(
@@ -772,6 +771,8 @@ class MANETranscript:
 
                     if start_annotation_layer == AnnotationLayer.PROTEIN:
                         mane = self._get_mane_p(current_mane_data, mane["pos"])
+                        if not mane:
+                            continue
 
                     if ref:
                         valid_references = self._validate_references(
