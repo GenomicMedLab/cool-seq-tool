@@ -692,6 +692,13 @@ async def test_get_mane_data_from_gene_change(
     )
     assert resp == braf_v600e_mane_p
 
+    # Using invalid ref
+    resp = await test_mane_transcript.get_mane_transcript(
+        599, 599, AnnotationLayer.PROTEIN, gene="BRAF", ref="K",
+        try_longest_compatible=True, residue_mode=ResidueMode.INTER_RESIDUE
+    )
+    assert resp is None
+
     resp = await test_mane_transcript.get_mane_transcript(
         858, 858, AnnotationLayer.PROTEIN, ref="L", try_longest_compatible=True,
         gene="EGFR", residue_mode=ResidueMode.RESIDUE
