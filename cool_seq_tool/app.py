@@ -426,7 +426,7 @@ class CoolSeqTool:
         :return: Warnings if found
         """
         mane_data = await self.mane_transcript.get_mane_transcript(
-            pos, pos, AnnotationLayer.GENOMIC, ac=alt_ac, gene=gene,
+            pos, pos, AnnotationLayer.GENOMIC, alt_acs=[alt_ac], gene=gene,
             try_longest_compatible=True, residue_mode=residue_mode
         )
         if not mane_data:
