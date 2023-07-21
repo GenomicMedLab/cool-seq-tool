@@ -39,10 +39,6 @@ class TranscriptMappings:
         self.refseq_rna_for_gene_symbol: Dict[str, List[str]] = {}
         self.refseq_rna_to_gene_symbol: Dict[str, str] = {}
 
-        # LRG <-> Gene Symbol
-        self.refseq_lrg_for_gene_symbol: Dict[str, List[str]] = {}
-        self.refseq_lrg_to_gene_symbol: Dict[str, str] = {}
-
         # NP -> NM
         self.np_to_nm: Dict[str, str] = {}
 
@@ -129,26 +125,6 @@ class TranscriptMappings:
                                 rna_t] = gene
                     if refseq_transcript and rna_transcript:
                         self.np_to_nm[refseq_transcript] = rna_transcript
-                    lrg = row["LRG"]
-                    if lrg:
-                        self.refseq_lrg_for_gene_symbol.\
-                            setdefault(gene, []).\
-                            append(lrg)
-                        self.refseq_lrg_to_gene_symbol[lrg] = gene
-                        t = row["t"]
-                        p = row["p"]
-                        if t:
-                            t_lrg = lrg + t
-                            self.refseq_lrg_for_gene_symbol. \
-                                setdefault(gene, []). \
-                                append(t_lrg)
-                            self.refseq_lrg_to_gene_symbol[t_lrg] = gene
-                        if p:
-                            p_lrg = lrg + p
-                            self.refseq_lrg_for_gene_symbol. \
-                                setdefault(gene, []). \
-                                append(p_lrg)
-                            self.refseq_lrg_to_gene_symbol[p_lrg] = gene
 
     def protein_transcripts(self, identifier: str) -> List[str]:
         """Return a list of protein transcripts for a gene symbol.
@@ -228,11 +204,3 @@ class TranscriptMappings:
                 q = q.split(".")[0]
                 gene_symbol = self.ensembl_transcript_to_gene_symbol.get(q)
         return gene_symbol
-
-    def get_gene_symbol_from_lrg(self, q: str) -> Optional[str]:
-        """Return gene symbol for LRG.
-
-        :param str q: LRG accession
-        :return: Gene symbol
-        """
-        return self.refseq_lrg_to_gene_symbol.get(q)
