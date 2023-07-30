@@ -63,9 +63,10 @@ async def get_mane_data(
     mane_data = None
     try:
         mane_data = await cool_seq_tool.mane_transcript.get_mane_transcript(
-            ac=ac, start_pos=start_pos, start_annotation_layer=start_annotation_layer,
-            end_pos=end_pos, gene=gene, ref=ref,
-            try_longest_compatible=try_longest_compatible, residue_mode=residue_mode)
+            ac=ac, start_pos=start_pos, end_pos=end_pos,
+            start_annotation_layer=start_annotation_layer, gene=gene, ref=ref,
+            try_longest_compatible=try_longest_compatible, residue_mode=residue_mode
+        )
 
         if not mane_data:
             warnings.append("Unable to retrieve MANE data")

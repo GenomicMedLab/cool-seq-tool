@@ -203,17 +203,16 @@ class CoolSeqTool:
             `gene` must be supplied in order to retrieve MANE Transcript data.
         Liftovers genomic coordinates to GRCh38
 
-        :param str chromosome: Chromosome. Must either give chromosome number
+        :param chromosome: Chromosome. Must either give chromosome number
             (i.e. `1`) or accession (i.e. `NC_000001.11`).
-        :param int start: Start genomic position
-        :param int end: End genomic position
-        :param str strand: Strand. Must be either `-1` or `1`.
-        :param str transcript: The transcript to use. If this is not given,
-            we will try the following transcripts: MANE Select, MANE Clinical
-            Plus, Longest Remaining Compatible Transcript
-        :param str gene: Gene symbol
-        :param str residue_mode: Default is `resiude` (1-based).
-            Must be either `residue` or `inter-residue` (0-based).
+        :param start: Start genomic position
+        :param end: End genomic position
+        :param strand: Strand. Must be either `-1` or `1`.
+        :param transcript: The transcript to use. If this is not given, we will try the
+            following transcripts: MANE Select, MANE Clinical Plus, Longest Remaining
+            Compatible Transcript
+        :param gene: Gene symbol
+        :param residue_mode: Residue mode for `start` and `end`
         :return: Genomic data (inter-residue coordinates)
         """
         resp = GenomicDataResponse(
@@ -245,8 +244,6 @@ class CoolSeqTool:
             start_data = None
 
         if end:
-            if residue_mode == ResidueMode.RESIDUE:
-                end -= 1
             end_data = await self._genomic_to_transcript_exon_coordinate(
                 chromosome, end, strand=strand, transcript=transcript,
                 gene=gene, is_start=False,
@@ -422,7 +419,7 @@ class CoolSeqTool:
         :return: Warnings if found
         """
         mane_data = await self.mane_transcript.get_mane_transcript(
-            alt_ac, pos, "g", gene=gene,
+            alt_ac, pos, pos, "g", gene=gene,
             try_longest_compatible=True, residue_mode=residue_mode
         )
         if not mane_data:

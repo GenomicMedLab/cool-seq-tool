@@ -6,7 +6,7 @@ import copy
 import pytest
 
 from cool_seq_tool import CoolSeqTool
-from cool_seq_tool.schemas import GenomicData, TranscriptExonData
+from cool_seq_tool.schemas import GenomicData, TranscriptExonData, ResidueMode
 
 
 @pytest.fixture(scope="module")
@@ -90,10 +90,10 @@ def tpm3_exon1_exon8():
         "gene": "TPM3",
         "chr": "NC_000001.11",
         "start": 154192135,
-        "end": 154170399,
+        "end": 154170400,
         "exon_start": 1,
         "exon_end": 8,
-        "exon_end_offset": 0,
+        "exon_end_offset": -1,
         "exon_start_offset": 0,
         "transcript": "NM_152263.3",
         "strand": -1
@@ -126,10 +126,10 @@ def tpm3_exon8_t_to_g():
         "gene": "TPM3",
         "chr": "NC_000001.11",
         "start": None,
-        "end": 154170399,
+        "end": 154170400,
         "exon_start": None,
         "exon_end": 8,
-        "exon_end_offset": 0,
+        "exon_end_offset": -1,
         "exon_start_offset": None,
         "transcript": "NM_152263.3",
         "strand": -1
@@ -144,10 +144,10 @@ def tpm3_exon1_exon8_t_to_g():
         "gene": "TPM3",
         "chr": "NC_000001.11",
         "start": 154192135,
-        "end": 154170399,
+        "end": 154170400,
         "exon_start": 1,
         "exon_end": 8,
-        "exon_end_offset": 0,
+        "exon_end_offset": -1,
         "exon_start_offset": 0,
         "transcript": "NM_152263.3",
         "strand": -1
@@ -164,9 +164,9 @@ def tpm3_exon1_exon8_offset():
         "start": 154192132,
         "exon_start": 1,
         "exon_start_offset": 3,
-        "end": 154170404,
+        "end": 154170405,
         "exon_end": 8,
-        "exon_end_offset": -5,
+        "exon_end_offset": -6,
         "transcript": "NM_152263.3",
         "strand": -1
     }
@@ -179,9 +179,9 @@ def mane_braf():
     params = {
         "chr": "NC_000007.14",
         "gene": "BRAF",
-        "start": 140808062,
-        "exon_start": 5,
-        "exon_start_offset": 0,
+        "start": 140801412,
+        "exon_start": 6,
+        "exon_start_offset": 148,
         "end": 140753331,
         "exon_end": 15,
         "exon_end_offset": -57,
@@ -200,9 +200,9 @@ def wee1_exon2_exon11():
         "start": 9576092,
         "exon_start": 2,
         "exon_start_offset": -1,
-        "end": 9588448,
+        "end": 9588449,
         "exon_end": 11,
-        "exon_end_offset": 0,
+        "exon_end_offset": 1,
         "transcript": "NM_003390.3",
         "strand": 1
     }
@@ -355,9 +355,9 @@ async def test_tpm3(test_cool_seq_tool, tpm3_exon1_exon8,
     t_to_g_resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.dict())  # noqa: E501
     genomic_data_assertion_checks(t_to_g_resp, tpm3_exon1_exon8_t_to_g)
 
-    inputs["residue_mode"] = "INTER-RESIDUE"
+    inputs["residue_mode"] = ResidueMode.INTER_RESIDUE
     inputs["start"] = 154192135
-    inputs["end"] = 154170399
+    inputs["end"] = 154170400
     g_to_t_resp = \
         await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon1_exon8_t_to_g)
@@ -377,8 +377,8 @@ async def test_tpm3(test_cool_seq_tool, tpm3_exon1_exon8,
 
     # Offset, no strand
     inputs["start"] = 154192132
-    inputs["end"] = 154170404
-    inputs["residue_mode"] = "INTER-RESIDUE"
+    inputs["end"] = 154170405
+    inputs["residue_mode"] = ResidueMode.INTER_RESIDUE
     tpm3_exon1_exon8_offset_t_to_g = copy.deepcopy(tpm3_exon1_exon8_offset)
     tpm3_exon1_exon8_offset_t_to_g.start = 154192132
     g_to_t_resp = \
@@ -401,7 +401,7 @@ async def test_tpm3(test_cool_seq_tool, tpm3_exon1_exon8,
         "start": 154192135,
         "strand": -1,
         "transcript": "NM_152263.3",
-        "residue_mode": "inter-residue"
+        "residue_mode": ResidueMode.INTER_RESIDUE
     }
     tpm3_exon1_exon8_t_to_g = copy.deepcopy(tpm3_exon1_g)
     tpm3_exon1_exon8_t_to_g.start = 154192135
@@ -418,7 +418,7 @@ async def test_tpm3(test_cool_seq_tool, tpm3_exon1_exon8,
         "end": 154170399,
         "strand": -1,
         "transcript": "NM_152263.3",
-        "residue_mode": "inter-residue"
+        "residue_mode": ResidueMode.INTER_RESIDUE
     }
     tpm3_exon1_exon8_t_to_g = copy.deepcopy(tpm3_exon8_g)
 
@@ -454,7 +454,7 @@ async def test_braf(test_cool_seq_tool, mane_braf):
     mane_braf_t_to_g = copy.deepcopy(mane_braf)
     t_to_g_resp = \
         await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.dict())  # noqa: E501
-    mane_braf_t_to_g.start = 140808062
+    mane_braf_t_to_g.start = 140801412
     genomic_data_assertion_checks(t_to_g_resp, mane_braf_t_to_g)
 
 
@@ -489,7 +489,7 @@ async def test_wee1(test_cool_seq_tool, wee1_exon2_exon11, mane_wee1_exon2_exon1
     # MANE
     del inputs["transcript"]
     mane_wee1_exon2_exon11_t_to_g = copy.deepcopy(mane_wee1_exon2_exon11)
-    mane_wee1_exon2_exon11_t_to_g.start = 9576092
+    mane_wee1_exon2_exon11_t_to_g.start = mane_wee1_exon2_exon11["start"]
     g_to_t_resp = \
         await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, mane_wee1_exon2_exon11)
@@ -626,7 +626,7 @@ async def test_valid_inputs(test_cool_seq_tool):
         "start": 154437254,
         "end": 154437299,
         "gene": "GDI1",
-        "residue_mode": "inter-residue"
+        "residue_mode": ResidueMode.INTER_RESIDUE
     }
     resp = await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(**inputs)
     assert resp.genomic_data

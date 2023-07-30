@@ -19,28 +19,26 @@ class SeqRepoAccess(SeqRepoDataProxy):
 
     def get_reference_sequence(
         self, ac: str, start: Optional[int] = None, end: Optional[int] = None,
-        residue_mode: str = ResidueMode.RESIDUE
+        residue_mode: ResidueMode = ResidueMode.RESIDUE
     ) -> Tuple[str, Optional[str]]:
         """Get reference sequence for an accession given a start and end position.
         If `start` and `end` are not given, it will return the entire reference sequence
 
-        :param str ac: Accession
-        :param Optional[int] start: Start pos change
-        :param Optional[int] end: End pos change. If `None` assumes both
-            `start` and `end` have same values, if `start` exists.
-        :param str residue_mode: Residue mode for start/end positions
-            Must be either `inter-residue` or `residue`
+        :param ac: Accession
+        :param start: Start pos change
+        :param end: End pos change. Cannot be less than `start`
+        :param residue_mode: Residue mode for `start` and `end`
         :return: Sequence at position (if accession and positions actually
             exist, else return empty string), warning if any
         """
-        if start or end:
-            pos, warning = get_inter_residue_pos(start, residue_mode, end_pos=end)
-            if pos is None:
-                return "", warning
-            else:
-                start, end = pos
-                if start == end:
-                    end += 1
+        if start and end:
+            start, end = get_inter_residue_pos(start, end, residue_mode)
+            if start == end:
+                end += 1
+        else:
+            if start is not None and residue_mode == ResidueMode.RESIDUE:
+                start -= 1
+
         try:
             sequence = self.sr.fetch(ac, start=start, end=end)
         except KeyError:
