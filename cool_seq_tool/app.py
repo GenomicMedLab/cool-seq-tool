@@ -13,7 +13,7 @@ from cool_seq_tool.paths import LRG_REFSEQGENE_PATH, MANE_SUMMARY_PATH, \
     SEQREPO_ROOT_DIR, TRANSCRIPT_MAPPINGS_PATH
 from cool_seq_tool.schemas import Assembly, GenomicData, TranscriptExonData, \
     ResidueMode, GenomicDataResponse, ServiceMeta, TranscriptExonDataResponse
-from cool_seq_tool.data_sources import MANETranscript, MANETranscriptMappings,\
+from cool_seq_tool.data_sources import MANETranscript, MANETranscriptMappings, \
     SeqRepoAccess, TranscriptMappings, UTADatabase, GeneNormalizer
 from cool_seq_tool.version import __version__
 
