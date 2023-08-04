@@ -4,9 +4,9 @@ import base64
 import logging
 from typing import Dict, List, Optional, Tuple, Any, TypeVar, Type, Union
 from os import environ
-from urllib.parse import quote, unquote
+from urllib.parse import quote, unquote, urlparse, ParseResult as UrlLibParseResult
 
-from six.moves.urllib import parse as urlparse
+# from six.moves.urllib import parse as urlparse
 import pandas as pd
 import asyncpg
 import boto3
@@ -94,7 +94,7 @@ class UTADatabase:
             return dict(host=host, port=int(port), database=database, user=username,
                         password=password)
         else:
-            url = ParseResult(urlparse.urlparse(self.db_url))
+            url = ParseResult(urlparse(self.db_url))
             self.schema = url.schema
             password = unquote(url.password) if url.password else ""
             return dict(host=url.hostname, port=url.port,
@@ -1129,7 +1129,7 @@ class UTADatabase:
                 return decoded_binary_secret
 
 
-class ParseResult(urlparse.ParseResult):
+class ParseResult(UrlLibParseResult):
     """Subclass of url.ParseResult that adds database and schema methods,
     and provides stringification.
     Source: https://github.com/biocommons/hgvs
