@@ -13,7 +13,7 @@ from cool_seq_tool.paths import LRG_REFSEQGENE_PATH, MANE_SUMMARY_PATH, \
     SEQREPO_ROOT_DIR, TRANSCRIPT_MAPPINGS_PATH
 from cool_seq_tool.schemas import Assembly, GenomicData, TranscriptExonData, \
     ResidueMode, GenomicDataResponse, ServiceMeta, TranscriptExonDataResponse
-from cool_seq_tool.data_sources import MANETranscript, MANETranscriptMappings,\
+from cool_seq_tool.data_sources import MANETranscript, MANETranscriptMappings, \
     SeqRepoAccess, TranscriptMappings, UTADatabase, GeneNormalizer
 from cool_seq_tool.version import __version__
 
@@ -636,12 +636,12 @@ class CoolSeqTool:
             aliases = self.seqrepo_access.translate_identifier(
                 sequence_id, ["ensembl", "ga4gh"]
             )
-            header = f">ref|refseq:{sequence_id}|{'|'.join(aliases[0])}"
+            header = f">refseq:{sequence_id}|{'|'.join(aliases[0])}"
         elif sequence_id[:4] in ENSEMBL_PREFIXES:
             aliases = self.seqrepo_access.translate_identifier(
                 sequence_id, ["refseq", "ga4gh"]
             )
-            header = f">emb|ensembl:{sequence_id}|{'|'.join(aliases[0])}"
+            header = f">ensembl:{sequence_id}|{'|'.join(aliases[0])}"
         else:
             aliases = self.seqrepo_access.translate_identifier(
                 sequence_id, ["ensembl", "refseq", "ga4gh"]
