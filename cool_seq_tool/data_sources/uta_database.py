@@ -6,7 +6,6 @@ from typing import Dict, List, Optional, Tuple, Any, TypeVar, Type, Union
 from os import environ
 from urllib.parse import quote, unquote, urlparse, ParseResult as UrlLibParseResult
 
-# from six.moves.urllib import parse as urlparse
 import pandas as pd
 import asyncpg
 import boto3
