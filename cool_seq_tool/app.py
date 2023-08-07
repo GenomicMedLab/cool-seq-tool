@@ -1,6 +1,6 @@
 """Module for initializing data sources."""
 from datetime import datetime
-from typing import Optional, Union, List, Tuple, Dict
+from typing import Optional, TypeVar, Union, List, Tuple, Dict
 from pathlib import Path
 import logging
 
@@ -13,12 +13,16 @@ from cool_seq_tool.paths import LRG_REFSEQGENE_PATH, MANE_SUMMARY_PATH, \
     SEQREPO_ROOT_DIR, TRANSCRIPT_MAPPINGS_PATH
 from cool_seq_tool.schemas import Assembly, GenomicData, TranscriptExonData, \
     ResidueMode, GenomicDataResponse, ServiceMeta, TranscriptExonDataResponse
-from cool_seq_tool.data_sources import MANETranscript, MANETranscriptMappings,\
+from cool_seq_tool.data_sources import MANETranscript, MANETranscriptMappings, \
     SeqRepoAccess, TranscriptMappings, UTADatabase, GeneNormalizer
 from cool_seq_tool.version import __version__
 
 
 logger = logging.getLogger("cool_seq_tool")
+
+CoordinatesResponseType = TypeVar(
+    "CoordinatesResponseType", GenomicDataResponse, TranscriptExonDataResponse
+)
 
 
 class CoolSeqTool:
@@ -81,8 +85,8 @@ class CoolSeqTool:
 
     @staticmethod
     def _return_warnings(
-            resp: Union[GenomicDataResponse, TranscriptExonDataResponse],
-            warning_msg: str) -> Union[GenomicDataResponse, TranscriptExonDataResponse]:
+            resp: CoordinatesResponseType,
+            warning_msg: str) -> CoordinatesResponseType:
         """Add warnings to response object
 
         :param Union[GenomicDataResponse, TranscriptExonDataResponse] resp:
@@ -97,18 +101,18 @@ class CoolSeqTool:
 
     async def transcript_to_genomic_coordinates(
             self, gene: Optional[str] = None, transcript: Optional[str] = None,
-            exon_start: Optional[int] = None, exon_start_offset: Optional[int] = 0,  # noqa: E501
-            exon_end: Optional[int] = None, exon_end_offset: Optional[int] = 0,
+            exon_start: Optional[int] = None, exon_start_offset: int = 0,  # noqa: E501
+            exon_end: Optional[int] = None, exon_end_offset: int = 0,
             **kwargs) -> GenomicDataResponse:
         """Get genomic data given transcript data.
         Will use GRCh38 coordinates if possible
 
-        :param Optional[str] gene: Gene symbol
-        :param Optional[str] transcript: Transcript accession
-        :param Optional[int] exon_start: Starting transcript exon number
-        :param Optional[int] exon_end: Ending transcript exon number
-        :param Optional[int] exon_start_offset: Starting exon offset
-        :param Optional[int] exon_end_offset: Ending exon offset
+        :param gene: Gene symbol
+        :param transcript: Transcript accession
+        :param exon_start: Starting transcript exon number
+        :param exon_end: Ending transcript exon number
+        :param exon_start_offset: Starting exon offset
+        :param exon_end_offset: Ending exon offset
         :return: GRCh38 genomic data (inter-residue coordinates)
         """
         resp = GenomicDataResponse(
@@ -138,18 +142,18 @@ class CoolSeqTool:
 
         tx_exons, warning = await self.uta_db.get_tx_exons(transcript)
         if not tx_exons:
-            return self._return_warnings(resp, warning)
+            return self._return_warnings(resp, warning or "")
 
         tx_exon_coords, warning = self.uta_db.get_tx_exon_coords(
             transcript, tx_exons, exon_start, exon_end)
         if not tx_exon_coords:
-            return self._return_warnings(resp, warning)
+            return self._return_warnings(resp, warning or "")
         tx_exon_start, tx_exon_end = tx_exon_coords
 
         alt_ac_start_end, warning = await self.uta_db.get_alt_ac_start_and_end(
             transcript, tx_exon_start, tx_exon_end, gene=gene)
         if not alt_ac_start_end:
-            return self._return_warnings(resp, warning)
+            return self._return_warnings(resp, warning or "")
         alt_ac_start, alt_ac_end = alt_ac_start_end
 
         gene = alt_ac_start[0] if alt_ac_start else alt_ac_end[0]
