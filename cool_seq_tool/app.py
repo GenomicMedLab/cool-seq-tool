@@ -144,8 +144,6 @@ class CoolSeqTool:
         if not tx_exons:
             return self._return_warnings(resp, warning or "")
 
-        breakpoint()
-
         tx_exon_coords, warning = self.uta_db.get_tx_exon_coords(
             transcript, tx_exons, exon_start, exon_end)
         if not tx_exon_coords:
