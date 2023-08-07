@@ -340,7 +340,7 @@ class UTADatabase:
     def get_tx_exon_coords(
             self, transcript: str, tx_exons: List[Tuple[int, int]],
             exon_start: Optional[int] = None,
-            exon_end: Optional[int] = None) -> Tuple[Optional[Tuple], Optional[str]]:  # noqa: E501
+            exon_end: Optional[int] = None) -> Tuple[Optional[Tuple[Optional[Tuple[int, int]], Optional[Tuple[int, int]]]], Optional[str]]:  # noqa: E501
         """Get transcript exon coordinates
 
         :param transcript: Transcript accession
