@@ -5,7 +5,7 @@ import pytest
 from mock import patch
 import pandas as pd
 
-from cool_seq_tool.data_sources import MANETranscript, MANETranscriptMappings,\
+from cool_seq_tool.data_sources import MANETranscript, MANETranscriptMappings, \
     SeqRepoAccess, TranscriptMappings, UTADatabase, GeneNormalizer
 from cool_seq_tool.data_sources.mane_transcript import MANETranscriptError
 from cool_seq_tool.schemas import AnnotationLayer, Assembly, ResidueMode
