@@ -318,8 +318,8 @@ class UTADatabase:
 
     @staticmethod
     def _validate_exon(
-            transcript: str, tx_exons: List[str],
-            exon_number: Optional[int] = None) -> Tuple[Optional[List], Optional[str]]:  # noqa: E501
+            transcript: str, tx_exons: List[Tuple[int, int]],
+            exon_number: int) -> Tuple[Optional[Tuple[int, int]], Optional[str]]:
         """Validate that exon number is valid
 
         :param str transcript: Transcript accession
@@ -337,15 +337,15 @@ class UTADatabase:
         return exon, None
 
     def get_tx_exon_coords(
-            self, transcript: str, tx_exons: List[str],
+            self, transcript: str, tx_exons: List[Tuple[int, int]],
             exon_start: Optional[int] = None,
-            exon_end: Optional[int] = None) -> Tuple[Optional[Tuple[List, List]], Optional[str]]:  # noqa: E501
+            exon_end: Optional[int] = None) -> Tuple[Optional[Tuple[Optional[Tuple[int, int]], Optional[Tuple[int, int]]]], Optional[str]]:  # noqa: E501
         """Get transcript exon coordinates
 
-        :param str transcript: Transcript accession
-        :param List tx_exons: List of transcript exons
-        :param Optional[int] exon_start: Start exon number
-        :param Optional[int] exon_end: End exon number
+        :param transcript: Transcript accession
+        :param tx_exons: List of transcript exons
+        :param exon_start: Start exon number
+        :param exon_end: End exon number
         :return: [Transcript start exon coords, Transcript end exon coords],
             and warnings if found
         """
@@ -369,7 +369,8 @@ class UTADatabase:
     async def get_alt_ac_start_and_end(
             self, tx_ac: str, tx_exon_start: Optional[List[str]] = None,
             tx_exon_end: Optional[List[str]] = None,
-            gene: str = None) -> Tuple[Optional[Tuple[Tuple, Tuple]], Optional[str]]:  # noqa: E501
+            gene: Optional[str] = None
+    ) -> Tuple[Optional[Tuple[Tuple, Tuple]], Optional[str]]:  # noqa: E501
         """Get genomic coordinates for related transcript exon start and end.
 
         :param str tx_ac: Transcript accession

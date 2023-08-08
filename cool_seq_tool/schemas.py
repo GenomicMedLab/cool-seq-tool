@@ -274,7 +274,7 @@ class TranscriptExonDataResponse(BaseModelForbidExtra):
     """Response model for Transcript Exon Data"""
 
     transcript_exon_data: Optional[TranscriptExonData] = None
-    warnings: Optional[List[StrictStr]] = []
+    warnings: List[StrictStr] = []
     service_meta: ServiceMeta
 
     class Config(BaseModelForbidExtra.Config):
@@ -312,7 +312,7 @@ class GenomicDataResponse(BaseModelForbidExtra):
     """Response model for Genomic Data"""
 
     genomic_data: Optional[GenomicData] = None
-    warnings: Optional[List[StrictStr]] = []
+    warnings: List[StrictStr] = []
     service_meta: ServiceMeta
 
     class Config(BaseModelForbidExtra.Config):
