@@ -640,12 +640,12 @@ class CoolSeqTool:
             aliases = self.seqrepo_access.translate_identifier(
                 sequence_id, ["ensembl", "ga4gh"]
             )
-            header = f">ref|refseq:{sequence_id}|{'|'.join(aliases[0])}"
+            header = f">refseq:{sequence_id}|{'|'.join(aliases[0])}"
         elif sequence_id[:4] in ENSEMBL_PREFIXES:
             aliases = self.seqrepo_access.translate_identifier(
                 sequence_id, ["refseq", "ga4gh"]
             )
-            header = f">emb|ensembl:{sequence_id}|{'|'.join(aliases[0])}"
+            header = f">ensembl:{sequence_id}|{'|'.join(aliases[0])}"
         else:
             aliases = self.seqrepo_access.translate_identifier(
                 sequence_id, ["ensembl", "refseq", "ga4gh"]
