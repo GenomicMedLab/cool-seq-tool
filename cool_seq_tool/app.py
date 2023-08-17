@@ -496,13 +496,13 @@ class CoolSeqTool:
                        f"{params['chr']}"
 
             chromosome_number, assembly = descr
-            liftover_data = self.uta_db.get_liftover(
+            liftover_pos = self.uta_db.get_liftover(
                 chromosome_number, params["pos"], Assembly.GRCH38)
-            if liftover_data is None:
+            if liftover_pos is None:
                 return f"Position {params['pos']} does not exist on " \
                        f"chromosome {chromosome_number}"
 
-            params["pos"] = liftover_data[1]
+            params["pos"] = liftover_pos
             params["chr"] = grch38_ac
 
         tx_exons = await self._structure_exons(params["transcript"], alt_ac=grch38_ac)

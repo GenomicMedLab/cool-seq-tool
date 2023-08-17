@@ -975,20 +975,18 @@ class UTADatabase:
         nc_acs = await self.execute_query(query)
         genomic_tx_data["alt_ac"] = nc_acs[0][0]
 
-    def get_liftover(self, chromosome: str, pos: int,
-                     liftover_to_assembly: Assembly) -> Optional[Tuple]:
-        """Get new genome assembly data for a position on a chromosome.
+    def get_liftover(
+        self, chromosome: str, pos: int, liftover_to_assembly: Assembly
+    ) -> Optional[int]:
+        """Get new genome assembly position for a given position on a chromosome. Does
+        not validate if position exists on lifted over accession, this must be done
+        separately.
 
-        :param str chromosome: The chromosome number. Must be prefixed with `chr`
-        :param int pos: Position on the chromosome
-        :param Assembly liftover_to_assembly: Assembly to liftover to
-        :return: [Target chromosome, target position, target strand,
-            conversion_chain_score] for assembly
+        :param chromosome: The chromosome number. Must be prefixed with `chr`
+        :param pos: Position on the chromosome
+        :param liftover_to_assembly: Assembly to liftover to
+        :return: Target position for assembly
         """
-        if not chromosome.startswith("chr"):
-            logger.warning("`chromosome` must be prefixed with chr")
-            return None
-
         if liftover_to_assembly == Assembly.GRCH38:
             liftover = self.liftover_37_to_38.convert_coordinate(chromosome, pos)
         elif liftover_to_assembly == Assembly.GRCH37:
@@ -997,11 +995,24 @@ class UTADatabase:
             logger.warning(f"{liftover_to_assembly} assembly not supported")
             liftover = None
 
-        if liftover is None or len(liftover) == 0:
-            logger.warning(f"{pos} does not exist on {chromosome}")
-            return None
+        if liftover is None:
+            # If chromosome is completely unknown to the LiftOver, None is returned
+            # from pyliftover
+            logger.warning(f"Unknown chromosome: {chromosome}")
         else:
-            return liftover[0]
+            len_liftover = len(liftover)
+            if len_liftover == 1:
+                liftover = liftover[0][1]
+            elif len_liftover == 0:
+                liftover = pos
+            else:
+                logger.warning(
+                    f"Multiple liftover results found for {chromosome} {pos}: "
+                    f"{liftover}. Selecting first liftover"
+                )
+                liftover = liftover[0][1]
+
+        return liftover
 
     def _set_liftover(self, genomic_tx_data: Dict, key: str, chromosome: str,
                       liftover_to_assembly: Assembly) -> None:
@@ -1027,7 +1038,7 @@ class UTADatabase:
                            f"{genomic_tx_data[key][1]} on {chromosome}")
             return None
 
-        genomic_tx_data[key] = liftover_start_i[1], liftover_end_i[1]
+        genomic_tx_data[key] = liftover_start_i, liftover_end_i
 
     async def p_to_c_ac(self, p_ac: str) -> List[str]:
         """Return c. accession from p. accession.

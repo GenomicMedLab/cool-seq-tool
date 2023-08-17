@@ -723,7 +723,7 @@ class MANETranscript:
         if liftover_start_i is None:
             return None
         else:
-            start_pos = liftover_start_i[1]
+            start_pos = liftover_start_i
 
         if not is_same_pos:
             liftover_end_i = self.uta_db.get_liftover(chromosome, end_pos,
@@ -731,7 +731,7 @@ class MANETranscript:
             if liftover_end_i is None:
                 return None
             else:
-                end_pos = liftover_end_i[1]
+                end_pos = liftover_end_i
         else:
             end_pos = start_pos
 
