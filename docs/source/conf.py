@@ -38,9 +38,9 @@ sys.path.insert(0, os.path.abspath("../../cool_seq_tool"))
 autodoc_preserve_defaults = True
 
 # -- get version -------------------------------------------------------------
-# from cool_seq_tool.version import __version__  # noqa: E402
-# version = __version__
-# release = version
+from cool_seq_tool.version import __version__  # noqa: E402
+version = __version__
+release = version
 
 # -- linkcode ----------------------------------------------------------------
 def linkcode_resolve(domain, info):

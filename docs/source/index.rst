@@ -1,5 +1,5 @@
-cool-seq-tool
-=============
+cool-seq-tool |version|
+=======================
 
 ``cool-seq-tool`` (**C**\ ommon **O**\ perations **o**\ n **L**\ ots of **Seq**\ uences **Tool**) provides:
 
@@ -13,9 +13,7 @@ cool-seq-tool
    >>> from cool_seq_tool import CoolSeqTool
    >>> cst = CoolSeqTool()
 
-``cool-seq-tool`` is a library created to support efforts to `normalize variation descriptions <https://github.com/cancervariants/variation-normalization/>`_ and `model gene fusions <https://github.com/cancervariants/fusion-curation/>`_. It is developed primarily by the `Wagner Lab <https://www.nationwidechildrens.org/specialties/institute-for-genomic-medicine/research-labs/wagner-lab>`_. Full source code is available on `GitHub <https://github.com/GenomicMedLab/cool-seq-tool>`_.
-
-.. TODO link to the live fusion instance instead?
+``cool-seq-tool`` is a library created to support efforts to `normalize variation descriptions <https://github.com/cancervariants/variation-normalization/>`_ and `model gene fusions <https://cancervariants.org/projects/fusions>`_ under the mantle of the `Variation Interpretation for Cancer Consortium (VICC) <https://cancervariants.org>`_. It is developed primarily by the `Wagner Lab <https://www.nationwidechildrens.org/specialties/institute-for-genomic-medicine/research-labs/wagner-lab>`_. Full source code is available on `GitHub <https://github.com/GenomicMedLab/cool-seq-tool>`_.
 
 .. toctree::
    :hidden:

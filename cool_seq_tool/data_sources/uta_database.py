@@ -46,16 +46,17 @@ class UTADatabase:
         >>> from cool_seq_tool.data_sources import UTADatabase
         >>> await UTADatabase.create()
 
-        :param db_url: PostgreSQL connection URL
-            Format: `driver://user:password@host/database/schema`
-        :param chain_file_37_to_38: Optional path to chain file for 37 to 38 assembly.
-            This is used for pyliftover. If this is not provided, will check to see if
-            LIFTOVER_CHAIN_37_TO_38 env var is set. If neither is provided, will allow
-            pyliftover to download a chain file from UCSC
+        :param db_url: PostgreSQL connection URL. Format:
+            ``driver://user:password@host/database/schema``
+        :param chain_file_37_to_38: Optional path to chain file for 37 to 38
+            assembly. This is used for ``pyliftover``. If this is not provided,
+            will check to see if ``LIFTOVER_CHAIN_37_TO_38`` env var is set. If
+            neither is provided, will allow ``pyliftover` to download a chain
+            file from UCSC.
         :param chain_file_38_to_37: Optional path to chain file for 38 to 37 assembly.
-            This is used for pyliftover. If this is not provided, will check to see if
-            LIFTOVER_CHAIN_38_TO_37 env var is set. If neither is provided, will allow
-            pyliftover to download a chain file from UCSC
+            This is used for `pyliftover`. If this is not provided, will check to see if
+            ``LIFTOVER_CHAIN_38_TO_37`` env var is set. If neither is provided, will
+            allow ``pyliftover`` to download a chain file from UCSC.
         """
         self.schema = None
         self._connection_pool = None

@@ -38,6 +38,29 @@ See the :py:meth:`__init__ <cool_seq_tool.app.CoolSeqTool.__init__>` method docu
 
 .. _tr-to-g:
 
+Inputs
+------
+
+Residue and inter-residue coordinates
++++++++++++++++++++++++++++++++++++++
+
+Genomic coordinates can be declared either as `residue-` or `inter-residue-based`. The former indicates that the value ``1`` denotes the first position in the sequence; in the latter case, position values refer to the spaces `between` bases, with position ``0`` referring to the space before the first base. By default, provided genomic coordinates are assumed to be residue-based (although this can be toggled with the ``residue_mode`` parameter), but returned coordinates are inter-residue-based.
+
+.. figure:: _static/images/inter_residue_coordinates_figure.jpg
+   :alt: example of relevant BioMart fields
+
+   Fig.: Illustration of residue versus inter-residue coordinates in the context of insertions and deletions in a sequence (Hart et al. 2021).
+
+See the `Variation Representation Schema (VRS) paper <https://www.sciencedirect.com/science/article/pii/S2666979X21000343>`_ for an explanation of our preference for inter-residue coordinates in the context of genomic variation.
+
+.. _gene-input:
+
+Gene names
+++++++++++
+
+Gene symbols are used to match candidate transcript accessions to those provided by the :ref:`Universal Transcript Archive <uta-data>`, which is annotated with `HGNC gene symbols <https://www.genenames.org/>`_. When given a gene term argument, the coordinate conversion methods will :ref:`normalize <gene-norm-data>` it, and the HGNC symbol corresponding to that normalized identity is then matched against UTA annotations. In practice, this means that previous/deprecated symbols or non-HGNC terms can be used, but HGNC symbols and identifiers are recommended to ensure maximal accuracy.
+
+
 Transcript to genomic coordinates
 ---------------------------------
 
@@ -172,15 +195,3 @@ Generate a FASTA file for a reference sequence given its identifier. Sequence da
    cst.get_fasta_file("NM_002529.3", Path(".") / "ntrk1_transcript.fasta")
 
 .. _residue-mode:
-
-Residue and inter-residue coordinates
--------------------------------------
-
-Genomic coordinates can be declared either as `residue-` or `inter-residue-based`. The former indicates that the value ``1`` denotes the first position in the sequence; the second indicates that sequences start at position ``0``. By default, provided genomic coordinates are assumed to be residue-based, but returned coordinates are inter-residue-based. See the `Variation Representation Schema (VRS) paper <https://www.sciencedirect.com/science/article/pii/S2666979X21000343>`_ for an explanation of our preference for inter-residue coordinates.
-
-.. _gene-input:
-
-Gene input
-----------
-
-Gene symbols are used to match possible transcript accessions to those provided by the :ref:`Universal Transcript Archive <uta-data>`, which is annotated with `HGNC gene symbols <https://www.genenames.org/>`_. When given a gene term argument, the coordinate conversion methods will :ref:`normalize <gene-norm-data>`, it, and the HGNC symbol corresponding to that normalized identity is then matched against UTA annotations. In practice, this means that previous symbols or non-HGNC terms can be used, but HGNC symbols are recommended to ensure maximal accuracy.

@@ -103,7 +103,7 @@ Press the ``Go`` button to initiate the download.
 Documentation
 -------------
 
-The documentation is built with Sphinx, which is included as part of the developer dependencies. To build a local copy, ensure that ``cool-seq-tool`` is installed in your current Python environment, then navigate to the `docs/` subdirectory and use `make` to build the HTML version: ::
+The documentation is built with Sphinx, which is included as part of the developer dependencies. To build a local copy, ensure that ``cool-seq-tool`` is installed in your current Python environment, then navigate to the ``docs/`` subdirectory and use `make` to build the HTML version: ::
 
     pipenv shell
     cd docs
