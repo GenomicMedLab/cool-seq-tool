@@ -249,6 +249,25 @@ class CoolSeqTool:
         iff `transcript` is not supplied. `gene` must be supplied in order to retrieve
         MANE Transcript data. Liftovers genomic coordinates to GRCh38.  TODO!!
 
+        For example:
+
+        .. code-block:: python
+
+            >>> from cool_seq_tool import CoolSeqTool
+            >>> cst = CoolSeqTool()
+            >>> result = await cst.genomic_to_transcript_exon_coordinates(
+            ...     chromosome=7,
+            ...     start=140730665,
+            ...     end=140924800,
+            ...     gene="BRAF"
+            ... )
+            >>> result.genomic_data.exon_start
+            18
+            >>> result.genomic_data.exon_start_offset
+            1
+            >>> result.genomic_data.transcript
+            'NM_004333.6'
+
         :param chromosome: Chromosome. Must either give chromosome number (i.e. ``1``)
             or accession (i.e. ``"NC_000001.11"``).
         :param start: Start genomic position

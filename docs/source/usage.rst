@@ -66,7 +66,7 @@ Transcript to genomic coordinates
 
 .. TODO is this a correct description of why the `gene` arg can be provided?
 
-Given a transcript and starting and/or ending exons (and offsets), retrieve the corresponding genomic location. The `transcript` argument is required, and should be a RefSeq transcript identifier (e.g. ``"NM_002529.3"``). In addition, at least one of ``exon_start`` and ``exon_end`` should be given as integers, referring to the `i`\ th exon from that transcript accession (1-indexed, i.e. ``0`` is not a legal ``exon_start`` value). Additionally, genomic coordinate offsets can be passed for both start and end positions. Finally, if known, a gene symbol can be given to ensure that the most accurate transcript equivalence is selected.
+Given a transcript and starting and/or ending exons (and offsets), retrieve the corresponding genomic location. The ``transcript`` argument is required, and should be a RefSeq transcript identifier (e.g. ``"NM_002529.3"``). In addition, at least one of ``exon_start`` and ``exon_end`` should be given as integers, referring to the `i`\ th exon from that transcript accession (1-indexed, i.e. ``0`` is not a legal ``exon_start`` value). Additionally, genomic coordinate offsets can be passed for both start and end positions. Finally, if known, a gene symbol can be given to ensure that the most accurate transcript equivalence is used.
 
 For example, the following chunk retrieves genomic coordinates bounding exons 1 through 5 on the transcript ``NM_004333.4`` (from the BRAF gene):
 
@@ -111,8 +111,6 @@ See the :py:meth:`transcript_to_genomic_coordinates <cool_seq_tool.app.CoolSeqTo
 
 Genomic to transcript coordinates
 ---------------------------------
-
-.. TODO is this accurate
 
 ``cool-seq-tool`` can also perform conversions in the other direction, retrieving a preferred transcript and exon coordinates given genomic location data. The required ``chromosome`` argument accepts either an integer chromosome number (using ``23`` and ``24`` for the X and Y chromosomes, respectively) or a complete RefSeq identifier (e.g. ``NC_000024.10``). A starting and/or an ending genomic position is also required. Finally, either a gene symbol and/or a transcript accession identifier must be provided. When only given a gene, the most preferred transcript (i.e. MANE transcript, if available) will be fetched, per the :ref:`transcript-policy`; if a transcript is given, then exon coordinates matching that transcript are returned, regardless of policy preference. In the process, liftover is performed to convert provided genomic coordinates to GRCh38, if necessary.
 
