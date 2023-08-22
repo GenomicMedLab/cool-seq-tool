@@ -4,9 +4,8 @@ import base64
 import logging
 from typing import Dict, List, Literal, Optional, Tuple, Any, TypeVar, Type, Union
 from os import environ
-from urllib.parse import quote, unquote
+from urllib.parse import quote, unquote, urlparse, ParseResult as UrlLibParseResult
 
-from six.moves.urllib import parse as urlparse
 import pandas as pd
 import asyncpg
 import boto3
@@ -98,7 +97,7 @@ class UTADatabase:
             return dict(host=host, port=int(port), database=database, user=username,
                         password=password)
         else:
-            url = ParseResult(urlparse.urlparse(self.db_url))
+            url = ParseResult(urlparse(self.db_url))
             self.schema = url.schema
             password = unquote(url.password) if url.password else ""
             return dict(host=url.hostname, port=url.port,
@@ -324,8 +323,8 @@ class UTADatabase:
 
     @staticmethod
     def _validate_exon(
-            transcript: str, tx_exons: List[str],
-            exon_number: Optional[int] = None) -> Tuple[Optional[List], Optional[str]]:  # noqa: E501
+            transcript: str, tx_exons: List[Tuple[int, int]],
+            exon_number: int) -> Tuple[Optional[Tuple[int, int]], Optional[str]]:
         """Validate that exon number is valid
 
         :param transcript: Transcript accession
@@ -343,9 +342,9 @@ class UTADatabase:
         return exon, None
 
     def get_tx_exon_coords(
-            self, transcript: str, tx_exons: List[str],
+            self, transcript: str, tx_exons: List[Tuple[int, int]],
             exon_start: Optional[int] = None,
-            exon_end: Optional[int] = None) -> Tuple[Optional[Tuple[List, List]], Optional[str]]:  # noqa: E501
+            exon_end: Optional[int] = None) -> Tuple[Optional[Tuple[Optional[Tuple[int, int]], Optional[Tuple[int, int]]]], Optional[str]]:  # noqa: E501
         """Get transcript exon coordinates
 
         :param transcript: Transcript accession
@@ -375,7 +374,8 @@ class UTADatabase:
     async def get_alt_ac_start_and_end(
             self, tx_ac: str, tx_exon_start: Optional[List[str]] = None,
             tx_exon_end: Optional[List[str]] = None,
-            gene: Optional[str] = None) -> Tuple[Optional[Tuple[Tuple, Tuple]], Optional[str]]:  # noqa: E501
+            gene: Optional[str] = None
+    ) -> Tuple[Optional[Tuple[Tuple, Tuple]], Optional[str]]:  # noqa: E501
         """Get genomic coordinates for related transcript exon start and end.
 
         :param tx_ac: Transcript accession
@@ -1133,7 +1133,7 @@ class UTADatabase:
                 return decoded_binary_secret
 
 
-class ParseResult(urlparse.ParseResult):
+class ParseResult(UrlLibParseResult):
     """Subclass of url.ParseResult that adds database and schema methods,
     and provides stringification. Source: https://github.com/biocommons/hgvs
     """

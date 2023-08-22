@@ -1,6 +1,6 @@
 """Core ``cool-seq-tool`` module."""
 from datetime import datetime
-from typing import Optional, Union, List, Tuple, Dict
+from typing import Optional, TypeVar, Union, List, Tuple, Dict
 from pathlib import Path
 import logging
 
@@ -13,12 +13,16 @@ from cool_seq_tool.paths import LRG_REFSEQGENE_PATH, MANE_SUMMARY_PATH, \
     SEQREPO_ROOT_DIR, TRANSCRIPT_MAPPINGS_PATH
 from cool_seq_tool.schemas import Assembly, GenomicData, TranscriptExonData, \
     ResidueMode, GenomicDataResponse, ServiceMeta, TranscriptExonDataResponse
-from cool_seq_tool.data_sources import MANETranscript, MANETranscriptMappings,\
+from cool_seq_tool.data_sources import MANETranscript, MANETranscriptMappings, \
     SeqRepoAccess, TranscriptMappings, UTADatabase, GeneNormalizer
 from cool_seq_tool.version import __version__
 
 
 logger = logging.getLogger("cool_seq_tool")
+
+CoordinatesResponseType = TypeVar(
+    "CoordinatesResponseType", GenomicDataResponse, TranscriptExonDataResponse
+)
 
 
 class CoolSeqTool:
@@ -108,8 +112,8 @@ class CoolSeqTool:
 
     @staticmethod
     def _return_warnings(
-            resp: Union[GenomicDataResponse, TranscriptExonDataResponse],
-            warning_msg: str) -> Union[GenomicDataResponse, TranscriptExonDataResponse]:
+            resp: CoordinatesResponseType,
+            warning_msg: str) -> CoordinatesResponseType:
         """Add warnings to response object
 
         :param resp: Response object
@@ -123,8 +127,8 @@ class CoolSeqTool:
 
     async def transcript_to_genomic_coordinates(
             self, gene: Optional[str] = None, transcript: Optional[str] = None,
-            exon_start: Optional[int] = None, exon_start_offset: Optional[int] = 0,
-            exon_end: Optional[int] = None, exon_end_offset: Optional[int] = 0,
+            exon_start: Optional[int] = None, exon_start_offset: int = 0,  # noqa: E501
+            exon_end: Optional[int] = None, exon_end_offset: int = 0,
             **kwargs) -> GenomicDataResponse:
         """Get genomic data given transcript data. Targets GRCh38 coordinates if
         available. Caller must provide  ``transcript`` argument, and at least one of
@@ -181,18 +185,18 @@ class CoolSeqTool:
 
         tx_exons, warning = await self.uta_db.get_tx_exons(transcript)
         if not tx_exons:
-            return self._return_warnings(resp, warning)
+            return self._return_warnings(resp, warning or "")
 
         tx_exon_coords, warning = self.uta_db.get_tx_exon_coords(
             transcript, tx_exons, exon_start, exon_end)
         if not tx_exon_coords:
-            return self._return_warnings(resp, warning)
+            return self._return_warnings(resp, warning or "")
         tx_exon_start, tx_exon_end = tx_exon_coords
 
         alt_ac_start_end, warning = await self.uta_db.get_alt_ac_start_and_end(
             transcript, tx_exon_start, tx_exon_end, gene=gene)
         if not alt_ac_start_end:
-            return self._return_warnings(resp, warning)
+            return self._return_warnings(resp, warning or "")
         alt_ac_start, alt_ac_end = alt_ac_start_end
 
         gene = alt_ac_start[0] if alt_ac_start else alt_ac_end[0]
@@ -686,12 +690,12 @@ class CoolSeqTool:
             aliases = self.seqrepo_access.translate_identifier(
                 sequence_id, ["ensembl", "ga4gh"]
             )
-            header = f">ref|refseq:{sequence_id}|{'|'.join(aliases[0])}"
+            header = f">refseq:{sequence_id}|{'|'.join(aliases[0])}"
         elif sequence_id[:4] in ENSEMBL_PREFIXES:
             aliases = self.seqrepo_access.translate_identifier(
                 sequence_id, ["refseq", "ga4gh"]
             )
-            header = f">emb|ensembl:{sequence_id}|{'|'.join(aliases[0])}"
+            header = f">ensembl:{sequence_id}|{'|'.join(aliases[0])}"
         else:
             aliases = self.seqrepo_access.translate_identifier(
                 sequence_id, ["ensembl", "refseq", "ga4gh"]
