@@ -37,7 +37,7 @@ async def genomic_to_transcript_exon_coordinates(
 
     Returns: GenomicDataResponse with data and warnings
     """
-    request_body = request_body.dict()
+    request_body = request_body.model_dump()
 
     response = GenomicDataResponse(
         genomic_data=None, warnings=list(), service_meta=cool_seq_tool.service_meta())
@@ -68,7 +68,7 @@ async def transcript_to_genomic_coordinates(
 
     Returns: GenomicDataResponse with data and warnings
     """
-    request_body = request_body.dict()
+    request_body = request_body.model_dump()
 
     response = GenomicDataResponse(
         genomic_data=None, warnings=list(), service_meta=cool_seq_tool.service_meta())
