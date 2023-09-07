@@ -8,7 +8,7 @@ import pandas as pd
 from cool_seq_tool.paths import MANE_SUMMARY_PATH
 
 
-logger = logging.getLogger("cool_seq_tool")
+logger = logging.getLogger(__name__)
 
 
 class MANETranscriptMappings:

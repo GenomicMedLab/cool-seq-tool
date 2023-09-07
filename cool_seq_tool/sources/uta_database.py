@@ -27,7 +27,7 @@ LIFTOVER_CHAIN_38_TO_37 = environ.get("LIFTOVER_CHAIN_38_TO_37")
 UTA_DB_URL = environ.get("UTA_DB_URL",
                          "postgresql://uta_admin:uta@localhost:5433/uta/uta_20210129")
 
-logger = logging.getLogger("cool_seq_tool")
+logger = logging.getLogger(__name__)
 
 
 class UTADatabase:

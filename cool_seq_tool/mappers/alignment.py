@@ -4,8 +4,8 @@ reference sequences.
 from typing import Optional, Tuple, Dict
 
 from cool_seq_tool.schemas import AnnotationLayer, Assembly, ResidueMode
-from cool_seq_tool.data_sources import SeqRepoAccess, TranscriptMappings, \
-    UTADatabase
+from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
+from cool_seq_tool.sources import TranscriptMappings, UTADatabase
 
 
 class AlignmentMapper:

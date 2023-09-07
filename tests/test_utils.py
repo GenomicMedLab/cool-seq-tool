@@ -1,5 +1,5 @@
 """Module for testing residue mode"""
-from cool_seq_tool.data_sources.residue_mode import get_inter_residue_pos
+from cool_seq_tool.utils import get_inter_residue_pos
 
 
 def test_get_inter_residue_pos():

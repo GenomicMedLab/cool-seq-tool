@@ -17,12 +17,14 @@ from gene.query import QueryHandler as GeneQueryHandler
 from cool_seq_tool.schemas import (
     AnnotationLayer, Assembly, ResidueMode, TranscriptPriorityLabel
 )
-from cool_seq_tool.data_sources import SeqRepoAccess, TranscriptMappings, \
-    MANETranscriptMappings, UTADatabase
-from cool_seq_tool.data_sources.residue_mode import get_inter_residue_pos
+from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
+from cool_seq_tool.sources import (
+    TranscriptMappings, MANETranscriptMappings, UTADatabase
+)
+from cool_seq_tool.utils import get_inter_residue_pos
 
 
-logger = logging.getLogger("cool_seq_tool")
+logger = logging.getLogger(__name__)
 
 
 class MANETranscriptError(Exception):

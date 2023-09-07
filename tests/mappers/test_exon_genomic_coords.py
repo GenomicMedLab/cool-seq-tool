@@ -5,16 +5,13 @@ import copy
 
 import pytest
 
-from cool_seq_tool import CoolSeqTool
 from cool_seq_tool.schemas import GenomicData, TranscriptExonData
 
 
 @pytest.fixture(scope="module")
-async def test_cool_seq_tool():
-    """Create a CoolSeqTool test fixture"""
-    test_cool_seq_tool = CoolSeqTool()
-    await test_cool_seq_tool.uta_db._create_genomic_table()
-    return test_cool_seq_tool
+def test_egc_mapper(test_cool_seq_tool):
+    """Build mane ExonGenomicCoordsMapper test fixture."""
+    return test_cool_seq_tool.exon_genomic_coords_mapper
 
 
 @pytest.fixture(scope="module")
@@ -295,45 +292,45 @@ def transcript_exon_data_assertion_checks(actual, expected=None,
 
 
 @pytest.mark.asyncio
-async def test__genomic_to_transcript(test_cool_seq_tool, tpm3_exon1, tpm3_exon8):
+async def test__genomic_to_transcript(test_egc_mapper, tpm3_exon1, tpm3_exon8):
     """Test that _genomic_to_transcript_exon_coordinate
     method works correctly.
     """
-    resp = await test_cool_seq_tool._genomic_to_transcript_exon_coordinate(
+    resp = await test_egc_mapper._genomic_to_transcript_exon_coordinate(
         "NC_000001.11", 154192135, strand=-1, transcript="NM_152263.3",
         gene="TPM3"
     )
     transcript_exon_data_assertion_checks(resp, tpm3_exon1)
 
-    resp = await test_cool_seq_tool._genomic_to_transcript_exon_coordinate(
+    resp = await test_egc_mapper._genomic_to_transcript_exon_coordinate(
         1, 154192135, strand=-1, transcript="NM_152263.3"
     )
     transcript_exon_data_assertion_checks(resp, tpm3_exon1)
 
-    resp = await test_cool_seq_tool._genomic_to_transcript_exon_coordinate(
+    resp = await test_egc_mapper._genomic_to_transcript_exon_coordinate(
         1, 154192135, transcript="NM_152263.3"
     )
     transcript_exon_data_assertion_checks(resp, tpm3_exon1)
 
-    resp = await test_cool_seq_tool._genomic_to_transcript_exon_coordinate(
+    resp = await test_egc_mapper._genomic_to_transcript_exon_coordinate(
         "NC_000001.11", 154170399, strand=-1, transcript="NM_152263.3",
         is_start=False
     )
     transcript_exon_data_assertion_checks(resp, tpm3_exon8)
 
-    resp = await test_cool_seq_tool._genomic_to_transcript_exon_coordinate(
+    resp = await test_egc_mapper._genomic_to_transcript_exon_coordinate(
         1, 154170399, strand=-1, transcript="NM_152263.3", is_start=False
     )
     transcript_exon_data_assertion_checks(resp, tpm3_exon8)
 
-    resp = await test_cool_seq_tool._genomic_to_transcript_exon_coordinate(
+    resp = await test_egc_mapper._genomic_to_transcript_exon_coordinate(
         1, 154170399, transcript="NM_152263.3", is_start=False
     )
     transcript_exon_data_assertion_checks(resp, tpm3_exon8)
 
 
 @pytest.mark.asyncio
-async def test_tpm3(test_cool_seq_tool, tpm3_exon1_exon8,
+async def test_tpm3(test_egc_mapper, tpm3_exon1_exon8,
                     tpm3_exon1_exon8_offset, tpm3_exon1_g, tpm3_exon8_g,
                     tpm3_exon1_exon8_t_to_g):
     """Test TPM3 genomic_to_transcript_exon_coordinates and
@@ -350,18 +347,18 @@ async def test_tpm3(test_cool_seq_tool, tpm3_exon1_exon8,
     tpm3_exon1_exon8_t_to_g.start = 154192135
 
     g_to_t_resp = \
-        await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(**inputs)
+        await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon1_exon8)
-    t_to_g_resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
+    t_to_g_resp = await test_egc_mapper.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
     genomic_data_assertion_checks(t_to_g_resp, tpm3_exon1_exon8_t_to_g)
 
     inputs["residue_mode"] = "INTER-RESIDUE"
     inputs["start"] = 154192135
     inputs["end"] = 154170399
     g_to_t_resp = \
-        await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(**inputs)
+        await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon1_exon8_t_to_g)
-    t_to_g_resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
+    t_to_g_resp = await test_egc_mapper.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
     genomic_data_assertion_checks(t_to_g_resp, tpm3_exon1_exon8_t_to_g)
 
     # No strand
@@ -370,9 +367,9 @@ async def test_tpm3(test_cool_seq_tool, tpm3_exon1_exon8,
     inputs["start"] = 154192136
     inputs["end"] = 154170400
     g_to_t_resp = \
-        await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(**inputs)
+        await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon1_exon8)
-    t_to_g_resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
+    t_to_g_resp = await test_egc_mapper.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
     genomic_data_assertion_checks(t_to_g_resp, tpm3_exon1_exon8_t_to_g)
 
     # Offset, no strand
@@ -382,17 +379,17 @@ async def test_tpm3(test_cool_seq_tool, tpm3_exon1_exon8,
     tpm3_exon1_exon8_offset_t_to_g = copy.deepcopy(tpm3_exon1_exon8_offset)
     tpm3_exon1_exon8_offset_t_to_g.start = 154192132
     g_to_t_resp = \
-        await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(**inputs)
+        await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon1_exon8_offset)
-    t_to_g_resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
+    t_to_g_resp = await test_egc_mapper.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
     genomic_data_assertion_checks(t_to_g_resp, tpm3_exon1_exon8_offset_t_to_g)
 
     # Offset, strand
     inputs["strand"] = -1
     g_to_t_resp = \
-        await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(**inputs)
+        await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon1_exon8_offset)
-    t_to_g_resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
+    t_to_g_resp = await test_egc_mapper.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
     genomic_data_assertion_checks(t_to_g_resp, tpm3_exon1_exon8_offset_t_to_g)
 
     # Test only setting start
@@ -407,9 +404,9 @@ async def test_tpm3(test_cool_seq_tool, tpm3_exon1_exon8,
     tpm3_exon1_exon8_t_to_g.start = 154192135
 
     g_to_t_resp = \
-        await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(**inputs)
+        await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon1_g)
-    t_to_g_resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
+    t_to_g_resp = await test_egc_mapper.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
     genomic_data_assertion_checks(t_to_g_resp, tpm3_exon1_exon8_t_to_g)
 
     # Test only setting end
@@ -423,14 +420,14 @@ async def test_tpm3(test_cool_seq_tool, tpm3_exon1_exon8,
     tpm3_exon1_exon8_t_to_g = copy.deepcopy(tpm3_exon8_g)
 
     g_to_t_resp = \
-        await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(**inputs)
+        await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon8_g)
-    t_to_g_resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
+    t_to_g_resp = await test_egc_mapper.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
     genomic_data_assertion_checks(t_to_g_resp, tpm3_exon1_exon8_t_to_g)
 
 
 @pytest.mark.asyncio
-async def test_braf(test_cool_seq_tool, mane_braf):
+async def test_braf(test_egc_mapper, mane_braf):
     """Test BRAF genomic_to_transcript_exon_coordinates and
     transcript_to_genomic_coordinates.
     """
@@ -443,23 +440,23 @@ async def test_braf(test_cool_seq_tool, mane_braf):
     }
     # MANE
     g_to_t_resp = \
-        await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(**inputs)
+        await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, mane_braf)
 
     del inputs["strand"]
     g_to_t_resp = \
-        await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(**inputs)
+        await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, mane_braf)
 
     mane_braf_t_to_g = copy.deepcopy(mane_braf)
     t_to_g_resp = \
-        await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
+        await test_egc_mapper.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
     mane_braf_t_to_g.start = 140808062
     genomic_data_assertion_checks(t_to_g_resp, mane_braf_t_to_g)
 
 
 @pytest.mark.asyncio
-async def test_wee1(test_cool_seq_tool, wee1_exon2_exon11, mane_wee1_exon2_exon11):
+async def test_wee1(test_egc_mapper, wee1_exon2_exon11, mane_wee1_exon2_exon11):
     """Test WEE1 genomic_to_transcript_exon_coordinates and
     transcript_to_genomic_coordinates.
     """
@@ -473,17 +470,17 @@ async def test_wee1(test_cool_seq_tool, wee1_exon2_exon11, mane_wee1_exon2_exon1
     wee1_exon2_exon11_t_to_g = copy.deepcopy(wee1_exon2_exon11)
     wee1_exon2_exon11_t_to_g.start = 9576092
     g_to_t_resp = \
-        await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(**inputs)
+        await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, wee1_exon2_exon11)
-    t_to_g_resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
+    t_to_g_resp = await test_egc_mapper.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
     genomic_data_assertion_checks(t_to_g_resp, wee1_exon2_exon11_t_to_g)
 
     inputs["gene"] = "wee1"
     del inputs["strand"]
     g_to_t_resp = \
-        await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(**inputs)
+        await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, wee1_exon2_exon11)
-    t_to_g_resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
+    t_to_g_resp = await test_egc_mapper.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
     genomic_data_assertion_checks(t_to_g_resp, wee1_exon2_exon11_t_to_g)
 
     # MANE
@@ -491,57 +488,57 @@ async def test_wee1(test_cool_seq_tool, wee1_exon2_exon11, mane_wee1_exon2_exon1
     mane_wee1_exon2_exon11_t_to_g = copy.deepcopy(mane_wee1_exon2_exon11)
     mane_wee1_exon2_exon11_t_to_g.start = 9576092
     g_to_t_resp = \
-        await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(**inputs)
+        await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, mane_wee1_exon2_exon11)
-    t_to_g_resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
+    t_to_g_resp = await test_egc_mapper.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
     genomic_data_assertion_checks(t_to_g_resp, mane_wee1_exon2_exon11_t_to_g)
 
 
 @pytest.mark.asyncio
-async def test_transcript_to_genomic(test_cool_seq_tool, tpm3_exon1_exon8_t_to_g,
+async def test_transcript_to_genomic(test_egc_mapper, tpm3_exon1_exon8_t_to_g,
                                      tpm3_exon1_t_to_g, tpm3_exon8_t_to_g,
                                      ntrk1_exon10_exon17):
     """Test that transcript_to_genomic_coordinates works correctly."""
     # TPM3
-    resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(
+    resp = await test_egc_mapper.transcript_to_genomic_coordinates(
         exon_start=None, exon_end=8, transcript="NM_152263.3")
     genomic_data_assertion_checks(resp, tpm3_exon8_t_to_g)
 
-    resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(
+    resp = await test_egc_mapper.transcript_to_genomic_coordinates(
         exon_start=1, exon_end=None, transcript="NM_152263.3")
     genomic_data_assertion_checks(resp, tpm3_exon1_t_to_g)
 
-    resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(
+    resp = await test_egc_mapper.transcript_to_genomic_coordinates(
         exon_start=None, exon_end=8, transcript="NM_152263.3       ")
     genomic_data_assertion_checks(resp, tpm3_exon8_t_to_g)
 
-    resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(
+    resp = await test_egc_mapper.transcript_to_genomic_coordinates(
         exon_start=None, exon_end=8, gene="TPM3", transcript="NM_152263.3")
     genomic_data_assertion_checks(resp, tpm3_exon8_t_to_g)
 
-    resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(
+    resp = await test_egc_mapper.transcript_to_genomic_coordinates(
         exon_start=None, exon_end=8, gene=" TPM3 ", transcript=" NM_152263.3 ")
     genomic_data_assertion_checks(resp, tpm3_exon8_t_to_g)
 
-    resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(
+    resp = await test_egc_mapper.transcript_to_genomic_coordinates(
         exon_start=None, exon_end=8, gene="tpm3", transcript="NM_152263.3")
     genomic_data_assertion_checks(resp, tpm3_exon8_t_to_g)
 
     expected = copy.deepcopy(tpm3_exon1_exon8_t_to_g)
-    resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(
+    resp = await test_egc_mapper.transcript_to_genomic_coordinates(
         exon_start=1, exon_end=8, exon_end_offset=-5, transcript="NM_152263.3")
     expected.exon_end = 8
     expected.exon_end_offset = -5
     expected.end = 154170404
     genomic_data_assertion_checks(resp, expected)
 
-    resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(
+    resp = await test_egc_mapper.transcript_to_genomic_coordinates(
         exon_start=1, exon_end=8, exon_end_offset=5, transcript="NM_152263.3")
     expected.exon_end_offset = 5
     expected.end = 154170394
     genomic_data_assertion_checks(resp, expected)
 
-    resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(
+    resp = await test_egc_mapper.transcript_to_genomic_coordinates(
         exon_start=3, exon_end=8, exon_start_offset=3, exon_end_offset=5,
         transcript="NM_152263.3")
     expected.exon_start = 3
@@ -549,7 +546,7 @@ async def test_transcript_to_genomic(test_cool_seq_tool, tpm3_exon1_exon8_t_to_g
     expected.start = 154176245
     genomic_data_assertion_checks(resp, expected)
 
-    resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(
+    resp = await test_egc_mapper.transcript_to_genomic_coordinates(
         exon_start=3, exon_end=8, exon_start_offset=-3, exon_end_offset=5,
         transcript="NM_152263.3")
     expected.exon_start_offset = -3
@@ -557,19 +554,19 @@ async def test_transcript_to_genomic(test_cool_seq_tool, tpm3_exon1_exon8_t_to_g
     genomic_data_assertion_checks(resp, expected)
 
     # NTRK1
-    resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(
+    resp = await test_egc_mapper.transcript_to_genomic_coordinates(
         exon_start=10, exon_end=17, transcript="NM_002529.3")
     genomic_data_assertion_checks(resp, ntrk1_exon10_exon17)
 
-    resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(
+    resp = await test_egc_mapper.transcript_to_genomic_coordinates(
         exon_start=10, exon_end=17, gene="NTRK1", transcript="NM_002529.3")
     genomic_data_assertion_checks(resp, ntrk1_exon10_exon17)
 
-    resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(
+    resp = await test_egc_mapper.transcript_to_genomic_coordinates(
         exon_start=10, exon_end=17, gene="NTRK1", transcript="NM_002529.3")
     genomic_data_assertion_checks(resp, ntrk1_exon10_exon17)
 
-    resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(
+    resp = await test_egc_mapper.transcript_to_genomic_coordinates(
         exon_start=10, exon_end=17, exon_start_offset=3,
         transcript="NM_002529.3")
     expected = copy.deepcopy(ntrk1_exon10_exon17)
@@ -577,7 +574,7 @@ async def test_transcript_to_genomic(test_cool_seq_tool, tpm3_exon1_exon8_t_to_g
     expected.start = 156874629
     genomic_data_assertion_checks(resp, expected)
 
-    resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(
+    resp = await test_egc_mapper.transcript_to_genomic_coordinates(
         exon_start=10, exon_end=17, exon_start_offset=-3,
         transcript="NM_002529.3")
     expected.exon_start_offset = -3
@@ -586,14 +583,14 @@ async def test_transcript_to_genomic(test_cool_seq_tool, tpm3_exon1_exon8_t_to_g
 
 
 @pytest.mark.asyncio
-async def test_valid_inputs(test_cool_seq_tool):
+async def test_valid_inputs(test_egc_mapper):
     """Test that valid inputs don"t return any errors"""
     inputs = {
         "gene": "TPM3",
         "chromosome": "NC_000001.11",
         "start": 154171413
     }
-    resp = await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(**inputs)  # noqa: E501
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)  # noqa: E501
     assert resp.genomic_data
 
     inputs = {
@@ -601,22 +598,22 @@ async def test_valid_inputs(test_cool_seq_tool):
         "chromosome": "NC_000011.9",
         "end": 9609996
     }
-    resp = await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(**inputs)  # noqa: E501
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)  # noqa: E501
     assert resp.genomic_data
 
     inputs["chromosome"] = "11"
-    resp = await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(**inputs)  # noqa: E501
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)  # noqa: E501
     assert resp.genomic_data
 
     inputs = {
         "transcript": "NM_003390.3",
         "exon_start": 2
     }
-    resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**inputs)
+    resp = await test_egc_mapper.transcript_to_genomic_coordinates(**inputs)
     assert resp.genomic_data
 
     inputs["gene"] = "WEE1"
-    resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**inputs)
+    resp = await test_egc_mapper.transcript_to_genomic_coordinates(**inputs)
     assert resp.genomic_data
 
     # Test X/Y chromosome bug
@@ -628,32 +625,32 @@ async def test_valid_inputs(test_cool_seq_tool):
         "gene": "GDI1",
         "residue_mode": "inter-residue"
     }
-    resp = await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(**inputs)
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     assert resp.genomic_data
 
-    resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(
+    resp = await test_egc_mapper.transcript_to_genomic_coordinates(
         gene="PDGFRB", transcript="NM_002609.4", exon_start=11, exon_end=23)
     assert resp.genomic_data
 
 
 @pytest.mark.asyncio
-async def test_invalid(test_cool_seq_tool):
+async def test_invalid(test_egc_mapper):
     """Test that invalid queries return `None`."""
-    resp = await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(
         transcript="NM_152263 3", start=154192135, end=154170399,
         chromosome="NC_000001.11"
     )
     assert resp.warnings == ["Unable to get exons for NM_152263 3"]
 
     # start and end not given
-    resp = await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(
         "NC_000001.11", start=None, end=None, strand=-1,
         transcript="NM_152263.3", gene="TPM3")
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Must provide either `start` or `end`"]
 
     # Invalid gene
-    resp = await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(
         "NC_000001.11", start=154192135, end=154170399, strand=-1,
         transcript="NM_152263.3", gene="dummy gene")
     genomic_data_assertion_checks(resp, is_valid=False)
@@ -663,14 +660,14 @@ async def test_invalid(test_cool_seq_tool):
                              "and on gene DUMMY GENE"]
 
     # Invalid chromosome
-    resp = await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(
         "NC_000001.200", start=154192135, end=154170399, strand=-1,
         transcript="NM_152263.3")
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Invalid chromosome: NC_000001.200"]
 
     # Invalid coordinates
-    resp = await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(
         "NC_000001.11", start=9999999999999, end=9999999999999, strand=-1,
         transcript="NM_152263.3")
     genomic_data_assertion_checks(resp, is_valid=False)
@@ -679,7 +676,7 @@ async def test_invalid(test_cool_seq_tool):
         "coordinate 9999999999998 is mapped between an exon's start and end "
         "coordinates on the negative strand"]
 
-    resp = await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(
         chromosome="1", start=154170400, strand=-1, transcript="NM_002529.3"
     )
     genomic_data_assertion_checks(resp, is_valid=False)
@@ -688,7 +685,7 @@ async def test_invalid(test_cool_seq_tool):
     ]
 
     # Strand does not match
-    resp = await test_cool_seq_tool._genomic_to_transcript_exon_coordinate(
+    resp = await test_egc_mapper._genomic_to_transcript_exon_coordinate(
         "NC_000001.11", 154192135, strand=1, transcript="NM_152263.3",
         gene="TPM3"
     )
@@ -700,44 +697,44 @@ async def test_invalid(test_cool_seq_tool):
     ]
 
     # Must supply either gene or transcript
-    resp = await test_cool_seq_tool._genomic_to_transcript_exon_coordinate(
+    resp = await test_egc_mapper._genomic_to_transcript_exon_coordinate(
         "NC_000001.11", 154192135, strand=1
     )
     transcript_exon_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Must provide either `gene` or `transcript`"]
 
     # Exon 22 does not exist
-    resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(
+    resp = await test_egc_mapper.transcript_to_genomic_coordinates(
         exon_start=None, exon_end=22, transcript="NM_152263.3", )
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Exon 22 does not exist on NM_152263.3"]
 
     # Start > End
-    resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(
+    resp = await test_egc_mapper.transcript_to_genomic_coordinates(
         exon_start=8, exon_end=1, transcript="NM_152263.3")
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Start exon 8 is greater than end exon 1"]
 
     # Transcript DNE
-    resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(
+    resp = await test_egc_mapper.transcript_to_genomic_coordinates(
         exon_start=7, exon_end=None, transcript="NM_12345.6")
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Unable to get exons for NM_12345.6"]
 
     # Index error for invalid exon
-    resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(
+    resp = await test_egc_mapper.transcript_to_genomic_coordinates(
         exon_start=-1, exon_end=0, transcript="NM_152263.3")
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Exon -1 does not exist on NM_152263.3"]
 
     # Cant supply 0 based exons
-    resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(
+    resp = await test_egc_mapper.transcript_to_genomic_coordinates(
         exon_start=0, exon_end=1, transcript="NM_152263.3")
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Exon 0 does not exist on NM_152263.3"]
 
     # Gene that does not match transcript
-    resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(
+    resp = await test_egc_mapper.transcript_to_genomic_coordinates(
         exon_start=1, exon_end=8, gene="NTKR1", transcript="NM_152263.3")
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == [
@@ -746,210 +743,19 @@ async def test_invalid(test_cool_seq_tool):
         "NTKR1"]
 
     # No transcript given
-    resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(
+    resp = await test_egc_mapper.transcript_to_genomic_coordinates(
         exon_start=1, exon_end=8, gene="NTKR1", transcript=None)
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Must provide `transcript`"]
 
     # No transcript given
-    resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(
+    resp = await test_egc_mapper.transcript_to_genomic_coordinates(
         exon_start=1, exon_end=8, gene="NTKR1", transcript="")
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Must provide `transcript`"]
 
     # No exons given
-    resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(
+    resp = await test_egc_mapper.transcript_to_genomic_coordinates(
         exon_start=None, exon_end=None, transcript="NM_152263.3")
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Must provide either `exon_start` or `exon_end`"]
-
-
-def test_get_fasta_file(test_cool_seq_tool, tmp_path):
-    """Test get_fasta_file method"""
-    tpm3 = tmp_path / "NM_002529.3.fasta"
-    test_cool_seq_tool.get_fasta_file("NM_002529.3", tpm3)
-    tpm3_expected = """>refseq:NM_002529.3|ga4gh:SQ.RSkww1aYmsMiWbNdNnOTnVDAM3ZWp1uA
-TGCAGCTGGGAGCGCACAGACGGCTGCCCCGCCTGAGCGAGGCGGGCGCCGCCGCGATGC
-TGCGAGGCGGACGGCGCGGGCAGCTTGGCTGGCACAGCTGGGCTGCGGGGCCGGGCAGCC
-TGCTGGCTTGGCTGATACTGGCATCTGCGGGCGCCGCACCCTGCCCCGATGCCTGCTGCC
-CCCACGGCTCCTCGGGACTGCGATGCACCCGGGATGGGGCCCTGGATAGCCTCCACCACC
-TGCCCGGCGCAGAGAACCTGACTGAGCTCTACATCGAGAACCAGCAGCATCTGCAGCATC
-TGGAGCTCCGTGATCTGAGGGGCCTGGGGGAGCTGAGAAACCTCACCATCGTGAAGAGTG
-GTCTCCGTTTCGTGGCGCCAGATGCCTTCCATTTCACTCCTCGGCTCAGTCGCCTGAATC
-TCTCCTTCAACGCTCTGGAGTCTCTCTCCTGGAAAACTGTGCAGGGCCTCTCCTTACAGG
-AACTGGTCCTGTCGGGGAACCCTCTGCACTGTTCTTGTGCCCTGCGCTGGCTACAGCGCT
-GGGAGGAGGAGGGACTGGGCGGAGTGCCTGAACAGAAGCTGCAGTGTCATGGGCAAGGGC
-CCCTGGCCCACATGCCCAATGCCAGCTGTGGTGTGCCCACGCTGAAGGTCCAGGTGCCCA
-ATGCCTCGGTGGATGTGGGGGACGACGTGCTGCTGCGGTGCCAGGTGGAGGGGCGGGGCC
-TGGAGCAGGCCGGCTGGATCCTCACAGAGCTGGAGCAGTCAGCCACGGTGATGAAATCTG
-GGGGTCTGCCATCCCTGGGGCTGACCCTGGCCAATGTCACCAGTGACCTCAACAGGAAGA
-ACGTGACGTGCTGGGCAGAGAACGATGTGGGCCGGGCAGAGGTCTCTGTTCAGGTCAACG
-TCTCCTTCCCGGCCAGTGTGCAGCTGCACACGGCGGTGGAGATGCACCACTGGTGCATCC
-CCTTCTCTGTGGATGGGCAGCCGGCACCGTCTCTGCGCTGGCTCTTCAATGGCTCCGTGC
-TCAATGAGACCAGCTTCATCTTCACTGAGTTCCTGGAGCCGGCAGCCAATGAGACCGTGC
-GGCACGGGTGTCTGCGCCTCAACCAGCCCACCCACGTCAACAACGGCAACTACACGCTGC
-TGGCTGCCAACCCCTTCGGCCAGGCCTCCGCCTCCATCATGGCTGCCTTCATGGACAACC
-CTTTCGAGTTCAACCCCGAGGACCCCATCCCTGTCTCCTTCTCGCCGGTGGACACTAACA
-GCACATCTGGAGACCCGGTGGAGAAGAAGGACGAAACACCTTTTGGGGTCTCGGTGGCTG
-TGGGCCTGGCCGTCTTTGCCTGCCTCTTCCTTTCTACGCTGCTCCTTGTGCTCAACAAAT
-GTGGACGGAGAAACAAGTTTGGGATCAACCGCCCGGCTGTGCTGGCTCCAGAGGATGGGC
-TGGCCATGTCCCTGCATTTCATGACATTGGGTGGCAGCTCCCTGTCCCCCACCGAGGGCA
-AAGGCTCTGGGCTCCAAGGCCACATCATCGAGAACCCACAATACTTCAGTGATGCCTGTG
-TTCACCACATCAAGCGCCGGGACATCGTGCTCAAGTGGGAGCTGGGGGAGGGCGCCTTTG
-GGAAGGTCTTCCTTGCTGAGTGCCACAACCTCCTGCCTGAGCAGGACAAGATGCTGGTGG
-CTGTCAAGGCACTGAAGGAGGCGTCCGAGAGTGCTCGGCAGGACTTCCAGCGTGAGGCTG
-AGCTGCTCACCATGCTGCAGCACCAGCACATCGTGCGCTTCTTCGGCGTCTGCACCGAGG
-GCCGCCCCCTGCTCATGGTCTTTGAGTATATGCGGCACGGGGACCTCAACCGCTTCCTCC
-GATCCCATGGACCTGATGCCAAGCTGCTGGCTGGTGGGGAGGATGTGGCTCCAGGCCCCC
-TGGGTCTGGGGCAGCTGCTGGCCGTGGCTAGCCAGGTCGCTGCGGGGATGGTGTACCTGG
-CGGGTCTGCATTTTGTGCACCGGGACCTGGCCACACGCAACTGTCTAGTGGGCCAGGGAC
-TGGTGGTCAAGATTGGTGATTTTGGCATGAGCAGGGATATCTACAGCACCGACTATTACC
-GTGTGGGAGGCCGCACCATGCTGCCCATTCGCTGGATGCCGCCCGAGAGCATCCTGTACC
-GTAAGTTCACCACCGAGAGCGACGTGTGGAGCTTCGGCGTGGTGCTCTGGGAGATCTTCA
-CCTACGGCAAGCAGCCCTGGTACCAGCTCTCCAACACGGAGGCAATCGACTGCATCACGC
-AGGGACGTGAGTTGGAGCGGCCACGTGCCTGCCCACCAGAGGTCTACGCCATCATGCGGG
-GCTGCTGGCAGCGGGAGCCCCAGCAACGCCACAGCATCAAGGATGTGCACGCCCGGCTGC
-AAGCCCTGGCCCAGGCACCTCCTGTCTACCTGGATGTCCTGGGCTAGGGGGCCGGCCCAG
-GGGCTGGGAGTGGTTAGCCGGAATACTGGGGCCTGCCCTCAGCATCCCCCATAGCTCCCA
-GCAGCCCCAGGGTGATCTCAAAGTATCTAATTCACCCTCAGCATGTGGGAAGGGACAGGT
-GGGGGCTGGGAGTAGAGGATGTTCCTGCTTCTCTAGGCAAGGTCCCGTCATAGCAATTAT
-ATTTATTATCCCTTGAAAAAAAA"""
-    assert tpm3.read_text() == tpm3_expected
-
-    limk2 = tmp_path / "ENST00000331728.9.fasta"
-    test_cool_seq_tool.get_fasta_file("ENST00000331728.9", limk2)
-    limk2_expected = """>ensembl:ENST00000331728.9|refseq:NM_005569.4|ga4gh:SQ.7_mlQyDN-uWH0RlxTQFvFEv6ykd2D-xF
-GTCTTCCCGCGCCTGAGGCGGCGGCGGCAGGAGCTGAGGGGAGTTGTAGGGAACTGAGGG
-GAGCTGCTGTGTCCCCCGCCTCCTCCTCCCCATTTCCGCGCTCCCGGGACCATGTCCGCG
-CTGGCGGGTGAAGATGTCTGGAGGTGTCCAGGCTGTGGGGACCACATTGCTCCAAGCCAG
-ATATGGTACAGGACTGTCAACGAAACCTGGCACGGCTCTTGCTTCCGGTGTTCAGAATGC
-CAGGATTCCCTCACCAACTGGTACTATGAGAAGGATGGGAAGCTCTACTGCCCCAAGGAC
-TACTGGGGGAAGTTTGGGGAGTTCTGTCATGGGTGCTCCCTGCTGATGACAGGGCCTTTT
-ATGGTGGCTGGGGAGTTCAAGTACCACCCAGAGTGCTTTGCCTGTATGAGCTGCAAGGTG
-ATCATTGAGGATGGGGATGCATATGCACTGGTGCAGCATGCCACCCTCTACTGTGGGAAG
-TGCCACAATGAGGTGGTGCTGGCACCCATGTTTGAGAGACTCTCCACAGAGTCTGTTCAG
-GAGCAGCTGCCCTACTCTGTCACGCTCATCTCCATGCCGGCCACCACTGAAGGCAGGCGG
-GGCTTCTCCGTGTCCGTGGAGAGTGCCTGCTCCAACTACGCCACCACTGTGCAAGTGAAA
-GAGGTCAACCGGATGCACATCAGTCCCAACAATCGAAACGCCATCCACCCTGGGGACCGC
-ATCCTGGAGATCAATGGGACCCCCGTCCGCACACTTCGAGTGGAGGAGGTGGAGGATGCA
-ATTAGCCAGACGAGCCAGACACTTCAGCTGTTGATTGAACATGACCCCGTCTCCCAACGC
-CTGGACCAGCTGCGGCTGGAGGCCCGGCTCGCTCCTCACATGCAGAATGCCGGACACCCC
-CACGCCCTCAGCACCCTGGACACCAAGGAGAATCTGGAGGGGACACTGAGGAGACGTTCC
-CTAAGGCGCAGTAACAGTATCTCCAAGTCCCCTGGCCCCAGCTCCCCAAAGGAGCCCCTG
-CTGTTCAGCCGTGACATCAGCCGCTCAGAATCCCTTCGTTGTTCCAGCAGCTATTCACAG
-CAGATCTTCCGGCCCTGTGACCTAATCCATGGGGAGGTCCTGGGGAAGGGCTTCTTTGGG
-CAGGCTATCAAGGTGACACACAAAGCCACGGGCAAAGTGATGGTCATGAAAGAGTTAATT
-CGATGTGATGAGGAGACCCAGAAAACTTTTCTGACTGAGGTGAAAGTGATGCGCAGCCTG
-GACCACCCCAATGTGCTCAAGTTCATTGGTGTGCTGTACAAGGATAAGAAGCTGAACCTC
-CTGACAGAGTACATTGAGGGGGGCACACTGAAGGACTTTCTGCGCAGTATGGATCCGTTC
-CCCTGGCAGCAGAAGGTCAGGTTTGCCAAAGGAATCGCCTCCGGAATGGCCTATTTGCAC
-TCTATGTGCATCATCCACCGGGATCTGAACTCGCACAACTGCCTCATCAAGTTGGACAAG
-ACTGTGGTGGTGGCAGACTTTGGGCTGTCACGGCTCATAGTGGAAGAGAGGAAAAGGGCC
-CCCATGGAGAAGGCCACCACCAAGAAACGCACCTTGCGCAAGAACGACCGCAAGAAGCGC
-TACACGGTGGTGGGAAACCCCTACTGGATGGCCCCTGAGATGCTGAACGGAAAGAGCTAT
-GATGAGACGGTGGATATCTTCTCCTTTGGGATCGTTCTCTGTGAGATCATTGGGCAGGTG
-TATGCAGATCCTGACTGCCTTCCCCGAACACTGGACTTTGGCCTCAACGTGAAGCTTTTC
-TGGGAGAAGTTTGTTCCCACAGATTGTCCCCCGGCCTTCTTCCCGCTGGCCGCCATCTGC
-TGCAGACTGGAGCCTGAGAGCAGACCAGCATTCTCGAAATTGGAGGACTCCTTTGAGGCC
-CTCTCCCTGTACCTGGGGGAGCTGGGCATCCCGCTGCCTGCAGAGCTGGAGGAGTTGGAC
-CACACTGTGAGCATGCAGTACGGCCTGACCCGGGACTCACCTCCCTAGCCCTGGCCCAGC
-CCCCTGCAGGGGGGTGTTCTACAGCCAGCATTGCCCCTCTGTGCCCCATTCCTGCTGTGA
-GCAGGGCCGTCCGGGCTTCCTGTGGATTGGCGGAATGTTTAGAAGCAGAACAAGCCATTC
-CTATTACCTCCCCAGGAGGCAAGTGGGCGCAGCACCAGGGAAATGTATCTCCACAGGTTC
-TGGGGCCTAGTTACTGTCTGTAAATCCAATACTTGCCTGAAAGCTGTGAAGAAGAAAAAA
-ACCCCTGGCCTTTGGGCCAGGAGGAATCTGTTACTCGAATCCACCCAGGAACTCCCTGGC
-AGTGGATTGTGGGAGGCTCTTGCTTACACTAATCAGCGTGACCTGGACCTGCTGGGCAGG
-ATCCCAGGGTGAACCTGCCTGTGAACTCTGAAGTCACTAGTCCAGCTGGGTGCAGGAGGA
-CTTCAAGTGTGTGGACGAAAGAAAGACTGATGGCTCAAAGGGTGTGAAAAAGTCAGTGAT
-GCTCCCCCTTTCTACTCCAGATCCTGTCCTTCCTGGAGCAAGGTTGAGGGAGTAGGTTTT
-GAAGAGTCCCTTAATATGTGGTGGAACAGGCCAGGAGTTAGAGAAAGGGCTGGCTTCTGT
-TTACCTGCTCACTGGCTCTAGCCAGCCCAGGGACCACATCAATGTGAGAGGAAGCCTCCA
-CCTCATGTTTTCAAACTTAATACTGGAGACTGGCTGAGAACTTACGGACAACATCCTTTC
-TGTCTGAAACAAACAGTCACAAGCAAAGGAAGAGGCTGGGGGACTAGAAAGAGGCCCTGC
-CCTCTAGAAAGCTCAGATCTTGGCTTCTGTTACTCATACTCGGGTGGGCTCCTTAGTCAG
-ATGCCTAAAACATTTTGCCTAAAGCTCGATGGGTTCTGGAGGACAGTGTGGCTTGTCACA
-GGCCTAGAGTCTGAGGGAGGGGAGTGGGAGTCTCAGCAATCTCTTGGTCTTGGCTTCATG
-GCAACCACTGCTCACCCTTCAACATGCCTGGTTTAGGCAGCAGCTTGGGCTGGGAAGAGG
-TGGTGGCAGAGTCTCAAAGCTGAGATGCTGAGAGAGATAGCTCCCTGAGCTGGGCCATCT
-GACTTCTACCTCCCATGTTTGCTCTCCCAACTCATTAGCTCCTGGGCAGCATCCTCCTGA
-GCCACATGTGCAGGTACTGGAAAACCTCCATCTTGGCTCCCAGAGCTCTAGGAACTCTTC
-ATCACAACTAGATTTGCCTCTTCTAAGTGTCTATGAGCTTGCACCATATTTAATAAATTG
-GGAATGGGTTTGGGGTATTAATGCAATGTGTGGTGGTTGTATTGGAGCAGGGGGAATTGA
-TAAAGGAGAGTGGTTGCTGTTAATATTATCTTATCTATTGGGTGGTATGTGAAATATTGT
-ACATAGACCTGATGAGTTGTGGGACCAGATGTCATCTCTGGTCAGAGTTTACTTGCTATA
-TAGACTGTACTTATGTGTGAAGTTTGCAAGCTTGCTTTAGGGCTGAGCCCTGGACTCCCA
-GCAGCAGCACAGTTCAGCATTGTGTGGCTGGTTGTTTCCTGGCTGTCCCCAGCAAGTGTA
-GGAGTGGTGGGCCTGAACTGGGCCATTGATCAGACTAAATAAATTAAGCAGTTAACATAA
-CTGGCAA"""  # noqa: E501
-    assert limk2.read_text() == limk2_expected
-
-    limk2_seguid = tmp_path / "SEGUID_LIMK2.fasta"
-    test_cool_seq_tool.get_fasta_file("ugqOFdlaed2cnxrGa7zngGMrLlY", limk2_seguid)
-    limk2_seguid_expected = """>gnl|ID|ugqOFdlaed2cnxrGa7zngGMrLlY|ensembl:ENST00000331728.9|refseq:NM_005569.4|ga4gh:SQ.7_mlQyDN-uWH0RlxTQFvFEv6ykd2D-xF
-GTCTTCCCGCGCCTGAGGCGGCGGCGGCAGGAGCTGAGGGGAGTTGTAGGGAACTGAGGG
-GAGCTGCTGTGTCCCCCGCCTCCTCCTCCCCATTTCCGCGCTCCCGGGACCATGTCCGCG
-CTGGCGGGTGAAGATGTCTGGAGGTGTCCAGGCTGTGGGGACCACATTGCTCCAAGCCAG
-ATATGGTACAGGACTGTCAACGAAACCTGGCACGGCTCTTGCTTCCGGTGTTCAGAATGC
-CAGGATTCCCTCACCAACTGGTACTATGAGAAGGATGGGAAGCTCTACTGCCCCAAGGAC
-TACTGGGGGAAGTTTGGGGAGTTCTGTCATGGGTGCTCCCTGCTGATGACAGGGCCTTTT
-ATGGTGGCTGGGGAGTTCAAGTACCACCCAGAGTGCTTTGCCTGTATGAGCTGCAAGGTG
-ATCATTGAGGATGGGGATGCATATGCACTGGTGCAGCATGCCACCCTCTACTGTGGGAAG
-TGCCACAATGAGGTGGTGCTGGCACCCATGTTTGAGAGACTCTCCACAGAGTCTGTTCAG
-GAGCAGCTGCCCTACTCTGTCACGCTCATCTCCATGCCGGCCACCACTGAAGGCAGGCGG
-GGCTTCTCCGTGTCCGTGGAGAGTGCCTGCTCCAACTACGCCACCACTGTGCAAGTGAAA
-GAGGTCAACCGGATGCACATCAGTCCCAACAATCGAAACGCCATCCACCCTGGGGACCGC
-ATCCTGGAGATCAATGGGACCCCCGTCCGCACACTTCGAGTGGAGGAGGTGGAGGATGCA
-ATTAGCCAGACGAGCCAGACACTTCAGCTGTTGATTGAACATGACCCCGTCTCCCAACGC
-CTGGACCAGCTGCGGCTGGAGGCCCGGCTCGCTCCTCACATGCAGAATGCCGGACACCCC
-CACGCCCTCAGCACCCTGGACACCAAGGAGAATCTGGAGGGGACACTGAGGAGACGTTCC
-CTAAGGCGCAGTAACAGTATCTCCAAGTCCCCTGGCCCCAGCTCCCCAAAGGAGCCCCTG
-CTGTTCAGCCGTGACATCAGCCGCTCAGAATCCCTTCGTTGTTCCAGCAGCTATTCACAG
-CAGATCTTCCGGCCCTGTGACCTAATCCATGGGGAGGTCCTGGGGAAGGGCTTCTTTGGG
-CAGGCTATCAAGGTGACACACAAAGCCACGGGCAAAGTGATGGTCATGAAAGAGTTAATT
-CGATGTGATGAGGAGACCCAGAAAACTTTTCTGACTGAGGTGAAAGTGATGCGCAGCCTG
-GACCACCCCAATGTGCTCAAGTTCATTGGTGTGCTGTACAAGGATAAGAAGCTGAACCTC
-CTGACAGAGTACATTGAGGGGGGCACACTGAAGGACTTTCTGCGCAGTATGGATCCGTTC
-CCCTGGCAGCAGAAGGTCAGGTTTGCCAAAGGAATCGCCTCCGGAATGGCCTATTTGCAC
-TCTATGTGCATCATCCACCGGGATCTGAACTCGCACAACTGCCTCATCAAGTTGGACAAG
-ACTGTGGTGGTGGCAGACTTTGGGCTGTCACGGCTCATAGTGGAAGAGAGGAAAAGGGCC
-CCCATGGAGAAGGCCACCACCAAGAAACGCACCTTGCGCAAGAACGACCGCAAGAAGCGC
-TACACGGTGGTGGGAAACCCCTACTGGATGGCCCCTGAGATGCTGAACGGAAAGAGCTAT
-GATGAGACGGTGGATATCTTCTCCTTTGGGATCGTTCTCTGTGAGATCATTGGGCAGGTG
-TATGCAGATCCTGACTGCCTTCCCCGAACACTGGACTTTGGCCTCAACGTGAAGCTTTTC
-TGGGAGAAGTTTGTTCCCACAGATTGTCCCCCGGCCTTCTTCCCGCTGGCCGCCATCTGC
-TGCAGACTGGAGCCTGAGAGCAGACCAGCATTCTCGAAATTGGAGGACTCCTTTGAGGCC
-CTCTCCCTGTACCTGGGGGAGCTGGGCATCCCGCTGCCTGCAGAGCTGGAGGAGTTGGAC
-CACACTGTGAGCATGCAGTACGGCCTGACCCGGGACTCACCTCCCTAGCCCTGGCCCAGC
-CCCCTGCAGGGGGGTGTTCTACAGCCAGCATTGCCCCTCTGTGCCCCATTCCTGCTGTGA
-GCAGGGCCGTCCGGGCTTCCTGTGGATTGGCGGAATGTTTAGAAGCAGAACAAGCCATTC
-CTATTACCTCCCCAGGAGGCAAGTGGGCGCAGCACCAGGGAAATGTATCTCCACAGGTTC
-TGGGGCCTAGTTACTGTCTGTAAATCCAATACTTGCCTGAAAGCTGTGAAGAAGAAAAAA
-ACCCCTGGCCTTTGGGCCAGGAGGAATCTGTTACTCGAATCCACCCAGGAACTCCCTGGC
-AGTGGATTGTGGGAGGCTCTTGCTTACACTAATCAGCGTGACCTGGACCTGCTGGGCAGG
-ATCCCAGGGTGAACCTGCCTGTGAACTCTGAAGTCACTAGTCCAGCTGGGTGCAGGAGGA
-CTTCAAGTGTGTGGACGAAAGAAAGACTGATGGCTCAAAGGGTGTGAAAAAGTCAGTGAT
-GCTCCCCCTTTCTACTCCAGATCCTGTCCTTCCTGGAGCAAGGTTGAGGGAGTAGGTTTT
-GAAGAGTCCCTTAATATGTGGTGGAACAGGCCAGGAGTTAGAGAAAGGGCTGGCTTCTGT
-TTACCTGCTCACTGGCTCTAGCCAGCCCAGGGACCACATCAATGTGAGAGGAAGCCTCCA
-CCTCATGTTTTCAAACTTAATACTGGAGACTGGCTGAGAACTTACGGACAACATCCTTTC
-TGTCTGAAACAAACAGTCACAAGCAAAGGAAGAGGCTGGGGGACTAGAAAGAGGCCCTGC
-CCTCTAGAAAGCTCAGATCTTGGCTTCTGTTACTCATACTCGGGTGGGCTCCTTAGTCAG
-ATGCCTAAAACATTTTGCCTAAAGCTCGATGGGTTCTGGAGGACAGTGTGGCTTGTCACA
-GGCCTAGAGTCTGAGGGAGGGGAGTGGGAGTCTCAGCAATCTCTTGGTCTTGGCTTCATG
-GCAACCACTGCTCACCCTTCAACATGCCTGGTTTAGGCAGCAGCTTGGGCTGGGAAGAGG
-TGGTGGCAGAGTCTCAAAGCTGAGATGCTGAGAGAGATAGCTCCCTGAGCTGGGCCATCT
-GACTTCTACCTCCCATGTTTGCTCTCCCAACTCATTAGCTCCTGGGCAGCATCCTCCTGA
-GCCACATGTGCAGGTACTGGAAAACCTCCATCTTGGCTCCCAGAGCTCTAGGAACTCTTC
-ATCACAACTAGATTTGCCTCTTCTAAGTGTCTATGAGCTTGCACCATATTTAATAAATTG
-GGAATGGGTTTGGGGTATTAATGCAATGTGTGGTGGTTGTATTGGAGCAGGGGGAATTGA
-TAAAGGAGAGTGGTTGCTGTTAATATTATCTTATCTATTGGGTGGTATGTGAAATATTGT
-ACATAGACCTGATGAGTTGTGGGACCAGATGTCATCTCTGGTCAGAGTTTACTTGCTATA
-TAGACTGTACTTATGTGTGAAGTTTGCAAGCTTGCTTTAGGGCTGAGCCCTGGACTCCCA
-GCAGCAGCACAGTTCAGCATTGTGTGGCTGGTTGTTTCCTGGCTGTCCCCAGCAAGTGTA
-GGAGTGGTGGGCCTGAACTGGGCCATTGATCAGACTAAATAAATTAAGCAGTTAACATAA
-CTGGCAA"""  # noqa: E501
-    assert limk2_seguid.read_text() == limk2_seguid_expected
-
-    invalid = tmp_path / "invalid.fasta"
-    with pytest.raises(KeyError):
-        test_cool_seq_tool.get_fasta_file("NM_2529.3", invalid)

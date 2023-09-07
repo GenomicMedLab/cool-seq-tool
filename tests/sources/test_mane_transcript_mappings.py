@@ -1,14 +1,6 @@
 """Module for testing MANE Transcript Mapping class."""
 import pytest
 
-from cool_seq_tool.data_sources import MANETranscriptMappings
-
-
-@pytest.fixture(scope="module")
-def test_mane_transcript_mappings():
-    """Build MANE transcript mappings test fixture."""
-    return MANETranscriptMappings()
-
 
 @pytest.fixture(scope="module")
 def braf_select():
