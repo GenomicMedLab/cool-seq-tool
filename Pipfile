@@ -11,11 +11,11 @@ pyliftover = "*"
 pandas = "*"
 hgvs = "*"
 "biocommons.seqrepo" = "*"
-pydantic = "*"
+pydantic = "==2.1.1"
 fastapi = "*"
 uvicorn = "*"
-gene-normalizer = ">=0.1.34, != 0.2.0, != 0.2.1, != 0.2.2, != 0.2.3, != 0.2.4, != 0.2.5, != 0.2.6, != 0.2.7, != 0.2.8"
-"ga4gh.vrs" = "*"
+gene-normalizer = {editable = true, path = "cancervariants/gene-normalization"}
+"ga4gh.vrs" = {editable = true, path = "ga4gh/vrs-python"}
 
 [dev-packages]
 cool_seq_tool = {editable = true, path = "."}
