@@ -12,7 +12,6 @@ import math
 from typing import Optional, Set, Tuple, Dict, List, Union
 
 import pandas as pd
-from gene.query import QueryHandler as GeneQueryHandler
 
 from cool_seq_tool.schemas import (
     AnnotationLayer, Assembly, ResidueMode, TranscriptPriorityLabel
@@ -37,8 +36,7 @@ class MANETranscript:
     def __init__(self, seqrepo_access: SeqRepoAccess,
                  transcript_mappings: TranscriptMappings,
                  mane_transcript_mappings: MANETranscriptMappings,
-                 uta_db: UTADatabase,
-                 gene_query_handler: GeneQueryHandler) -> None:
+                 uta_db: UTADatabase) -> None:
         """Initialize the MANETranscript class.
 
         :param seqrepo_access: Access to seqrepo queries
@@ -47,13 +45,13 @@ class MANETranscript:
         :param mane_transcript_mappings: Access to MANE Transcript accession mapping
             data
         :param uta_db: UTADatabase instance to give access to query UTA database
-        :param gene_query_handler: Access to Gene Normalizer
         """
         self.seqrepo_access = seqrepo_access
         self.transcript_mappings = transcript_mappings
         self.mane_transcript_mappings = mane_transcript_mappings
         self.uta_db = uta_db
-        self.gene_query_handler = gene_query_handler
+        # Adding back in issue-194
+        # self.gene_query_handler = gene_query_handler
 
     @staticmethod
     def _get_reading_frame(pos: int) -> int:

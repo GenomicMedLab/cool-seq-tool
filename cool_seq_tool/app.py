@@ -65,7 +65,7 @@ class CoolSeqTool:
             self.seqrepo_access, self.transcript_mappings, self.uta_db)
         self.mane_transcript = MANETranscript(
             self.seqrepo_access, self.transcript_mappings,
-            self.mane_transcript_mappings, self.uta_db, self.gene_query_handler)
+            self.mane_transcript_mappings, self.uta_db)
 
     @staticmethod
     def service_meta() -> ServiceMeta:

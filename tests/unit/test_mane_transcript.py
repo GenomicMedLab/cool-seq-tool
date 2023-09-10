@@ -4,8 +4,6 @@ import copy
 import pytest
 from mock import patch
 import pandas as pd
-from gene.query import QueryHandler as GeneQueryHandler
-from gene.database import create_db
 
 from cool_seq_tool.data_sources import MANETranscript, MANETranscriptMappings, \
     SeqRepoAccess, TranscriptMappings, UTADatabase
@@ -17,8 +15,7 @@ from cool_seq_tool.schemas import AnnotationLayer, Assembly, ResidueMode
 def test_mane_transcript(test_seqrepo_access):
     """Build mane transcript test fixture."""
     return MANETranscript(test_seqrepo_access, TranscriptMappings(),
-                          MANETranscriptMappings(), UTADatabase(),
-                          GeneQueryHandler(create_db()))
+                          MANETranscriptMappings(), UTADatabase())
 
 
 @pytest.fixture(scope="module")
