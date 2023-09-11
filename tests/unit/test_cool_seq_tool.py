@@ -352,7 +352,7 @@ async def test_tpm3(test_cool_seq_tool, tpm3_exon1_exon8,
     g_to_t_resp = \
         await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon1_exon8)
-    t_to_g_resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.dict())  # noqa: E501
+    t_to_g_resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
     genomic_data_assertion_checks(t_to_g_resp, tpm3_exon1_exon8_t_to_g)
 
     inputs["residue_mode"] = "INTER-RESIDUE"
@@ -361,7 +361,7 @@ async def test_tpm3(test_cool_seq_tool, tpm3_exon1_exon8,
     g_to_t_resp = \
         await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon1_exon8_t_to_g)
-    t_to_g_resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.dict())  # noqa: E501
+    t_to_g_resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
     genomic_data_assertion_checks(t_to_g_resp, tpm3_exon1_exon8_t_to_g)
 
     # No strand
@@ -372,7 +372,7 @@ async def test_tpm3(test_cool_seq_tool, tpm3_exon1_exon8,
     g_to_t_resp = \
         await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon1_exon8)
-    t_to_g_resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.dict())  # noqa: E501
+    t_to_g_resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
     genomic_data_assertion_checks(t_to_g_resp, tpm3_exon1_exon8_t_to_g)
 
     # Offset, no strand
@@ -384,7 +384,7 @@ async def test_tpm3(test_cool_seq_tool, tpm3_exon1_exon8,
     g_to_t_resp = \
         await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon1_exon8_offset)
-    t_to_g_resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.dict())  # noqa: E501
+    t_to_g_resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
     genomic_data_assertion_checks(t_to_g_resp, tpm3_exon1_exon8_offset_t_to_g)
 
     # Offset, strand
@@ -392,7 +392,7 @@ async def test_tpm3(test_cool_seq_tool, tpm3_exon1_exon8,
     g_to_t_resp = \
         await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon1_exon8_offset)
-    t_to_g_resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.dict())  # noqa: E501
+    t_to_g_resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
     genomic_data_assertion_checks(t_to_g_resp, tpm3_exon1_exon8_offset_t_to_g)
 
     # Test only setting start
@@ -409,7 +409,7 @@ async def test_tpm3(test_cool_seq_tool, tpm3_exon1_exon8,
     g_to_t_resp = \
         await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon1_g)
-    t_to_g_resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.dict())  # noqa: E501
+    t_to_g_resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
     genomic_data_assertion_checks(t_to_g_resp, tpm3_exon1_exon8_t_to_g)
 
     # Test only setting end
@@ -425,7 +425,7 @@ async def test_tpm3(test_cool_seq_tool, tpm3_exon1_exon8,
     g_to_t_resp = \
         await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon8_g)
-    t_to_g_resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.dict())  # noqa: E501
+    t_to_g_resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
     genomic_data_assertion_checks(t_to_g_resp, tpm3_exon1_exon8_t_to_g)
 
 
@@ -453,7 +453,7 @@ async def test_braf(test_cool_seq_tool, mane_braf):
 
     mane_braf_t_to_g = copy.deepcopy(mane_braf)
     t_to_g_resp = \
-        await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.dict())  # noqa: E501
+        await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
     mane_braf_t_to_g.start = 140808062
     genomic_data_assertion_checks(t_to_g_resp, mane_braf_t_to_g)
 
@@ -475,7 +475,7 @@ async def test_wee1(test_cool_seq_tool, wee1_exon2_exon11, mane_wee1_exon2_exon1
     g_to_t_resp = \
         await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, wee1_exon2_exon11)
-    t_to_g_resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.dict())  # noqa: E501
+    t_to_g_resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
     genomic_data_assertion_checks(t_to_g_resp, wee1_exon2_exon11_t_to_g)
 
     inputs["gene"] = "wee1"
@@ -483,7 +483,7 @@ async def test_wee1(test_cool_seq_tool, wee1_exon2_exon11, mane_wee1_exon2_exon1
     g_to_t_resp = \
         await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, wee1_exon2_exon11)
-    t_to_g_resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.dict())  # noqa: E501
+    t_to_g_resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
     genomic_data_assertion_checks(t_to_g_resp, wee1_exon2_exon11_t_to_g)
 
     # MANE
@@ -493,7 +493,7 @@ async def test_wee1(test_cool_seq_tool, wee1_exon2_exon11, mane_wee1_exon2_exon1
     g_to_t_resp = \
         await test_cool_seq_tool.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, mane_wee1_exon2_exon11)
-    t_to_g_resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.dict())  # noqa: E501
+    t_to_g_resp = await test_cool_seq_tool.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
     genomic_data_assertion_checks(t_to_g_resp, mane_wee1_exon2_exon11_t_to_g)
 
 

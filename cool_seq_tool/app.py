@@ -6,6 +6,7 @@ import logging
 
 from biocommons.seqrepo import SeqRepo
 from gene.query import QueryHandler as GeneQueryHandler
+from gene.database import create_db
 
 from cool_seq_tool.data_sources.alignment_mapper import AlignmentMapper
 from cool_seq_tool.data_sources.uta_database import UTA_DB_URL
@@ -14,7 +15,7 @@ from cool_seq_tool.paths import LRG_REFSEQGENE_PATH, MANE_SUMMARY_PATH, \
 from cool_seq_tool.schemas import Assembly, GenomicData, TranscriptExonData, \
     ResidueMode, GenomicDataResponse, ServiceMeta, TranscriptExonDataResponse
 from cool_seq_tool.data_sources import MANETranscript, MANETranscriptMappings, \
-    SeqRepoAccess, TranscriptMappings, UTADatabase, GeneNormalizer
+    SeqRepoAccess, TranscriptMappings, UTADatabase
 from cool_seq_tool.version import __version__
 
 
@@ -34,25 +35,19 @@ class CoolSeqTool:
         lrg_refseqgene_path: Path = LRG_REFSEQGENE_PATH,
         mane_data_path: Path = MANE_SUMMARY_PATH,
         db_url: str = UTA_DB_URL, gene_query_handler: Optional[GeneQueryHandler] = None,
-        gene_db_url: str = "", gene_db_region: str = "us-east-2",
         sr: Optional[SeqRepo] = None
     ) -> None:
         """Initialize CoolSeqTool class
 
-        :param Path transcript_file_path: The path to transcript_mapping.tsv
-        :param Path lrg_refseqgene_path: The path to LRG_RefSeqGene
-        :param Path mane_data_path: Path to RefSeq MANE summary data
-        :param str db_url: PostgreSQL connection URL
+        :param transcript_file_path: The path to transcript_mapping.tsv
+        :param lrg_refseqgene_path: The path to LRG_RefSeqGene
+        :param mane_data_path: Path to RefSeq MANE summary data
+        :param db_url: PostgreSQL connection URL
             Format: `driver://user:password@host/database/schema`
-        :param Optional[GeneQueryHandler] gene_query_handler: Gene normalizer query
-            handler instance. If this is provided, will use a current instance. If this
-            is not provided, will create a new instance.
-        :param str gene_db_url: URL to gene normalizer dynamodb. Only used when
-            `gene_query_handler` is `None`.
-        :param str gene_db_region: AWS region for gene normalizer db. Only used when
-            `gene_query_handler` is `None`.
-        :param Optional[SeqRepo] sr: SeqRepo instance. If this is not provided, will
-            create a new instance.
+        :param gene_query_handler: Gene normalizer query handler instance. If this is
+            provided, will use a current instance. If this is not provided, will create
+            a new instance.
+        :param sr: SeqRepo instance. If this is not provided, will create a new instance
         """
         if not sr:
             sr = SeqRepo(root_dir=SEQREPO_ROOT_DIR)
@@ -63,14 +58,14 @@ class CoolSeqTool:
         self.mane_transcript_mappings = MANETranscriptMappings(
             mane_data_path=mane_data_path)
         self.uta_db = UTADatabase(db_url=db_url)
-        gene_normalizer = GeneNormalizer(gene_query_handler, gene_db_url,
-                                         gene_db_region)
-        self.gene_query_handler = gene_normalizer.query_handler
+        if not gene_query_handler:
+            gene_query_handler = GeneQueryHandler(create_db())
+        self.gene_query_handler = gene_query_handler
         self.alignment_mapper = AlignmentMapper(
             self.seqrepo_access, self.transcript_mappings, self.uta_db)
         self.mane_transcript = MANETranscript(
             self.seqrepo_access, self.transcript_mappings,
-            self.mane_transcript_mappings, self.uta_db, gene_normalizer)
+            self.mane_transcript_mappings, self.uta_db)
 
     @staticmethod
     def service_meta() -> ServiceMeta:
@@ -242,7 +237,7 @@ class CoolSeqTool:
                 residue_mode=ResidueMode.INTER_RESIDUE
             )
             if start_data.transcript_exon_data:
-                start_data = start_data.transcript_exon_data.dict()
+                start_data = start_data.transcript_exon_data.model_dump()
             else:
                 return self._return_warnings(resp, start_data.warnings[0])
         else:
@@ -257,7 +252,7 @@ class CoolSeqTool:
                 residue_mode=ResidueMode.INTER_RESIDUE
             )
             if end_data.transcript_exon_data:
-                end_data = end_data.transcript_exon_data.dict()
+                end_data = end_data.transcript_exon_data.model_dump()
             else:
                 return self._return_warnings(resp, end_data.warnings[0])
         else:

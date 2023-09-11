@@ -14,8 +14,8 @@ hgvs = "*"
 pydantic = "*"
 fastapi = "*"
 uvicorn = "*"
-gene-normalizer = ">=0.1.34, != 0.2.0, != 0.2.1, != 0.2.2, != 0.2.3, != 0.2.4, != 0.2.5, != 0.2.6, != 0.2.7, != 0.2.8"
-"ga4gh.vrs" = "*"
+gene-normalizer = "~=0.3.0.dev0"
+"ga4gh.vrs" = "~=2.0.0.dev0"
 
 [dev-packages]
 cool_seq_tool = {editable = true, path = "."}
