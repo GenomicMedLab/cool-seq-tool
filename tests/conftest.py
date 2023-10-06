@@ -42,9 +42,3 @@ def test_transcript_mappings(test_cool_seq_tool):
 def test_mane_transcript_mappings(test_cool_seq_tool):
     """Create MANE Transcript Mappings test fixture"""
     return test_cool_seq_tool.mane_transcript_mappings
-
-
-@pytest.fixture(scope="session")
-def test_gene_query_handler(test_cool_seq_tool):
-    """Create Gene Query Handler test fixture"""
-    return test_cool_seq_tool.gene_query_handler
