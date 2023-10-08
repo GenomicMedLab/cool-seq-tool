@@ -9,6 +9,8 @@ from fastapi import Query
 from cool_seq_tool.routers import cool_seq_tool, SERVICE_NAME, RESP_DESCR, Tags
 from cool_seq_tool.schemas import Assembly, ToGenomicService, ToCdnaService, \
     ResidueMode
+from cool_seq_tool.utils import service_meta
+
 
 logger = logging.getLogger("cool_seq_tool")
 
@@ -51,7 +53,7 @@ async def p_to_c(
     return ToCdnaService(
         c_data=c_data,
         warnings=[w] if w else [],
-        service_meta=cool_seq_tool.service_meta()
+        service_meta=service_meta()
     )
 
 
@@ -100,7 +102,7 @@ async def c_to_g(
     return ToGenomicService(
         g_data=g_data,
         warnings=[w] if w else [],
-        service_meta=cool_seq_tool.service_meta()
+        service_meta=service_meta()
     )
 
 
@@ -144,5 +146,5 @@ async def p_to_g(
     return ToGenomicService(
         g_data=g_data,
         warnings=[w] if w else [],
-        service_meta=cool_seq_tool.service_meta()
+        service_meta=service_meta()
     )

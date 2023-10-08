@@ -419,10 +419,10 @@ class ManeDataService(BaseModelForbidExtra):
 class CdnaRepresentation(BaseModelForbidExtra):
     """Model response for cDNA representation"""
 
-    c_ac: str
-    c_start_pos: str
-    c_end_pos: str
-    cds_start: int
+    c_ac: StrictStr
+    c_start_pos: StrictInt
+    c_end_pos: StrictInt
+    cds_start: StrictInt
     residue_mode: Literal[ResidueMode.INTER_RESIDUE] = ResidueMode.INTER_RESIDUE.value
 
     model_config = ConfigDict(

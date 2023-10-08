@@ -1,7 +1,7 @@
 """Module for routers"""
 from enum import Enum
 
-from cool_seq_tool import CoolSeqTool
+from cool_seq_tool.app import CoolSeqTool
 
 
 cool_seq_tool = CoolSeqTool()

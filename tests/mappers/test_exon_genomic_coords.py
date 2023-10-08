@@ -11,7 +11,7 @@ from cool_seq_tool.schemas import GenomicData, TranscriptExonData
 @pytest.fixture(scope="module")
 def test_egc_mapper(test_cool_seq_tool):
     """Build mane ExonGenomicCoordsMapper test fixture."""
-    return test_cool_seq_tool.exon_genomic_coords_mapper
+    return test_cool_seq_tool.ex_g_coords_mapper
 
 
 @pytest.fixture(scope="module")

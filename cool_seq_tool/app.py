@@ -53,5 +53,5 @@ class CoolSeqTool:
         self.mane_transcript = MANETranscript(
             self.seqrepo_access, self.transcript_mappings,
             self.mane_transcript_mappings, self.uta_db)
-        self.exon_genomic_coords_mapper = ExonGenomicCoordsMapper(self.uta_db,
-                                                                  self.mane_transcript)
+        self.ex_g_coords_mapper = ExonGenomicCoordsMapper(self.uta_db,
+                                                          self.mane_transcript)
