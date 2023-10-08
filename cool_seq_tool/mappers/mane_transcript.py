@@ -338,18 +338,18 @@ class MANETranscript:
     def _validate_references(self, ac: str, coding_start_site: int,
                              start_pos: int, end_pos: int,
                              mane_transcript: Dict, expected_ref: str,
-                             anno: AnnotationLayer, residue_mode: str) -> bool:
+                             anno: AnnotationLayer, residue_mode: ResidueMode) -> bool:
         """Return whether or not reference changes are the same.
 
-        :param str ac: Query accession
-        :param int coding_start_site: ac's coding start site
-        :param int start_pos: Original start position change
-        :param int end_pos: Origin end position change
-        :param Dict mane_transcript: Ensembl and RefSeq transcripts with
-            corresponding position change
-        :param str expected_ref: Reference at position given during input
-        :param AnnotationLayer anno: Annotation layer we are starting from
-        :param ResidueMode residue_mode: Residue mode
+        :param ac: Query accession
+        :param coding_start_site: ac's coding start site
+        :param start_pos: Original start position change
+        :param end_pos: Origin end position change
+        :param mane_transcript: Ensembl and RefSeq transcripts with corresponding
+            position change
+        :param expected_ref: Reference at position given during input
+        :param anno: Annotation layer we are starting from
+        :param residue_mode: Residue mode for `start_pos` and `end_pos`
         :return: `True` if reference check passes. `False` otherwise.
         """
         if anno == AnnotationLayer.CDNA:
@@ -432,7 +432,7 @@ class MANETranscript:
     async def get_longest_compatible_transcript(
             self, gene: str, start_pos: int, end_pos: int,
             start_annotation_layer: AnnotationLayer, ref: Optional[str] = None,
-            residue_mode: str = ResidueMode.RESIDUE,
+            residue_mode: ResidueMode = ResidueMode.RESIDUE,
             mane_transcripts: Optional[Set] = None,
             alt_ac: Optional[str] = None
     ) -> Optional[Dict]:
@@ -440,15 +440,14 @@ class MANETranscript:
         Try GRCh38 first, then GRCh37.
         Transcript is compatible if it passes validation checks.
 
-        :param str gene: Gene symbol
-        :param int start_pos: Start position change
-        :param int end_pos: End position change
-        :param  AnnotationLayer start_annotation_layer: Starting annotation layer.
-        :param str ref: Reference at position given during input
-        :param str residue_mode: Residue mode
-        :param Optional[Set] mane_transcripts: Attempted mane transcripts that were not
-            compatible
-        :param Optional[str] alt_ac: Genomic accession
+        :param gene: Gene symbol
+        :param start_pos: Start position change
+        :param end_pos: End position change
+        :param start_annotation_layer: Starting annotation layer.
+        :param ref: Reference at position given during input
+        :param residue_mode: Residue mode for `start_pos` and `end_pos`
+        :param mane_transcripts: Attempted mane transcripts that were not compatible
+        :param alt_ac: Genomic accession
         :return: Data for longest compatible transcript
         """
         inter_residue_pos, _ = get_inter_residue_pos(

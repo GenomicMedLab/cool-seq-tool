@@ -5,13 +5,13 @@ import copy
 
 import pytest
 
-from cool_seq_tool.schemas import GenomicData, TranscriptExonData
+from cool_seq_tool.schemas import GenomicData, TranscriptExonData, ResidueMode
 
 
 @pytest.fixture(scope="module")
 def test_egc_mapper(test_cool_seq_tool):
     """Build mane ExonGenomicCoordsMapper test fixture."""
-    return test_cool_seq_tool.exon_genomic_coords_mapper
+    return test_cool_seq_tool.ex_g_coords_mapper
 
 
 @pytest.fixture(scope="module")
@@ -352,7 +352,7 @@ async def test_tpm3(test_egc_mapper, tpm3_exon1_exon8,
     t_to_g_resp = await test_egc_mapper.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
     genomic_data_assertion_checks(t_to_g_resp, tpm3_exon1_exon8_t_to_g)
 
-    inputs["residue_mode"] = "INTER-RESIDUE"
+    inputs["residue_mode"] = ResidueMode.INTER_RESIDUE
     inputs["start"] = 154192135
     inputs["end"] = 154170399
     g_to_t_resp = \
@@ -375,7 +375,7 @@ async def test_tpm3(test_egc_mapper, tpm3_exon1_exon8,
     # Offset, no strand
     inputs["start"] = 154192132
     inputs["end"] = 154170404
-    inputs["residue_mode"] = "INTER-RESIDUE"
+    inputs["residue_mode"] = ResidueMode.INTER_RESIDUE
     tpm3_exon1_exon8_offset_t_to_g = copy.deepcopy(tpm3_exon1_exon8_offset)
     tpm3_exon1_exon8_offset_t_to_g.start = 154192132
     g_to_t_resp = \
@@ -398,7 +398,7 @@ async def test_tpm3(test_egc_mapper, tpm3_exon1_exon8,
         "start": 154192135,
         "strand": -1,
         "transcript": "NM_152263.3",
-        "residue_mode": "inter-residue"
+        "residue_mode": ResidueMode.INTER_RESIDUE
     }
     tpm3_exon1_exon8_t_to_g = copy.deepcopy(tpm3_exon1_g)
     tpm3_exon1_exon8_t_to_g.start = 154192135
@@ -415,7 +415,7 @@ async def test_tpm3(test_egc_mapper, tpm3_exon1_exon8,
         "end": 154170399,
         "strand": -1,
         "transcript": "NM_152263.3",
-        "residue_mode": "inter-residue"
+        "residue_mode": ResidueMode.INTER_RESIDUE
     }
     tpm3_exon1_exon8_t_to_g = copy.deepcopy(tpm3_exon8_g)
 
@@ -623,7 +623,7 @@ async def test_valid_inputs(test_egc_mapper):
         "start": 154437254,
         "end": 154437299,
         "gene": "GDI1",
-        "residue_mode": "inter-residue"
+        "residue_mode": ResidueMode.INTER_RESIDUE
     }
     resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     assert resp.genomic_data

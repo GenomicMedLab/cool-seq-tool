@@ -8,6 +8,7 @@ from fastapi import Query
 from cool_seq_tool.routers import cool_seq_tool, SERVICE_NAME, RESP_DESCR, \
     UNHANDLED_EXCEPTION_MSG, Tags
 from cool_seq_tool.schemas import AnnotationLayer, ManeDataService, ResidueMode
+from cool_seq_tool.utils import service_meta
 
 
 logger = logging.getLogger("cool_seq_tool")
@@ -74,5 +75,5 @@ async def get_mane_data(
     return ManeDataService(
         mane_data=mane_data,
         warnings=warnings,
-        service_meta=cool_seq_tool.service_meta()
+        service_meta=service_meta()
     )
