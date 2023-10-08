@@ -3,7 +3,6 @@ from enum import Enum
 
 from cool_seq_tool.app import CoolSeqTool
 
-
 cool_seq_tool = CoolSeqTool()
 SERVICE_NAME = "cool_seq_tool"
 RESP_DESCR = "A response to a validly-formed query."

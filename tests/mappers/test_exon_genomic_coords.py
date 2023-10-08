@@ -1,11 +1,11 @@
 """Module for testing that Cool Seq Tool works correctly."""
-from datetime import datetime
-import re
 import copy
+import re
+from datetime import datetime
 
 import pytest
 
-from cool_seq_tool.schemas import GenomicData, TranscriptExonData, ResidueMode
+from cool_seq_tool.schemas import GenomicData, ResidueMode, TranscriptExonData
 
 
 @pytest.fixture(scope="module")
@@ -24,7 +24,7 @@ def tpm3_exon1():
         "exon": 1,
         "exon_offset": 0,
         "transcript": "NM_152263.3",
-        "strand": -1
+        "strand": -1,
     }
     return TranscriptExonData(**params)
 
@@ -39,7 +39,7 @@ def tpm3_exon8():
         "exon": 8,
         "exon_offset": 0,
         "transcript": "NM_152263.3",
-        "strand": -1
+        "strand": -1,
     }
     return TranscriptExonData(**params)
 
@@ -57,7 +57,7 @@ def tpm3_exon1_g():
         "exon_start_offset": 0,
         "exon_end_offset": None,
         "transcript": "NM_152263.3",
-        "strand": -1
+        "strand": -1,
     }
     return GenomicData(**params)
 
@@ -75,7 +75,7 @@ def tpm3_exon8_g():
         "exon_start_offset": None,
         "exon_end_offset": 0,
         "transcript": "NM_152263.3",
-        "strand": -1
+        "strand": -1,
     }
     return GenomicData(**params)
 
@@ -93,7 +93,7 @@ def tpm3_exon1_exon8():
         "exon_end_offset": 0,
         "exon_start_offset": 0,
         "transcript": "NM_152263.3",
-        "strand": -1
+        "strand": -1,
     }
     return GenomicData(**params)
 
@@ -111,7 +111,7 @@ def tpm3_exon1_t_to_g():
         "exon_end_offset": None,
         "exon_start_offset": 0,
         "transcript": "NM_152263.3",
-        "strand": -1
+        "strand": -1,
     }
     return GenomicData(**params)
 
@@ -129,7 +129,7 @@ def tpm3_exon8_t_to_g():
         "exon_end_offset": 0,
         "exon_start_offset": None,
         "transcript": "NM_152263.3",
-        "strand": -1
+        "strand": -1,
     }
     return GenomicData(**params)
 
@@ -147,7 +147,7 @@ def tpm3_exon1_exon8_t_to_g():
         "exon_end_offset": 0,
         "exon_start_offset": 0,
         "transcript": "NM_152263.3",
-        "strand": -1
+        "strand": -1,
     }
     return GenomicData(**params)
 
@@ -165,7 +165,7 @@ def tpm3_exon1_exon8_offset():
         "exon_end": 8,
         "exon_end_offset": -5,
         "transcript": "NM_152263.3",
-        "strand": -1
+        "strand": -1,
     }
     return GenomicData(**params)
 
@@ -183,7 +183,7 @@ def mane_braf():
         "exon_end": 15,
         "exon_end_offset": -57,
         "transcript": "NM_004333.6",
-        "strand": -1
+        "strand": -1,
     }
     return GenomicData(**params)
 
@@ -201,7 +201,7 @@ def wee1_exon2_exon11():
         "exon_end": 11,
         "exon_end_offset": 0,
         "transcript": "NM_003390.3",
-        "strand": 1
+        "strand": 1,
     }
     return GenomicData(**params)
 
@@ -219,7 +219,7 @@ def mane_wee1_exon2_exon11():
         "exon_end": 10,
         "exon_end_offset": 146,
         "transcript": "NM_003390.4",
-        "strand": 1
+        "strand": 1,
     }
     return GenomicData(**params)
 
@@ -237,7 +237,7 @@ def ntrk1_exon10_exon17():
         "exon_end_offset": 0,
         "exon_start_offset": 0,
         "transcript": "NM_002529.3",
-        "strand": 1
+        "strand": 1,
     }
     return GenomicData(**params)
 
@@ -272,8 +272,7 @@ def genomic_data_assertion_checks(actual, expected=None, is_valid=True):
     check_service_meta(actual.service_meta)
 
 
-def transcript_exon_data_assertion_checks(actual, expected=None,
-                                          is_valid=True):
+def transcript_exon_data_assertion_checks(actual, expected=None, is_valid=True):
     """Check that actual matches expected for both valid and invalid
     transcript exon data responses
 
@@ -297,8 +296,7 @@ async def test__genomic_to_transcript(test_egc_mapper, tpm3_exon1, tpm3_exon8):
     method works correctly.
     """
     resp = await test_egc_mapper._genomic_to_transcript_exon_coordinate(
-        "NC_000001.11", 154192135, strand=-1, transcript="NM_152263.3",
-        gene="TPM3"
+        "NC_000001.11", 154192135, strand=-1, transcript="NM_152263.3", gene="TPM3"
     )
     transcript_exon_data_assertion_checks(resp, tpm3_exon1)
 
@@ -313,8 +311,7 @@ async def test__genomic_to_transcript(test_egc_mapper, tpm3_exon1, tpm3_exon8):
     transcript_exon_data_assertion_checks(resp, tpm3_exon1)
 
     resp = await test_egc_mapper._genomic_to_transcript_exon_coordinate(
-        "NC_000001.11", 154170399, strand=-1, transcript="NM_152263.3",
-        is_start=False
+        "NC_000001.11", 154170399, strand=-1, transcript="NM_152263.3", is_start=False
     )
     transcript_exon_data_assertion_checks(resp, tpm3_exon8)
 
@@ -330,9 +327,14 @@ async def test__genomic_to_transcript(test_egc_mapper, tpm3_exon1, tpm3_exon8):
 
 
 @pytest.mark.asyncio
-async def test_tpm3(test_egc_mapper, tpm3_exon1_exon8,
-                    tpm3_exon1_exon8_offset, tpm3_exon1_g, tpm3_exon8_g,
-                    tpm3_exon1_exon8_t_to_g):
+async def test_tpm3(
+    test_egc_mapper,
+    tpm3_exon1_exon8,
+    tpm3_exon1_exon8_offset,
+    tpm3_exon1_g,
+    tpm3_exon8_g,
+    tpm3_exon1_exon8_t_to_g,
+):
     """Test TPM3 genomic_to_transcript_exon_coordinates and
     transcript_to_genomic_coordinates.
     """
@@ -341,24 +343,26 @@ async def test_tpm3(test_egc_mapper, tpm3_exon1_exon8,
         "start": 154192136,
         "end": 154170400,
         "strand": -1,
-        "transcript": "NM_152263.3"
+        "transcript": "NM_152263.3",
     }
     tpm3_exon1_exon8_t_to_g = copy.deepcopy(tpm3_exon1_exon8)
     tpm3_exon1_exon8_t_to_g.start = 154192135
 
-    g_to_t_resp = \
-        await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
+    g_to_t_resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon1_exon8)
-    t_to_g_resp = await test_egc_mapper.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
+    t_to_g_resp = await test_egc_mapper.transcript_to_genomic_coordinates(
+        **g_to_t_resp.genomic_data.model_dump()
+    )
     genomic_data_assertion_checks(t_to_g_resp, tpm3_exon1_exon8_t_to_g)
 
     inputs["residue_mode"] = ResidueMode.INTER_RESIDUE
     inputs["start"] = 154192135
     inputs["end"] = 154170399
-    g_to_t_resp = \
-        await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
+    g_to_t_resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon1_exon8_t_to_g)
-    t_to_g_resp = await test_egc_mapper.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
+    t_to_g_resp = await test_egc_mapper.transcript_to_genomic_coordinates(
+        **g_to_t_resp.genomic_data.model_dump()
+    )
     genomic_data_assertion_checks(t_to_g_resp, tpm3_exon1_exon8_t_to_g)
 
     # No strand
@@ -366,10 +370,11 @@ async def test_tpm3(test_egc_mapper, tpm3_exon1_exon8,
     del inputs["residue_mode"]
     inputs["start"] = 154192136
     inputs["end"] = 154170400
-    g_to_t_resp = \
-        await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
+    g_to_t_resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon1_exon8)
-    t_to_g_resp = await test_egc_mapper.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
+    t_to_g_resp = await test_egc_mapper.transcript_to_genomic_coordinates(
+        **g_to_t_resp.genomic_data.model_dump()
+    )
     genomic_data_assertion_checks(t_to_g_resp, tpm3_exon1_exon8_t_to_g)
 
     # Offset, no strand
@@ -378,18 +383,20 @@ async def test_tpm3(test_egc_mapper, tpm3_exon1_exon8,
     inputs["residue_mode"] = ResidueMode.INTER_RESIDUE
     tpm3_exon1_exon8_offset_t_to_g = copy.deepcopy(tpm3_exon1_exon8_offset)
     tpm3_exon1_exon8_offset_t_to_g.start = 154192132
-    g_to_t_resp = \
-        await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
+    g_to_t_resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon1_exon8_offset)
-    t_to_g_resp = await test_egc_mapper.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
+    t_to_g_resp = await test_egc_mapper.transcript_to_genomic_coordinates(
+        **g_to_t_resp.genomic_data.model_dump()
+    )
     genomic_data_assertion_checks(t_to_g_resp, tpm3_exon1_exon8_offset_t_to_g)
 
     # Offset, strand
     inputs["strand"] = -1
-    g_to_t_resp = \
-        await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
+    g_to_t_resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon1_exon8_offset)
-    t_to_g_resp = await test_egc_mapper.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
+    t_to_g_resp = await test_egc_mapper.transcript_to_genomic_coordinates(
+        **g_to_t_resp.genomic_data.model_dump()
+    )
     genomic_data_assertion_checks(t_to_g_resp, tpm3_exon1_exon8_offset_t_to_g)
 
     # Test only setting start
@@ -398,15 +405,16 @@ async def test_tpm3(test_egc_mapper, tpm3_exon1_exon8,
         "start": 154192135,
         "strand": -1,
         "transcript": "NM_152263.3",
-        "residue_mode": ResidueMode.INTER_RESIDUE
+        "residue_mode": ResidueMode.INTER_RESIDUE,
     }
     tpm3_exon1_exon8_t_to_g = copy.deepcopy(tpm3_exon1_g)
     tpm3_exon1_exon8_t_to_g.start = 154192135
 
-    g_to_t_resp = \
-        await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
+    g_to_t_resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon1_g)
-    t_to_g_resp = await test_egc_mapper.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
+    t_to_g_resp = await test_egc_mapper.transcript_to_genomic_coordinates(
+        **g_to_t_resp.genomic_data.model_dump()
+    )
     genomic_data_assertion_checks(t_to_g_resp, tpm3_exon1_exon8_t_to_g)
 
     # Test only setting end
@@ -415,14 +423,15 @@ async def test_tpm3(test_egc_mapper, tpm3_exon1_exon8,
         "end": 154170399,
         "strand": -1,
         "transcript": "NM_152263.3",
-        "residue_mode": ResidueMode.INTER_RESIDUE
+        "residue_mode": ResidueMode.INTER_RESIDUE,
     }
     tpm3_exon1_exon8_t_to_g = copy.deepcopy(tpm3_exon8_g)
 
-    g_to_t_resp = \
-        await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
+    g_to_t_resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon8_g)
-    t_to_g_resp = await test_egc_mapper.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
+    t_to_g_resp = await test_egc_mapper.transcript_to_genomic_coordinates(
+        **g_to_t_resp.genomic_data.model_dump()
+    )
     genomic_data_assertion_checks(t_to_g_resp, tpm3_exon1_exon8_t_to_g)
 
 
@@ -436,21 +445,20 @@ async def test_braf(test_egc_mapper, mane_braf):
         "start": 140501360,
         "end": 140453136,
         "strand": -1,
-        "gene": "BRAF"
+        "gene": "BRAF",
     }
     # MANE
-    g_to_t_resp = \
-        await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
+    g_to_t_resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, mane_braf)
 
     del inputs["strand"]
-    g_to_t_resp = \
-        await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
+    g_to_t_resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, mane_braf)
 
     mane_braf_t_to_g = copy.deepcopy(mane_braf)
-    t_to_g_resp = \
-        await test_egc_mapper.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
+    t_to_g_resp = await test_egc_mapper.transcript_to_genomic_coordinates(
+        **g_to_t_resp.genomic_data.model_dump()
+    )
     mane_braf_t_to_g.start = 140808062
     genomic_data_assertion_checks(t_to_g_resp, mane_braf_t_to_g)
 
@@ -465,118 +473,144 @@ async def test_wee1(test_egc_mapper, wee1_exon2_exon11, mane_wee1_exon2_exon11):
         "start": 9597640,
         "end": 9609996,
         "strand": 1,
-        "transcript": "NM_003390.3"
+        "transcript": "NM_003390.3",
     }
     wee1_exon2_exon11_t_to_g = copy.deepcopy(wee1_exon2_exon11)
     wee1_exon2_exon11_t_to_g.start = 9576092
-    g_to_t_resp = \
-        await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
+    g_to_t_resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, wee1_exon2_exon11)
-    t_to_g_resp = await test_egc_mapper.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
+    t_to_g_resp = await test_egc_mapper.transcript_to_genomic_coordinates(
+        **g_to_t_resp.genomic_data.model_dump()
+    )
     genomic_data_assertion_checks(t_to_g_resp, wee1_exon2_exon11_t_to_g)
 
     inputs["gene"] = "wee1"
     del inputs["strand"]
-    g_to_t_resp = \
-        await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
+    g_to_t_resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, wee1_exon2_exon11)
-    t_to_g_resp = await test_egc_mapper.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
+    t_to_g_resp = await test_egc_mapper.transcript_to_genomic_coordinates(
+        **g_to_t_resp.genomic_data.model_dump()
+    )
     genomic_data_assertion_checks(t_to_g_resp, wee1_exon2_exon11_t_to_g)
 
     # MANE
     del inputs["transcript"]
     mane_wee1_exon2_exon11_t_to_g = copy.deepcopy(mane_wee1_exon2_exon11)
     mane_wee1_exon2_exon11_t_to_g.start = 9576092
-    g_to_t_resp = \
-        await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
+    g_to_t_resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, mane_wee1_exon2_exon11)
-    t_to_g_resp = await test_egc_mapper.transcript_to_genomic_coordinates(**g_to_t_resp.genomic_data.model_dump())  # noqa: E501
+    t_to_g_resp = await test_egc_mapper.transcript_to_genomic_coordinates(
+        **g_to_t_resp.genomic_data.model_dump()
+    )
     genomic_data_assertion_checks(t_to_g_resp, mane_wee1_exon2_exon11_t_to_g)
 
 
 @pytest.mark.asyncio
-async def test_transcript_to_genomic(test_egc_mapper, tpm3_exon1_exon8_t_to_g,
-                                     tpm3_exon1_t_to_g, tpm3_exon8_t_to_g,
-                                     ntrk1_exon10_exon17):
+async def test_transcript_to_genomic(
+    test_egc_mapper,
+    tpm3_exon1_exon8_t_to_g,
+    tpm3_exon1_t_to_g,
+    tpm3_exon8_t_to_g,
+    ntrk1_exon10_exon17,
+):
     """Test that transcript_to_genomic_coordinates works correctly."""
     # TPM3
     resp = await test_egc_mapper.transcript_to_genomic_coordinates(
-        exon_start=None, exon_end=8, transcript="NM_152263.3")
+        exon_start=None, exon_end=8, transcript="NM_152263.3"
+    )
     genomic_data_assertion_checks(resp, tpm3_exon8_t_to_g)
 
     resp = await test_egc_mapper.transcript_to_genomic_coordinates(
-        exon_start=1, exon_end=None, transcript="NM_152263.3")
+        exon_start=1, exon_end=None, transcript="NM_152263.3"
+    )
     genomic_data_assertion_checks(resp, tpm3_exon1_t_to_g)
 
     resp = await test_egc_mapper.transcript_to_genomic_coordinates(
-        exon_start=None, exon_end=8, transcript="NM_152263.3       ")
+        exon_start=None, exon_end=8, transcript="NM_152263.3       "
+    )
     genomic_data_assertion_checks(resp, tpm3_exon8_t_to_g)
 
     resp = await test_egc_mapper.transcript_to_genomic_coordinates(
-        exon_start=None, exon_end=8, gene="TPM3", transcript="NM_152263.3")
+        exon_start=None, exon_end=8, gene="TPM3", transcript="NM_152263.3"
+    )
     genomic_data_assertion_checks(resp, tpm3_exon8_t_to_g)
 
     resp = await test_egc_mapper.transcript_to_genomic_coordinates(
-        exon_start=None, exon_end=8, gene=" TPM3 ", transcript=" NM_152263.3 ")
+        exon_start=None, exon_end=8, gene=" TPM3 ", transcript=" NM_152263.3 "
+    )
     genomic_data_assertion_checks(resp, tpm3_exon8_t_to_g)
 
     resp = await test_egc_mapper.transcript_to_genomic_coordinates(
-        exon_start=None, exon_end=8, gene="tpm3", transcript="NM_152263.3")
+        exon_start=None, exon_end=8, gene="tpm3", transcript="NM_152263.3"
+    )
     genomic_data_assertion_checks(resp, tpm3_exon8_t_to_g)
 
     expected = copy.deepcopy(tpm3_exon1_exon8_t_to_g)
     resp = await test_egc_mapper.transcript_to_genomic_coordinates(
-        exon_start=1, exon_end=8, exon_end_offset=-5, transcript="NM_152263.3")
+        exon_start=1, exon_end=8, exon_end_offset=-5, transcript="NM_152263.3"
+    )
     expected.exon_end = 8
     expected.exon_end_offset = -5
     expected.end = 154170404
     genomic_data_assertion_checks(resp, expected)
 
     resp = await test_egc_mapper.transcript_to_genomic_coordinates(
-        exon_start=1, exon_end=8, exon_end_offset=5, transcript="NM_152263.3")
+        exon_start=1, exon_end=8, exon_end_offset=5, transcript="NM_152263.3"
+    )
     expected.exon_end_offset = 5
     expected.end = 154170394
     genomic_data_assertion_checks(resp, expected)
 
     resp = await test_egc_mapper.transcript_to_genomic_coordinates(
-        exon_start=3, exon_end=8, exon_start_offset=3, exon_end_offset=5,
-        transcript="NM_152263.3")
+        exon_start=3,
+        exon_end=8,
+        exon_start_offset=3,
+        exon_end_offset=5,
+        transcript="NM_152263.3",
+    )
     expected.exon_start = 3
     expected.exon_start_offset = 3
     expected.start = 154176245
     genomic_data_assertion_checks(resp, expected)
 
     resp = await test_egc_mapper.transcript_to_genomic_coordinates(
-        exon_start=3, exon_end=8, exon_start_offset=-3, exon_end_offset=5,
-        transcript="NM_152263.3")
+        exon_start=3,
+        exon_end=8,
+        exon_start_offset=-3,
+        exon_end_offset=5,
+        transcript="NM_152263.3",
+    )
     expected.exon_start_offset = -3
     expected.start = 154176251
     genomic_data_assertion_checks(resp, expected)
 
     # NTRK1
     resp = await test_egc_mapper.transcript_to_genomic_coordinates(
-        exon_start=10, exon_end=17, transcript="NM_002529.3")
+        exon_start=10, exon_end=17, transcript="NM_002529.3"
+    )
     genomic_data_assertion_checks(resp, ntrk1_exon10_exon17)
 
     resp = await test_egc_mapper.transcript_to_genomic_coordinates(
-        exon_start=10, exon_end=17, gene="NTRK1", transcript="NM_002529.3")
+        exon_start=10, exon_end=17, gene="NTRK1", transcript="NM_002529.3"
+    )
     genomic_data_assertion_checks(resp, ntrk1_exon10_exon17)
 
     resp = await test_egc_mapper.transcript_to_genomic_coordinates(
-        exon_start=10, exon_end=17, gene="NTRK1", transcript="NM_002529.3")
+        exon_start=10, exon_end=17, gene="NTRK1", transcript="NM_002529.3"
+    )
     genomic_data_assertion_checks(resp, ntrk1_exon10_exon17)
 
     resp = await test_egc_mapper.transcript_to_genomic_coordinates(
-        exon_start=10, exon_end=17, exon_start_offset=3,
-        transcript="NM_002529.3")
+        exon_start=10, exon_end=17, exon_start_offset=3, transcript="NM_002529.3"
+    )
     expected = copy.deepcopy(ntrk1_exon10_exon17)
     expected.exon_start_offset = 3
     expected.start = 156874629
     genomic_data_assertion_checks(resp, expected)
 
     resp = await test_egc_mapper.transcript_to_genomic_coordinates(
-        exon_start=10, exon_end=17, exon_start_offset=-3,
-        transcript="NM_002529.3")
+        exon_start=10, exon_end=17, exon_start_offset=-3, transcript="NM_002529.3"
+    )
     expected.exon_start_offset = -3
     expected.start = 156874623
     genomic_data_assertion_checks(resp, expected)
@@ -585,30 +619,19 @@ async def test_transcript_to_genomic(test_egc_mapper, tpm3_exon1_exon8_t_to_g,
 @pytest.mark.asyncio
 async def test_valid_inputs(test_egc_mapper):
     """Test that valid inputs don"t return any errors"""
-    inputs = {
-        "gene": "TPM3",
-        "chromosome": "NC_000001.11",
-        "start": 154171413
-    }
-    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)  # noqa: E501
+    inputs = {"gene": "TPM3", "chromosome": "NC_000001.11", "start": 154171413}
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     assert resp.genomic_data
 
-    inputs = {
-        "gene": "WEE1",
-        "chromosome": "NC_000011.9",
-        "end": 9609996
-    }
-    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)  # noqa: E501
+    inputs = {"gene": "WEE1", "chromosome": "NC_000011.9", "end": 9609996}
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     assert resp.genomic_data
 
     inputs["chromosome"] = "11"
-    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)  # noqa: E501
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     assert resp.genomic_data
 
-    inputs = {
-        "transcript": "NM_003390.3",
-        "exon_start": 2
-    }
+    inputs = {"transcript": "NM_003390.3", "exon_start": 2}
     resp = await test_egc_mapper.transcript_to_genomic_coordinates(**inputs)
     assert resp.genomic_data
 
@@ -623,13 +646,14 @@ async def test_valid_inputs(test_egc_mapper):
         "start": 154437254,
         "end": 154437299,
         "gene": "GDI1",
-        "residue_mode": ResidueMode.INTER_RESIDUE
+        "residue_mode": ResidueMode.INTER_RESIDUE,
     }
     resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     assert resp.genomic_data
 
     resp = await test_egc_mapper.transcript_to_genomic_coordinates(
-        gene="PDGFRB", transcript="NM_002609.4", exon_start=11, exon_end=23)
+        gene="PDGFRB", transcript="NM_002609.4", exon_start=11, exon_end=23
+    )
     assert resp.genomic_data
 
 
@@ -637,57 +661,77 @@ async def test_valid_inputs(test_egc_mapper):
 async def test_invalid(test_egc_mapper):
     """Test that invalid queries return `None`."""
     resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(
-        transcript="NM_152263 3", start=154192135, end=154170399,
-        chromosome="NC_000001.11"
+        transcript="NM_152263 3",
+        start=154192135,
+        end=154170399,
+        chromosome="NC_000001.11",
     )
     assert resp.warnings == ["Unable to get exons for NM_152263 3"]
 
     # start and end not given
     resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(
-        "NC_000001.11", start=None, end=None, strand=-1,
-        transcript="NM_152263.3", gene="TPM3")
+        "NC_000001.11",
+        start=None,
+        end=None,
+        strand=-1,
+        transcript="NM_152263.3",
+        gene="TPM3",
+    )
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Must provide either `start` or `end`"]
 
     # Invalid gene
     resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(
-        "NC_000001.11", start=154192135, end=154170399, strand=-1,
-        transcript="NM_152263.3", gene="dummy gene")
+        "NC_000001.11",
+        start=154192135,
+        end=154170399,
+        strand=-1,
+        transcript="NM_152263.3",
+        gene="dummy gene",
+    )
     genomic_data_assertion_checks(resp, is_valid=False)
-    assert resp.warnings == ["Unable to find a result for chromosome NC_000001.11 "
-                             "where genomic coordinate 154192134 is mapped between an "
-                             "exon's start and end coordinates on the negative strand "
-                             "and on gene DUMMY GENE"]
+    assert resp.warnings == [
+        "Unable to find a result for chromosome NC_000001.11 "
+        "where genomic coordinate 154192134 is mapped between an "
+        "exon's start and end coordinates on the negative strand "
+        "and on gene DUMMY GENE"
+    ]
 
     # Invalid chromosome
     resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(
-        "NC_000001.200", start=154192135, end=154170399, strand=-1,
-        transcript="NM_152263.3")
+        "NC_000001.200",
+        start=154192135,
+        end=154170399,
+        strand=-1,
+        transcript="NM_152263.3",
+    )
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Invalid chromosome: NC_000001.200"]
 
     # Invalid coordinates
     resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(
-        "NC_000001.11", start=9999999999999, end=9999999999999, strand=-1,
-        transcript="NM_152263.3")
+        "NC_000001.11",
+        start=9999999999999,
+        end=9999999999999,
+        strand=-1,
+        transcript="NM_152263.3",
+    )
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == [
         "Unable to find a result for chromosome NC_000001.11 where genomic "
         "coordinate 9999999999998 is mapped between an exon's start and end "
-        "coordinates on the negative strand"]
+        "coordinates on the negative strand"
+    ]
 
     resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(
         chromosome="1", start=154170400, strand=-1, transcript="NM_002529.3"
     )
     genomic_data_assertion_checks(resp, is_valid=False)
-    assert resp.warnings == [
-        "Must find exactly one row for genomic data, but found: 0"
-    ]
+    assert resp.warnings == ["Must find exactly one row for genomic data, but found: 0"]
 
     # Strand does not match
     resp = await test_egc_mapper._genomic_to_transcript_exon_coordinate(
-        "NC_000001.11", 154192135, strand=1, transcript="NM_152263.3",
-        gene="TPM3"
+        "NC_000001.11", 154192135, strand=1, transcript="NM_152263.3", gene="TPM3"
     )
     transcript_exon_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == [
@@ -705,57 +749,69 @@ async def test_invalid(test_egc_mapper):
 
     # Exon 22 does not exist
     resp = await test_egc_mapper.transcript_to_genomic_coordinates(
-        exon_start=None, exon_end=22, transcript="NM_152263.3", )
+        exon_start=None,
+        exon_end=22,
+        transcript="NM_152263.3",
+    )
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Exon 22 does not exist on NM_152263.3"]
 
     # Start > End
     resp = await test_egc_mapper.transcript_to_genomic_coordinates(
-        exon_start=8, exon_end=1, transcript="NM_152263.3")
+        exon_start=8, exon_end=1, transcript="NM_152263.3"
+    )
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Start exon 8 is greater than end exon 1"]
 
     # Transcript DNE
     resp = await test_egc_mapper.transcript_to_genomic_coordinates(
-        exon_start=7, exon_end=None, transcript="NM_12345.6")
+        exon_start=7, exon_end=None, transcript="NM_12345.6"
+    )
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Unable to get exons for NM_12345.6"]
 
     # Index error for invalid exon
     resp = await test_egc_mapper.transcript_to_genomic_coordinates(
-        exon_start=-1, exon_end=0, transcript="NM_152263.3")
+        exon_start=-1, exon_end=0, transcript="NM_152263.3"
+    )
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Exon -1 does not exist on NM_152263.3"]
 
     # Cant supply 0 based exons
     resp = await test_egc_mapper.transcript_to_genomic_coordinates(
-        exon_start=0, exon_end=1, transcript="NM_152263.3")
+        exon_start=0, exon_end=1, transcript="NM_152263.3"
+    )
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Exon 0 does not exist on NM_152263.3"]
 
     # Gene that does not match transcript
     resp = await test_egc_mapper.transcript_to_genomic_coordinates(
-        exon_start=1, exon_end=8, gene="NTKR1", transcript="NM_152263.3")
+        exon_start=1, exon_end=8, gene="NTKR1", transcript="NM_152263.3"
+    )
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == [
         "Unable to find a result where NM_152263.3 has transcript coordinates"
         " 0 and 234 between an exon's start and end coordinates on gene "
-        "NTKR1"]
+        "NTKR1"
+    ]
 
     # No transcript given
     resp = await test_egc_mapper.transcript_to_genomic_coordinates(
-        exon_start=1, exon_end=8, gene="NTKR1", transcript=None)
+        exon_start=1, exon_end=8, gene="NTKR1", transcript=None
+    )
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Must provide `transcript`"]
 
     # No transcript given
     resp = await test_egc_mapper.transcript_to_genomic_coordinates(
-        exon_start=1, exon_end=8, gene="NTKR1", transcript="")
+        exon_start=1, exon_end=8, gene="NTKR1", transcript=""
+    )
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Must provide `transcript`"]
 
     # No exons given
     resp = await test_egc_mapper.transcript_to_genomic_coordinates(
-        exon_start=None, exon_end=None, transcript="NM_152263.3")
+        exon_start=None, exon_end=None, transcript="NM_152263.3"
+    )
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Must provide either `exon_start` or `exon_end`"]

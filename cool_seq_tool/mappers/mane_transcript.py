@@ -9,19 +9,23 @@ Steps:
 """
 import logging
 import math
-from typing import Optional, Set, Tuple, Dict, List, Union
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 import pandas as pd
 
-from cool_seq_tool.schemas import (
-    AnnotationLayer, Assembly, ResidueMode, TranscriptPriorityLabel
-)
 from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
+from cool_seq_tool.schemas import (
+    AnnotationLayer,
+    Assembly,
+    ResidueMode,
+    TranscriptPriorityLabel,
+)
 from cool_seq_tool.sources import (
-    TranscriptMappings, MANETranscriptMappings, UTADatabase
+    MANETranscriptMappings,
+    TranscriptMappings,
+    UTADatabase,
 )
 from cool_seq_tool.utils import get_inter_residue_pos
-
 
 logger = logging.getLogger(__name__)
 
@@ -29,10 +33,13 @@ logger = logging.getLogger(__name__)
 class MANETranscript:
     """Class for retrieving MANE transcripts."""
 
-    def __init__(self, seqrepo_access: SeqRepoAccess,
-                 transcript_mappings: TranscriptMappings,
-                 mane_transcript_mappings: MANETranscriptMappings,
-                 uta_db: UTADatabase) -> None:
+    def __init__(
+        self,
+        seqrepo_access: SeqRepoAccess,
+        transcript_mappings: TranscriptMappings,
+        mane_transcript_mappings: MANETranscriptMappings,
+        uta_db: UTADatabase,
+    ) -> None:
         """Initialize the MANETranscript class.
 
         :param seqrepo_access: Access to seqrepo queries
@@ -76,8 +83,9 @@ class MANETranscript:
 
         return start_pos - 1, end_pos + 1
 
-    async def _p_to_c(self, ac: str, start_pos: int,
-                      end_pos: int) -> Optional[Tuple[str, Tuple[int, int]]]:
+    async def _p_to_c(
+        self, ac: str, start_pos: int, end_pos: int
+    ) -> Optional[Tuple[str, Tuple[int, int]]]:
         """Convert protein (p.) annotation to cDNA (c.) annotation.
 
         :param str ac: Protein accession
@@ -94,8 +102,7 @@ class MANETranscript:
                 if ac.startswith("NP_"):
                     ac = self.transcript_mappings.np_to_nm[ac]
                 elif ac.startswith("ENSP"):
-                    ac = \
-                        self.transcript_mappings.ensp_to_enst[ac]
+                    ac = self.transcript_mappings.ensp_to_enst[ac]
                 else:
                     logger.warning(f"Unable to find accession: {ac}")
                     return None
@@ -117,7 +124,9 @@ class MANETranscript:
         # UTA does not store ENST versions
         # So we want to make sure version is valid
         if ac.startswith("ENST"):
-            if not self.transcript_mappings.ensembl_transcript_version_to_gene_symbol.get(ac):  # noqa: E501
+            if not self.transcript_mappings.ensembl_transcript_version_to_gene_symbol.get(
+                ac
+            ):
                 if not self.seqrepo_access.get_reference_sequence(ac, 1)[0]:
                     logger.warning(f"Ensembl transcript not found: {ac}")
                     return None
@@ -135,14 +144,19 @@ class MANETranscript:
         pos = pos[0] + coding_start_site, pos[1] + coding_start_site
 
         genomic_tx_data = await self._get_and_validate_genomic_tx_data(
-            ac, pos, AnnotationLayer.CDNA, coding_start_site=coding_start_site)
+            ac, pos, AnnotationLayer.CDNA, coding_start_site=coding_start_site
+        )
         return genomic_tx_data
 
     async def _get_and_validate_genomic_tx_data(
-        self, tx_ac: str, pos: Tuple[int, int],
-        annotation_layer: Union[AnnotationLayer.CDNA, AnnotationLayer.GENOMIC] = AnnotationLayer.CDNA,  # noqa: E501
+        self,
+        tx_ac: str,
+        pos: Tuple[int, int],
+        annotation_layer: Union[
+            AnnotationLayer.CDNA, AnnotationLayer.GENOMIC
+        ] = AnnotationLayer.CDNA,
         coding_start_site: Optional[int] = None,
-        alt_ac: Optional[str] = None
+        alt_ac: Optional[str] = None,
     ) -> Optional[Dict]:
         """Get and validate genomic_tx_data
 
@@ -155,10 +169,13 @@ class MANETranscript:
         :return: genomic_tx_data if found and validated, else None
         """
         genomic_tx_data = await self.uta_db.get_genomic_tx_data(
-            tx_ac, pos, annotation_layer, alt_ac=alt_ac)
+            tx_ac, pos, annotation_layer, alt_ac=alt_ac
+        )
         if not genomic_tx_data:
-            logger.warning(f"Unable to find genomic_tx_data for {alt_ac} at position"
-                           f" {pos} on annotation layer {annotation_layer}")
+            logger.warning(
+                f"Unable to find genomic_tx_data for {alt_ac} at position"
+                f" {pos} on annotation layer {annotation_layer}"
+            )
             return None
         genomic_tx_data["coding_start_site"] = coding_start_site
 
@@ -171,18 +188,25 @@ class MANETranscript:
 
             # Validation check: Exon structure
             if og_alt_exon_id != liftover_alt_exon_id:
-                logger.warning(f"Original alt_exon_id {og_alt_exon_id} "
-                               f"does not match liftover alt_exon_id "
-                               f"{liftover_alt_exon_id}")
+                logger.warning(
+                    f"Original alt_exon_id {og_alt_exon_id} "
+                    f"does not match liftover alt_exon_id "
+                    f"{liftover_alt_exon_id}"
+                )
                 return None
 
         return genomic_tx_data
 
     @staticmethod
     def _get_c_data(
-        gene: str, cds_start_end: Tuple[int, int], c_pos_change: Tuple[int, int],
-        strand: str, status: TranscriptPriorityLabel, refseq_c_ac: str,
-        ensembl_c_ac: Optional[str] = None, alt_ac: Optional[str] = None
+        gene: str,
+        cds_start_end: Tuple[int, int],
+        c_pos_change: Tuple[int, int],
+        strand: str,
+        status: TranscriptPriorityLabel,
+        refseq_c_ac: str,
+        ensembl_c_ac: Optional[str] = None,
+        alt_ac: Optional[str] = None,
     ) -> Dict:
         """Return transcript data on c. coordinate.
 
@@ -200,12 +224,14 @@ class MANETranscript:
         """
         cds_start = cds_start_end[0]
         cds_end = cds_start_end[1]
-        lt_cds_start = (c_pos_change[0] < cds_start and c_pos_change[1] < cds_start)
-        gt_cds_end = (c_pos_change[1] > cds_end and c_pos_change[1] > cds_end)
+        lt_cds_start = c_pos_change[0] < cds_start and c_pos_change[1] < cds_start
+        gt_cds_end = c_pos_change[1] > cds_end and c_pos_change[1] > cds_end
 
         if lt_cds_start or gt_cds_end:
-            logger.info(f"{refseq_c_ac} with position"
-                        f" {c_pos_change} is not within CDS start/end")
+            logger.info(
+                f"{refseq_c_ac} with position"
+                f" {c_pos_change} is not within CDS start/end"
+            )
         return dict(
             gene=gene,
             refseq=refseq_c_ac,
@@ -215,12 +241,11 @@ class MANETranscript:
             pos=c_pos_change,
             strand=strand,
             status=status,
-            alt_ac=alt_ac
+            alt_ac=alt_ac,
         )
 
     @staticmethod
-    def _get_mane_p(mane_data: Dict,
-                    mane_c_pos_range: Tuple[int, int]) -> Dict:
+    def _get_mane_p(mane_data: Dict, mane_c_pos_range: Tuple[int, int]) -> Dict:
         """Translate MANE Transcript c. annotation to p. annotation
 
         :param Dict mane_data: MANE Transcript data
@@ -233,16 +258,22 @@ class MANETranscript:
             gene=mane_data["symbol"],
             refseq=mane_data["RefSeq_prot"],
             ensembl=mane_data["Ensembl_prot"],
-            pos=(math.ceil(mane_c_pos_range[0] / 3),
-                 math.floor(mane_c_pos_range[1] / 3)),
+            pos=(
+                math.ceil(mane_c_pos_range[0] / 3),
+                math.floor(mane_c_pos_range[1] / 3),
+            ),
             strand=mane_data["chr_strand"],
-            status="_".join(mane_data["MANE_status"].split()).lower()
+            status="_".join(mane_data["MANE_status"].split()).lower(),
         )
 
     async def _g_to_c(
-        self, g: Dict, refseq_c_ac: str, status: TranscriptPriorityLabel,
-        ensembl_c_ac: Optional[str] = None, alt_ac: Optional[str] = None,
-        found_result: bool = False
+        self,
+        g: Dict,
+        refseq_c_ac: str,
+        status: TranscriptPriorityLabel,
+        ensembl_c_ac: Optional[str] = None,
+        alt_ac: Optional[str] = None,
+        found_result: bool = False,
     ) -> Optional[Dict]:
         """Get transcript c. annotation data from g. annotation.
 
@@ -261,13 +292,17 @@ class MANETranscript:
             tx_pos_range = g["tx_pos_range"]
         else:
             result = await self.uta_db.get_tx_exon_aln_v_data(
-                refseq_c_ac, g["alt_pos_change_range"][0],
-                g["alt_pos_change_range"][1], alt_ac=alt_ac if alt_ac else g["alt_ac"],
-                use_tx_pos=False)
+                refseq_c_ac,
+                g["alt_pos_change_range"][0],
+                g["alt_pos_change_range"][1],
+                alt_ac=alt_ac if alt_ac else g["alt_ac"],
+                use_tx_pos=False,
+            )
 
             if not result:
-                logger.warning(f"Unable to find transcript, {refseq_c_ac}, "
-                               f"position change")
+                logger.warning(
+                    f"Unable to find transcript, {refseq_c_ac}, " f"position change"
+                )
                 return None
             else:
                 result = result[-1]
@@ -283,13 +318,11 @@ class MANETranscript:
         g_pos_change = g_pos[0] - tx_g_pos[0], tx_g_pos[1] - g_pos[1]
 
         if g["strand"] == "-":
-            g_pos_change = (
-                tx_g_pos[1] - g_pos[0], g_pos[1] - tx_g_pos[0]
-            )
+            g_pos_change = (tx_g_pos[1] - g_pos[0], g_pos[1] - tx_g_pos[0])
 
         c_pos_change = (
             tx_pos_range[0] + g_pos_change[0] - coding_start_site,
-            tx_pos_range[1] - g_pos_change[1] - coding_start_site
+            tx_pos_range[1] - g_pos_change[1] - coding_start_site,
         )
 
         if c_pos_change[0] > c_pos_change[1]:
@@ -303,10 +336,12 @@ class MANETranscript:
             alt_ac=alt_ac,
             status=status,
             refseq_c_ac=refseq_c_ac,
-            ensembl_c_ac=ensembl_c_ac)
+            ensembl_c_ac=ensembl_c_ac,
+        )
 
-    def _validate_reading_frames(self, ac: str, start_pos: int, end_pos: int,
-                                 transcript_data: Dict) -> bool:
+    def _validate_reading_frames(
+        self, ac: str, start_pos: int, end_pos: int, transcript_data: Dict
+    ) -> bool:
         """Return whether reading frames are the same after translation.
 
         :param str ac: Query accession
@@ -323,11 +358,13 @@ class MANETranscript:
                 new_rf = self._get_reading_frame(transcript_data["pos"][pos_index])
 
                 if og_rf != new_rf:
-                    logger.warning(f"{ac} original reading frame ({og_rf}) "
-                                   f"does not match new "
-                                   f"{transcript_data['ensembl']}, "
-                                   f"{transcript_data['refseq']} reading "
-                                   f"frame ({new_rf})")
+                    logger.warning(
+                        f"{ac} original reading frame ({og_rf}) "
+                        f"does not match new "
+                        f"{transcript_data['ensembl']}, "
+                        f"{transcript_data['refseq']} reading "
+                        f"frame ({new_rf})"
+                    )
                     return False
             else:
                 if pos_index == 0:
@@ -335,10 +372,17 @@ class MANETranscript:
                     return False
         return True
 
-    def _validate_references(self, ac: str, coding_start_site: int,
-                             start_pos: int, end_pos: int,
-                             mane_transcript: Dict, expected_ref: str,
-                             anno: AnnotationLayer, residue_mode: ResidueMode) -> bool:
+    def _validate_references(
+        self,
+        ac: str,
+        coding_start_site: int,
+        start_pos: int,
+        end_pos: int,
+        mane_transcript: Dict,
+        expected_ref: str,
+        anno: AnnotationLayer,
+        residue_mode: ResidueMode,
+    ) -> bool:
         """Return whether or not reference changes are the same.
 
         :param ac: Query accession
@@ -373,24 +417,28 @@ class MANETranscript:
                 mane_transcript["refseq"],
                 mane_start_pos,
                 end=mane_end_pos if mane_start_pos != mane_end_pos else None,
-                residue_mode=residue_mode
+                residue_mode=residue_mode,
             )
             if not mane_ref:
                 logger.info("Unable to validate reference for MANE Transcript")
 
             if expected_ref != mane_ref:
-                logger.info(f"Expected ref, {expected_ref}, but got {mane_ref}"
-                            f" on MANE accession, {mane_transcript['refseq']}")
+                logger.info(
+                    f"Expected ref, {expected_ref}, but got {mane_ref}"
+                    f" on MANE accession, {mane_transcript['refseq']}"
+                )
 
         if expected_ref != ref:
-            logger.warning(f"Expected ref, {expected_ref}, but got {ref} "
-                           f"on accession, {ac}")
+            logger.warning(
+                f"Expected ref, {expected_ref}, but got {ref} " f"on accession, {ac}"
+            )
             return False
 
         return True
 
-    def _validate_index(self, ac: str, pos: Tuple[int, int],
-                        coding_start_site: int) -> bool:
+    def _validate_index(
+        self, ac: str, pos: Tuple[int, int], coding_start_site: int
+    ) -> bool:
         """Validate that positions actually exist on accession
 
         :param str ac: Accession
@@ -400,14 +448,18 @@ class MANETranscript:
         """
         start_pos = pos[0] + coding_start_site
         end_pos = pos[1] + coding_start_site
-        if self.seqrepo_access.get_reference_sequence(ac, start_pos, end_pos,
-                                                      residue_mode=ResidueMode.INTER_RESIDUE)[0]:  # noqa E501
+        if self.seqrepo_access.get_reference_sequence(
+            ac, start_pos, end_pos, residue_mode=ResidueMode.INTER_RESIDUE
+        )[
+            0
+        ]:  # noqa E501
             return True
         else:
             return False
 
-    def _get_prioritized_transcripts_from_gene(self,
-                                               df: pd.core.frame.DataFrame) -> List:
+    def _get_prioritized_transcripts_from_gene(
+        self, df: pd.core.frame.DataFrame
+    ) -> List:
         """Sort and filter transcripts from gene to get priority list
 
         :param pd.core.frame.DataFrame df: Data frame containing transcripts from gene
@@ -419,22 +471,32 @@ class MANETranscript:
         """
         copy_df = df.copy(deep=True)
         copy_df = copy_df.drop(columns="alt_ac").drop_duplicates()
-        copy_df["ac_no_version_as_int"] = copy_df["tx_ac"].apply(lambda x: int(x.split(".")[0].split("NM_")[1]))  # noqa: E501
+        copy_df["ac_no_version_as_int"] = copy_df["tx_ac"].apply(
+            lambda x: int(x.split(".")[0].split("NM_")[1])
+        )
         copy_df["ac_version"] = copy_df["tx_ac"].apply(lambda x: x.split(".")[1])
-        copy_df = copy_df.sort_values(["ac_no_version_as_int", "ac_version"],
-                                      ascending=[False, False])
-        copy_df = copy_df.drop_duplicates(["ac_no_version_as_int"], keep="first")
-        copy_df.loc[:, "len_of_tx"] = copy_df.loc[:, "tx_ac"].apply(lambda ac: len(self.seqrepo_access.get_reference_sequence(ac)[0]))  # noqa: E501
         copy_df = copy_df.sort_values(
-            ["len_of_tx", "ac_no_version_as_int"], ascending=[False, True])
+            ["ac_no_version_as_int", "ac_version"], ascending=[False, False]
+        )
+        copy_df = copy_df.drop_duplicates(["ac_no_version_as_int"], keep="first")
+        copy_df.loc[:, "len_of_tx"] = copy_df.loc[:, "tx_ac"].apply(
+            lambda ac: len(self.seqrepo_access.get_reference_sequence(ac)[0])
+        )
+        copy_df = copy_df.sort_values(
+            ["len_of_tx", "ac_no_version_as_int"], ascending=[False, True]
+        )
         return list(copy_df["tx_ac"])
 
     async def get_longest_compatible_transcript(
-            self, gene: str, start_pos: int, end_pos: int,
-            start_annotation_layer: AnnotationLayer, ref: Optional[str] = None,
-            residue_mode: ResidueMode = ResidueMode.RESIDUE,
-            mane_transcripts: Optional[Set] = None,
-            alt_ac: Optional[str] = None
+        self,
+        gene: str,
+        start_pos: int,
+        end_pos: int,
+        start_annotation_layer: AnnotationLayer,
+        ref: Optional[str] = None,
+        residue_mode: ResidueMode = ResidueMode.RESIDUE,
+        mane_transcripts: Optional[Set] = None,
+        alt_ac: Optional[str] = None,
     ) -> Optional[Dict]:
         """Get longest compatible transcript from a gene.
         Try GRCh38 first, then GRCh37.
@@ -451,7 +513,8 @@ class MANETranscript:
         :return: Data for longest compatible transcript
         """
         inter_residue_pos, _ = get_inter_residue_pos(
-            start_pos, residue_mode, end_pos=end_pos)
+            start_pos, residue_mode, end_pos=end_pos
+        )
         if not inter_residue_pos:
             return None
         residue_mode = ResidueMode.INTER_RESIDUE
@@ -468,10 +531,12 @@ class MANETranscript:
         # Data Frame that contains transcripts associated to a gene
         if is_p_or_c_start_anno:
             df = await self.uta_db.get_transcripts_from_gene(
-                gene, c_start_pos, c_end_pos, use_tx_pos=True, alt_ac=alt_ac)
+                gene, c_start_pos, c_end_pos, use_tx_pos=True, alt_ac=alt_ac
+            )
         else:
             df = await self.uta_db.get_transcripts_from_gene(
-                gene, start_pos, end_pos, use_tx_pos=False, alt_ac=alt_ac)
+                gene, start_pos, end_pos, use_tx_pos=False, alt_ac=alt_ac
+            )
         if df.empty:
             logger.warning(f"Unable to get transcripts from gene {gene}")
             return None
@@ -480,8 +545,9 @@ class MANETranscript:
 
         if mane_transcripts:
             # Dont check MANE transcripts since we know that are not compatible
-            prioritized_tx_acs = [el for el in prioritized_tx_acs
-                                  if el not in mane_transcripts]
+            prioritized_tx_acs = [
+                el for el in prioritized_tx_acs if el not in mane_transcripts
+            ]
 
         for tx_ac in prioritized_tx_acs:
             # Only need to check the one row since we do liftover in _c_to_g
@@ -498,8 +564,11 @@ class MANETranscript:
             else:
                 # g -> GRCh38 (if alt_ac not provided. if it is, will use that assembly)
                 g = await self._get_and_validate_genomic_tx_data(
-                    tx_ac, (start_pos, end_pos),
-                    annotation_layer=AnnotationLayer.GENOMIC, alt_ac=alt_ac)
+                    tx_ac,
+                    (start_pos, end_pos),
+                    annotation_layer=AnnotationLayer.GENOMIC,
+                    alt_ac=alt_ac,
+                )
                 found_tx_exon_aln_v_result = True
             if not g:
                 continue
@@ -507,9 +576,11 @@ class MANETranscript:
             # Get prioritized transcript data for gene
             # grch38 -> c
             lcr_c_data = await self._g_to_c(
-                g=g, refseq_c_ac=tx_ac,
+                g=g,
+                refseq_c_ac=tx_ac,
                 status=TranscriptPriorityLabel.LongestCompatibleRemaining.value,
-                found_result=found_tx_exon_aln_v_result)
+                found_result=found_tx_exon_aln_v_result,
+            )
 
             if not lcr_c_data:
                 continue
@@ -517,30 +588,54 @@ class MANETranscript:
             # Validation checks
             if is_p_or_c_start_anno:
                 validate_reading_frame = self._validate_reading_frames(
-                    tx_ac, c_start_pos, c_end_pos, lcr_c_data)
+                    tx_ac, c_start_pos, c_end_pos, lcr_c_data
+                )
                 if not validate_reading_frame:
                     continue
 
             if ref:
                 if start_annotation_layer == AnnotationLayer.PROTEIN:
                     valid_references = self._validate_references(
-                        row["pro_ac"], row["cds_start_i"], start_pos,
-                        end_pos, {}, ref, AnnotationLayer.PROTEIN, residue_mode)
+                        row["pro_ac"],
+                        row["cds_start_i"],
+                        start_pos,
+                        end_pos,
+                        {},
+                        ref,
+                        AnnotationLayer.PROTEIN,
+                        residue_mode,
+                    )
                 elif start_annotation_layer == AnnotationLayer.CDNA:
                     valid_references = self._validate_references(
-                        row["tx_ac"], row["cds_start_i"], c_start_pos,
-                        c_end_pos, {}, ref, AnnotationLayer.CDNA, residue_mode)
+                        row["tx_ac"],
+                        row["cds_start_i"],
+                        c_start_pos,
+                        c_end_pos,
+                        {},
+                        ref,
+                        AnnotationLayer.CDNA,
+                        residue_mode,
+                    )
                 else:
                     valid_references = self._validate_references(
-                        alt_ac, 0, start_pos, end_pos, {}, ref,
-                        AnnotationLayer.GENOMIC, residue_mode)
+                        alt_ac,
+                        0,
+                        start_pos,
+                        end_pos,
+                        {},
+                        ref,
+                        AnnotationLayer.GENOMIC,
+                        residue_mode,
+                    )
 
                 if not valid_references:
                     continue
 
             if start_annotation_layer == AnnotationLayer.PROTEIN:
-                pos = (math.ceil(lcr_c_data["pos"][0] / 3),
-                       math.floor(lcr_c_data["pos"][1] / 3))
+                pos = (
+                    math.ceil(lcr_c_data["pos"][0] / 3),
+                    math.floor(lcr_c_data["pos"][1] / 3),
+                )
                 ac = row["pro_ac"]
                 coding_start_site = 0
             else:
@@ -550,9 +645,11 @@ class MANETranscript:
                 coding_start_site = lcr_c_data["coding_start_site"]
 
             if not self._validate_index(ac, pos, coding_start_site):
-                logger.warning(f"{pos} are not valid positions on {ac}"
-                               f"with coding start site "
-                               f"{coding_start_site}")
+                logger.warning(
+                    f"{pos} are not valid positions on {ac}"
+                    f"with coding start site "
+                    f"{coding_start_site}"
+                )
                 continue
 
             return dict(
@@ -560,15 +657,20 @@ class MANETranscript:
                 ensembl=ac if ac.startswith("E") else None,  # TODO: issues 87, 4
                 pos=pos,
                 strand=g["strand"],
-                status=lcr_c_data["status"]
+                status=lcr_c_data["status"],
             )
         return None
 
     async def get_mane_transcript(
-            self, ac: str, start_pos: int, start_annotation_layer: str,
-            end_pos: Optional[int] = None, gene: Optional[str] = None,
-            ref: Optional[str] = None, try_longest_compatible: bool = False,
-            residue_mode: ResidueMode = ResidueMode.RESIDUE
+        self,
+        ac: str,
+        start_pos: int,
+        start_annotation_layer: str,
+        end_pos: Optional[int] = None,
+        gene: Optional[str] = None,
+        ref: Optional[str] = None,
+        try_longest_compatible: bool = False,
+        residue_mode: ResidueMode = ResidueMode.RESIDUE,
     ) -> Optional[Dict]:
         """Return mane transcript.
 
@@ -590,13 +692,14 @@ class MANETranscript:
             Else, `None`
         """
         inter_residue_pos, warning = get_inter_residue_pos(
-            start_pos, residue_mode, end_pos=end_pos)
+            start_pos, residue_mode, end_pos=end_pos
+        )
         if not inter_residue_pos:
             return None
         start_pos, end_pos = inter_residue_pos
         residue_mode = ResidueMode.INTER_RESIDUE
         if ref:
-            ref = ref[:end_pos - start_pos]
+            ref = ref[: end_pos - start_pos]
 
         anno = start_annotation_layer.lower()
         if anno in ["p", "c"]:
@@ -629,12 +732,15 @@ class MANETranscript:
             for i in range(mane_data_len):
                 index = mane_data_len - i - 1
                 current_mane_data = mane_data[index]
-                mane_transcripts |= set((current_mane_data["RefSeq_nuc"],
-                                         current_mane_data["Ensembl_nuc"]))
+                mane_transcripts |= set(
+                    (current_mane_data["RefSeq_nuc"], current_mane_data["Ensembl_nuc"])
+                )
                 mane = await self._g_to_c(
-                    g=g, refseq_c_ac=current_mane_data["RefSeq_nuc"],
+                    g=g,
+                    refseq_c_ac=current_mane_data["RefSeq_nuc"],
                     status="_".join(current_mane_data["MANE_status"].split()).lower(),
-                    ensembl_c_ac=current_mane_data["Ensembl_nuc"])
+                    ensembl_c_ac=current_mane_data["Ensembl_nuc"],
+                )
                 if not mane:
                     continue
 
@@ -654,8 +760,14 @@ class MANETranscript:
 
                 if ref:
                     valid_references = self._validate_references(
-                        ac, g["coding_start_site"], start_pos, end_pos,
-                        mane, ref, anno, residue_mode
+                        ac,
+                        g["coding_start_site"],
+                        start_pos,
+                        end_pos,
+                        mane,
+                        ref,
+                        anno,
+                        residue_mode,
                     )
                     if not valid_references:
                         continue
@@ -665,22 +777,36 @@ class MANETranscript:
             if try_longest_compatible:
                 if anno == "p":
                     return await self.get_longest_compatible_transcript(
-                        g["gene"], start_pos, end_pos, "p", ref,
-                        residue_mode=residue_mode, mane_transcripts=mane_transcripts)
+                        g["gene"],
+                        start_pos,
+                        end_pos,
+                        "p",
+                        ref,
+                        residue_mode=residue_mode,
+                        mane_transcripts=mane_transcripts,
+                    )
                 else:
                     return await self.get_longest_compatible_transcript(
-                        g["gene"], c_pos[0], c_pos[1], "c", ref,
-                        residue_mode=residue_mode, mane_transcripts=mane_transcripts)
+                        g["gene"],
+                        c_pos[0],
+                        c_pos[1],
+                        "c",
+                        ref,
+                        residue_mode=residue_mode,
+                        mane_transcripts=mane_transcripts,
+                    )
             else:
                 return None
         elif anno == "g":
-            return await self.g_to_mane_c(ac, start_pos, end_pos, gene=gene,
-                                          residue_mode=residue_mode)
+            return await self.g_to_mane_c(
+                ac, start_pos, end_pos, gene=gene, residue_mode=residue_mode
+            )
         else:
             logger.warning(f"Annotation layer not supported: {anno}")
 
-    async def g_to_grch38(self, ac: str, start_pos: int,
-                          end_pos: int) -> Optional[Dict]:
+    async def g_to_grch38(
+        self, ac: str, start_pos: int, end_pos: int
+    ) -> Optional[Dict]:
         """Return genomic coordinate on GRCh38 when not given gene context.
 
         :param str ac: Genomic accession
@@ -696,10 +822,7 @@ class MANETranscript:
         if not descr:
             # Already GRCh38 assembly
             if self._validate_index(ac, (start_pos, end_pos), 0):
-                return dict(
-                    ac=ac,
-                    pos=(start_pos, end_pos)
-                )
+                return dict(ac=ac, pos=(start_pos, end_pos))
             else:
                 return None
         chromosome, assembly = descr
@@ -710,16 +833,18 @@ class MANETranscript:
             logger.warning("Liftover only supported for GRCh37")
             return None
 
-        liftover_start_i = self.uta_db.get_liftover(chromosome, start_pos,
-                                                    Assembly.GRCH38)
+        liftover_start_i = self.uta_db.get_liftover(
+            chromosome, start_pos, Assembly.GRCH38
+        )
         if liftover_start_i is None:
             return None
         else:
             start_pos = liftover_start_i[1]
 
         if not is_same_pos:
-            liftover_end_i = self.uta_db.get_liftover(chromosome, end_pos,
-                                                      Assembly.GRCH38)
+            liftover_end_i = self.uta_db.get_liftover(
+                chromosome, end_pos, Assembly.GRCH38
+            )
             if liftover_end_i is None:
                 return None
             else:
@@ -731,16 +856,14 @@ class MANETranscript:
         if newest_ac:
             ac = newest_ac[0]
             if self._validate_index(ac, (start_pos, end_pos), 0):
-                return dict(
-                    ac=ac,
-                    pos=(start_pos, end_pos)
-                )
+                return dict(ac=ac, pos=(start_pos, end_pos))
 
         return None
 
     @staticmethod
-    def get_mane_c_pos_change(mane_tx_genomic_data: Dict,
-                              coding_start_site: int) -> Tuple[int, int]:
+    def get_mane_c_pos_change(
+        mane_tx_genomic_data: Dict, coding_start_site: int
+    ) -> Tuple[int, int]:
         """Get mane c position change
 
         :param Dict mane_tx_genomic_data: MANE transcript and genomic data
@@ -752,7 +875,7 @@ class MANETranscript:
 
         mane_c_pos_change = (
             tx_pos_range[0] + alt_pos_change[0] - coding_start_site,
-            tx_pos_range[1] - alt_pos_change[1] - coding_start_site
+            tx_pos_range[1] - alt_pos_change[1] - coding_start_site,
         )
 
         if mane_c_pos_change[0] > mane_c_pos_change[1]:
@@ -760,9 +883,12 @@ class MANETranscript:
         return mane_c_pos_change
 
     async def g_to_mane_c(
-        self, ac: str, start_pos: int, end_pos: int,
+        self,
+        ac: str,
+        start_pos: int,
+        end_pos: int,
         gene: Optional[str] = None,
-        residue_mode: ResidueMode = ResidueMode.RESIDUE
+        residue_mode: ResidueMode = ResidueMode.RESIDUE,
     ) -> Optional[Dict]:
         """Return MANE Transcript on the c. coordinate.
         If gene is provided, g->GRCh38->MANE c.
@@ -780,7 +906,8 @@ class MANETranscript:
             is provided. Else, GRCh38 data
         """
         inter_residue_pos, _ = get_inter_residue_pos(
-            start_pos, residue_mode, end_pos=end_pos)
+            start_pos, residue_mode, end_pos=end_pos
+        )
         if not inter_residue_pos:
             return None
         start_pos, end_pos = inter_residue_pos
@@ -801,7 +928,7 @@ class MANETranscript:
                 pos=grch38["pos"],
                 strand=None,
                 status="GRCh38",
-                alt_ac=grch38["ac"]
+                alt_ac=grch38["ac"],
             )
 
         if not await self.uta_db.validate_genomic_ac(ac):
@@ -823,13 +950,13 @@ class MANETranscript:
             mane_tx_genomic_data = None
             if grch38:
                 # GRCh38 -> MANE C
-                mane_tx_genomic_data = await self.uta_db.get_mane_c_genomic_data(  # noqa: E501
+                mane_tx_genomic_data = await self.uta_db.get_mane_c_genomic_data(
                     mane_c_ac, None, grch38["pos"][0], grch38["pos"][1]
                 )
 
             if not grch38 or not mane_tx_genomic_data:
                 # GRCh38 did not work, so let's try original assembly (37)
-                mane_tx_genomic_data = await self.uta_db.get_mane_c_genomic_data(  # noqa: E501
+                mane_tx_genomic_data = await self.uta_db.get_mane_c_genomic_data(
                     mane_c_ac, ac, start_pos, end_pos
                 )
                 if not mane_tx_genomic_data:
@@ -840,13 +967,17 @@ class MANETranscript:
             coding_start_site = mane_tx_genomic_data["coding_start_site"]
             coding_end_site = mane_tx_genomic_data["coding_end_site"]
             mane_c_pos_change = self.get_mane_c_pos_change(
-                mane_tx_genomic_data, coding_start_site)
+                mane_tx_genomic_data, coding_start_site
+            )
 
-            if not self._validate_index(mane_c_ac, mane_c_pos_change,
-                                        coding_start_site):
-                logger.warning(f"{mane_c_pos_change} are not valid positions"
-                               f" on {mane_c_ac}with coding start site "
-                               f"{coding_start_site}")
+            if not self._validate_index(
+                mane_c_ac, mane_c_pos_change, coding_start_site
+            ):
+                logger.warning(
+                    f"{mane_c_pos_change} are not valid positions"
+                    f" on {mane_c_ac}with coding start site "
+                    f"{coding_start_site}"
+                )
                 continue
 
             return self._get_c_data(
@@ -857,4 +988,5 @@ class MANETranscript:
                 status="_".join(current_mane_data["MANE_status"].split()).lower(),
                 refseq_c_ac=current_mane_data["RefSeq_nuc"],
                 ensembl_c_ac=current_mane_data["Ensembl_nuc"],
-                alt_ac=grch38["ac"] if grch38 else None)
+                alt_ac=grch38["ac"] if grch38 else None,
+            )

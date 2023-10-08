@@ -7,8 +7,18 @@ import pytest
 @pytest.fixture(scope="module")
 def nm_152263_exons():
     """Create test fixture for NM_152263.3 exons."""
-    return [(0, 234), (234, 360), (360, 494), (494, 612), (612, 683), (683, 759),
-            (759, 822), (822, 892), (892, 971), (971, 7099)]
+    return [
+        (0, 234),
+        (234, 360),
+        (360, 494),
+        (494, 612),
+        (612, 683),
+        (683, 759),
+        (759, 822),
+        (822, 892),
+        (892, 971),
+        (971, 7099),
+    ]
 
 
 @pytest.fixture(scope="module")
@@ -26,8 +36,19 @@ def tpm3_1_8_end_genomic():
 @pytest.fixture(scope="module")
 def tx_exon_aln_v_data():
     """Create test fixture for tx_aln_v_data test."""
-    return ["BRAF", "NM_004333.4", 1802, 1921, "NC_000007.13", 140453074,
-            140453193, -1, "splign", 780494, 1927263]
+    return [
+        "BRAF",
+        "NM_004333.4",
+        1802,
+        1921,
+        "NC_000007.13",
+        140453074,
+        140453193,
+        -1,
+        "splign",
+        780494,
+        1927263,
+    ]
 
 
 @pytest.fixture(scope="module")
@@ -40,7 +61,7 @@ def data_from_result():
         alt_pos_range=(140453074, 140453193),
         alt_aln_method="splign",
         tx_exon_id=780494,
-        alt_exon_id=1927263
+        alt_exon_id=1927263,
     )
 
 
@@ -58,7 +79,7 @@ def genomic_tx_data():
         pos_change=(92, 43),
         alt_pos_change_range=(140439703, 140439703),
         tx_ac="NM_004333.4",
-        alt_ac="NC_000007.13"
+        alt_ac="NC_000007.13",
     )
 
 
@@ -132,25 +153,51 @@ async def test_get_ac_descr(test_db):
 async def test_get_tx_exon_aln_v_data(test_db, tx_exon_aln_v_data):
     """Test that get_tx_exon_aln_v_data"""
     resp = await test_db.get_tx_exon_aln_v_data(
-        "NM_004333.4", 140453136, 140453136, alt_ac="NC_000007.13",
-        use_tx_pos=False)
+        "NM_004333.4", 140453136, 140453136, alt_ac="NC_000007.13", use_tx_pos=False
+    )
     assert resp == [tx_exon_aln_v_data]
 
     resp = await test_db.get_tx_exon_aln_v_data(
-        "NM_004333.4", 140453136, 140453136, alt_ac=None, use_tx_pos=False)
+        "NM_004333.4", 140453136, 140453136, alt_ac=None, use_tx_pos=False
+    )
     assert resp == [tx_exon_aln_v_data]
 
     resp = await test_db.get_tx_exon_aln_v_data(
-        "NM_004333.4", 140453136, None, alt_ac=None, use_tx_pos=False)
+        "NM_004333.4", 140453136, None, alt_ac=None, use_tx_pos=False
+    )
     assert resp == [tx_exon_aln_v_data]
 
     resp = await test_db.get_tx_exon_aln_v_data(
-        "NM_004333.4", 1860, None, alt_ac=None, use_tx_pos=True)
+        "NM_004333.4", 1860, None, alt_ac=None, use_tx_pos=True
+    )
     assert resp == [
-        ["BRAF", "NM_004333.4", 1802, 1921, "NC_000007.13", 140453074,
-         140453193, -1, "splign", 780494, 1927263],
-        ["BRAF", "NM_004333.4", 1802, 1921, "NC_000007.14", 140753274,
-         140753393, -1, "splign", 780494, 6619850]]
+        [
+            "BRAF",
+            "NM_004333.4",
+            1802,
+            1921,
+            "NC_000007.13",
+            140453074,
+            140453193,
+            -1,
+            "splign",
+            780494,
+            1927263,
+        ],
+        [
+            "BRAF",
+            "NM_004333.4",
+            1802,
+            1921,
+            "NC_000007.14",
+            140753274,
+            140753393,
+            -1,
+            "splign",
+            780494,
+            6619850,
+        ],
+    ]
 
 
 @pytest.mark.asyncio
@@ -179,7 +226,7 @@ async def test_mane_c_genomic_data(test_db):
         alt_pos_change=(57, 62),
         alt_pos_change_range=(140753336, 140753336),
         tx_ac="NM_001374258.1",
-        alt_ac="NC_000007.14"
+        alt_ac="NC_000007.14",
     )
     assert resp == expected
 
@@ -199,7 +246,7 @@ async def test_get_genomic_tx_data(test_db, genomic_tx_data):
         "tx_ac": "NM_004333.4",
         "alt_ac": "NC_000007.14",
         "pos_change": (92, 43),
-        "alt_pos_change_range": (140739854, 140739854)
+        "alt_pos_change_range": (140739854, 140739854),
     }
 
 
@@ -238,8 +285,7 @@ async def test_get_transcripts_from_gene(test_db):
     resp = await test_db.get_transcripts_from_gene("BRAF", 2145, 2145)
     assert len(resp) == 32
 
-    resp = await test_db.get_transcripts_from_gene("BRAF", 140453136,
-                                                   140453136)
+    resp = await test_db.get_transcripts_from_gene("BRAF", 140453136, 140453136)
     assert len(resp) == 0
 
 
@@ -316,11 +362,13 @@ async def test_get_tx_exon_coords(test_db, nm_152263_exons):
 
 
 @pytest.mark.asyncio
-async def test_get_alt_ac_start_and_end(test_db, tpm3_1_8_start_genomic,
-                                        tpm3_1_8_end_genomic):
+async def test_get_alt_ac_start_and_end(
+    test_db, tpm3_1_8_start_genomic, tpm3_1_8_end_genomic
+):
     """Test that get_alt_ac_start_and_end works correctly."""
     resp = await test_db.get_alt_ac_start_and_end(
-        "NM_152263.3", ["117", "234"], ["822", "892"], "TPM3")
+        "NM_152263.3", ["117", "234"], ["822", "892"], "TPM3"
+    )
     assert resp[0] == (tpm3_1_8_start_genomic, tpm3_1_8_end_genomic)
     assert resp[1] is None
 
@@ -330,8 +378,9 @@ async def test_get_alt_ac_start_and_end(test_db, tpm3_1_8_start_genomic,
 
 
 @pytest.mark.asyncio
-async def test_get_alt_ac_start_or_end(test_db, tpm3_1_8_start_genomic,
-                                       tpm3_1_8_end_genomic):
+async def test_get_alt_ac_start_or_end(
+    test_db, tpm3_1_8_start_genomic, tpm3_1_8_end_genomic
+):
     """Test that get_alt_ac_start_or_end works correctly."""
     resp = await test_db.get_alt_ac_start_or_end("NM_152263.3", 117, 234, None)
     assert resp[0] == tpm3_1_8_start_genomic
@@ -341,32 +390,42 @@ async def test_get_alt_ac_start_or_end(test_db, tpm3_1_8_start_genomic,
     assert resp[0] == tpm3_1_8_end_genomic
     assert resp[1] is None
 
-    resp = await test_db.get_alt_ac_start_or_end(
-        "NM_152263.63", 822, 892, None)
+    resp = await test_db.get_alt_ac_start_or_end("NM_152263.63", 822, 892, None)
     assert resp[0] is None
-    assert resp[1] == "Unable to find a result where NM_152263.63 has " \
-                      "transcript coordinates 822 and 892 between an exon's " \
-                      "start and end coordinates"
+    assert (
+        resp[1] == "Unable to find a result where NM_152263.63 has "
+        "transcript coordinates 822 and 892 between an exon's "
+        "start and end coordinates"
+    )
 
 
 @pytest.mark.asyncio
 async def test_get_mane_transcripts_from_genomic_pos(test_db):
     """Test that get_mane_transcripts_from_genomic_pos works correctly"""
-    resp = await test_db.get_transcripts_from_genomic_pos("NC_000007.14",
-                                                          140753336)
+    resp = await test_db.get_transcripts_from_genomic_pos("NC_000007.14", 140753336)
     assert set(resp) == {
-        "NM_001354609.1", "NM_001354609.2", "NM_001374244.1", "NM_001374258.1",
-        "NM_001378467.1", "NM_001378468.1", "NM_001378469.1", "NM_001378470.1",
-        "NM_001378471.1", "NM_001378472.1", "NM_001378473.1", "NM_001378474.1",
-        "NM_001378475.1", "NM_004333.4", "NM_004333.5", "NM_004333.6"
+        "NM_001354609.1",
+        "NM_001354609.2",
+        "NM_001374244.1",
+        "NM_001374258.1",
+        "NM_001378467.1",
+        "NM_001378468.1",
+        "NM_001378469.1",
+        "NM_001378470.1",
+        "NM_001378471.1",
+        "NM_001378472.1",
+        "NM_001378473.1",
+        "NM_001378474.1",
+        "NM_001378475.1",
+        "NM_004333.4",
+        "NM_004333.5",
+        "NM_004333.6",
     }
 
     # invalid pos
-    resp = await test_db.get_transcripts_from_genomic_pos("NC_000007.14",
-                                                          150753336)
+    resp = await test_db.get_transcripts_from_genomic_pos("NC_000007.14", 150753336)
     assert resp == []
 
     # invalid ac
-    resp = await test_db.get_transcripts_from_genomic_pos("NC_000007.14232",
-                                                          140753336)
+    resp = await test_db.get_transcripts_from_genomic_pos("NC_000007.14232", 140753336)
     assert resp == []
