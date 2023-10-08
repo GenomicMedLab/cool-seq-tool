@@ -11,6 +11,7 @@ from cool_seq_tool.schemas import Assembly, ToGenomicService, ToCdnaService, \
     ResidueMode
 from cool_seq_tool.utils import service_meta
 
+
 logger = logging.getLogger("cool_seq_tool")
 
 router = APIRouter(prefix=f"/{SERVICE_NAME}/alignment_mapper")
