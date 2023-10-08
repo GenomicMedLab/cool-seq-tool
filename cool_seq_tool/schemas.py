@@ -214,7 +214,7 @@ class ServiceMeta(BaseModelForbidExtra):
     response_datetime: datetime
     url: Literal[
         "https://github.com/GenomicMedLab/cool-seq-tool"
-    ] = "https://github.com/GenomicMedLab/cool-seq-tool"  # noqa: E501
+    ] = "https://github.com/GenomicMedLab/cool-seq-tool"
 
     @field_validator("version")
     def validate_version(cls, v):
