@@ -4,6 +4,7 @@ from typing import Dict, List, Optional, Tuple, TypeVar, Union
 
 from cool_seq_tool.mappers import MANETranscript
 from cool_seq_tool.schemas import (
+    AnnotationLayer,
     Assembly,
     GenomicData,
     GenomicDataResponse,
@@ -412,7 +413,7 @@ class ExonGenomicCoordsMapper:
         mane_data = await self.mane_transcript.get_mane_transcript(
             alt_ac,
             pos,
-            "g",
+            AnnotationLayer.GENOMIC,
             gene=gene,
             try_longest_compatible=True,
             residue_mode=residue_mode,

@@ -409,7 +409,7 @@ class MANETranscript:
         if mane_transcript:
             mane_start_pos = mane_transcript["pos"][0]
             mane_end_pos = mane_transcript["pos"][1]
-            if anno == "c":
+            if anno == AnnotationLayer.CDNA:
                 mane_cds = mane_transcript["coding_start_site"]
                 mane_start_pos += mane_cds
                 mane_end_pos += mane_cds
@@ -665,7 +665,7 @@ class MANETranscript:
         self,
         ac: str,
         start_pos: int,
-        start_annotation_layer: str,
+        start_annotation_layer: AnnotationLayer,
         end_pos: Optional[int] = None,
         gene: Optional[str] = None,
         ref: Optional[str] = None,
@@ -674,17 +674,15 @@ class MANETranscript:
     ) -> Optional[Dict]:
         """Return mane transcript.
 
-        :param str ac: Accession
-        :param int start_pos: Start position change
-        :param str start_annotation_layer: Starting annotation layer.
-            Must be either `p`, `c`, or `g`.
-        :param Optional[int] end_pos: End position change. If `None` assumes
-            both  `start_pos` and `end_pos` have same values.
-        :param str gene: Gene symbol
-        :param str ref: Reference at position given during input
-        :param bool try_longest_compatible: `True` if should try longest
-            compatible remaining if mane transcript was not compatible.
-            `False` otherwise.
+        :param ac: Accession
+        :param start_pos: Start position change
+        :param start_annotation_layer: Starting annotation layer.
+        :param end_pos: End position change. If `None` assumes both  `start_pos` and
+            `end_pos` have same values.
+        :param gene: Gene symbol
+        :param ref: Reference at position given during input
+        :param try_longest_compatible: `True` if should try longest compatible remaining
+            if mane transcript was not compatible. `False` otherwise.
         :param ResidueMode residue_mode: Starting residue mode for `start_pos`
             and `end_pos`. Will always return coordinates in inter-residue
         :return: MANE data or longest transcript compatible data if validation
@@ -701,10 +699,9 @@ class MANETranscript:
         if ref:
             ref = ref[: end_pos - start_pos]
 
-        anno = start_annotation_layer.lower()
-        if anno in ["p", "c"]:
+        if start_annotation_layer in {AnnotationLayer.PROTEIN, AnnotationLayer.CDNA}:
             # Get accession and position on c. coordinate
-            if anno == "p":
+            if start_annotation_layer == AnnotationLayer.PROTEIN:
                 c = await self._p_to_c(ac, start_pos, end_pos)
                 if not c:
                     return None
@@ -755,7 +752,7 @@ class MANETranscript:
                 if not valid_reading_frame:
                     continue
 
-                if anno == "p":
+                if start_annotation_layer == AnnotationLayer.PROTEIN:
                     mane = self._get_mane_p(current_mane_data, mane["pos"])
 
                 if ref:
@@ -766,7 +763,7 @@ class MANETranscript:
                         end_pos,
                         mane,
                         ref,
-                        anno,
+                        start_annotation_layer,
                         residue_mode,
                     )
                     if not valid_references:
@@ -775,12 +772,12 @@ class MANETranscript:
                 return mane
 
             if try_longest_compatible:
-                if anno == "p":
+                if start_annotation_layer == AnnotationLayer.PROTEIN:
                     return await self.get_longest_compatible_transcript(
                         g["gene"],
                         start_pos,
                         end_pos,
-                        "p",
+                        AnnotationLayer.PROTEIN,
                         ref,
                         residue_mode=residue_mode,
                         mane_transcripts=mane_transcripts,
@@ -790,19 +787,19 @@ class MANETranscript:
                         g["gene"],
                         c_pos[0],
                         c_pos[1],
-                        "c",
+                        AnnotationLayer.CDNA,
                         ref,
                         residue_mode=residue_mode,
                         mane_transcripts=mane_transcripts,
                     )
             else:
                 return None
-        elif anno == "g":
+        elif start_annotation_layer == AnnotationLayer.GENOMIC:
             return await self.g_to_mane_c(
                 ac, start_pos, end_pos, gene=gene, residue_mode=residue_mode
             )
         else:
-            logger.warning(f"Annotation layer not supported: {anno}")
+            logger.warning(f"Annotation layer not supported: {start_annotation_layer}")
 
     async def g_to_grch38(
         self, ac: str, start_pos: int, end_pos: int
