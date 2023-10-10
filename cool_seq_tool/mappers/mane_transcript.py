@@ -11,7 +11,7 @@ import logging
 import math
 from typing import Dict, List, Optional, Set, Tuple, Union
 
-import pandas as pd
+import polars as pl
 
 from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
 from cool_seq_tool.schemas import (
@@ -457,35 +457,51 @@ class MANETranscript:
         else:
             return False
 
-    def _get_prioritized_transcripts_from_gene(
-        self, df: pd.core.frame.DataFrame
-    ) -> List:
+    def _get_prioritized_transcripts_from_gene(self, df: pl.DataFrame) -> List:
         """Sort and filter transcripts from gene to get priority list
 
-        :param pd.core.frame.DataFrame df: Data frame containing transcripts from gene
+        :param df: Data frame containing transcripts from gene
             data
         :return: List of prioritized transcripts for a given gene. Sort by latest
             assembly, longest length of transcript, with first-published transcripts
             breaking ties. If there are multiple transcripts for a given accession, the
             most recent version of a transcript associated with an assembly will be kept
         """
-        copy_df = df.copy(deep=True)
-        copy_df = copy_df.drop(columns="alt_ac").drop_duplicates()
-        copy_df["ac_no_version_as_int"] = copy_df["tx_ac"].apply(
-            lambda x: int(x.split(".")[0].split("NM_")[1])
+        copy_df = df.clone()
+        copy_df = copy_df.drop(columns="alt_ac").unique()
+        copy_df = copy_df.with_columns(
+            [
+                pl.col("tx_ac")
+                .str.split(".")
+                .list.get(0)
+                .str.split("NM_")
+                .list.get(1)
+                .cast(pl.Int64)
+                .alias("ac_no_version_as_int"),
+                pl.col("tx_ac")
+                .str.split(".")
+                .list.get(1)
+                .cast(pl.Int16)
+                .alias("ac_version"),
+            ]
         )
-        copy_df["ac_version"] = copy_df["tx_ac"].apply(lambda x: x.split(".")[1])
-        copy_df = copy_df.sort_values(
-            ["ac_no_version_as_int", "ac_version"], ascending=[False, False]
+        copy_df = copy_df.sort(
+            by=["ac_no_version_as_int", "ac_version"], descending=[True, True]
         )
-        copy_df = copy_df.drop_duplicates(["ac_no_version_as_int"], keep="first")
-        copy_df.loc[:, "len_of_tx"] = copy_df.loc[:, "tx_ac"].apply(
-            lambda ac: len(self.seqrepo_access.get_reference_sequence(ac)[0])
+        copy_df = copy_df.unique(["ac_no_version_as_int"], keep="first")
+
+        copy_df = copy_df.with_columns(
+            copy_df.map_rows(
+                lambda x: len(self.seqrepo_access.get_reference_sequence(x[1])[0])
+            )
+            .to_series()
+            .alias("len_of_tx")
         )
-        copy_df = copy_df.sort_values(
-            ["len_of_tx", "ac_no_version_as_int"], ascending=[False, True]
+
+        copy_df = copy_df.sort(
+            by=["len_of_tx", "ac_no_version_as_int"], descending=[True, False]
         )
-        return list(copy_df["tx_ac"])
+        return copy_df.select("tx_ac").to_series().to_list()
 
     async def get_longest_compatible_transcript(
         self,
@@ -537,7 +553,7 @@ class MANETranscript:
             df = await self.uta_db.get_transcripts_from_gene(
                 gene, start_pos, end_pos, use_tx_pos=False, alt_ac=alt_ac
             )
-        if df.empty:
+        if df.is_empty():
             logger.warning(f"Unable to get transcripts from gene {gene}")
             return None
 
@@ -551,8 +567,10 @@ class MANETranscript:
 
         for tx_ac in prioritized_tx_acs:
             # Only need to check the one row since we do liftover in _c_to_g
-            tmp_df = df.loc[df["tx_ac"] == tx_ac].sort_values("alt_ac", ascending=False)
-            row = tmp_df.iloc[0]
+            tmp_df = df.filter(pl.col("tx_ac") == tx_ac).sort(
+                by="alt_ac", descending=True
+            )
+            row = tmp_df[0].to_dicts()[0]
 
             if alt_ac is None:
                 alt_ac = row["alt_ac"]

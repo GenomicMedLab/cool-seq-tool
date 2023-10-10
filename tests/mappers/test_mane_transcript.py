@@ -1,7 +1,7 @@
 """Module for testing MANE Transcript class."""
 import copy
 
-import pandas as pd
+import polars as pl
 import pytest
 from mock import patch
 
@@ -469,7 +469,7 @@ def test__get_prioritized_transcripts_from_gene(test_get_seqrepo, test_mane_tran
         ["NM_001378472.1", 1, "NC_000007.14"],
         ["NM_001374258.2", 1, "NC_000007.14"],
     ]
-    test_df = pd.DataFrame(data, columns=["tx_ac", "len_of_tx", "alt_ac"])
+    test_df = pl.DataFrame(data, schema=["tx_ac", "len_of_tx", "alt_ac"])
 
     resp = test_mane_transcript._get_prioritized_transcripts_from_gene(test_df)
     assert resp == ["NM_004333.6", "NM_001374258.2", "NM_001378472.1"]
