@@ -865,9 +865,9 @@ class UTADatabase:
 
     async def get_transcripts_from_gene(
         self,
+        gene: Optional[str] = None,
         start_pos: Optional[int] = None,
         end_pos: Optional[int] = None,
-        gene: Optional[str] = None,
         use_tx_pos: bool = True,
         alt_ac: Optional[str] = None,
     ) -> pd.core.frame.DataFrame:
@@ -888,10 +888,6 @@ class UTADatabase:
             are ordered by most recent NC accession, then by descending transcript
             length.
         """
-        columns = ["pro_ac", "tx_ac", "alt_ac", "cds_start_i"]
-        if not gene and not alt_ac:
-            return pd.DataFrame([], columns=columns)
-
         pos_cond = ""
         if start_pos is not None and end_pos is not None:
             if use_tx_pos:
