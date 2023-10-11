@@ -865,8 +865,8 @@ class UTADatabase:
 
     async def get_transcripts_from_gene(
         self,
-        start_pos: int,
-        end_pos: int,
+        start_pos: int = None,
+        end_pos: int = None,
         gene: Optional[str] = None,
         use_tx_pos: bool = True,
         alt_ac: Optional[str] = None,
@@ -890,18 +890,20 @@ class UTADatabase:
         if not gene and not alt_ac:
             return pd.DataFrame([], columns=columns)
 
-        if use_tx_pos:
-            pos_cond = f"""
-                AND {start_pos} + T.cds_start_i
-                    BETWEEN ALIGN.tx_start_i AND ALIGN.tx_end_i
-                AND {end_pos} + T.cds_start_i
-                    BETWEEN ALIGN.tx_start_i AND ALIGN.tx_end_i
-                """
-        else:
-            pos_cond = f"""
-                AND {start_pos} BETWEEN ALIGN.alt_start_i AND ALIGN.alt_end_i
-                AND {end_pos} BETWEEN ALIGN.alt_start_i AND ALIGN.alt_end_i
-                """
+        pos_cond = ""
+        if start_pos and end_pos:
+            if use_tx_pos:
+                pos_cond = f"""
+                    AND {start_pos} + T.cds_start_i
+                        BETWEEN ALIGN.tx_start_i AND ALIGN.tx_end_i
+                    AND {end_pos} + T.cds_start_i
+                        BETWEEN ALIGN.tx_start_i AND ALIGN.tx_end_i
+                    """
+            else:
+                pos_cond = f"""
+                    AND {start_pos} BETWEEN ALIGN.alt_start_i AND ALIGN.alt_end_i
+                    AND {end_pos} BETWEEN ALIGN.alt_start_i AND ALIGN.alt_end_i
+                    """
 
         order_by_cond = """
         ORDER BY SUBSTR(ALIGN.alt_ac, 0, position('.' in ALIGN.alt_ac)),
