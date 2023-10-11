@@ -893,7 +893,7 @@ class UTADatabase:
             return pd.DataFrame([], columns=columns)
 
         pos_cond = ""
-        if start_pos != None and end_pos != None:
+        if start_pos is not None and end_pos is not None:
             if use_tx_pos:
                 pos_cond = f"""
                     AND {start_pos} + T.cds_start_i
