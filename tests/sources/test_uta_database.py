@@ -290,11 +290,15 @@ async def test_get_transcripts_from_gene(test_db):
     assert len(resp) == 32
 
     # using alt_ac
-    resp = await test_db.get_transcripts_from_gene(140753336, 140753336, alt_ac="NC_000007.14", use_tx_pos=False)
+    resp = await test_db.get_transcripts_from_gene(
+        140753336, 140753336, alt_ac="NC_000007.14", use_tx_pos=False
+    )
     assert len(resp) == 16
 
     # using gene with genomic pos
-    resp = await test_db.get_transcripts_from_gene(140753336, 140753336, gene="BRAF", use_tx_pos=False)
+    resp = await test_db.get_transcripts_from_gene(
+        140753336, 140753336, gene="BRAF", use_tx_pos=False
+    )
     assert len(resp) == 16
 
     resp = await test_db.get_transcripts_from_gene(140453136, 140453136, gene="BRAF")

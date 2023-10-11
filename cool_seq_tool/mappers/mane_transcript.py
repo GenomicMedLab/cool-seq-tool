@@ -456,9 +456,7 @@ class MANETranscript:
         end_pos = pos[1] + coding_start_site
         if self.seqrepo_access.get_reference_sequence(
             ac, start_pos, end_pos, residue_mode=ResidueMode.INTER_RESIDUE
-        )[
-            0
-        ]:
+        )[0]:
             return True
         else:
             return False
@@ -505,7 +503,7 @@ class MANETranscript:
         alt_ac: Optional[str] = None,
         end_annotation_layer: Optional[
             Union[AnnotationLayer.PROTEIN, AnnotationLayer.CDNA]
-        ] = None
+        ] = None,
     ) -> Optional[Dict]:
         """Get longest compatible transcript from a gene.
         Try GRCh38 first, then GRCh37.
@@ -1026,7 +1024,7 @@ class MANETranscript:
         end_pos: int,
         gene: Optional[str] = None,
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
-        try_longest_compatible: bool = False
+        try_longest_compatible: bool = False,
     ) -> Optional[Dict]:
         """Given genomic representation, return protein representation.
         Will try MANE Select
@@ -1065,9 +1063,7 @@ class MANETranscript:
         mane_transcripts = set()
         for current_mane_data in mane_data:
             mane_c_ac = current_mane_data["RefSeq_nuc"]
-            mane_transcripts |= set(
-                (mane_c_ac, current_mane_data["Ensembl_nuc"])
-            )
+            mane_transcripts |= set((mane_c_ac, current_mane_data["Ensembl_nuc"]))
 
             # GRCh38 -> MANE C
             mane_tx_genomic_data = await self.uta_db.get_mane_c_genomic_data(
@@ -1091,15 +1087,15 @@ class MANETranscript:
                 )
                 continue
 
-            return self._get_mane_p(
-                current_mane_data,
-                mane_c_pos_change
-            )
+            return self._get_mane_p(current_mane_data, mane_c_pos_change)
 
         if try_longest_compatible:
             return await self.get_longest_compatible_transcript(
-                start_pos, end_pos, AnnotationLayer.GENOMIC,
-                residue_mode=residue_mode, alt_ac=alt_ac,
+                start_pos,
+                end_pos,
+                AnnotationLayer.GENOMIC,
+                residue_mode=residue_mode,
+                alt_ac=alt_ac,
                 end_annotation_layer=AnnotationLayer.PROTEIN,
-                mane_transcripts=mane_transcripts
+                mane_transcripts=mane_transcripts,
             )
