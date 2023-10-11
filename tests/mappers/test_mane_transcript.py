@@ -461,9 +461,9 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         "status": "longest_compatible_remaining",
     }
     resp = await test_mane_transcript.get_longest_compatible_transcript(
+        "BRAF",
         599,
         599,
-        gene="BRAF",
         start_annotation_layer=AnnotationLayer.PROTEIN,
         residue_mode=ResidueMode.INTER_RESIDUE,
         mane_transcripts=mane_transcripts,
@@ -471,9 +471,9 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
     assert resp == expected
 
     resp = await test_mane_transcript.get_longest_compatible_transcript(
+        "BRAF",
         600,
         600,
-        gene="BRAF",
         start_annotation_layer=AnnotationLayer.PROTEIN,
         residue_mode=ResidueMode.RESIDUE,
         mane_transcripts=mane_transcripts,
@@ -488,18 +488,18 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         "status": "longest_compatible_remaining",
     }
     resp = await test_mane_transcript.get_longest_compatible_transcript(
+        "BRAF",
         1799,
         1799,
-        gene="BRAF",
         start_annotation_layer=AnnotationLayer.CDNA,
         mane_transcripts=mane_transcripts,
     )
     assert resp == expected
 
     resp = await test_mane_transcript.get_longest_compatible_transcript(
+        "BRAF",
         1798,
         1798,
-        gene="BRAF",
         start_annotation_layer=AnnotationLayer.CDNA,
         residue_mode=ResidueMode.INTER_RESIDUE,
         mane_transcripts=mane_transcripts,
@@ -507,9 +507,9 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
     assert resp == expected
 
     resp = await test_mane_transcript.get_longest_compatible_transcript(
+        "BRAF",
         140453136,
         140453136,
-        gene="BRAF",
         start_annotation_layer=AnnotationLayer.GENOMIC,
         mane_transcripts=mane_transcripts,
         alt_ac="NC_000007.13",

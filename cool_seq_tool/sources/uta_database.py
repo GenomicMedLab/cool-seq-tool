@@ -920,22 +920,21 @@ class UTADatabase:
         else:
             alt_ac_cond = "AND ALIGN.alt_ac LIKE 'NC_00%'"
 
-        gene_cond = f"AND T.hgnc = '{gene}'" if gene else ""
-
         query = f"""
             SELECT AA.pro_ac, AA.tx_ac, ALIGN.alt_ac, T.cds_start_i
             FROM {self.schema}.associated_accessions as AA
             JOIN {self.schema}.transcript as T ON T.ac = AA.tx_ac
             JOIN {self.schema}.tx_exon_aln_v as ALIGN ON T.ac = ALIGN.tx_ac
-            WHERE ALIGN.alt_aln_method = 'splign'
-            {gene_cond}
+            WHERE T.hgnc = '{gene}'
             {alt_ac_cond}
+            AND ALIGN.alt_aln_method = 'splign'
             {pos_cond}
             {order_by_cond}
             """
-
         results = await self.execute_query(query)
-        return pd.DataFrame(results, columns=columns).drop_duplicates()
+        return pd.DataFrame(
+            results, columns=["pro_ac", "tx_ac", "alt_ac", "cds_start_i"]
+        ).drop_duplicates()
 
     async def get_chr_assembly(self, ac: str) -> Optional[Tuple[str, str]]:
         """Get chromosome and assembly for NC accession if not in GRCh38.
