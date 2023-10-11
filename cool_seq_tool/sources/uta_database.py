@@ -873,8 +873,10 @@ class UTADatabase:
     ) -> pd.core.frame.DataFrame:
         """Get transcripts associated to a gene.
 
-        :param start_pos: Start position change
+        :param start_pos: Start position change.
+            If not provided, all transcripts associated with the gene or accession will be returned.
         :param end_pos: End position change
+            If not provided, all transcripts associated with the gene or accession will be returned.
         :param gene: HGNC Gene symbol. If provided, will add condition to query on gene.
             If not provided, must provide `alt_ac`.
         :param use_tx_pos: `True` if querying on transcript position. This means
@@ -884,8 +886,7 @@ class UTADatabase:
         :param alt_ac: Genomic accession. If not provided, must provide `gene`
         :return: Data Frame containing transcripts associated with a gene. Transcripts
             are ordered by most recent NC accession, then by descending transcript
-            length. If start/end are not provided, all transcripts for the provided gene
-            will be returned. 
+            length.
         """
         columns = ["pro_ac", "tx_ac", "alt_ac", "cds_start_i"]
         if not gene and not alt_ac:
