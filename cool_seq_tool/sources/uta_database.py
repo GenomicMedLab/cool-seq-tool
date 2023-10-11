@@ -864,12 +864,17 @@ class UTADatabase:
         return [r[0] for r in results]
 
     async def get_transcripts_from_gene(
+<<<<<<< Updated upstream:cool_seq_tool/sources/uta_database.py
         self,
         start_pos: int,
         end_pos: int,
         gene: Optional[str] = None,
         use_tx_pos: bool = True,
         alt_ac: Optional[str] = None,
+=======
+        self, gene: str, start_pos: int = None, end_pos: int = None, use_tx_pos: bool = True,
+        alt_ac: Optional[str] = None
+>>>>>>> Stashed changes:cool_seq_tool/data_sources/uta_database.py
     ) -> pd.core.frame.DataFrame:
         """Get transcripts associated to a gene.
 
@@ -886,6 +891,7 @@ class UTADatabase:
             are ordered by most recent NC accession, then by descending transcript
             length.
         """
+<<<<<<< Updated upstream:cool_seq_tool/sources/uta_database.py
         columns = ["pro_ac", "tx_ac", "alt_ac", "cds_start_i"]
         if not gene and not alt_ac:
             return pd.DataFrame([], columns=columns)
@@ -902,6 +908,26 @@ class UTADatabase:
                 AND {start_pos} BETWEEN ALIGN.alt_start_i AND ALIGN.alt_end_i
                 AND {end_pos} BETWEEN ALIGN.alt_start_i AND ALIGN.alt_end_i
                 """
+=======
+        pos_cond = ""
+        if start_pos and end_pos:
+            if use_tx_pos:
+                pos_cond = (
+                    f"""
+                    AND {start_pos} + T.cds_start_i
+                        BETWEEN ALIGN.tx_start_i AND ALIGN.tx_end_i
+                    AND {end_pos} + T.cds_start_i
+                        BETWEEN ALIGN.tx_start_i AND ALIGN.tx_end_i
+                    """
+                )
+            else:
+                pos_cond = (
+                    f"""
+                    AND {start_pos} BETWEEN ALIGN.alt_start_i AND ALIGN.alt_end_i
+                    AND {end_pos} BETWEEN ALIGN.alt_start_i AND ALIGN.alt_end_i
+                    """
+                )
+>>>>>>> Stashed changes:cool_seq_tool/data_sources/uta_database.py
 
         order_by_cond = """
         ORDER BY SUBSTR(ALIGN.alt_ac, 0, position('.' in ALIGN.alt_ac)),

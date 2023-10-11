@@ -300,6 +300,9 @@ async def test_get_transcripts_from_gene(test_db):
     resp = await test_db.get_transcripts_from_gene(2145, 2145)
     assert len(resp) == 0
 
+    resp = await test_db.get_transcripts_from_gene("BRAF")
+    assert len(resp) == 32
+
 
 @pytest.mark.asyncio
 async def test_get_chr_assembly(test_db):
