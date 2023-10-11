@@ -18,7 +18,7 @@ from cool_seq_tool.schemas import (
     AnnotationLayer,
     Assembly,
     ResidueMode,
-    TranscriptPriority,
+    TranscriptPriorityLabel,
 )
 from cool_seq_tool.sources import (
     MANETranscriptMappings,
@@ -207,7 +207,7 @@ class MANETranscript:
         cds_start_end: Tuple[int, int],
         c_pos_change: Tuple[int, int],
         strand: str,
-        status: TranscriptPriority,
+        status: TranscriptPriorityLabel,
         refseq_c_ac: str,
         ensembl_c_ac: Optional[str] = None,
         alt_ac: Optional[str] = None,
@@ -220,7 +220,7 @@ class MANETranscript:
         :param Tuple[int, int] c_pos_change: Start and end positions
             for change on c. coordinate
         :param str strand: Strand
-        :param TranscriptPriority status: Status of transcript
+        :param TranscriptPriorityLabel status: Status of transcript
         :param str refseq_c_ac: Refseq transcript
         :param Optional[str] ensembl_c_ac: Ensembl transcript
         :param Optional[str] alt_ac: Genomic accession
@@ -267,16 +267,14 @@ class MANETranscript:
                 math.floor(mane_c_pos_range[1] / 3),
             ),
             strand=mane_data["chr_strand"],
-            status=TranscriptPriority(
-                "_".join(mane_data["MANE_status"].split()).lower()
-            ),
+            status="_".join(mane_data["MANE_status"].split()).lower(),
         )
 
     async def _g_to_c(
         self,
         g: Dict,
         refseq_c_ac: str,
-        status: TranscriptPriority,
+        status: TranscriptPriorityLabel,
         ensembl_c_ac: Optional[str] = None,
         alt_ac: Optional[str] = None,
         found_result: bool = False,
@@ -285,7 +283,7 @@ class MANETranscript:
 
         :param Dict g: Genomic data
         :param str refseq_c_ac: Refseq transcript accession
-        :param TranscriptPriority status: Status of transcript
+        :param TranscriptPriorityLabel status: Status of transcript
         :param Optional[str] ensembl_c_ac: Ensembl transcript accession
         :param Optional[str] alt_ac: Genomic accession
         :param bool found_result: `True` if found result, so do not need to query
@@ -590,7 +588,7 @@ class MANETranscript:
             lcr_c_data = await self._g_to_c(
                 g=g,
                 refseq_c_ac=tx_ac,
-                status=TranscriptPriority.LONGEST_COMPATIBLE_REMAINING,
+                status=TranscriptPriorityLabel.LongestCompatibleRemaining.value,
                 found_result=found_tx_exon_aln_v_result,
             )
 
@@ -760,9 +758,7 @@ class MANETranscript:
                 mane = await self._g_to_c(
                     g=g,
                     refseq_c_ac=current_mane_data["RefSeq_nuc"],
-                    status=TranscriptPriority(
-                        "_".join(current_mane_data["MANE_status"].split()).lower()
-                    ),
+                    status="_".join(current_mane_data["MANE_status"].split()).lower(),
                     ensembl_c_ac=current_mane_data["Ensembl_nuc"],
                 )
                 if not mane:
@@ -951,7 +947,7 @@ class MANETranscript:
                 coding_end_site=None,
                 pos=grch38["pos"],
                 strand=None,
-                status=TranscriptPriority.GRCH38,
+                status="GRCh38",
                 alt_ac=grch38["ac"],
             )
 
@@ -1009,9 +1005,7 @@ class MANETranscript:
                 cds_start_end=(coding_start_site, coding_end_site),
                 c_pos_change=mane_c_pos_change,
                 strand=current_mane_data["chr_strand"],
-                status=TranscriptPriority(
-                    "_".join(current_mane_data["MANE_status"].split()).lower()
-                ),
+                status="_".join(current_mane_data["MANE_status"].split()).lower(),
                 refseq_c_ac=current_mane_data["RefSeq_nuc"],
                 ensembl_c_ac=current_mane_data["Ensembl_nuc"],
                 alt_ac=grch38["ac"] if grch38 else None,

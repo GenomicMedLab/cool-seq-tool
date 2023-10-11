@@ -38,13 +38,12 @@ class Assembly(str, Enum):
     GRCH38 = "GRCh38"
 
 
-class TranscriptPriority(str, Enum):
+class TranscriptPriorityLabel(str, Enum):
     """Create Enum for Transcript Priority labels"""
 
-    MANE_SELECT = "mane_select"
-    MANE_PLUS_CLINICAL = "mane_plus_clinical"
-    LONGEST_COMPATIBLE_REMAINING = "longest_compatible_remaining"
-    GRCH38 = "grch38"
+    MANESelect = "mane_select"
+    MANEPlusClinical = "mane_plus_clinical"
+    LongestCompatibleRemaining = "longest_compatible_remaining"
 
 
 class ResidueMode(str, Enum):
@@ -309,7 +308,7 @@ class MappedManeData(BaseModel):
     refseq: StrictStr
     ensembl: Optional[StrictStr] = None
     strand: Strand
-    status: TranscriptPriority
+    status: TranscriptPriorityLabel
     alt_ac: StrictStr
     assembly: Assembly
 
@@ -320,7 +319,7 @@ class MappedManeData(BaseModel):
                 "refseq": "NM_001374258.1",
                 "ensembl": "ENST00000644969.2",
                 "strand": "-",
-                "status": TranscriptPriority.MANE_PLUS_CLINICAL,
+                "status": "mane_plus_clinical",
                 "alt_ac": "NC_000007.13",
                 "assembly": "GRCh37",
             }
@@ -343,7 +342,7 @@ class MappedManeDataService(BaseModelForbidExtra):
                     "refseq": "NM_001374258.1",
                     "ensembl": "ENST00000644969.2",
                     "strand": "-",
-                    "status": TranscriptPriority.MANE_PLUS_CLINICAL,
+                    "status": "mane_plus_clinical",
                     "alt_ac": "NC_000007.13",
                     "assembly": "GRCh37",
                 },
@@ -367,7 +366,7 @@ class ManeData(BaseModel):
     ensembl: Optional[StrictStr] = None
     pos: Tuple[int, int]
     strand: Strand
-    status: TranscriptPriority
+    status: TranscriptPriorityLabel
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -377,7 +376,7 @@ class ManeData(BaseModel):
                 "ensembl": "ENSP00000493543.1",
                 "pos": (598, 598),
                 "strand": "-",
-                "status": TranscriptPriority.MANE_SELECT,
+                "status": "mane_select",
             }
         }
     )
@@ -399,7 +398,7 @@ class ManeDataService(BaseModelForbidExtra):
                     "ensembl": "ENSP00000493543.1",
                     "pos": (598, 598),
                     "strand": "-",
-                    "status": TranscriptPriority.MANE_SELECT,
+                    "status": "mane_select",
                 },
                 "warnings": [],
                 "service_meta": {
