@@ -865,8 +865,8 @@ class UTADatabase:
 
     async def get_transcripts_from_gene(
         self,
-        start_pos: int = None,
-        end_pos: int = None,
+        start_pos: Optional[int] = None,
+        end_pos: Optional[int] = None,
         gene: Optional[str] = None,
         use_tx_pos: bool = True,
         alt_ac: Optional[str] = None,
