@@ -865,7 +865,7 @@ class UTADatabase:
 
     async def get_transcripts_from_gene(
         self,
-        gene: Optional[str] = None,
+        gene: str,
         start_pos: Optional[int] = None,
         end_pos: Optional[int] = None,
         use_tx_pos: bool = True,
@@ -873,12 +873,11 @@ class UTADatabase:
     ) -> pd.core.frame.DataFrame:
         """Get transcripts associated to a gene.
 
+        :param str gene: Gene symbol
         :param start_pos: Start position change.
             If not provided, all transcripts associated with the gene or accession will be returned.
         :param end_pos: End position change
             If not provided, all transcripts associated with the gene or accession will be returned.
-        :param gene: HGNC Gene symbol. If provided, will add condition to query on gene.
-            If not provided, must provide `alt_ac`.
         :param use_tx_pos: `True` if querying on transcript position. This means
             `start_pos` and `end_pos` are c. coordinate positions `False` if querying on
             genomic position. This means `start_pos` and `end_pos` are g. coordinate
