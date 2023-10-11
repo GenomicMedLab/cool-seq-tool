@@ -286,7 +286,7 @@ async def test_get_transcripts_from_gene(test_db):
     assert len(resp) == 32
 
     # using no start/end pos
-    resp = await test_db.get_transcripts_from_gene(ene="BRAF")
+    resp = await test_db.get_transcripts_from_gene(gene="BRAF")
     assert len(resp) == 32
 
     # using alt_ac

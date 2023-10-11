@@ -884,14 +884,15 @@ class UTADatabase:
         :param alt_ac: Genomic accession. If not provided, must provide `gene`
         :return: Data Frame containing transcripts associated with a gene. Transcripts
             are ordered by most recent NC accession, then by descending transcript
-            length.
+            length. If start/end are not provided, all transcripts for the provided gene
+            will be returned. 
         """
         columns = ["pro_ac", "tx_ac", "alt_ac", "cds_start_i"]
         if not gene and not alt_ac:
             return pd.DataFrame([], columns=columns)
 
         pos_cond = ""
-        if start_pos and end_pos:
+        if start_pos != None and end_pos != None:
             if use_tx_pos:
                 pos_cond = f"""
                     AND {start_pos} + T.cds_start_i
