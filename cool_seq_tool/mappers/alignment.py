@@ -1,19 +1,22 @@
 """Module containing alignment methods for translating to and from different
 reference sequences.
 """
-from typing import Optional, Tuple, Dict
+from typing import Dict, Optional, Tuple
 
-from cool_seq_tool.schemas import AnnotationLayer, Assembly, ResidueMode
 from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
+from cool_seq_tool.schemas import AnnotationLayer, Assembly, ResidueMode
 from cool_seq_tool.sources import TranscriptMappings, UTADatabase
 
 
 class AlignmentMapper:
     """Class for translating between p --> c --> g reference sequences."""
 
-    def __init__(self, seqrepo_access: SeqRepoAccess,
-                 transcript_mappings: TranscriptMappings,
-                 uta_db: UTADatabase) -> None:
+    def __init__(
+        self,
+        seqrepo_access: SeqRepoAccess,
+        transcript_mappings: TranscriptMappings,
+        uta_db: UTADatabase,
+    ) -> None:
         """Initialize the AlignmentMapper class.
 
         :param SeqRepoAccess seqrepo_access: Access to seqrepo queries
@@ -27,8 +30,11 @@ class AlignmentMapper:
         self.uta_db = uta_db
 
     async def p_to_c(
-        self, p_ac: str, p_start_pos: int, p_end_pos: int,
-        residue_mode: ResidueMode = ResidueMode.RESIDUE
+        self,
+        p_ac: str,
+        p_start_pos: int,
+        p_end_pos: int,
+        residue_mode: ResidueMode = ResidueMode.RESIDUE,
     ) -> Tuple[Optional[Dict], Optional[str]]:
         """Translate protein representation to cDNA representation.
 
@@ -74,7 +80,7 @@ class AlignmentMapper:
             "c_start_pos": c_pos[0],
             "c_end_pos": c_pos[1],
             "cds_start": cds_start,
-            "residue_mode": ResidueMode.INTER_RESIDUE.value
+            "residue_mode": ResidueMode.INTER_RESIDUE.value,
         }, None
 
     async def _get_cds_start(self, c_ac: str) -> Tuple[Optional[int], Optional[str]]:
@@ -95,7 +101,10 @@ class AlignmentMapper:
         return cds_start, warning
 
     async def c_to_g(
-        self, c_ac: str, c_start_pos: int, c_end_pos: int,
+        self,
+        c_ac: str,
+        c_start_pos: int,
+        c_end_pos: int,
         cds_start: Optional[int] = None,
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
         target_genome_assembly: bool = Assembly.GRCH38,
@@ -113,12 +122,19 @@ class AlignmentMapper:
               positions as inter-residue coordinates. Else `None`.
             - Warning, if unable to translate to genomic representation. Else `None`
         """
-        if any((
-            c_start_pos == c_end_pos,
-            (residue_mode == ResidueMode.INTER_RESIDUE) and ((c_end_pos - c_start_pos) % 3 != 0),  # noqa: E501
-            (residue_mode == ResidueMode.RESIDUE) and ((c_end_pos - (c_start_pos - 1)) % 3 != 0)  # noqa: E501
-        )):
-            return None, "c_start_pos and c_end_pos are not a valid range for the codon(s)"  # noqa: E501
+        if any(
+            (
+                c_start_pos == c_end_pos,
+                (residue_mode == ResidueMode.INTER_RESIDUE)
+                and ((c_end_pos - c_start_pos) % 3 != 0),
+                (residue_mode == ResidueMode.RESIDUE)
+                and ((c_end_pos - (c_start_pos - 1)) % 3 != 0),
+            )
+        ):
+            return (
+                None,
+                "c_start_pos and c_end_pos are not a valid range for the codon(s)",
+            )
 
         warning = None
         g_coords_data = None
@@ -135,12 +151,17 @@ class AlignmentMapper:
 
         # Get aligned genomic and transcript data
         genomic_tx_data = await self.uta_db.get_genomic_tx_data(
-            c_ac, (c_start_pos + cds_start, c_end_pos + cds_start),
-            AnnotationLayer.CDNA, target_genome_assembly=target_genome_assembly)
+            c_ac,
+            (c_start_pos + cds_start, c_end_pos + cds_start),
+            AnnotationLayer.CDNA,
+            target_genome_assembly=target_genome_assembly,
+        )
 
         if not genomic_tx_data:
-            warning = f"Unable to find genomic and transcript data for {c_ac} at "\
-                      f"position ({c_start_pos}, {c_end_pos})"
+            warning = (
+                f"Unable to find genomic and transcript data for {c_ac} at "
+                f"position ({c_start_pos}, {c_end_pos})"
+            )
         else:
             alt_ac = genomic_tx_data["alt_ac"]
 
@@ -153,9 +174,11 @@ class AlignmentMapper:
                 else:
                     found_assembly = grch_aliases[0].split(":")[0]
                     if found_assembly != target_genome_assembly:
-                        warning = f"{alt_ac} uses {found_assembly} assembly which "\
-                                  f"does not not match the target assembly, "\
-                                  f"{target_genome_assembly}"
+                        warning = (
+                            f"{alt_ac} uses {found_assembly} assembly which "
+                            f"does not not match the target assembly, "
+                            f"{target_genome_assembly}"
+                        )
                     else:
                         g_pos = genomic_tx_data["alt_pos_change_range"]
 
@@ -171,18 +194,23 @@ class AlignmentMapper:
                             "g_ac": alt_ac,
                             "g_start_pos": g_start_pos,
                             "g_end_pos": g_end_pos,
-                            "residue_mode": ResidueMode.INTER_RESIDUE.value
+                            "residue_mode": ResidueMode.INTER_RESIDUE.value,
                         }
             else:
-                warning = f"Unable to validate {alt_ac} matches the target assembly,"\
-                          f" {target_genome_assembly}"
+                warning = (
+                    f"Unable to validate {alt_ac} matches the target assembly,"
+                    f" {target_genome_assembly}"
+                )
 
         return g_coords_data, warning
 
     async def p_to_g(
-        self, p_ac: str, p_start_pos: int, p_end_pos: int,
+        self,
+        p_ac: str,
+        p_start_pos: int,
+        p_end_pos: int,
         residue_mode: ResidueMode = ResidueMode.INTER_RESIDUE,
-        target_genome_assembly: Assembly = Assembly.GRCH38
+        target_genome_assembly: Assembly = Assembly.GRCH38,
     ) -> Tuple[Optional[Dict], Optional[str]]:
         """Translate protein representation to genomic representation
 
@@ -196,14 +224,19 @@ class AlignmentMapper:
               positions as inter-residue coordinates. Else `None`.
             and warnings. The genomic data will always return inter-residue coordinates
         """
-        c_data, warning = await self.p_to_c(p_ac, p_start_pos, p_end_pos,
-                                            residue_mode=residue_mode)
+        c_data, warning = await self.p_to_c(
+            p_ac, p_start_pos, p_end_pos, residue_mode=residue_mode
+        )
         if not c_data:
             return None, warning
 
         # p_to_c returns c_data as inter-residue
         g_data, warning = await self.c_to_g(
-            c_data["c_ac"], c_data["c_start_pos"], c_data["c_end_pos"],
-            c_data["cds_start"], residue_mode=ResidueMode.INTER_RESIDUE,
-            target_genome_assembly=target_genome_assembly)
+            c_data["c_ac"],
+            c_data["c_start_pos"],
+            c_data["c_end_pos"],
+            c_data["cds_start"],
+            residue_mode=ResidueMode.INTER_RESIDUE,
+            target_genome_assembly=target_genome_assembly,
+        )
         return g_data, warning

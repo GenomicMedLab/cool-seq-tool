@@ -4,18 +4,22 @@ import os
 import tempfile
 from pathlib import Path
 
-from fastapi import APIRouter
-from fastapi import Query, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse
 from starlette.background import BackgroundTasks
 
-
-from cool_seq_tool.routers import cool_seq_tool, SERVICE_NAME, RESP_DESCR, \
-    UNHANDLED_EXCEPTION_MSG
-from cool_seq_tool.schemas import GenomicDataResponse, GenomicRequestBody, \
-    TranscriptRequestBody
+from cool_seq_tool.routers import (
+    RESP_DESCR,
+    SERVICE_NAME,
+    UNHANDLED_EXCEPTION_MSG,
+    cool_seq_tool,
+)
+from cool_seq_tool.schemas import (
+    GenomicDataResponse,
+    GenomicRequestBody,
+    TranscriptRequestBody,
+)
 from cool_seq_tool.utils import service_meta
-
 
 logger = logging.getLogger("cool_seq_tool")
 
@@ -27,10 +31,10 @@ router = APIRouter(prefix=f"/{SERVICE_NAME}")
     summary="Get transcript exon data given genomic coordinate data",
     response_description=RESP_DESCR,
     description="Return transcript exon data",
-    response_model=GenomicDataResponse
+    response_model=GenomicDataResponse,
 )
 async def genomic_to_transcript_exon_coordinates(
-    request_body: GenomicRequestBody
+    request_body: GenomicRequestBody,
 ) -> GenomicDataResponse:
     """Get transcript exon data given genomic coordinate data
 
@@ -41,13 +45,17 @@ async def genomic_to_transcript_exon_coordinates(
     request_body = request_body.model_dump()
 
     response = GenomicDataResponse(
-        genomic_data=None, warnings=list(), service_meta=service_meta())
+        genomic_data=None, warnings=list(), service_meta=service_meta()
+    )
 
     try:
-        response = \
-            await cool_seq_tool.ex_g_coords_mapper.genomic_to_transcript_exon_coordinates(**request_body)  # noqa: E501
+        response = await cool_seq_tool.ex_g_coords_mapper.genomic_to_transcript_exon_coordinates(
+            **request_body
+        )
     except Exception as e:
-        logger.error(f"genomic_to_transcript_exon_coordinates unhandled exception {str(e)}")  # noqa: E501
+        logger.error(
+            f"genomic_to_transcript_exon_coordinates unhandled exception {str(e)}"
+        )
         response.warnings.append(UNHANDLED_EXCEPTION_MSG)
 
     return response
@@ -58,10 +66,10 @@ async def genomic_to_transcript_exon_coordinates(
     summary="Get genomic coordinate data given transcript exon data",
     response_description=RESP_DESCR,
     description="Return genomic coordinate data",
-    response_model=GenomicDataResponse
+    response_model=GenomicDataResponse,
 )
 async def transcript_to_genomic_coordinates(
-    request_body: TranscriptRequestBody
+    request_body: TranscriptRequestBody,
 ) -> GenomicDataResponse:
     """Get transcript exon data given genomic coordinate data
 
@@ -72,10 +80,15 @@ async def transcript_to_genomic_coordinates(
     request_body = request_body.model_dump()
 
     response = GenomicDataResponse(
-        genomic_data=None, warnings=list(), service_meta=service_meta())
+        genomic_data=None, warnings=list(), service_meta=service_meta()
+    )
 
     try:
-        response = await cool_seq_tool.ex_g_coords_mapper.transcript_to_genomic_coordinates(**request_body)  # noqa: E501
+        response = (
+            await cool_seq_tool.ex_g_coords_mapper.transcript_to_genomic_coordinates(
+                **request_body
+            )
+        )
     except Exception as e:
         logger.error(f"transcript_to_genomic_coordinates unhandled exception {str(e)}")
         response.warnings.append(UNHANDLED_EXCEPTION_MSG)
@@ -88,14 +101,13 @@ async def transcript_to_genomic_coordinates(
     summary="Get sequence for ID",
     response_description=RESP_DESCR,
     description="Given a known accession identifier, retrieve sequence data and return"
-                "as a FASTA file",
-    response_class=FileResponse
+    "as a FASTA file",
+    response_class=FileResponse,
 )
 async def get_sequence(
     background_tasks: BackgroundTasks,
     sequence_id: str = Query(
-        ...,
-        description="ID of sequence to retrieve, sans namespace"
+        ..., description="ID of sequence to retrieve, sans namespace"
     ),
 ) -> FileResponse:
     """Get sequence for requested sequence ID.
@@ -109,11 +121,7 @@ async def get_sequence(
         cool_seq_tool.seqrepo_access.get_fasta_file(sequence_id, Path(path))
     except KeyError:
         raise HTTPException(
-            status_code=404,
-            detail="No sequence available for requested identifier"
+            status_code=404, detail="No sequence available for requested identifier"
         )
-    background_tasks.add_task(
-        lambda p: os.unlink(p),
-        path
-    )
+    background_tasks.add_task(lambda p: os.unlink(p), path)
     return FileResponse(path)

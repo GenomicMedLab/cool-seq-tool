@@ -2,24 +2,31 @@
 import logging
 from typing import Optional
 
-from fastapi import APIRouter
-from fastapi import Query
+from fastapi import APIRouter, Query
 
-from cool_seq_tool.routers import cool_seq_tool, SERVICE_NAME, RESP_DESCR, \
-    UNHANDLED_EXCEPTION_MSG, Tags
+from cool_seq_tool.routers import (
+    RESP_DESCR,
+    SERVICE_NAME,
+    UNHANDLED_EXCEPTION_MSG,
+    Tags,
+    cool_seq_tool,
+)
 from cool_seq_tool.schemas import AnnotationLayer, ManeDataService, ResidueMode
 from cool_seq_tool.utils import service_meta
-
 
 logger = logging.getLogger("cool_seq_tool")
 
 router = APIRouter(prefix=f"/{SERVICE_NAME}/mane")
 
 
-ref_descr = "Reference at position given during input. When this is set, it will "\
-            "ensure that the reference sequences match for the final result."
-try_longest_compatible_descr = "`True` if should try longest compatible remaining if"\
-                               " mane transcript was not compatible. `False` otherwise."
+ref_descr = (
+    "Reference at position given during input. When this is set, it will "
+    "ensure that the reference sequences match for the final result."
+)
+try_longest_compatible_descr = (
+    "`True` if should try longest compatible remaining if"
+    " mane transcript was not compatible. `False` otherwise."
+)
 
 
 @router.get(
@@ -27,20 +34,28 @@ try_longest_compatible_descr = "`True` if should try longest compatible remainin
     summary="Retrieve MANE data in inter-residue coordinates",
     response_description=RESP_DESCR,
     description="Return MANE Select, MANE Plus Clinical, or Longest Remaining "
-                "Transcript data in inter-residue coordinates. See our docs for "
-                "more information on transcript priority.",
+    "Transcript data in inter-residue coordinates. See our docs for "
+    "more information on transcript priority.",
     response_model=ManeDataService,
-    tags=[Tags.MANE_TRANSCRIPT]
+    tags=[Tags.MANE_TRANSCRIPT],
 )
 async def get_mane_data(
     ac: str = Query(..., description="Accession"),
     start_pos: int = Query(..., description="Start position"),
-    start_annotation_layer: AnnotationLayer = Query(..., description="Starting annotation layer for query"),  # noqa: E501
-    end_pos: Optional[int] = Query(None, description="End position. If not set, will set to `start_pos`."),  # noqa: #501
+    start_annotation_layer: AnnotationLayer = Query(
+        ..., description="Starting annotation layer for query"
+    ),
+    end_pos: Optional[int] = Query(
+        None, description="End position. If not set, will set to `start_pos`."
+    ),
     gene: Optional[str] = Query(None, description="HGNC gene symbol"),
     ref: Optional[str] = Query(None, description=ref_descr),
-    try_longest_compatible: bool = Query(True, description=try_longest_compatible_descr),  # noqa: E501
-    residue_mode: ResidueMode = Query(ResidueMode.RESIDUE, description="Residue mode for position(s)")  # noqa: E501
+    try_longest_compatible: bool = Query(
+        True, description=try_longest_compatible_descr
+    ),
+    residue_mode: ResidueMode = Query(
+        ResidueMode.RESIDUE, description="Residue mode for position(s)"
+    ),
 ) -> ManeDataService:
     """Return MANE or Longest Compatible Remaining Transcript data on inter-residue
     coordinates
@@ -62,9 +77,15 @@ async def get_mane_data(
     mane_data = None
     try:
         mane_data = await cool_seq_tool.mane_transcript.get_mane_transcript(
-            ac=ac, start_pos=start_pos, start_annotation_layer=start_annotation_layer,
-            end_pos=end_pos, gene=gene, ref=ref,
-            try_longest_compatible=try_longest_compatible, residue_mode=residue_mode)
+            ac=ac,
+            start_pos=start_pos,
+            start_annotation_layer=start_annotation_layer,
+            end_pos=end_pos,
+            gene=gene,
+            ref=ref,
+            try_longest_compatible=try_longest_compatible,
+            residue_mode=residue_mode,
+        )
 
         if not mane_data:
             warnings.append("Unable to retrieve MANE data")
@@ -73,7 +94,5 @@ async def get_mane_data(
         warnings.append(UNHANDLED_EXCEPTION_MSG)
 
     return ManeDataService(
-        mane_data=mane_data,
-        warnings=warnings,
-        service_meta=service_meta()
+        mane_data=mane_data, warnings=warnings, service_meta=service_meta()
     )

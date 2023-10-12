@@ -4,11 +4,11 @@ from pathlib import Path
 
 from cool_seq_tool.data.data_downloads import DataDownload
 
-
 APP_ROOT = Path(__file__).resolve().parents[0]
 
-TRANSCRIPT_MAPPINGS_PATH = Path(environ.get("TRANSCRIPT_MAPPINGS_PATH",
-                                            f"{APP_ROOT}/data/transcript_mapping.tsv"))
+TRANSCRIPT_MAPPINGS_PATH = Path(
+    environ.get("TRANSCRIPT_MAPPINGS_PATH", f"{APP_ROOT}/data/transcript_mapping.tsv")
+)
 
 d = DataDownload()
 

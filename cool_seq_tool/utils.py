@@ -6,12 +6,11 @@ from typing import Optional, Tuple
 from cool_seq_tool.schemas import ResidueMode, ServiceMeta
 from cool_seq_tool.version import __version__
 
-
 logger = logging.getLogger(__name__)
 
 
 def get_inter_residue_pos(
-        start_pos: int, residue_mode: ResidueMode, end_pos: Optional[int] = None
+    start_pos: int, residue_mode: ResidueMode, end_pos: Optional[int] = None
 ) -> Tuple[Optional[Tuple[int, int]], Optional[str]]:
     """Return inter-residue position
 
@@ -31,8 +30,10 @@ def get_inter_residue_pos(
         if end_pos is None:
             end_pos = start_pos
     else:
-        msg = f"residue_mode must be either `residue` or `inter-residue`," \
-              f" not `{residue_mode}`"
+        msg = (
+            f"residue_mode must be either `residue` or `inter-residue`,"
+            f" not `{residue_mode}`"
+        )
         logger.warning(msg)
         return None, msg
     return (start_pos, end_pos), None
@@ -44,7 +45,4 @@ def service_meta() -> ServiceMeta:
 
     :return: ServiceMeta object
     """
-    return ServiceMeta(
-        version=__version__,
-        response_datetime=datetime.now()
-    )
+    return ServiceMeta(version=__version__, response_datetime=datetime.now())

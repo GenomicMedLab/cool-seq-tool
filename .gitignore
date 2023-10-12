@@ -129,7 +129,6 @@ dmypy.json
 .pyre/
 
 Pipfile.lock
-pyproject.toml
 
 # Data files
 cool_seq_tool/data/seqrepo/

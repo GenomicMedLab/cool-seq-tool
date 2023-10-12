@@ -1,11 +1,11 @@
 """Module for handling downloadable data files."""
-from ftplib import FTP
-import logging
-from os import remove
-import gzip
-from pathlib import Path
-import shutil
 import datetime
+import gzip
+import logging
+import shutil
+from ftplib import FTP
+from os import remove
+from pathlib import Path
 
 from dateutil import parser
 
@@ -33,13 +33,11 @@ class DataDownload:
             ftp.login()
             ftp.cwd("/refseq/MANE/MANE_human/current")
             files = ftp.nlst()
-            mane_summary_file = \
-                [f for f in files if f.endswith(".summary.txt.gz")]
+            mane_summary_file = [f for f in files if f.endswith(".summary.txt.gz")]
             if not mane_summary_file:
                 raise Exception("Unable to download MANE summary data")
             mane_summary_file = mane_summary_file[0]
-            self._mane_summary_path = \
-                self._data_dir / mane_summary_file[:-3]
+            self._mane_summary_path = self._data_dir / mane_summary_file[:-3]
             mane_data_path = self._data_dir / mane_summary_file
             if not self._mane_summary_path.exists():
                 logger.info("Downloading MANE summary file from NCBI.")
@@ -65,8 +63,7 @@ class DataDownload:
             ftp_file_path = f"{ftp_dir_path}{lrg_refseqgene_file}"
             timestamp = ftp.voidcmd(f"MDTM {ftp_file_path}")[4:].strip()
             date = str(parser.parse(timestamp)).split()[0]
-            version = datetime.datetime.strptime(date,
-                                                 "%Y-%m-%d").strftime("%Y%m%d")
+            version = datetime.datetime.strptime(date, "%Y-%m-%d").strftime("%Y%m%d")
             fn_versioned = f"{lrg_refseqgene_file}_{version}"
             lrg_refseqgene_path = self._data_dir / lrg_refseqgene_file
             self._lrg_refseqgene_path = self._data_dir / fn_versioned

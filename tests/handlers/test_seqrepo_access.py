@@ -16,40 +16,52 @@ def test_get_reference_sequence(test_seqrepo_access):
     assert resp == ("V", None)
 
     resp = test_seqrepo_access.get_reference_sequence(
-        "NP_004324.2", 599, 600, residue_mode=ResidueMode.INTER_RESIDUE)
+        "NP_004324.2", 599, 600, residue_mode=ResidueMode.INTER_RESIDUE
+    )
     assert resp == ("V", None)
 
     resp = test_seqrepo_access.get_reference_sequence("NP_004324.2", 601, 600)
-    assert resp == ("", "Invalid inter-residue coordinates: start (600)"
-                    " cannot be greater than end (599)")
+    assert resp == (
+        "",
+        "Invalid inter-residue coordinates: start (600)"
+        " cannot be greater than end (599)",
+    )
 
     resp = test_seqrepo_access.get_reference_sequence("NP_0043241311412", 600)
     assert resp == ("", "Accession, NP_0043241311412, not found in SeqRepo")
 
     resp = test_seqrepo_access.get_reference_sequence("NP_004324.2", 600, 800)
-    assert resp == ("", "End inter-residue coordinate (799) "
-                    "is out of index on NP_004324.2")
+    assert resp == (
+        "",
+        "End inter-residue coordinate (799) " "is out of index on NP_004324.2",
+    )
 
-    resp = test_seqrepo_access.get_reference_sequence(
-        "NP_004324.2", 4654645645654, 1)
-    assert resp == ("", "Start inter-residue coordinate (4654645645653) is "
-                    "out of index on NP_004324.2")
+    resp = test_seqrepo_access.get_reference_sequence("NP_004324.2", 4654645645654, 1)
+    assert resp == (
+        "",
+        "Start inter-residue coordinate (4654645645653) is "
+        "out of index on NP_004324.2",
+    )
 
-    resp = test_seqrepo_access.get_reference_sequence(
-        "NP_004324.2", 600, 4654645645654)
-    assert resp == ("", "End inter-residue coordinate (4654645645653) "
-                    "is out of index on NP_004324.2")
+    resp = test_seqrepo_access.get_reference_sequence("NP_004324.2", 600, 4654645645654)
+    assert resp == (
+        "",
+        "End inter-residue coordinate (4654645645653) "
+        "is out of index on NP_004324.2",
+    )
 
 
 def test_translate_identifier(test_seqrepo_access):
     """Test that translate_identifier method works correctly"""
     expected = (["ga4gh:SQ.ijXOSP3XSsuLWZhXQ7_TJ5JXu4RJO6VT"], None)
     resp = test_seqrepo_access.translate_identifier(
-        "NM_152263.3", target_namespaces="ga4gh")
+        "NM_152263.3", target_namespaces="ga4gh"
+    )
     assert resp == expected
 
     resp = test_seqrepo_access.translate_identifier(
-        "refseq:NM_152263.3", target_namespaces="ga4gh")
+        "refseq:NM_152263.3", target_namespaces="ga4gh"
+    )
     assert resp == expected
 
     resp = test_seqrepo_access.translate_identifier("refseq:NM_152263.3")
@@ -68,8 +80,10 @@ def test_translate_identifier(test_seqrepo_access):
     assert "refseq:NC_000002.12" in resp[0]
 
     resp = test_seqrepo_access.translate_identifier("refseq_152263.3")
-    assert resp == ([], "SeqRepo unable to get translated identifiers for"
-                        " refseq_152263.3")
+    assert resp == (
+        [],
+        "SeqRepo unable to get translated identifiers for" " refseq_152263.3",
+    )
 
 
 def test_aliases(test_seqrepo_access):

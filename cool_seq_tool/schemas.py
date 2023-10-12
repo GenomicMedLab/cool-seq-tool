@@ -1,16 +1,16 @@
 """Module for data models."""
+import re
 from datetime import datetime
 from enum import Enum
-import re
-from typing import Literal, Optional, List, Tuple, Union
+from typing import List, Literal, Optional, Tuple, Union
 
 from pydantic import (
     BaseModel,
-    model_validator,
-    field_validator,
-    StrictStr,
-    StrictInt,
     ConfigDict,
+    StrictInt,
+    StrictStr,
+    field_validator,
+    model_validator,
 )
 
 from cool_seq_tool.version import __version__
@@ -165,8 +165,7 @@ class GenomicData(BaseModelForbidExtra):
 
     @model_validator(mode="after")
     def check_start_end(cls, values):
-        """
-        Check that at least one of {`start`, `end`} is set.
+        """Check that at least one of {`start`, `end`} is set.
         Check that at least one of {`exon_start`, `exon_end`} is set.
         If not set, set corresponding offset to `None`
         """

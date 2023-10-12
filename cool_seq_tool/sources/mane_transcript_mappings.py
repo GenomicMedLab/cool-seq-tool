@@ -1,12 +1,11 @@
 """The module for loading MANE Transcript mappings to genes."""
 import logging
 from pathlib import Path
-from typing import Dict, Optional, List
+from typing import Dict, List, Optional
 
 import pandas as pd
 
 from cool_seq_tool.paths import MANE_SUMMARY_PATH
-
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +35,9 @@ class MANETranscriptMappings:
         data = self.df.loc[self.df["symbol"] == gene_symbol.upper()]
 
         if len(data) == 0:
-            logger.warning(f"Unable to get MANE Transcript data for gene: "
-                           f"{gene_symbol}")
+            logger.warning(
+                f"Unable to get MANE Transcript data for gene: " f"{gene_symbol}"
+            )
             return None
 
         # Ordering: MANE Plus Clinical (If it exists), MANE Select
@@ -66,7 +66,11 @@ class MANETranscriptMappings:
         :return: List of MANE data. Will return sorted list:
             MANE Select then MANE Plus Clinical.
         """
-        mane_rows = self.df[(start >= self.df["chr_start"].astype(int)) & (end <= self.df["chr_end"].astype(int)) & (self.df["GRCh38_chr"] == alt_ac)]  # noqa: E501
+        mane_rows = self.df[
+            (start >= self.df["chr_start"].astype(int))
+            & (end <= self.df["chr_end"].astype(int))
+            & (self.df["GRCh38_chr"] == alt_ac)
+        ]
         if len(mane_rows) == 0:
             return []
         mane_rows = mane_rows.sort_values("MANE_status", ascending=False)

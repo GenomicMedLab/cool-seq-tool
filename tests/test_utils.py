@@ -19,5 +19,7 @@ def test_get_inter_residue_pos():
     assert resp == expected
 
     resp = get_inter_residue_pos(600, "test")
-    assert resp == (None, "residue_mode must be either `residue` "
-                          "or `inter-residue`, not `test`")
+    assert resp == (
+        None,
+        "residue_mode must be either `residue` " "or `inter-residue`, not `test`",
+    )

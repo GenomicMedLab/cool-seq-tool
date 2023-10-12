@@ -9,8 +9,11 @@ from cool_seq_tool.paths import LRG_REFSEQGENE_PATH, TRANSCRIPT_MAPPINGS_PATH
 class TranscriptMappings:
     """The transcript mappings class."""
 
-    def __init__(self, transcript_file_path: Path = TRANSCRIPT_MAPPINGS_PATH,
-                 lrg_refseqgene_path: Path = LRG_REFSEQGENE_PATH) -> None:
+    def __init__(
+        self,
+        transcript_file_path: Path = TRANSCRIPT_MAPPINGS_PATH,
+        lrg_refseqgene_path: Path = LRG_REFSEQGENE_PATH,
+    ) -> None:
         """Initialize the transcript mappings class.
 
         :param Path transcript_file_path: Path to transcript mappings file
@@ -23,8 +26,7 @@ class TranscriptMappings:
         self.ensembl_protein_to_gene_symbol: Dict[str, str] = {}
 
         # Gene Symbol <-> ENST
-        self.ensembl_transcript_version_for_gene_symbol: \
-            Dict[str, List[str]] = {}
+        self.ensembl_transcript_version_for_gene_symbol: Dict[str, List[str]] = {}
         self.ensembl_transcript_version_to_gene_symbol: Dict[str, str] = {}
         self.ensembl_transcript_for_gene_symbol: Dict[str, List[str]] = {}
         self.ensembl_transcript_to_gene_symbol: Dict[str, str] = {}
@@ -58,39 +60,38 @@ class TranscriptMappings:
             for row in reader:
                 gene = row["Gene name"]
                 if gene:
-                    versioned_protein_transcript = \
-                        row["Protein stable ID version"]
+                    versioned_protein_transcript = row["Protein stable ID version"]
                     if versioned_protein_transcript:
-                        self.ensembl_protein_version_for_gene_symbol \
-                            .setdefault(gene, []) \
-                            .append(versioned_protein_transcript)
+                        self.ensembl_protein_version_for_gene_symbol.setdefault(
+                            gene, []
+                        ).append(versioned_protein_transcript)
                         self.ensembl_protein_version_to_gene_symbol[
-                            versioned_protein_transcript] = gene
+                            versioned_protein_transcript
+                        ] = gene
                     protein_transcript = row["Protein stable ID"]
                     if protein_transcript:
-                        self.ensembl_protein_for_gene_symbol \
-                            .setdefault(gene, []) \
-                            .append(protein_transcript)
-                        self.ensembl_protein_to_gene_symbol[
-                            protein_transcript] = gene
-                    versioned_transcript = \
-                        row["Transcript stable ID version"]
+                        self.ensembl_protein_for_gene_symbol.setdefault(
+                            gene, []
+                        ).append(protein_transcript)
+                        self.ensembl_protein_to_gene_symbol[protein_transcript] = gene
+                    versioned_transcript = row["Transcript stable ID version"]
                     if versioned_transcript:
-                        self.ensembl_transcript_version_for_gene_symbol \
-                            .setdefault(gene, []) \
-                            .append(versioned_transcript)
+                        self.ensembl_transcript_version_for_gene_symbol.setdefault(
+                            gene, []
+                        ).append(versioned_transcript)
                         self.ensembl_transcript_version_to_gene_symbol[
-                            versioned_transcript] = gene
+                            versioned_transcript
+                        ] = gene
                     transcript = row["Transcript stable ID"]
                     if transcript:
-                        self.ensembl_transcript_for_gene_symbol\
-                            .setdefault(gene, []) \
-                            .append(transcript)
-                        self.ensembl_transcript_to_gene_symbol[
-                            transcript] = gene
+                        self.ensembl_transcript_for_gene_symbol.setdefault(
+                            gene, []
+                        ).append(transcript)
+                        self.ensembl_transcript_to_gene_symbol[transcript] = gene
                     if versioned_transcript and versioned_protein_transcript:
-                        self.ensp_to_enst[versioned_protein_transcript] = \
-                            versioned_transcript
+                        self.ensp_to_enst[
+                            versioned_protein_transcript
+                        ] = versioned_transcript
 
     def _load_refseq_gene_symbol_data(self, lrg_refseqgene_path: Path) -> None:
         """Load data from RefSeq Gene Symbol file to dictionaries.
@@ -104,25 +105,22 @@ class TranscriptMappings:
                 if gene:
                     refseq_transcript = row["Protein"]
                     if refseq_transcript:
-                        self.refseq_protein_for_gene_symbol.\
-                            setdefault(gene, []).\
-                            append(refseq_transcript)
-                        self.refseq_protein_to_gene_symbol[
-                            refseq_transcript] = gene
+                        self.refseq_protein_for_gene_symbol.setdefault(gene, []).append(
+                            refseq_transcript
+                        )
+                        self.refseq_protein_to_gene_symbol[refseq_transcript] = gene
                     rna_transcript = row["RNA"]
                     if rna_transcript:
-                        self.refseq_rna_version_for_gene_symbol.\
-                            setdefault(gene, []).\
-                            append(rna_transcript)
-                        self.refseq_rna_version_to_gene_symbol[
-                            rna_transcript] = gene
+                        self.refseq_rna_version_for_gene_symbol.setdefault(
+                            gene, []
+                        ).append(rna_transcript)
+                        self.refseq_rna_version_to_gene_symbol[rna_transcript] = gene
                         if "." in rna_transcript:
                             rna_t = rna_transcript.split(".")[0]
-                            self.refseq_rna_for_gene_symbol.\
-                                setdefault(gene, []).\
-                                append(rna_t)
-                            self.refseq_rna_to_gene_symbol[
-                                rna_t] = gene
+                            self.refseq_rna_for_gene_symbol.setdefault(gene, []).append(
+                                rna_t
+                            )
+                            self.refseq_rna_to_gene_symbol[rna_t] = gene
                     if refseq_transcript and rna_transcript:
                         self.np_to_nm[refseq_transcript] = rna_transcript
 
@@ -133,13 +131,11 @@ class TranscriptMappings:
         :return: Protein transcripts for a gene symbol
         """
         protein_transcripts = list()
-        protein_transcripts += \
-            self.ensembl_protein_version_for_gene_symbol.get(
-                identifier, "")
-        protein_transcripts += \
-            self.ensembl_protein_for_gene_symbol.get(identifier, "")
-        protein_transcripts += \
-            self.refseq_protein_for_gene_symbol.get(identifier, "")
+        protein_transcripts += self.ensembl_protein_version_for_gene_symbol.get(
+            identifier, ""
+        )
+        protein_transcripts += self.ensembl_protein_for_gene_symbol.get(identifier, "")
+        protein_transcripts += self.refseq_protein_for_gene_symbol.get(identifier, "")
         return list(set(protein_transcripts))
 
     def coding_dna_transcripts(self, identifier: str) -> List[str]:
@@ -149,13 +145,15 @@ class TranscriptMappings:
         :return: cDNA transcripts for a gene symbol
         """
         genomic_transcripts = list()
-        genomic_transcripts += \
-            self.ensembl_transcript_version_for_gene_symbol.get(identifier,
-                                                                "")
-        genomic_transcripts += \
-            self.refseq_rna_version_for_gene_symbol.get(identifier, "")
-        genomic_transcripts += \
-            self.refseq_rna_version_for_gene_symbol.get(identifier, "")
+        genomic_transcripts += self.ensembl_transcript_version_for_gene_symbol.get(
+            identifier, ""
+        )
+        genomic_transcripts += self.refseq_rna_version_for_gene_symbol.get(
+            identifier, ""
+        )
+        genomic_transcripts += self.refseq_rna_version_for_gene_symbol.get(
+            identifier, ""
+        )
         return list(set(genomic_transcripts))
 
     def get_gene_symbol_from_ensembl_protein(self, q: str) -> Optional[str]:
