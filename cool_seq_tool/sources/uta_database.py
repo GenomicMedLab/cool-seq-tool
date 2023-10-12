@@ -873,7 +873,7 @@ class UTADatabase:
     ) -> pd.core.frame.DataFrame:
         """Get transcripts associated to a gene.
 
-        :param str gene: Gene symbol
+        :param gene: HGNC gene symbol
         :param start_pos: Start position change.
             If not provided and `end_pos` not provided, all transcripts associated with the gene and/or accession will be returned.
         :param end_pos: End position change
