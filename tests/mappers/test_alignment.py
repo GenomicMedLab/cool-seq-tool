@@ -23,7 +23,7 @@ def braf_v600e_c():
         "c_start_pos": 1797,
         "c_end_pos": 1800,
         "cds_start": 226,
-        "residue_mode": "inter-residue"
+        "residue_mode": ResidueMode.INTER_RESIDUE
     }
 
 
@@ -35,7 +35,7 @@ def egfr_l858r_c():
         "c_start_pos": 2571,
         "c_end_pos": 2574,
         "cds_start": 261,
-        "residue_mode": "inter-residue"
+        "residue_mode": ResidueMode.INTER_RESIDUE
     }
 
 
@@ -46,7 +46,7 @@ def braf_v600e_grch37():
         "g_ac": "NC_000007.13",
         "g_start_pos": 140453134,
         "g_end_pos": 140453137,
-        "residue_mode": "inter-residue"
+        "residue_mode": ResidueMode.INTER_RESIDUE
     }
 
 
@@ -57,7 +57,7 @@ def braf_v600e_grch38():
         "g_ac": "NC_000007.14",
         "g_start_pos": 140753334,
         "g_end_pos": 140753337,
-        "residue_mode": "inter-residue"
+        "residue_mode": ResidueMode.INTER_RESIDUE
     }
 
 
@@ -68,7 +68,7 @@ def egfr_l858r_grch37():
         "g_ac": "NC_000007.13",
         "g_start_pos": 55259513,
         "g_end_pos": 55259516,
-        "residue_mode": "inter-residue"
+        "residue_mode": ResidueMode.INTER_RESIDUE
     }
 
 
@@ -79,7 +79,7 @@ def egfr_l858r_grch38():
         "g_ac": "NC_000007.14",
         "g_start_pos": 55191820,
         "g_end_pos": 55191823,
-        "residue_mode": "inter-residue"
+        "residue_mode": ResidueMode.INTER_RESIDUE
     }
 
 
@@ -90,7 +90,7 @@ def delins_grch37():
         "g_ac": "NC_000007.13",
         "g_start_pos": 140453131,
         "g_end_pos": 140453137,
-        "residue_mode": "inter-residue"
+        "residue_mode": ResidueMode.INTER_RESIDUE
     }
 
 
@@ -104,7 +104,7 @@ def hras_t2a():
             "g_ac": g_ac,
             "g_start_pos": 534316,
             "g_end_pos": 534319,
-            "residue_mode": "inter-residue"
+            "residue_mode": ResidueMode.INTER_RESIDUE
         }
 
     return _expected
@@ -159,7 +159,7 @@ async def test_p_to_c(test_alignment_mapper, braf_v600e_c, egfr_l858r_c):
         "c_start_pos": 393,
         "c_end_pos": 396,
         "cds_start": 223,
-        "residue_mode": "inter-residue"
+        "residue_mode": ResidueMode.INTER_RESIDUE
     }
 
 

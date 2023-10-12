@@ -432,7 +432,7 @@ class CdnaRepresentation(BaseModelForbidExtra):
                 "c_start_pos": 1797,
                 "c_end_pos": 1800,
                 "cds_start": 226,
-                "residue_mode": "inter-residue",
+                "residue_mode": ResidueMode.INTER_RESIDUE,
             }
         }
     )
@@ -453,7 +453,7 @@ class ToCdnaService(BaseModelForbidExtra):
                     "c_start_pos": 1797,
                     "c_end_pos": 1800,
                     "cds_start": 226,
-                    "residue_mode": "inter-residue",
+                    "residue_mode": ResidueMode.INTER_RESIDUE,
                 },
                 "warnings": [],
                 "service_meta": {
@@ -481,7 +481,7 @@ class GenomicRepresentation(BaseModelForbidExtra):
                 "g_ac": "NC_000007.13",
                 "g_start_pos": 140453134,
                 "g_end_pos": 140453137,
-                "residue_mode": "inter-residue",
+                "residue_mode": ResidueMode.INTER_RESIDUE,
             }
         }
     )
@@ -501,7 +501,7 @@ class ToGenomicService(BaseModelForbidExtra):
                     "g_ac": "NC_000007.13",
                     "g_start_pos": 140453134,
                     "g_end_pos": 140453137,
-                    "residue_mode": "inter-residue",
+                    "residue_mode": ResidueMode.INTER_RESIDUE,
                 },
                 "warnings": [],
                 "service_meta": {

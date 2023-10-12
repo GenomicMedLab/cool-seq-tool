@@ -354,7 +354,7 @@ class ExonGenomicCoordsMapper:
 
     async def _set_mane_genomic_data(
             self, params: Dict, gene: str, alt_ac: str, pos: int, strand: int,
-            is_start: bool, residue_mode: str
+            is_start: bool, residue_mode: ResidueMode
     ) -> Optional[str]:
         """Set genomic data in `params` found from MANE.
 
@@ -365,8 +365,7 @@ class ExonGenomicCoordsMapper:
         :param strand: Strand
         :param is_start: `True` if `pos` is start position. `False` if `pos` is end
             position.
-        :param residue_mode: Residue mode for start/end positions. Must be either
-            `inter-residue` or `residue`
+        :param residue_mode: Residue mode for `pos`
         :return: Warnings if found
         """
         mane_data = await self.mane_transcript.get_mane_transcript(
