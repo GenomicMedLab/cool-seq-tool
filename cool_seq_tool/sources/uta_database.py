@@ -879,7 +879,7 @@ class UTADatabase:
         :param end_pos: End position change
             If not provided and `start_pos` not provided, all transcripts associated with the gene and/or accession will be returned.
         :param use_tx_pos: `True` if querying on transcript position. This means
-            `start_pos` and `end_pos` are c. coordinate positions `False` if querying on
+            `start_pos` and `end_pos` are c. coordinate positions. `False` if querying on
             genomic position. This means `start_pos` and `end_pos` are g. coordinate
             positions
         :param alt_ac: Genomic accession. If not provided, must provide `gene`
