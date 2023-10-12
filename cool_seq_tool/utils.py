@@ -20,7 +20,6 @@ def get_inter_residue_pos(
         values.
     :return: Inter-residue coordinates, warning
     """
-    residue_mode = residue_mode.lower()
     if residue_mode == ResidueMode.RESIDUE:
         start_pos -= 1
         if end_pos is None:
