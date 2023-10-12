@@ -3,16 +3,6 @@ import copy
 
 import pytest
 
-from cool_seq_tool.data_sources import UTADatabase
-
-
-@pytest.fixture(scope="module")
-async def test_db():
-    """Create uta db test fixture."""
-    test_uta_db = UTADatabase()
-    await test_uta_db._create_genomic_table()
-    return test_uta_db
-
 
 @pytest.fixture(scope="module")
 def nm_152263_exons():

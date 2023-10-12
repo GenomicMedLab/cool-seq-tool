@@ -1,11 +1,13 @@
-"""Module for converting positions to inter-residue coordinates"""
+"""Module for common utilities used throughout the app"""
 import logging
+from datetime import datetime
 from typing import Optional, Tuple
 
-from cool_seq_tool.schemas import ResidueMode
+from cool_seq_tool.schemas import ResidueMode, ServiceMeta
+from cool_seq_tool.version import __version__
 
 
-logger = logging.getLogger("cool_seq_tool")
+logger = logging.getLogger(__name__)
 
 
 def get_inter_residue_pos(
@@ -36,3 +38,15 @@ def get_inter_residue_pos(
         logger.warning(msg)
         return None, msg
     return (start_pos, end_pos), None
+
+
+@staticmethod
+def service_meta() -> ServiceMeta:
+    """Return ServiceMeta for cool_seq_tool
+
+    :return: ServiceMeta object
+    """
+    return ServiceMeta(
+        version=__version__,
+        response_datetime=datetime.now()
+    )

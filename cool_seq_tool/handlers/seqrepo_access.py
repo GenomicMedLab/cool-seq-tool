@@ -2,14 +2,15 @@
 import logging
 from typing import Optional, List, Tuple, Union
 from os import environ
+from pathlib import Path
 
 from ga4gh.vrs.dataproxy import SeqRepoDataProxy
 
 from cool_seq_tool.schemas import ResidueMode
-from cool_seq_tool.data_sources.residue_mode import get_inter_residue_pos
+from cool_seq_tool.utils import get_inter_residue_pos
 
 
-logger = logging.getLogger("cool_seq_tool")
+logger = logging.getLogger(__name__)
 
 
 class SeqRepoAccess(SeqRepoDataProxy):
@@ -139,3 +140,65 @@ class SeqRepoAccess(SeqRepoDataProxy):
             return None, f"Unable to get chromosome for {ac}"
         else:
             return aliases, None
+
+    def get_fasta_file(
+        self, sequence_id: str, outfile_path: Path
+    ) -> None:
+        """Retrieve FASTA file containing sequence for requested sequence ID.
+        :param sequence_id: accession ID, sans namespace, eg `NM_152263.3`
+        :param outfile_path: path to save file to
+        :return: None, but saves sequence data to `outfile_path` if successful
+        :raise: KeyError if SeqRepo doesn't have sequence data for the given ID
+        """
+        sequence = self.get_reference_sequence(sequence_id)[0]
+        if not sequence:
+            raise KeyError
+
+        REFSEQ_PREFIXES = [
+            "NC_",
+            "AC_",
+            "NZ_",
+            "NT_",
+            "NW_",
+            "NG_",
+            "NM_",
+            "XM_",
+            "NR_",
+            "XR_",
+            "NP_",
+            "AP_",
+            "XP_",
+            "YP_",
+            "WP_"
+        ]
+        ENSEMBL_PREFIXES = [
+            "ENSE",
+            "ENSFM",
+            "ENSG",
+            "ENSGT",
+            "ENSP",
+            "ENSR",
+            "ENST"
+        ]
+
+        if sequence_id[:3] in REFSEQ_PREFIXES:
+            aliases = self.translate_identifier(
+                sequence_id, ["ensembl", "ga4gh"]
+            )
+            header = f">refseq:{sequence_id}|{'|'.join(aliases[0])}"
+        elif sequence_id[:4] in ENSEMBL_PREFIXES:
+            aliases = self.translate_identifier(
+                sequence_id, ["refseq", "ga4gh"]
+            )
+            header = f">ensembl:{sequence_id}|{'|'.join(aliases[0])}"
+        else:
+            aliases = self.translate_identifier(
+                sequence_id, ["ensembl", "refseq", "ga4gh"]
+            )
+            header = f">gnl|ID|{sequence_id}|{'|'.join(aliases[0])}"
+
+        LINE_LENGTH = 60
+        file_data = [header] + [sequence[i: i + LINE_LENGTH]
+                                for i in range(0, len(sequence), LINE_LENGTH)]
+        text = "\n".join(file_data)
+        outfile_path.write_text(text)
