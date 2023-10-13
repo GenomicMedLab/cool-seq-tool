@@ -9,7 +9,7 @@ from urllib.parse import quote, unquote, urlparse
 
 import asyncpg
 import boto3
-import pandas as pd
+import polars as pl
 from asyncpg.exceptions import InterfaceError, InvalidAuthorizationSpecificationError
 from botocore.exceptions import ClientError
 from pyliftover import LiftOver
@@ -870,7 +870,7 @@ class UTADatabase:
         end_pos: int,
         use_tx_pos: bool = True,
         alt_ac: Optional[str] = None,
-    ) -> pd.core.frame.DataFrame:
+    ) -> pl.DataFrame:
         """Get transcripts associated to a gene.
 
         :param str gene: Gene symbol
@@ -923,9 +923,12 @@ class UTADatabase:
             {order_by_cond}
             """
         results = await self.execute_query(query)
-        return pd.DataFrame(
-            results, columns=["pro_ac", "tx_ac", "alt_ac", "cds_start_i"]
-        ).drop_duplicates()
+        results = [
+            (r["pro_ac"], r["tx_ac"], r["alt_ac"], r["cds_start_i"]) for r in results
+        ]
+        return pl.DataFrame(
+            results, schema=["pro_ac", "tx_ac", "alt_ac", "cds_start_i"]
+        ).unique()
 
     async def get_chr_assembly(self, ac: str) -> Optional[Tuple[str, str]]:
         """Get chromosome and assembly for NC accession if not in GRCh38.

@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Optional
 
-import pandas as pd
+import polars as pl
 
 from cool_seq_tool.paths import MANE_SUMMARY_PATH
 
@@ -20,11 +20,11 @@ class MANETranscriptMappings:
         self.mane_data_path = mane_data_path
         self.df = self._load_mane_transcript_data()
 
-    def _load_mane_transcript_data(self) -> pd.core.frame.DataFrame:
+    def _load_mane_transcript_data(self) -> pl.DataFrame:
         """Load RefSeq MANE data file into DataFrame.
         :return: DataFrame containing RefSeq MANE Transcript data
         """
-        return pd.read_csv(self.mane_data_path, delimiter="\t")
+        return pl.read_csv(self.mane_data_path, separator="\t")
 
     def get_gene_mane_data(self, gene_symbol: str) -> Optional[List[Dict]]:
         """Return MANE Transcript data for a gene.
@@ -32,7 +32,7 @@ class MANETranscriptMappings:
         :return: MANE Transcript data (Transcript accessions,
             gene, and location information)
         """
-        data = self.df.loc[self.df["symbol"] == gene_symbol.upper()]
+        data = self.df.filter(pl.col("symbol") == gene_symbol.upper())
 
         if len(data) == 0:
             logger.warning(
@@ -41,8 +41,8 @@ class MANETranscriptMappings:
             return None
 
         # Ordering: MANE Plus Clinical (If it exists), MANE Select
-        data = data.sort_values("MANE_status")
-        return data.to_dict("records")
+        data = data.sort(by="MANE_status", descending=False)
+        return data.to_dicts()
 
     def get_mane_from_transcripts(self, transcripts: List[str]) -> List[Dict]:
         """Get mane transcripts from a list of transcripts
@@ -50,11 +50,10 @@ class MANETranscriptMappings:
         :param List[str] transcripts: RefSeq transcripts on c. coordinate
         :return: MANE data
         """
-        mane_rows = self.df["RefSeq_nuc"].isin(transcripts)
-        result = self.df[mane_rows]
-        if len(result) == 0:
+        mane_rows = self.df.filter(pl.col("RefSeq_nuc").is_in(transcripts))
+        if len(mane_rows) == 0:
             return []
-        return result.to_dict("records")
+        return mane_rows.to_dicts()
 
     def get_mane_data_from_chr_pos(
         self, alt_ac: str, start: int, end: int
@@ -66,12 +65,13 @@ class MANETranscriptMappings:
         :return: List of MANE data. Will return sorted list:
             MANE Select then MANE Plus Clinical.
         """
-        mane_rows = self.df[
-            (start >= self.df["chr_start"].astype(int))
-            & (end <= self.df["chr_end"].astype(int))
-            & (self.df["GRCh38_chr"] == alt_ac)
-        ]
+        mane_rows = self.df.filter(
+            (start >= pl.col("chr_start"))
+            & (end <= pl.col("chr_end"))
+            & (pl.col("GRCh38_chr") == alt_ac)
+        )
         if len(mane_rows) == 0:
             return []
-        mane_rows = mane_rows.sort_values("MANE_status", ascending=False)
-        return mane_rows.to_dict("records")
+
+        mane_rows = mane_rows.sort(by="MANE_status", descending=True)
+        return mane_rows.to_dicts()
