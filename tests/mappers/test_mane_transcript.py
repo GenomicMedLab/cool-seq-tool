@@ -6,7 +6,7 @@ import pytest
 from mock import patch
 
 from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
-from cool_seq_tool.schemas import AnnotationLayer, ResidueMode
+from cool_seq_tool.schemas import AnnotationLayer, ResidueMode, TranscriptPriority
 
 
 @pytest.fixture(scope="module")
@@ -62,7 +62,7 @@ def braf_v600e_mane_p():
         "refseq": "NP_004324.2",
         "ensembl": "ENSP00000493543.1",
         "pos": (599, 599),
-        "status": "mane_select",
+        "status": TranscriptPriority.MANE_SELECT,
         "strand": "-",
         "gene": "BRAF",
     }
@@ -75,7 +75,7 @@ def egfr_l858r_mane_p():
         "refseq": "NP_005219.2",
         "ensembl": "ENSP00000275493.2",
         "pos": (857, 857),
-        "status": "mane_select",
+        "status": TranscriptPriority.MANE_SELECT,
         "strand": "+",
         "gene": "EGFR",
     }
@@ -89,7 +89,7 @@ def braf_v600e_mane_c():
         "refseq": "NM_004333.6",
         "ensembl": "ENST00000646891.2",
         "pos": (1798, 1798),
-        "status": "mane_select",
+        "status": TranscriptPriority.MANE_SELECT,
         "strand": "-",
         "coding_start_site": 226,
         "coding_end_site": 2527,
@@ -105,7 +105,7 @@ def egfr_l858r_mane_c():
         "refseq": "NM_005228.5",
         "ensembl": "ENST00000275493.7",
         "pos": (2572, 2572),
-        "status": "mane_select",
+        "status": TranscriptPriority.MANE_SELECT,
         "strand": "+",
         "coding_start_site": 261,
         "coding_end_site": 3894,
@@ -124,7 +124,7 @@ def grch38():
         "coding_end_site": None,
         "pos": (55191821, 55191821),
         "strand": None,
-        "status": "GRCh38",
+        "status": TranscriptPriority.GRCH38,
         "alt_ac": "NC_000007.14",
     }
 
@@ -343,7 +343,7 @@ async def test_p_to_mane_p(test_mane_transcript, braf_v600e_mane_p, egfr_l858r_m
         "ensembl": "ENSP00000366997.4",
         "pos": (62, 62),
         "strand": "-",
-        "status": "mane_select",
+        "status": TranscriptPriority.MANE_SELECT,
     }
 
 
@@ -433,7 +433,7 @@ async def test_c_to_mane_c(test_mane_transcript, braf_v600e_mane_c, egfr_l858r_m
         "refseq": "NM_004448.4",
         "ensembl": "ENST00000269571.10",
         "pos": (2263, 2277),
-        "status": "mane_select",
+        "status": TranscriptPriority.MANE_SELECT,
         "strand": "+",
         "coding_start_site": 175,
         "coding_end_site": 3943,
@@ -489,7 +489,7 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         "ensembl": None,
         "pos": (599, 599),
         "strand": "-",
-        "status": "longest_compatible_remaining",
+        "status": TranscriptPriority.LONGEST_COMPATIBLE_REMAINING,
     }
     resp = await test_mane_transcript.get_longest_compatible_transcript(
         "BRAF",
@@ -516,7 +516,7 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         "ensembl": None,
         "pos": (1798, 1798),
         "strand": "-",
-        "status": "longest_compatible_remaining",
+        "status": TranscriptPriority.LONGEST_COMPATIBLE_REMAINING,
     }
     resp = await test_mane_transcript.get_longest_compatible_transcript(
         "BRAF",
@@ -550,7 +550,7 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         "ensembl": None,
         "pos": (1807, 1807),
         "strand": "-",
-        "status": "longest_compatible_remaining",
+        "status": TranscriptPriority.LONGEST_COMPATIBLE_REMAINING,
     }
 
 
@@ -643,7 +643,7 @@ async def test_g_to_mane_c(
         "refseq": "NM_004985.5",
         "ensembl": "ENST00000311936.8",
         "pos": (34, 34),
-        "status": "mane_select",
+        "status": TranscriptPriority.MANE_SELECT,
         "strand": "-",
         "coding_start_site": 190,
         "coding_end_site": 757,
@@ -658,7 +658,7 @@ async def test_g_to_mane_c(
         "refseq": "NM_005228.5",
         "ensembl": "ENST00000275493.7",
         "pos": (2368, 2368),
-        "status": "mane_select",
+        "status": TranscriptPriority.MANE_SELECT,
         "strand": "+",
         "coding_start_site": 261,
         "coding_end_site": 3894,
