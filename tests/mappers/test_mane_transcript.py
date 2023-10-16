@@ -129,6 +129,23 @@ def grch38():
     }
 
 
+@pytest.fixture(scope="module")
+def mybpc3_s236g():
+    """Create test fixture for MYBPC3 Ser236Gly
+
+    CA1139661942
+    https://www.ncbi.nlm.nih.gov/clinvar/variation/922707/?new_evidence=true
+    """
+    return {
+        "refseq": "NP_000247.2",
+        "ensembl": "ENSP00000442795.1",
+        "pos": (235, 235),
+        "status": "mane_select",
+        "strand": "-",
+        "gene": "MYBPC3",
+    }
+
+
 def test__get_reading_frame(test_mane_transcript):
     """Test that _get_reading_frame works correctly."""
     rf = test_mane_transcript._get_reading_frame(1797)
@@ -492,9 +509,9 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         "status": "longest_compatible_remaining",
     }
     resp = await test_mane_transcript.get_longest_compatible_transcript(
-        "BRAF",
         599,
         599,
+        gene="BRAF",
         start_annotation_layer=AnnotationLayer.PROTEIN,
         residue_mode=ResidueMode.INTER_RESIDUE,
         mane_transcripts=mane_transcripts,
@@ -502,9 +519,9 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
     assert resp == expected
 
     resp = await test_mane_transcript.get_longest_compatible_transcript(
-        "BRAF",
         600,
         600,
+        gene="BRAF",
         start_annotation_layer=AnnotationLayer.PROTEIN,
         residue_mode=ResidueMode.RESIDUE,
         mane_transcripts=mane_transcripts,
@@ -519,18 +536,18 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         "status": "longest_compatible_remaining",
     }
     resp = await test_mane_transcript.get_longest_compatible_transcript(
-        "BRAF",
         1799,
         1799,
+        gene="BRAF",
         start_annotation_layer=AnnotationLayer.CDNA,
         mane_transcripts=mane_transcripts,
     )
     assert resp == expected
 
     resp = await test_mane_transcript.get_longest_compatible_transcript(
-        "BRAF",
         1798,
         1798,
+        gene="BRAF",
         start_annotation_layer=AnnotationLayer.CDNA,
         residue_mode=ResidueMode.INTER_RESIDUE,
         mane_transcripts=mane_transcripts,
@@ -538,9 +555,9 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
     assert resp == expected
 
     resp = await test_mane_transcript.get_longest_compatible_transcript(
-        "BRAF",
         140453136,
         140453136,
+        gene="BRAF",
         start_annotation_layer=AnnotationLayer.GENOMIC,
         mane_transcripts=mane_transcripts,
         alt_ac="NC_000007.13",
@@ -551,6 +568,51 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         "pos": (1807, 1807),
         "strand": "-",
         "status": "longest_compatible_remaining",
+    }
+
+    #  CA1139661942 has no other RefSeq accessions
+    mane_transcripts = {"NM_000256.3", "ENST00000545968.6"}
+    resp = await test_mane_transcript.get_longest_compatible_transcript(
+        47348490,
+        47348490,
+        start_annotation_layer=AnnotationLayer.GENOMIC,
+        mane_transcripts=mane_transcripts,
+        alt_ac="NC_000011.10"
+    )
+    assert resp is None
+
+    mane_transcripts = {"NM_005228.5", "ENST00000275493.7"}
+    # CDNA
+    resp = await test_mane_transcript.get_longest_compatible_transcript(
+        55174776,
+        55174793,
+        start_annotation_layer=AnnotationLayer.GENOMIC,
+        mane_transcripts=mane_transcripts,
+        alt_ac="NC_000007.14"
+    )
+    assert resp == {
+        "refseq": "NM_001346899.2",
+        "ensembl": None,
+        "pos": (2103, 2120),
+        "strand": "+",
+        "status": "longest_compatible_remaining"
+    }
+
+    # protein
+    resp = await test_mane_transcript.get_longest_compatible_transcript(
+        55174776,
+        55174793,
+        start_annotation_layer=AnnotationLayer.GENOMIC,
+        mane_transcripts=mane_transcripts,
+        alt_ac="NC_000007.14",
+        end_annotation_layer=AnnotationLayer.PROTEIN
+    )
+    assert resp == {
+        "refseq": "NP_001333828.1",
+        "ensembl": None,
+        "pos": (701, 706),
+        "strand": "+",
+        "status": "longest_compatible_remaining"
     }
 
 
@@ -663,6 +725,37 @@ async def test_g_to_mane_c(
         "coding_start_site": 261,
         "coding_end_site": 3894,
         "gene": "EGFR",
+    }
+
+
+
+@pytest.mark.asyncio
+async def test_grch38_to_mane_p(test_mane_transcript, mybpc3_s236g):
+    """Test that grch38_to_mane_p"""
+    # https://www.ncbi.nlm.nih.gov/clinvar/variation/922707/?new_evidence=true
+    # Without gene
+    resp = await test_mane_transcript.grch38_to_mane_p(
+        "NC_000011.10", 47348490, 47348490
+    )
+    assert resp == mybpc3_s236g
+
+    # With gene
+    resp = await test_mane_transcript.grch38_to_mane_p(
+        "NC_000011.10", 47348490, 47348491, gene="MYBPC3"
+    )
+    assert resp == mybpc3_s236g
+
+    # CA645561524
+    resp = await test_mane_transcript.grch38_to_mane_p(
+        "NC_000007.14", 55174776, 55174793
+    )
+    resp == {
+        "refseq": "NP_005219.2",
+        "ensembl": "ENSP00000275493.2",
+        "pos": (746, 751),
+        "status": "mane_select",
+        "strand": "+",
+        "gene": " EGFR",
     }
 
 

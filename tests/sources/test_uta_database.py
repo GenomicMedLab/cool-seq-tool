@@ -282,10 +282,10 @@ async def test_get_gene_from_ac(test_db):
 @pytest.mark.asyncio
 async def test_get_transcripts_from_gene(test_db):
     """Test that get_trasncripts_from_gene works correctly."""
-    resp = await test_db.get_transcripts_from_gene("BRAF", 2145, 2145)
+    resp = await test_db.get_transcripts_from_gene(2145, 2145, gene="BRAF")
     assert len(resp) == 32
 
-    resp = await test_db.get_transcripts_from_gene("BRAF", 140453136, 140453136)
+    resp = await test_db.get_transcripts_from_gene(140453136, 140453136, gene="BRAF")
     assert len(resp) == 0
 
 
