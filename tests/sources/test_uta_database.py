@@ -281,11 +281,35 @@ async def test_get_gene_from_ac(test_db):
 
 @pytest.mark.asyncio
 async def test_get_transcripts_from_gene(test_db):
-    """Test that get_trasncripts_from_gene works correctly."""
-    resp = await test_db.get_transcripts_from_gene(2145, 2145, gene="BRAF")
+    """Test that get_transcripts_from_gene works correctly."""
+    resp = await test_db.get_transcripts_from_gene(
+        start_pos=2145, end_pos=2145, gene="BRAF"
+    )
     assert len(resp) == 32
 
-    resp = await test_db.get_transcripts_from_gene(140453136, 140453136, gene="BRAF")
+    # using no start/end pos
+    resp = await test_db.get_transcripts_from_gene(gene="BRAF")
+    assert len(resp) == 32
+
+    # using 0 start/end pos
+    resp = await test_db.get_transcripts_from_gene(gene="BRAF", start_pos=0, end_pos=0)
+    assert len(resp) == 32
+
+    # using 0 genomic start/end pos
+    resp = await test_db.get_transcripts_from_gene(
+        gene="BRAF", start_pos=0, end_pos=0, use_tx_pos=False
+    )
+    assert len(resp) == 0
+
+    # using gene with genomic pos
+    resp = await test_db.get_transcripts_from_gene(
+        gene="BRAF", start_pos=140753336, end_pos=140753336, use_tx_pos=False
+    )
+    assert len(resp) == 16
+
+    resp = await test_db.get_transcripts_from_gene(
+        gene="BRAF", start_pos=140453136, end_pos=140453136
+    )
     assert len(resp) == 0
 
 
