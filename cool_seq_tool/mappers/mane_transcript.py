@@ -254,14 +254,21 @@ class MANETranscript:
         :return: MANE transcripts accessions and position change on
             p. coordinate
         """
+        start = mane_c_pos_range[0] / 3
+        end = mane_c_pos_range[1] / 3
+
+        if start == end:
+            start = math.floor(start)
+            end = start
+        else:
+            start = math.ceil(start)
+            end = math.floor(end)
+
         return dict(
             gene=mane_data["symbol"],
             refseq=mane_data["RefSeq_prot"],
             ensembl=mane_data["Ensembl_prot"],
-            pos=(
-                math.ceil(mane_c_pos_range[0] / 3),
-                math.floor(mane_c_pos_range[1] / 3),
-            ),
+            pos=(start, end),
             strand=mane_data["chr_strand"],
             status=TranscriptPriority(
                 "_".join(mane_data["MANE_status"].split()).lower()

@@ -745,8 +745,20 @@ async def test_g_to_mane_c(
 
 
 @pytest.mark.asyncio
-async def test_grch38_to_mane_p(test_mane_transcript, mybpc3_s236g):
-    """Test that grch38_to_mane_p"""
+async def test_grch38_to_mane_p(
+    test_mane_transcript, braf_v600e_mane_p, egfr_l858r_mane_p, mybpc3_s236g
+):
+    """Test that grch38_to_mane_p works correctly"""
+    resp = await test_mane_transcript.grch38_to_mane_p(
+        "NC_000007.14", 140753336, 140753336, gene="BRAF"
+    )
+    assert resp == braf_v600e_mane_p
+
+    resp = await test_mane_transcript.grch38_to_mane_p(
+        "NC_000007.14", 55191822, 55191822
+    )
+    assert resp == egfr_l858r_mane_p
+
     # https://www.ncbi.nlm.nih.gov/clinvar/variation/922707/?new_evidence=true
     # Without gene
     resp = await test_mane_transcript.grch38_to_mane_p(
