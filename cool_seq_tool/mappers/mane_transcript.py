@@ -556,11 +556,11 @@ class MANETranscript:
 
         # Data Frame that contains transcripts associated to a gene
         if is_p_or_c_start_anno:
-            df = await self.uta_db.get_transcripts_from_gene(
+            df = await self.uta_db.get_transcripts(
                 c_start_pos, c_end_pos, gene=gene, use_tx_pos=True, alt_ac=alt_ac
             )
         else:
-            df = await self.uta_db.get_transcripts_from_gene(
+            df = await self.uta_db.get_transcripts(
                 start_pos, end_pos, gene=gene, use_tx_pos=False, alt_ac=alt_ac
             )
 

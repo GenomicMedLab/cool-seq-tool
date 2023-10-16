@@ -863,7 +863,7 @@ class UTADatabase:
 
         return [r[0] for r in results]
 
-    async def get_transcripts_from_gene(
+    async def get_transcripts(
         self,
         start_pos: Optional[int] = None,
         end_pos: Optional[int] = None,
@@ -871,7 +871,7 @@ class UTADatabase:
         use_tx_pos: bool = True,
         alt_ac: Optional[str] = None,
     ) -> pl.DataFrame:
-        """Get transcripts associated to a gene.
+        """Get transcripts for a given `gene` or `alt_ac` related to optional positions.
 
         :param start_pos: Start position change
             If not provided and `end_pos` not provided, all transcripts associated with
