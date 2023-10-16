@@ -526,7 +526,7 @@ class MANETranscript:
         :param start_pos: Start position change
         :param end_pos: End position change
         :param start_annotation_layer: Starting annotation layer
-        :param gene: Gene symbol
+        :param gene: HGNC gene symbol
         :param ref: Reference at position given during input
         :param residue_mode: Residue mode for `start_pos` and `end_pos`
         :param mane_transcripts: Attempted mane transcripts that were not compatible
@@ -714,7 +714,7 @@ class MANETranscript:
         :param start_annotation_layer: Starting annotation layer.
         :param end_pos: End position change. If `None` assumes both  `start_pos` and
             `end_pos` have same values.
-        :param gene: Gene symbol
+        :param gene: HGNC gene symbol
         :param ref: Reference at position given during input
         :param try_longest_compatible: `True` if should try longest compatible remaining
             if mane transcript was not compatible. `False` otherwise.

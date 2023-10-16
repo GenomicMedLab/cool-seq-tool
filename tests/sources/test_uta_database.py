@@ -312,6 +312,12 @@ async def test_get_transcripts_from_gene(test_db):
     )
     assert len(resp) == 0
 
+    # No gene and no alt_ac
+    resp = await test_db.get_transcripts_from_gene(
+        start_pos=140453136, end_pos=140453136
+    )
+    assert len(resp) == 0
+
 
 @pytest.mark.asyncio
 async def test_get_chr_assembly(test_db):
