@@ -866,37 +866,41 @@ class UTADatabase:
     async def get_transcripts_from_gene(
         self,
         gene: str,
-        start_pos: int,
-        end_pos: int,
+        start_pos: Optional[int] = None,
+        end_pos: Optional[int] = None,
         use_tx_pos: bool = True,
         alt_ac: Optional[str] = None,
     ) -> pl.DataFrame:
         """Get transcripts associated to a gene.
 
-        :param str gene: Gene symbol
-        :param int start_pos: Start position change
-        :param int end_pos: End position change
-        :param bool use_tx_pos: `True` if querying on transcript position.
-            This means `start_pos` and `end_pos` are c. coordinate positions
-            `False` if querying on genomic position. This means `start_pos`
-            and `end_pos` are g. coordinate positions
-        :param Optional[str] alt_ac: Genomic accession
-        :return: Data Frame containing transcripts associated with a gene.
-            Transcripts are ordered by most recent NC accession, then by
-            descending transcript length.
+        :param gene: HGNC gene symbol
+        :param start_pos: Start position change.
+            If not provided and `end_pos` not provided, all transcripts associated with the gene and/or accession will be returned.
+        :param end_pos: End position change
+            If not provided and `start_pos` not provided, all transcripts associated with the gene and/or accession will be returned.
+        :param use_tx_pos: `True` if querying on transcript position. This means
+            `start_pos` and `end_pos` are c. coordinate positions. `False` if querying on
+            genomic position. This means `start_pos` and `end_pos` are g. coordinate
+            positions
+        :param alt_ac: Genomic accession. If not provided, must provide `gene`
+        :return: Data Frame containing transcripts associated with a gene. Transcripts
+            are ordered by most recent NC accession, then by descending transcript
+            length.
         """
-        if use_tx_pos:
-            pos_cond = f"""
-                AND {start_pos} + T.cds_start_i
-                    BETWEEN ALIGN.tx_start_i AND ALIGN.tx_end_i
-                AND {end_pos} + T.cds_start_i
-                    BETWEEN ALIGN.tx_start_i AND ALIGN.tx_end_i
-                """
-        else:
-            pos_cond = f"""
-                AND {start_pos} BETWEEN ALIGN.alt_start_i AND ALIGN.alt_end_i
-                AND {end_pos} BETWEEN ALIGN.alt_start_i AND ALIGN.alt_end_i
-                """
+        pos_cond = ""
+        if start_pos is not None and end_pos is not None:
+            if use_tx_pos:
+                pos_cond = f"""
+                    AND {start_pos} + T.cds_start_i
+                        BETWEEN ALIGN.tx_start_i AND ALIGN.tx_end_i
+                    AND {end_pos} + T.cds_start_i
+                        BETWEEN ALIGN.tx_start_i AND ALIGN.tx_end_i
+                    """
+            else:
+                pos_cond = f"""
+                    AND {start_pos} BETWEEN ALIGN.alt_start_i AND ALIGN.alt_end_i
+                    AND {end_pos} BETWEEN ALIGN.alt_start_i AND ALIGN.alt_end_i
+                    """
 
         order_by_cond = """
         ORDER BY SUBSTR(ALIGN.alt_ac, 0, position('.' in ALIGN.alt_ac)),
