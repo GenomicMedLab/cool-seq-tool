@@ -97,23 +97,23 @@ def test_get_gene_mane_data(
     # MANE Select
     actual = test_mane_transcript_mappings.get_gene_mane_data("BRAF")
     assert len(actual) == 2
-    assert actual[0] == braf_plus_clinical
-    assert actual[1] == braf_select
+    assert actual[0] == braf_select
+    assert actual[1] == braf_plus_clinical
 
     actual = test_mane_transcript_mappings.get_gene_mane_data("braf")
     assert len(actual) == 2
-    assert actual[0] == braf_plus_clinical
-    assert actual[1] == braf_select
+    assert actual[0] == braf_select
+    assert actual[1] == braf_plus_clinical
 
     # MANE Select and MANE Plus Clinical
     actual = test_mane_transcript_mappings.get_gene_mane_data("ERCC6")
     assert len(actual) == 2
-    assert actual[0] == ercc6_plus_clinical
-    assert actual[1] == ercc6_select
+    assert actual[0] == ercc6_select
+    assert actual[1] == ercc6_plus_clinical
 
     actual = test_mane_transcript_mappings.get_gene_mane_data("ercc6")
-    assert actual[0] == ercc6_plus_clinical
-    assert actual[1] == ercc6_select
+    assert actual[0] == ercc6_select
+    assert actual[1] == ercc6_plus_clinical
 
     # No Matches
     actual = test_mane_transcript_mappings.get_gene_mane_data("BRAFF")

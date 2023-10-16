@@ -29,8 +29,9 @@ class MANETranscriptMappings:
     def get_gene_mane_data(self, gene_symbol: str) -> Optional[List[Dict]]:
         """Return MANE Transcript data for a gene.
         :param str gene_symbol: HGNC Gene Symbol
-        :return: MANE Transcript data (Transcript accessions,
-            gene, and location information)
+        :return: List of MANE Transcript data (Transcript accessions,
+            gene, and location information). Sorted list: MANE Select and then MANE Plus
+            Clinical
         """
         data = self.df.filter(pl.col("symbol") == gene_symbol.upper())
 
@@ -40,8 +41,7 @@ class MANETranscriptMappings:
             )
             return None
 
-        # Ordering: MANE Plus Clinical (If it exists), MANE Select
-        data = data.sort(by="MANE_status", descending=False)
+        data = data.sort(by="MANE_status", descending=True)
         return data.to_dicts()
 
     def get_mane_from_transcripts(self, transcripts: List[str]) -> List[Dict]:

@@ -737,7 +737,6 @@ class MANETranscript:
             mane_data = self.mane_transcript_mappings.get_gene_mane_data(g["gene"])
             if not mane_data:
                 return None
-            mane_data_len = len(mane_data)
 
             # Transcript Priority (Must pass validation checks):
             #  1. MANE Select
@@ -746,9 +745,7 @@ class MANETranscript:
             #     a. If there is a tie, choose the first-published transcript among
             #        those transcripts meeting criterion
             mane_transcripts = set()
-            for i in range(mane_data_len):
-                index = mane_data_len - i - 1
-                current_mane_data = mane_data[index]
+            for current_mane_data in mane_data:
                 mane_transcripts |= set(
                     (current_mane_data["RefSeq_nuc"], current_mane_data["Ensembl_nuc"])
                 )
@@ -957,11 +954,8 @@ class MANETranscript:
         mane_data = self.mane_transcript_mappings.get_gene_mane_data(gene)
         if not mane_data:
             return None
-        mane_data_len = len(mane_data)
 
-        for i in range(mane_data_len):
-            index = mane_data_len - i - 1
-            current_mane_data = mane_data[index]
+        for current_mane_data in mane_data:
             mane_c_ac = current_mane_data["RefSeq_nuc"]
 
             # Liftover to GRCh38
