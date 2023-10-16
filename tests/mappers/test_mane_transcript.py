@@ -781,7 +781,7 @@ async def test_grch38_to_mane_p(test_mane_transcript, mybpc3_s236g):
         "refseq": "NP_001265045.1",
         "ensembl": "ENSP00000359077.1",
         "pos": (239, 258),
-        "status": TranscriptPriority.MANE_PLUS_CLINICAL,
+        "status": TranscriptPriority.MANE_SELECT,
         "strand": "-",
         "gene": "L1CAM",
     }

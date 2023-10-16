@@ -1038,7 +1038,7 @@ class MANETranscript:
     ) -> Optional[Dict]:
         """Given genomic representation, return protein representation.
         Will try MANE Select
-        :param ac: Genomic RefSeq accession on GRCh38
+        :param alt_ac: Genomic RefSeq accession on GRCh38
         :param start_pos: Start position
         :param end_pos: End position
         :param gene: HGNC gene symbol
@@ -1047,8 +1047,8 @@ class MANETranscript:
         :param try_longest_compatible: `True` if should try longest compatible remaining
             if mane transcript(s) not compatible. `False` otherwise.
         :return: If successful, return MANE data or longest compatible remaining (if
-            `try_longest_compatible` set to `True`). Will return inter-residue
-            coordinates.
+            `try_longest_compatible` set to `True`) protein representation. Will return
+            inter-residue coordinates.
         """
         # Step 1: Get MANE data to map to
         if gene:
@@ -1058,8 +1058,7 @@ class MANETranscript:
                 alt_ac, start_pos, end_pos
             )
 
-        len_mane_data = len(mane_data)
-        if not len_mane_data and not try_longest_compatible:
+        if not mane_data and not try_longest_compatible:
             return None
 
         # Step 2: Get inter-residue position
