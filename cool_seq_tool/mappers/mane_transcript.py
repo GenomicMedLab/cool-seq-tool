@@ -515,7 +515,7 @@ class MANETranscript:
         alt_ac: Optional[str] = None,
         end_annotation_layer: Optional[
             Union[AnnotationLayer.PROTEIN, AnnotationLayer.CDNA]
-        ] = None
+        ] = None,
     ) -> Optional[Dict]:
         """Get longest compatible transcript from a gene.
         Try GRCh38 first, then GRCh37.
@@ -562,7 +562,6 @@ class MANETranscript:
                 start_pos, end_pos, gene=gene, use_tx_pos=False, alt_ac=alt_ac
             )
 
-        print(df)
         if df.is_empty():
             logger.warning(f"Unable to get transcripts from gene {gene}")
             return None
@@ -575,7 +574,6 @@ class MANETranscript:
                 el for el in prioritized_tx_acs if el not in mane_transcripts
             ]
 
-        print("prioritized_tx_acs", prioritized_tx_acs)
         for tx_ac in prioritized_tx_acs:
             # Only need to check the one row since we do liftover in _c_to_g
             tmp_df = df.filter(pl.col("tx_ac") == tx_ac).sort(
@@ -1030,7 +1028,7 @@ class MANETranscript:
         end_pos: int,
         gene: Optional[str] = None,
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
-        try_longest_compatible: bool = False
+        try_longest_compatible: bool = False,
     ) -> Optional[Dict]:
         """Given genomic representation, return protein representation.
         Will try MANE Select
@@ -1046,6 +1044,7 @@ class MANETranscript:
             `try_longest_compatible` set to `True`). Will return inter-residue
             coordinates.
         """
+        # Step 1: Get MANE data to map to
         if gene:
             mane_data = self.mane_transcript_mappings.get_gene_mane_data(gene)
         else:
@@ -1054,9 +1053,10 @@ class MANETranscript:
             )
 
         len_mane_data = len(mane_data)
-        if not len_mane_data:
+        if not len_mane_data and not try_longest_compatible:
             return None
 
+        # Step 2: Get inter-residue position
         inter_residue_pos, _ = get_inter_residue_pos(
             start_pos, residue_mode, end_pos=end_pos
         )
@@ -1065,26 +1065,26 @@ class MANETranscript:
         start_pos, end_pos = inter_residue_pos
         residue_mode = ResidueMode.INTER_RESIDUE
 
-        mane_transcripts = set()
+        # Step 3: Try getting MANE protein representation
+        mane_transcripts = set()  # Used if getting longest compatible remaining
         for current_mane_data in mane_data:
             mane_c_ac = current_mane_data["RefSeq_nuc"]
-            mane_transcripts |= set(
-                (mane_c_ac, current_mane_data["Ensembl_nuc"])
-            )
+            mane_transcripts |= set((mane_c_ac, current_mane_data["Ensembl_nuc"]))
 
             # GRCh38 -> MANE C
             mane_tx_genomic_data = await self.uta_db.get_mane_c_genomic_data(
                 mane_c_ac, None, start_pos, end_pos
             )
-
             if not mane_tx_genomic_data:
                 continue
 
+            # Get MANE C positions
             coding_start_site = mane_tx_genomic_data["coding_start_site"]
             mane_c_pos_change = self.get_mane_c_pos_change(
                 mane_tx_genomic_data, coding_start_site
             )
 
+            # Validate MANE C positions
             if not self._validate_index(
                 mane_c_ac, mane_c_pos_change, coding_start_site
             ):
@@ -1094,15 +1094,18 @@ class MANETranscript:
                 )
                 continue
 
-            return self._get_mane_p(
-                current_mane_data,
-                mane_c_pos_change
-            )
+            # MANE C -> MANE P
+            return self._get_mane_p(current_mane_data, mane_c_pos_change)
 
         if try_longest_compatible:
             return await self.get_longest_compatible_transcript(
-                start_pos, end_pos, AnnotationLayer.GENOMIC,
-                residue_mode=residue_mode, alt_ac=alt_ac,
+                start_pos,
+                end_pos,
+                AnnotationLayer.GENOMIC,
+                residue_mode=residue_mode,
+                alt_ac=alt_ac,
                 end_annotation_layer=AnnotationLayer.PROTEIN,
-                mane_transcripts=mane_transcripts
+                mane_transcripts=mane_transcripts,
             )
+        else:
+            return None

@@ -117,10 +117,10 @@ def test_get_gene_mane_data(
 
     # No Matches
     actual = test_mane_transcript_mappings.get_gene_mane_data("BRAFF")
-    assert actual is None
+    assert actual == []
 
     actual = test_mane_transcript_mappings.get_gene_mane_data("")
-    assert actual is None
+    assert actual == []
 
 
 def test_get_mane_from_transcripts(

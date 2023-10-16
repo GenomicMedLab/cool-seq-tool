@@ -577,7 +577,7 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         47348490,
         start_annotation_layer=AnnotationLayer.GENOMIC,
         mane_transcripts=mane_transcripts,
-        alt_ac="NC_000011.10"
+        alt_ac="NC_000011.10",
     )
     assert resp is None
 
@@ -588,14 +588,14 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         55174793,
         start_annotation_layer=AnnotationLayer.GENOMIC,
         mane_transcripts=mane_transcripts,
-        alt_ac="NC_000007.14"
+        alt_ac="NC_000007.14",
     )
     assert resp == {
         "refseq": "NM_001346899.2",
         "ensembl": None,
         "pos": (2103, 2120),
         "strand": "+",
-        "status": "longest_compatible_remaining"
+        "status": "longest_compatible_remaining",
     }
 
     # protein
@@ -605,14 +605,30 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         start_annotation_layer=AnnotationLayer.GENOMIC,
         mane_transcripts=mane_transcripts,
         alt_ac="NC_000007.14",
-        end_annotation_layer=AnnotationLayer.PROTEIN
+        end_annotation_layer=AnnotationLayer.PROTEIN,
     )
     assert resp == {
         "refseq": "NP_001333828.1",
         "ensembl": None,
         "pos": (701, 706),
         "strand": "+",
-        "status": "longest_compatible_remaining"
+        "status": "longest_compatible_remaining",
+    }
+
+    resp = await test_mane_transcript.get_longest_compatible_transcript(
+        153870419,
+        153870476,
+        start_annotation_layer=AnnotationLayer.GENOMIC,
+        mane_transcripts={"ENST00000370060.7", "NM_001278116.2"},
+        alt_ac="NC_000023.11",
+        end_annotation_layer=AnnotationLayer.PROTEIN,
+    )
+    assert resp == {
+        "refseq": "NP_000416.1",
+        "ensembl": None,
+        "pos": (239, 258),
+        "strand": "-",
+        "status": "longest_compatible_remaining",
     }
 
 
@@ -728,7 +744,6 @@ async def test_g_to_mane_c(
     }
 
 
-
 @pytest.mark.asyncio
 async def test_grch38_to_mane_p(test_mane_transcript, mybpc3_s236g):
     """Test that grch38_to_mane_p"""
@@ -745,7 +760,7 @@ async def test_grch38_to_mane_p(test_mane_transcript, mybpc3_s236g):
     )
     assert resp == mybpc3_s236g
 
-    # CA645561524
+    # CA645561524 (without gene)
     resp = await test_mane_transcript.grch38_to_mane_p(
         "NC_000007.14", 55174776, 55174793
     )
@@ -757,6 +772,25 @@ async def test_grch38_to_mane_p(test_mane_transcript, mybpc3_s236g):
         "strand": "+",
         "gene": " EGFR",
     }
+
+    # CA2499226460 (without gene)
+    resp = await test_mane_transcript.grch38_to_mane_p(
+        "NC_000023.11", 153870419, 153870476
+    )
+    assert resp == {
+        "refseq": "NP_001265045.1",
+        "ensembl": "ENSP00000359077.1",
+        "pos": (239, 258),
+        "status": "mane_select",
+        "strand": "-",
+        "gene": "L1CAM",
+    }
+
+    # GENE not valid
+    resp = await test_mane_transcript.grch38_to_mane_p(
+        "NC_000023.11", 153870419, 153870476, gene="FAKE"
+    )
+    assert resp is None
 
 
 @pytest.mark.asyncio
