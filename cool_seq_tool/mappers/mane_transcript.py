@@ -1032,8 +1032,10 @@ class MANETranscript:
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
         try_longest_compatible: bool = False,
     ) -> Optional[Dict]:
-        """Given genomic representation, return protein representation.
-        Will try MANE Select
+        """Given GRCh38 genomic representation, return protein representation.
+        Will try MANE Select and then MANE Plus Clinical. If neither is found and
+        `try_longest_compatible` is set to `true`, will also try to find the longest
+        compatible remaining representation.
         :param alt_ac: Genomic RefSeq accession on GRCh38
         :param start_pos: Start position
         :param end_pos: End position
