@@ -256,13 +256,8 @@ class MANETranscript:
         """
         start = mane_c_pos_range[0] / 3
         end = mane_c_pos_range[1] / 3
-
-        if start == end:
-            start = math.floor(start)
-            end = start
-        else:
-            start = math.ceil(start)
-            end = math.floor(end)
+        start = math.floor(start) if start == end else math.ceil(start)
+        end = math.floor(end)
 
         return dict(
             gene=mane_data["symbol"],
