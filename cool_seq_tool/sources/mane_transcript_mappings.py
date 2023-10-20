@@ -1,7 +1,7 @@
 """The module for loading MANE Transcript mappings to genes."""
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 import polars as pl
 
@@ -26,7 +26,7 @@ class MANETranscriptMappings:
         """
         return pl.read_csv(self.mane_data_path, separator="\t")
 
-    def get_gene_mane_data(self, gene_symbol: str) -> Optional[List[Dict]]:
+    def get_gene_mane_data(self, gene_symbol: str) -> List[Dict]:
         """Return MANE Transcript data for a gene.
         :param str gene_symbol: HGNC Gene Symbol
         :return: List of MANE Transcript data (Transcript accessions,
@@ -39,7 +39,7 @@ class MANETranscriptMappings:
             logger.warning(
                 f"Unable to get MANE Transcript data for gene: " f"{gene_symbol}"
             )
-            return None
+            return []
 
         data = data.sort(by="MANE_status", descending=True)
         return data.to_dicts()

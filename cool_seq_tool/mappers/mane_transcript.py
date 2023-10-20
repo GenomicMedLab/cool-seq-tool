@@ -254,14 +254,16 @@ class MANETranscript:
         :return: MANE transcripts accessions and position change on
             p. coordinate
         """
+        start = mane_c_pos_range[0] / 3
+        end = mane_c_pos_range[1] / 3
+        start = math.floor(start) if start == end else math.ceil(start)
+        end = math.floor(end)
+
         return dict(
             gene=mane_data["symbol"],
             refseq=mane_data["RefSeq_prot"],
             ensembl=mane_data["Ensembl_prot"],
-            pos=(
-                math.ceil(mane_c_pos_range[0] / 3),
-                math.floor(mane_c_pos_range[1] / 3),
-            ),
+            pos=(start, end),
             strand=mane_data["chr_strand"],
             status=TranscriptPriority(
                 "_".join(mane_data["MANE_status"].split()).lower()
@@ -507,27 +509,35 @@ class MANETranscript:
 
     async def get_longest_compatible_transcript(
         self,
-        gene: str,
         start_pos: int,
         end_pos: int,
         start_annotation_layer: AnnotationLayer,
+        gene: Optional[str] = None,
         ref: Optional[str] = None,
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
         mane_transcripts: Optional[Set] = None,
         alt_ac: Optional[str] = None,
+        end_annotation_layer: Optional[
+            Union[AnnotationLayer.PROTEIN, AnnotationLayer.CDNA]
+        ] = None,
     ) -> Optional[Dict]:
         """Get longest compatible transcript from a gene.
         Try GRCh38 first, then GRCh37.
         Transcript is compatible if it passes validation checks.
 
-        :param gene: Gene symbol
         :param start_pos: Start position change
         :param end_pos: End position change
-        :param start_annotation_layer: Starting annotation layer.
+        :param start_annotation_layer: Starting annotation layer
+        :param gene: HGNC gene symbol
         :param ref: Reference at position given during input
         :param residue_mode: Residue mode for `start_pos` and `end_pos`
         :param mane_transcripts: Attempted mane transcripts that were not compatible
         :param alt_ac: Genomic accession
+        :param end_annotation_layer: The end annotation layer. If not provided, will be
+            set to the following
+                `AnnotationLayer.PROTEIN` if
+                    `start_annotation_layer == AnnotationLayer.PROTEIN`
+                `AnnotationLayer.CDNA` otherwise
         :return: Data for longest compatible transcript
         """
         inter_residue_pos, _ = get_inter_residue_pos(
@@ -548,13 +558,14 @@ class MANETranscript:
 
         # Data Frame that contains transcripts associated to a gene
         if is_p_or_c_start_anno:
-            df = await self.uta_db.get_transcripts_from_gene(
-                gene, c_start_pos, c_end_pos, use_tx_pos=True, alt_ac=alt_ac
+            df = await self.uta_db.get_transcripts(
+                c_start_pos, c_end_pos, gene=gene, use_tx_pos=True, alt_ac=alt_ac
             )
         else:
-            df = await self.uta_db.get_transcripts_from_gene(
-                gene, start_pos, end_pos, use_tx_pos=False, alt_ac=alt_ac
+            df = await self.uta_db.get_transcripts(
+                start_pos, end_pos, gene=gene, use_tx_pos=False, alt_ac=alt_ac
             )
+
         if df.is_empty():
             logger.warning(f"Unable to get transcripts from gene {gene}")
             return None
@@ -651,7 +662,13 @@ class MANETranscript:
                 if not valid_references:
                     continue
 
-            if start_annotation_layer == AnnotationLayer.PROTEIN:
+            if not end_annotation_layer:
+                if start_annotation_layer == AnnotationLayer.PROTEIN:
+                    end_annotation_layer = AnnotationLayer.PROTEIN
+                else:
+                    end_annotation_layer = AnnotationLayer.CDNA
+
+            if end_annotation_layer == AnnotationLayer.PROTEIN:
                 pos = (
                     math.ceil(lcr_c_data["pos"][0] / 3),
                     math.floor(lcr_c_data["pos"][1] / 3),
@@ -699,7 +716,7 @@ class MANETranscript:
         :param start_annotation_layer: Starting annotation layer.
         :param end_pos: End position change. If `None` assumes both  `start_pos` and
             `end_pos` have same values.
-        :param gene: Gene symbol
+        :param gene: HGNC gene symbol
         :param ref: Reference at position given during input
         :param try_longest_compatible: `True` if should try longest compatible remaining
             if mane transcript was not compatible. `False` otherwise.
@@ -793,21 +810,21 @@ class MANETranscript:
             if try_longest_compatible:
                 if start_annotation_layer == AnnotationLayer.PROTEIN:
                     return await self.get_longest_compatible_transcript(
-                        g["gene"],
                         start_pos,
                         end_pos,
                         AnnotationLayer.PROTEIN,
-                        ref,
+                        ref=ref,
+                        gene=g["gene"],
                         residue_mode=residue_mode,
                         mane_transcripts=mane_transcripts,
                     )
                 else:
                     return await self.get_longest_compatible_transcript(
-                        g["gene"],
                         c_pos[0],
                         c_pos[1],
                         AnnotationLayer.CDNA,
-                        ref,
+                        ref=ref,
+                        gene=g["gene"],
                         residue_mode=residue_mode,
                         mane_transcripts=mane_transcripts,
                     )
@@ -1005,3 +1022,94 @@ class MANETranscript:
                 ensembl_c_ac=current_mane_data["Ensembl_nuc"],
                 alt_ac=grch38["ac"] if grch38 else None,
             )
+
+    async def grch38_to_mane_p(
+        self,
+        alt_ac: str,
+        start_pos: int,
+        end_pos: int,
+        gene: Optional[str] = None,
+        residue_mode: ResidueMode = ResidueMode.RESIDUE,
+        try_longest_compatible: bool = False,
+    ) -> Optional[Dict]:
+        """Given GRCh38 genomic representation, return protein representation.
+        Will try MANE Select and then MANE Plus Clinical. If neither is found and
+        `try_longest_compatible` is set to `true`, will also try to find the longest
+        compatible remaining representation.
+
+        :param alt_ac: Genomic RefSeq accession on GRCh38
+        :param start_pos: Start position
+        :param end_pos: End position
+        :param gene: HGNC gene symbol
+        :param residue_mode: Starting residue mode for `start_pos` and `end_pos`. Will
+            always return coordinates as inter-residue.
+        :param try_longest_compatible: `True` if should try longest compatible remaining
+            if mane transcript(s) not compatible. `False` otherwise.
+        :return: If successful, return MANE data or longest compatible remaining (if
+            `try_longest_compatible` set to `True`) protein representation. Will return
+            inter-residue coordinates.
+        """
+        # Step 1: Get MANE data to map to
+        if gene:
+            mane_data = self.mane_transcript_mappings.get_gene_mane_data(gene)
+        else:
+            mane_data = self.mane_transcript_mappings.get_mane_data_from_chr_pos(
+                alt_ac, start_pos, end_pos
+            )
+
+        if not mane_data and not try_longest_compatible:
+            return None
+
+        # Step 2: Get inter-residue position
+        inter_residue_pos, _ = get_inter_residue_pos(
+            start_pos, residue_mode, end_pos=end_pos
+        )
+        if not inter_residue_pos:
+            return None
+        start_pos, end_pos = inter_residue_pos
+        residue_mode = ResidueMode.INTER_RESIDUE
+
+        # Step 3: Try getting MANE protein representation
+        mane_transcripts = set()  # Used if getting longest compatible remaining
+        for current_mane_data in mane_data:
+            mane_c_ac = current_mane_data["RefSeq_nuc"]
+            mane_transcripts |= set((mane_c_ac, current_mane_data["Ensembl_nuc"]))
+
+            # GRCh38 -> MANE C
+            mane_tx_genomic_data = await self.uta_db.get_mane_c_genomic_data(
+                mane_c_ac, None, start_pos, end_pos
+            )
+            if not mane_tx_genomic_data:
+                continue
+
+            # Get MANE C positions
+            coding_start_site = mane_tx_genomic_data["coding_start_site"]
+            mane_c_pos_change = self.get_mane_c_pos_change(
+                mane_tx_genomic_data, coding_start_site
+            )
+
+            # Validate MANE C positions
+            if not self._validate_index(
+                mane_c_ac, mane_c_pos_change, coding_start_site
+            ):
+                logger.warning(
+                    f"{mane_c_pos_change} are not valid positions on {mane_c_ac} with "
+                    f"coding start site {coding_start_site}"
+                )
+                continue
+
+            # MANE C -> MANE P
+            return self._get_mane_p(current_mane_data, mane_c_pos_change)
+
+        if try_longest_compatible:
+            return await self.get_longest_compatible_transcript(
+                start_pos,
+                end_pos,
+                AnnotationLayer.GENOMIC,
+                residue_mode=residue_mode,
+                alt_ac=alt_ac,
+                end_annotation_layer=AnnotationLayer.PROTEIN,
+                mane_transcripts=mane_transcripts,
+            )
+        else:
+            return None
