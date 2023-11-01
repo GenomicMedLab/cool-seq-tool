@@ -23,34 +23,38 @@ class DataDownload:
         """Initialize downloadable data locations."""
         self._data_dir = APP_ROOT / "data"
 
-    def get_mane_summary(self) -> Path:
-        """Identify latest MANE summary data. If unavailable locally, download from
-        source.
+    def get_mane(self, is_summary: bool = True) -> Path:
+        """Identify latest MANE summary or refseq gff data. If unavailable locally,
+        download from source.
 
+        :param is_summary: `True` if getting summary data. `False` if getting refseq
+            gff data.
         :return: path to MANE summary file
         """
+        fn_end = ".summary.txt.gz" if is_summary else ".refseq_genomic.gff.gz"
+
         with FTP("ftp.ncbi.nlm.nih.gov") as ftp:
             ftp.login()
             ftp.cwd("/refseq/MANE/MANE_human/current")
             files = ftp.nlst()
-            mane_summary_file = \
-                [f for f in files if f.endswith(".summary.txt.gz")]
-            if not mane_summary_file:
-                raise Exception("Unable to download MANE summary data")
-            mane_summary_file = mane_summary_file[0]
-            self._mane_summary_path = \
-                self._data_dir / mane_summary_file[:-3]
-            mane_data_path = self._data_dir / mane_summary_file
-            if not self._mane_summary_path.exists():
-                logger.info("Downloading MANE summary file from NCBI.")
+
+            mane_file = [f for f in files if f.endswith(fn_end)]
+            if not mane_file:
+                raise Exception(f"Unable to find MANE {fn_end[1:]} data")
+            mane_file = mane_file[0]
+            self._mane_path = \
+                self._data_dir / mane_file[:-3]
+            mane_data_path = self._data_dir / mane_file
+            if not self._mane_path.exists():
+                logger.info(f"Downloading {mane_file}...")
                 with open(mane_data_path, "wb") as fp:
-                    ftp.retrbinary(f"RETR {mane_summary_file}", fp.write)
+                    ftp.retrbinary(f"RETR {mane_file}", fp.write)
                 with gzip.open(mane_data_path, "rb") as f_in:
-                    with open(self._mane_summary_path, "wb") as f_out:
+                    with open(self._mane_path, "wb") as f_out:
                         shutil.copyfileobj(f_in, f_out)
                 remove(mane_data_path)
-                logger.info("MANE summary file download complete.")
-        return self._mane_summary_path
+                logger.info(f"{mane_file} download complete.")
+        return self._mane_path
 
     def get_lrg_refseq_gene_data(self) -> Path:
         """Identify latest LRG RefSeq Gene file. If unavailable locally, download from

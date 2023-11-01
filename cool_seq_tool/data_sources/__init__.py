@@ -6,3 +6,4 @@ from .uta_database import UTADatabase
 from .gene_normalizer import GeneNormalizer
 from .mane_transcript import MANETranscript
 from .alignment_mapper import AlignmentMapper
+from .feature_overlap import FeatureOverlap
