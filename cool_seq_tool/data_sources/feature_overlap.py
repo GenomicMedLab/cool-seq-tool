@@ -22,8 +22,9 @@ class FeatureOverlap:
         seqrepo_access: SeqRepoAccess,
         mane_refseq_gff_path: Path = MANE_REFSEQ_GFF_PATH,
     ) -> None:
-        """Initialize the FeatureOverlap class
+        """Initialize the FeatureOverlap class. Will load RefSeq data and store as df.
 
+        :param seqrepo_access: Client for accessing SeqRepo data
         :param mane_refseq_gff_path: Path to the MANE RefSeq GFF file
         """
         self.seqrepo_access = seqrepo_access
@@ -32,9 +33,10 @@ class FeatureOverlap:
 
     def _load_mane_refseq_gff_data(self) -> pd.core.frame.DataFrame:
         """Load MANE RefSeq GFF data file into DataFrame.
-        Does transformations on the data.
 
-        :return: DataFrame containing MANE RefSeq GFF data
+        :return: DataFrame containing MANE RefSeq GFF data for CDS. Columsn include
+            `type`, `chromosome` (chromosome without 'chr' prefix), `cds_start`,
+            `cds_stop`, `info_name` (name of record), and `gene`
         """
         df = pd.read_csv(
             self.mane_refseq_gff_path,
@@ -45,7 +47,7 @@ class FeatureOverlap:
         )
         df.columns = ["chromosome", "type", "cds_start", "cds_stop", "info"]
 
-        # Restrict to only feature of interest: coding exons (which has gene info)
+        # Restrict to only feature of interest: CDS (which has gene info)
         df = df[df["type"] == "CDS"].copy()
 
         # Get name from the info field
@@ -58,10 +60,10 @@ class FeatureOverlap:
 
         # Get chromosome names without prefix and without suffix for alternate
         # transcripts
-        df["chrom_normalized"] = df["chromosome"].apply(
+        df["chromosome"] = df["chromosome"].apply(
             lambda chromosome: chromosome.strip("chr").split("_")[0]
         )
-        df["chrom_normalized"] = df["chrom_normalized"].astype(str)
+        df["chromosome"] = df["chromosome"].astype(str)
 
         # Convert start and stop to ints
         df["cds_start"] = df["cds_start"].astype(int)
@@ -69,7 +71,7 @@ class FeatureOverlap:
 
         # Only retain certain columns
         df = df[
-            ["type", "chrom_normalized", "cds_start", "cds_stop", "info_name", "gene"]
+            ["type", "chromosome", "cds_start", "cds_stop", "info_name", "gene"]
         ]
 
         return df
@@ -153,7 +155,7 @@ class FeatureOverlap:
 
         # Get feature dataframe
         feature_df = self.df[
-            (self.df["chrom_normalized"] == chromosome)
+            (self.df["chromosome"] == chromosome)
             & (self.df["cds_start"] <= end)  # noqa: W503
             & (self.df["cds_stop"] >= start)  # noqa: W503
         ].copy()

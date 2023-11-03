@@ -21,7 +21,7 @@ def test_df(test_feature_overlap):
 
     assert set(test_feature_overlap.df.columns) == {
         "type",
-        "chrom_normalized",
+        "chromosome",
         "cds_start",
         "cds_stop",
         "info_name",
@@ -31,7 +31,7 @@ def test_df(test_feature_overlap):
     assert test_feature_overlap.df["cds_start"].dtype == "int64"
     assert test_feature_overlap.df["cds_stop"].dtype == "int64"
 
-    assert set(test_feature_overlap.df["chrom_normalized"].unique()) == {
+    assert set(test_feature_overlap.df["chromosome"].unique()) == {
         "1",
         "2",
         "3",
@@ -234,6 +234,10 @@ def test_get_grch38_cds_overlap(test_feature_overlap):
         135328, 135381, chromosome="19", residue_mode=ResidueMode.INTER_RESIDUE
     )
     assert resp == expected
+
+    # No overlap found
+    resp = test_feature_overlap.get_grch38_cds_overlap(1, 2, chromosome="19")
+    assert resp is None
 
     # Testing invalid
 
