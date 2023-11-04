@@ -4,10 +4,12 @@ from pathlib import Path
 from typing import Dict, Optional
 
 import pandas as pd
+from ga4gh.core import ga4gh_identify
+from ga4gh.vrs import models
 
 from cool_seq_tool.data_sources import SeqRepoAccess
 from cool_seq_tool.paths import MANE_REFSEQ_GFF_PATH
-from cool_seq_tool.schemas import ResidueMode
+from cool_seq_tool.schemas import Assembly, ResidueMode
 
 
 class FeatureOverlapError(Exception):
@@ -36,7 +38,8 @@ class FeatureOverlap:
 
         :return: DataFrame containing MANE RefSeq GFF data for CDS. Columsn include
             `type`, `chromosome` (chromosome without 'chr' prefix), `cds_start`,
-            `cds_stop`, `info_name` (name of record), and `gene`
+            `cds_stop`, `info_name` (name of record), and `gene`. `cds_start` and
+            `cds_stop` use inter-residue coordinates.
         """
         df = pd.read_csv(
             self.mane_refseq_gff_path,
@@ -69,10 +72,11 @@ class FeatureOverlap:
         df["cds_start"] = df["cds_start"].astype(int)
         df["cds_stop"] = df["cds_stop"].astype(int)
 
+        # Convert to inter-residue coordinates
+        df["cds_start"] -= 1
+
         # Only retain certain columns
-        df = df[
-            ["type", "chromosome", "cds_start", "cds_stop", "info_name", "gene"]
-        ]
+        df = df[["type", "chromosome", "cds_start", "cds_stop", "info_name", "gene"]]
 
         return df
 
@@ -84,7 +88,7 @@ class FeatureOverlap:
         :return: Chromosome. 1..22, X, Y. No 'chr' prefix.
         """
         aliases, error_msg = self.seqrepo_access.translate_identifier(
-            identifier, "GRCh38"
+            identifier, Assembly.GRCH38.value
         )
 
         if error_msg:
@@ -92,10 +96,10 @@ class FeatureOverlap:
 
         if not aliases:
             raise FeatureOverlapError(
-                f"Unable to find GRCh38 aliases for: {identifier}"
+                f"Unable to find {Assembly.GRCH38.value} aliases for: {identifier}"
             )
 
-        chr_pattern = r"^GRCh38:(?P<chromosome>X|Y|([1-9]|1[0-9]|2[0-2]))$"
+        chr_pattern = rf"^{Assembly.GRCH38.value}:(?P<chromosome>X|Y|([1-9]|1[0-9]|2[0-2]))$"  # noqa: E501
         for a in aliases:
             chr_match = re.match(chr_pattern, a)
             if chr_match:
@@ -103,13 +107,13 @@ class FeatureOverlap:
 
         if not chr_match:
             raise FeatureOverlapError(
-                f"Unable to find GRCh38 chromosome for: {identifier}"
+                f"Unable to find {Assembly.GRCH38.value} chromosome for: {identifier}"
             )
 
         chr_groupdict = chr_match.groupdict()
         return chr_groupdict["chromosome"]
 
-    def get_grch38_cds_overlap(
+    def get_grch38_mane_cds_overlap(
         self,
         start: int,
         end: int,
@@ -117,43 +121,49 @@ class FeatureOverlap:
         identifier: Optional[str] = None,
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
     ) -> Optional[Dict]:
-        """Get feature overlap for GRCh38 genomic data
+        """Given GRCh38 genomic data, find the overlapping MANE features (gene and cds)
 
         :param start: GRCh38 start position
         :param end: GRCh38 end position
         :param chromosome: Chromosome. 1..22, X, or Y. If not provided, must provide
             `identifier`. If both `chromosome` and `identifier` are provided,
             `chromosome` will be used.
-        :param identifier: Genomic identifier on GRCh38 assembly. If not provided,
-            must identifier `chromosome`. If both `chromosome` and `identifier` are
-            provided, `chromosome` will be used.
+        :param identifier: Genomic identifier on GRCh38 assembly. If not provided, must
+            provide `chromosome`. If both `chromosome` and `identifier` are provided,
+            `chromosome` will be used.
         :param residue_mode: Residue mode for `start` and `end`
-        :raise FeatureOverlapError: If missing required fields
-        :return: Feature overlap dictionary where the key is the gene name and the value
-            is the list of CDS overlap (cds_start, cds_stop, overlap_start,
-            overlap_stop). Will return residue coordinates.
+        :raise FeatureOverlapError: If missing required fields or unable to find
+            associated ga4gh identifier
+        :return: MANE feature (gene/cds) overlap data represented as a dict
+            {
+                gene: {
+                    'cds': VRS Sequence Location
+                    'overlap': VRS Sequence Location
+                }
+            }
         """
+        ga4gh_seq_id = None
         if chromosome:
             if not re.match(r"^X|Y|([1-9]|1[0-9]|2[0-2])$", chromosome):
                 raise FeatureOverlapError("`chromosome` must be 1, ..., 22, X, or Y")
         else:
             if identifier:
                 chromosome = self._get_chr_from_alt_ac(identifier)
+                if identifier.startswith("ga4gh:SQ."):
+                    ga4gh_seq_id = identifier
             else:
                 raise FeatureOverlapError(
                     "Must provide either `chromosome` or `identifier`"
                 )
 
-        # GFF is 1-based, so we need to convert inter-residue to residue
-        # RESIDUE           |   | 1 |   | 2 |   | 3 |   |
-        # INTER_RESIDUE     | 0 |   | 1 |   | 2 |   | 3 |
-        if residue_mode == ResidueMode.INTER_RESIDUE:
-            if start != end:
-                start += 1
-            else:
-                end += 1
+        # Convert residue to inter-residue
+        if residue_mode == ResidueMode.RESIDUE:
+            if start == end:
+                start -= 1
 
-        # Get feature dataframe
+            start -= 1
+
+        # Get feature dataframe (df uses inter-residue)
         feature_df = self.df[
             (self.df["chromosome"] == chromosome)
             & (self.df["cds_start"] <= end)  # noqa: W503
@@ -171,10 +181,57 @@ class FeatureOverlap:
             lambda x: end if end <= x else x
         )
 
-        return (
-            feature_df.groupby(["gene"])[
-                ["info_name", "cds_start", "cds_stop", "overlap_start", "overlap_stop"]
-            ]
-            .apply(lambda x: x.set_index("info_name").to_dict(orient="records"))
-            .to_dict()
-        )
+        # Get ga4gh identifier for chromosome
+        if not ga4gh_seq_id:
+            grch38_chr = f"{Assembly.GRCH38.value}:{chromosome}"
+            ga4gh_aliases, error_msg = self.seqrepo_access.translate_identifier(
+                grch38_chr, "ga4gh"
+            )
+
+            # Errors should never happen but catching just in case
+            if error_msg:
+                raise FeatureOverlapError(str(error_msg))
+            elif not ga4gh_aliases:
+                raise FeatureOverlapError(
+                    f"Unable to find ga4gh identifier for: {grch38_chr}"
+                )
+
+            ga4gh_seq_id = ga4gh_aliases[0]
+
+        def _get_seq_loc(start_pos: int, stop_pos: int, ga4gh_sequence_id: str) -> Dict:
+            """Get VRS Sequence Location represented as a dict
+
+            :param start_pos: Start position
+            :param stop_pos: Stop position
+            :param ga4gh_sequence_id: ga4gh sequence identifier
+            :return: VRS Sequence Location represented as dictionary with the ga4gh ID
+                included
+            """
+            _sl = models.SequenceLocation(
+                sequence_id=ga4gh_sequence_id,
+                interval=models.SequenceInterval(
+                    start=models.Number(value=start_pos),
+                    end=models.Number(value=stop_pos),
+                ),
+            )
+            _sl._id = ga4gh_identify(_sl)
+            return _sl.as_dict()
+
+        resp = {}
+        for gene, group in feature_df.groupby("gene"):
+            _gene_overlap_data = []
+
+            for cds_row in group.itertuples():
+                _gene_overlap_data.append(
+                    {
+                        "cds": _get_seq_loc(
+                            cds_row.cds_start, cds_row.cds_stop, ga4gh_seq_id
+                        ),
+                        "overlap": _get_seq_loc(
+                            cds_row.overlap_start, cds_row.overlap_stop, ga4gh_seq_id
+                        ),
+                    }
+                )
+            resp[gene] = _gene_overlap_data
+
+        return resp
