@@ -159,7 +159,7 @@ class FeatureOverlap:
         # Convert residue to inter-residue
         if residue_mode == ResidueMode.RESIDUE:
             if start == end:
-                start -= 1
+                end -= 1
 
             start -= 1
 
