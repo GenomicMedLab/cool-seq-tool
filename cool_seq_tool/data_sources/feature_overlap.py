@@ -113,7 +113,7 @@ class FeatureOverlap:
         chr_groupdict = chr_match.groupdict()
         return chr_groupdict["chromosome"]
 
-    def get_grch38_mane_cds_overlap(
+    def get_grch38_mane_gene_cds_overlap(
         self,
         start: int,
         end: int,

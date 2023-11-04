@@ -79,9 +79,9 @@ def test_get_chr_from_alt_ac(test_feature_overlap):
 
 
 def test_get_grch38_cds_overlap(test_feature_overlap):
-    """Test that get_grch38_mane_cds_overlap works correctly"""
+    """Test that get_grch38_mane_gene_cds_overlap works correctly"""
     # Variant fully contains exon (negative strand)
-    resp = test_feature_overlap.get_grch38_mane_cds_overlap(
+    resp = test_feature_overlap.get_grch38_mane_gene_cds_overlap(
         140726490, 140726520, identifier="ga4gh:SQ.F-LrLMe1SRpfUZHkQmvkVKFEGaoDeHul"
     )
     assert resp == {
@@ -112,7 +112,7 @@ def test_get_grch38_cds_overlap(test_feature_overlap):
     }
 
     # Using inter-residue (start == stop)
-    resp = test_feature_overlap.get_grch38_mane_cds_overlap(
+    resp = test_feature_overlap.get_grch38_mane_gene_cds_overlap(
         140726500,
         140726500,
         identifier="ga4gh:SQ.F-LrLMe1SRpfUZHkQmvkVKFEGaoDeHul",
@@ -146,7 +146,7 @@ def test_get_grch38_cds_overlap(test_feature_overlap):
     }
 
     # Variant is fully contained within exon (positive strand)
-    resp = test_feature_overlap.get_grch38_mane_cds_overlap(
+    resp = test_feature_overlap.get_grch38_mane_gene_cds_overlap(
         55019308, 55019341, chromosome="7"
     )
     assert resp == {
@@ -177,7 +177,7 @@ def test_get_grch38_cds_overlap(test_feature_overlap):
     }
 
     # Variant partially overlaps with exon, from the exon's start side (negative strand)
-    resp = test_feature_overlap.get_grch38_mane_cds_overlap(
+    resp = test_feature_overlap.get_grch38_mane_gene_cds_overlap(
         140726503, 140726520, chromosome="7"
     )
     assert resp == {
@@ -208,7 +208,7 @@ def test_get_grch38_cds_overlap(test_feature_overlap):
     }
 
     # Variant partially overlaps with exon, from the exon's stop side (negative strand)
-    resp = test_feature_overlap.get_grch38_mane_cds_overlap(
+    resp = test_feature_overlap.get_grch38_mane_gene_cds_overlap(
         140726490, 140726505, identifier="NC_000007.14"
     )
     assert resp == {
@@ -239,7 +239,7 @@ def test_get_grch38_cds_overlap(test_feature_overlap):
     }
 
     # Variant overlaps with multiple exons (positive strand)
-    resp = test_feature_overlap.get_grch38_mane_cds_overlap(
+    resp = test_feature_overlap.get_grch38_mane_gene_cds_overlap(
         21522390, 21523491, chromosome="Y"
     )
     assert resp == {
@@ -314,7 +314,7 @@ def test_get_grch38_cds_overlap(test_feature_overlap):
     }
 
     # Variant overlaps with multiple exons (negative strand)
-    resp = test_feature_overlap.get_grch38_mane_cds_overlap(
+    resp = test_feature_overlap.get_grch38_mane_gene_cds_overlap(
         154779177, 154781317, chromosome="X"
     )
     assert resp == {
@@ -368,7 +368,7 @@ def test_get_grch38_cds_overlap(test_feature_overlap):
 
     # Variant overlap with cds in multiple genes and alt chromosome accession
     # chr19_KI270930v1_alt with exact start/stop CDS
-    resp = test_feature_overlap.get_grch38_mane_cds_overlap(
+    resp = test_feature_overlap.get_grch38_mane_gene_cds_overlap(
         135329, 135381, chromosome="19"
     )
     expected = {
@@ -424,32 +424,32 @@ def test_get_grch38_cds_overlap(test_feature_overlap):
     assert resp == expected
 
     # Using inter-residue (start != stop)
-    resp = test_feature_overlap.get_grch38_mane_cds_overlap(
+    resp = test_feature_overlap.get_grch38_mane_gene_cds_overlap(
         135328, 135381, chromosome="19", residue_mode=ResidueMode.INTER_RESIDUE
     )
     assert resp == expected
 
     # No overlap found
-    resp = test_feature_overlap.get_grch38_mane_cds_overlap(1, 2, chromosome="19")
+    resp = test_feature_overlap.get_grch38_mane_gene_cds_overlap(1, 2, chromosome="19")
     assert resp is None
 
     # Testing invalid
 
     # chromosome does not match regex pattern
     with pytest.raises(FeatureOverlapError) as e:
-        test_feature_overlap.get_grch38_mane_cds_overlap(
+        test_feature_overlap.get_grch38_mane_gene_cds_overlap(
             154779177, 154781317, chromosome="chrX"
         )
     assert str(e.value) == "`chromosome` must be 1, ..., 22, X, or Y"
 
     # identifier is GRCh37
     with pytest.raises(FeatureOverlapError) as e:
-        test_feature_overlap.get_grch38_mane_cds_overlap(
+        test_feature_overlap.get_grch38_mane_gene_cds_overlap(
             154779177, 154781317, identifier="NC_000023.10"
         )
     assert str(e.value) == "Unable to find GRCh38 aliases for: NC_000023.10"
 
     # no identifier or chromosome provided
     with pytest.raises(FeatureOverlapError) as e:
-        test_feature_overlap.get_grch38_mane_cds_overlap(154779177, 154781317)
+        test_feature_overlap.get_grch38_mane_gene_cds_overlap(154779177, 154781317)
     assert str(e.value) == "Must provide either `chromosome` or `identifier`"
