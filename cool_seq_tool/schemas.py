@@ -4,6 +4,7 @@ from enum import Enum
 import re
 from typing import Literal, Optional, List, Tuple, Union, Dict, Any, Type
 
+from ga4gh.vrsatile.pydantic.vrs_models import SequenceLocation
 from pydantic import BaseModel, root_validator, validator
 from pydantic.main import Extra
 from pydantic.types import StrictStr, StrictInt
@@ -614,5 +615,45 @@ class ToGenomicService(BaseModelForbidExtra):
                     "version": __version__,
                     "response_datetime": datetime.now(),
                     "url": "https://github.com/GenomicMedLab/cool-seq-tool"
+                }
+            }
+
+
+class CdsOverlap(BaseModelForbidExtra):
+    """Create model for representing CDS start/stop and Overlap start/stop"""
+
+    cds: SequenceLocation
+    overlap: SequenceLocation
+
+    class Config(BaseModelForbidExtra.Config):
+        """Configure model."""
+
+        @staticmethod
+        def schema_extra(schema: Dict[str, Any], model: Type["CdsOverlap"]) -> None:
+            """Configure OpenAPI schema."""
+            if "title" in schema.keys():
+                schema.pop("title", None)
+            for prop in schema.get("properties", {}).values():
+                prop.pop("title", None)
+            schema["example"] = {
+                "cds": {
+                    "_id": "ga4gh:VSL._H2ST69A4RkWCSRHOoMv-edt-R45fPdq",
+                    "type": "SequenceLocation",
+                    "sequence_id": "ga4gh:SQ.F-LrLMe1SRpfUZHkQmvkVKFEGaoDeHul",
+                    "interval": {
+                        "type": "SequenceInterval",
+                        "start": {"value": 140726493, "type": "Number"},
+                        "end": {"value": 140726516, "type": "Number"},
+                    },
+                },
+                "overlap": {
+                    "_id": "ga4gh:VSL._H2ST69A4RkWCSRHOoMv-edt-R45fPdq",
+                    "type": "SequenceLocation",
+                    "sequence_id": "ga4gh:SQ.F-LrLMe1SRpfUZHkQmvkVKFEGaoDeHul",
+                    "interval": {
+                        "type": "SequenceInterval",
+                        "start": {"value": 140726493, "type": "Number"},
+                        "end": {"value": 140726516, "type": "Number"},
+                    },
                 }
             }

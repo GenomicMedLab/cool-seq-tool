@@ -9,7 +9,7 @@ from ga4gh.vrs import models
 
 from cool_seq_tool.data_sources import SeqRepoAccess
 from cool_seq_tool.paths import MANE_REFSEQ_GFF_PATH
-from cool_seq_tool.schemas import Assembly, ResidueMode
+from cool_seq_tool.schemas import Assembly, CdsOverlap, ResidueMode
 
 
 class FeatureOverlapError(Exception):
@@ -120,7 +120,7 @@ class FeatureOverlap:
         chromosome: Optional[str] = None,
         identifier: Optional[str] = None,
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
-    ) -> Optional[Dict]:
+    ) -> Optional[Dict[str, CdsOverlap]]:
         """Given GRCh38 genomic data, find the overlapping MANE features (gene and cds)
 
         :param start: GRCh38 start position
@@ -223,14 +223,14 @@ class FeatureOverlap:
 
             for cds_row in group.itertuples():
                 _gene_overlap_data.append(
-                    {
-                        "cds": _get_seq_loc(
+                    CdsOverlap(
+                        cds=_get_seq_loc(
                             cds_row.cds_start, cds_row.cds_stop, ga4gh_seq_id
                         ),
-                        "overlap": _get_seq_loc(
+                        overlap=_get_seq_loc(
                             cds_row.overlap_start, cds_row.overlap_stop, ga4gh_seq_id
                         ),
-                    }
+                    ).dict(by_alias=True)
                 )
             resp[gene] = _gene_overlap_data
 
