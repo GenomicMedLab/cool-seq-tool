@@ -111,14 +111,7 @@ def test_get_grch38_cds_overlap(test_feature_overlap):
         ]
     }
 
-    # Using inter-residue (start == stop)
-    resp = test_feature_overlap.get_grch38_mane_gene_cds_overlap(
-        140726500,
-        140726500,
-        identifier="ga4gh:SQ.F-LrLMe1SRpfUZHkQmvkVKFEGaoDeHul",
-        residue_mode=ResidueMode.INTER_RESIDUE,
-    )
-    assert resp == {
+    expected = {
         "BRAF": [
             {
                 "cds": {
@@ -144,6 +137,24 @@ def test_get_grch38_cds_overlap(test_feature_overlap):
             }
         ]
     }
+
+    # Using residue (start == stop)
+    resp = test_feature_overlap.get_grch38_mane_gene_cds_overlap(
+        140726501,
+        140726501,
+        identifier="ga4gh:SQ.F-LrLMe1SRpfUZHkQmvkVKFEGaoDeHul",
+        residue_mode=ResidueMode.RESIDUE,
+    )
+    assert resp == expected
+
+    # Using inter-residue (start == stop)
+    resp = test_feature_overlap.get_grch38_mane_gene_cds_overlap(
+        140726500,
+        140726500,
+        identifier="ga4gh:SQ.F-LrLMe1SRpfUZHkQmvkVKFEGaoDeHul",
+        residue_mode=ResidueMode.INTER_RESIDUE,
+    )
+    assert resp == expected
 
     # Variant is fully contained within exon (positive strand)
     resp = test_feature_overlap.get_grch38_mane_gene_cds_overlap(
