@@ -12,6 +12,10 @@ from cool_seq_tool.paths import MANE_REFSEQ_GFF_PATH
 from cool_seq_tool.schemas import Assembly, CdsOverlap, ResidueMode
 
 
+# Pattern for chromosome
+CHR_PATTERN = r"X|Y|([1-9]|1[0-9]|2[0-2])"
+
+
 class FeatureOverlapError(Exception):
     """Custom exception for the Feature Overlap class"""
 
@@ -36,7 +40,7 @@ class FeatureOverlap:
     def _load_mane_refseq_gff_data(self) -> pd.core.frame.DataFrame:
         """Load MANE RefSeq GFF data file into DataFrame.
 
-        :return: DataFrame containing MANE RefSeq GFF data for CDS. Columsn include
+        :return: DataFrame containing MANE RefSeq GFF data for CDS. Columns include
             `type`, `chromosome` (chromosome without 'chr' prefix), `cds_start`,
             `cds_stop`, `info_name` (name of record), and `gene`. `cds_start` and
             `cds_stop` use inter-residue coordinates.
@@ -99,9 +103,9 @@ class FeatureOverlap:
                 f"Unable to find {Assembly.GRCH38.value} aliases for: {identifier}"
             )
 
-        chr_pattern = rf"^{Assembly.GRCH38.value}:(?P<chromosome>X|Y|([1-9]|1[0-9]|2[0-2]))$"  # noqa: E501
+        assembly_chr_pattern = rf"^{Assembly.GRCH38.value}:(?P<chromosome>{CHR_PATTERN})$"  # noqa: E501
         for a in aliases:
-            chr_match = re.match(chr_pattern, a)
+            chr_match = re.match(assembly_chr_pattern, a)
             if chr_match:
                 break
 
@@ -144,7 +148,7 @@ class FeatureOverlap:
         """
         ga4gh_seq_id = None
         if chromosome:
-            if not re.match(r"^X|Y|([1-9]|1[0-9]|2[0-2])$", chromosome):
+            if not re.match(f"^{CHR_PATTERN}$", chromosome):
                 raise FeatureOverlapError("`chromosome` must be 1, ..., 22, X, or Y")
         else:
             if identifier:
