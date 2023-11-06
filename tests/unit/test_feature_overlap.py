@@ -125,13 +125,13 @@ def test_get_grch38_cds_overlap(test_feature_overlap):
                     },
                 },
                 "overlap": {
-                    "_id": "ga4gh:VSL.EqiyoLjrKnKg5F56bjRlBFBUihSkgX5w",
+                    "_id": "ga4gh:VSL.MhgWeETQYVNny5BAZvKqauu8Xzknp6si",
                     "type": "SequenceLocation",
                     "sequence_id": "ga4gh:SQ.F-LrLMe1SRpfUZHkQmvkVKFEGaoDeHul",
                     "interval": {
                         "type": "SequenceInterval",
                         "start": {"value": 140726500, "type": "Number"},
-                        "end": {"value": 140726500, "type": "Number"},
+                        "end": {"value": 140726501, "type": "Number"},
                     },
                 },
             }
@@ -147,10 +147,10 @@ def test_get_grch38_cds_overlap(test_feature_overlap):
     )
     assert resp == expected
 
-    # Using inter-residue (start == stop)
+    # Using inter-residue
     resp = test_feature_overlap.get_grch38_mane_gene_cds_overlap(
         140726500,
-        140726500,
+        140726501,
         identifier="ga4gh:SQ.F-LrLMe1SRpfUZHkQmvkVKFEGaoDeHul",
         residue_mode=ResidueMode.INTER_RESIDUE,
     )

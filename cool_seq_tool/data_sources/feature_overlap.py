@@ -162,9 +162,6 @@ class FeatureOverlap:
 
         # Convert residue to inter-residue
         if residue_mode == ResidueMode.RESIDUE:
-            if start == end:
-                end -= 1
-
             start -= 1
 
         # Get feature dataframe (df uses inter-residue)
