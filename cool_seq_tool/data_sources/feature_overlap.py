@@ -125,7 +125,10 @@ class FeatureOverlap:
         identifier: Optional[str] = None,
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
     ) -> Optional[Dict[str, CdsOverlap]]:
-        """Given GRCh38 genomic data, find the overlapping MANE features (gene and cds)
+        """Given GRCh38 genomic data, find the overlapping MANE features (gene and cds).
+        The genomic data is specified as a sequence location by `chromosome`, `start`,
+        `end`. All CDS regions with which the input sequence location has nonzero base
+        pair overlap will be returned.
 
         :param start: GRCh38 start position
         :param end: GRCh38 end position
@@ -138,7 +141,10 @@ class FeatureOverlap:
         :param residue_mode: Residue mode for `start` and `end`
         :raise FeatureOverlapError: If missing required fields or unable to find
             associated ga4gh identifier
-        :return: MANE feature (gene/cds) overlap data represented as a dict
+        :return: MANE feature (gene/cds) overlap data represented as a dict. The
+            dictionary will be keyed by genes which overlap the input sequence location.
+            Each gene contains a list of the overlapping CDS regions with the beginning
+            and end of the input sequence location's overlap with each
             {
                 gene: {
                     'cds': VRS Sequence Location
