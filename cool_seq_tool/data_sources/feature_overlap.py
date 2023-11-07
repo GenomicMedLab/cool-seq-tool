@@ -1,7 +1,7 @@
 """Module for getting feature (gene/exon) overlap"""
 import re
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 import pandas as pd
 from ga4gh.core import ga4gh_identify
@@ -124,7 +124,7 @@ class FeatureOverlap:
         chromosome: Optional[str] = None,
         identifier: Optional[str] = None,
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
-    ) -> Optional[Dict[str, CdsOverlap]]:
+    ) -> Optional[Dict[str, List[CdsOverlap]]]:
         """Given GRCh38 genomic data, find the overlapping MANE features (gene and cds).
         The genomic data is specified as a sequence location by `chromosome`, `start`,
         `end`. All CDS regions with which the input sequence location has nonzero base
@@ -145,12 +145,6 @@ class FeatureOverlap:
             dictionary will be keyed by genes which overlap the input sequence location.
             Each gene contains a list of the overlapping CDS regions with the beginning
             and end of the input sequence location's overlap with each
-            {
-                gene: {
-                    'cds': VRS Sequence Location
-                    'overlap': VRS Sequence Location
-                }
-            }
         """
         ga4gh_seq_id = None
         if chromosome:
