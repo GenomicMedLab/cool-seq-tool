@@ -12,11 +12,17 @@ TRANSCRIPT_MAPPINGS_PATH = Path(environ.get("TRANSCRIPT_MAPPINGS_PATH",
 
 d = DataDownload()
 
+provided_mane_refseq_gff_path = environ.get("MANE_REFSEQ_GFF_PATH")
+if provided_mane_refseq_gff_path:
+    MANE_REFSEQ_GFF_PATH = Path(provided_mane_refseq_gff_path)
+else:
+    MANE_REFSEQ_GFF_PATH = d.get_mane(is_summary=False)
+
 provided_mane_summary_path = environ.get("MANE_SUMMARY_PATH", "")
 if provided_mane_summary_path:
     MANE_SUMMARY_PATH = Path(provided_mane_summary_path)
 else:
-    MANE_SUMMARY_PATH = d.get_mane_summary()
+    MANE_SUMMARY_PATH = d.get_mane(is_summary=True)
 
 provided_lrg_refseq_path = environ.get("LRG_REFSEQGENE_PATH", "")
 if provided_lrg_refseq_path:
