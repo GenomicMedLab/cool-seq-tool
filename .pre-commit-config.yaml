@@ -18,4 +18,4 @@ repos:
   rev: v0.0.291
   hooks:
     - id: ruff
-      args: [ --fix, --exit-non-zero-on-fix ]
+      args: [ --fix, --exit-non-zero-on-fix, --extend-exclude, docs/ ]
