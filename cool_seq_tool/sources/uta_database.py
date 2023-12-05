@@ -39,11 +39,15 @@ class UTADatabase:
         chain_file_37_to_38: Optional[str] = None,
         chain_file_38_to_37: Optional[str] = None,
     ) -> None:
-        """Initialize DB class. Downstream libraries should use the create()
-        method to construct a new instance: await UTADatabase.create()
+        """Initialize DB class.
+
+        Downstream libraries should use the create() method to construct a new instance:
+
+        >>> from cool_seq_tool.sources.uta_database import UTADatabase
+        >>> uta = await UTADatabase.create()
 
         :param db_url: PostgreSQL connection URL
-            Format: `driver://user:password@host/database/schema`
+            Format: ``driver://user:password@host/database/schema``
         :param chain_file_37_to_38: Optional path to chain file for 37 to 38 assembly.
             This is used for pyliftover. If this is not provided, will check to see if
             LIFTOVER_CHAIN_37_TO_38 env var is set. If neither is provided, will allow
@@ -138,9 +142,10 @@ class UTADatabase:
         cls: Type[UTADatabaseType], db_url: str = UTA_DB_URL
     ) -> UTADatabaseType:
         """Provide fully-initialized class instance (a la factory pattern)
+
         :param UTADatabaseType cls: supplied implicitly
         :param str db_url: PostgreSQL connection URL
-            Format: `driver://user:password@host/database/schema`
+            Format: ``driver://user:password@host/database/schema``
         :return: UTA DB access class instance
         """
         self = cls(db_url)
@@ -243,7 +248,7 @@ class UTADatabase:
 
         :param int chromosome: Chromosome number
         :param int pos: Genomic position
-        :param Optional[int] strand: Strand. Must be either `-1` or `1`
+        :param Optional[int] strand: Strand. Must be either ``-1`` or ``1``
         :param Optional[str] alt_ac: Genomic accession
         :param Optional[str] gene: Gene symbol
         :return: Dictionary containing genes and genomic accessions and
@@ -541,7 +546,7 @@ class UTADatabase:
         """Return whether or not genomic accession exists.
 
         :param str ac: Genomic accession
-        :return: `True` if genomic accession exists. `False` otherwise.
+        :return: ``True`` if genomic accession exists. ``False`` otherwise.
         """
         query = f"""
             SELECT EXISTS(
@@ -590,13 +595,13 @@ class UTADatabase:
         :param int start_pos: Start position change
         :param int end_pos: End position change
         :param str alt_ac: accession on g. coordinate
-        :param bool use_tx_pos: `True` if querying on transcript position. This means
-            `start_pos` and `end_pos` are on the c. coordinate
-            `False` if querying on genomic position. This means `start_pos` and
-            `end_pos` are on the g. coordinate
-        :param bool like_tx_ac: `True` if tx_ac condition should be a like statement.
+        :param bool use_tx_pos: ``True`` if querying on transcript position. This means
+            ``start_pos`` and ``end_pos`` are on the c. coordinate
+            ``False`` if querying on genomic position. This means ``start_pos`` and
+            ``end_pos`` are on the g. coordinate
+        :param bool like_tx_ac: ``True`` if tx_ac condition should be a like statement.
             This is used when you want to query an accession regardless of its version
-            `False` if tx_condition will be exact match
+            ``False`` if tx_condition will be exact match
         :return: List of tx_exon_aln_v data
         """
         if end_pos is None:
@@ -697,6 +702,7 @@ class UTADatabase:
         """Get MANE Transcript and genomic data.
 
         Used when going from g -> MANE c
+
         :param str ac: MANE Transcript accession
         :param str alt_ac: NC Accession
         :param int start_pos: Genomic start position change
@@ -755,10 +761,10 @@ class UTADatabase:
         :param str tx_ac: Accession on c. coordinate
         :param Tuple pos: (start pos, end pos)
         :param Union[AnnotationLayer.CDNA, AnnotationLayer.GENOMIC] annotation_layer:
-            Annotation layer for `ac` and `pos`
+            Annotation layer for ``ac`` and ``pos``
         :param Optional[str] alt_ac: Accession on g. coordinate
         :param Assembly target_genome_assembly: Genome assembly to get genomic data for.
-            If `alt_ac` is provided, it will return the associated assembly.
+            If ``alt_ac`` is provided, it will return the associated assembly.
         :return: Gene, Transcript accession and position change,
             Altered transcript accession and position change, Strand
         """
@@ -871,20 +877,20 @@ class UTADatabase:
         use_tx_pos: bool = True,
         alt_ac: Optional[str] = None,
     ) -> pl.DataFrame:
-        """Get transcripts for a given `gene` or `alt_ac` related to optional positions.
+        """Get transcripts for a given ``gene`` or ``alt_ac`` related to optional positions.
 
         :param start_pos: Start position change
-            If not provided and `end_pos` not provided, all transcripts associated with
+            If not provided and ``end_pos`` not provided, all transcripts associated with
             the gene and/or accession will be returned
         :param end_pos: End position change
-            If not provided and `start_pos` not provided, all transcripts associated
+            If not provided and ``start_pos`` not provided, all transcripts associated
             with the gene and/or accession will be returned
         :param gene: HGNC gene symbol
-        :param use_tx_pos: `True` if querying on transcript position. This means
-            `start_pos` and `end_pos` are c. coordinate positions. `False` if querying
-            on genomic position. This means `start_pos` and `end_pos` are g. coordinate
+        :param use_tx_pos: ``True`` if querying on transcript position. This means
+            ``start_pos`` and ``end_pos`` are c. coordinate positions. ``False`` if querying
+            on genomic position. This means ``start_pos`` and ``end_pos`` are g. coordinate
             positions
-        :param alt_ac: Genomic accession. If not provided, must provide `gene`
+        :param alt_ac: Genomic accession. If not provided, must provide ``gene``
         :return: Data Frame containing transcripts associated with a gene.
             Transcripts are ordered by most recent NC accession, then by
             descending transcript length
@@ -1022,7 +1028,7 @@ class UTADatabase:
     ) -> Optional[Tuple]:
         """Get new genome assembly data for a position on a chromosome.
 
-        :param str chromosome: The chromosome number. Must be prefixed with `chr`
+        :param str chromosome: The chromosome number. Must be prefixed with ``chr``
         :param int pos: Position on the chromosome
         :param Assembly liftover_to_assembly: Assembly to liftover to
         :return: [Target chromosome, target position, target strand,
@@ -1058,7 +1064,7 @@ class UTADatabase:
         :param Dict genomic_tx_data: Dictionary containing gene, nc_accession,
             alt_pos, and strand
         :param str key: Key to access coordinate positions
-        :param str chromosome: Chromosome, must be prefixed with `chr`
+        :param str chromosome: Chromosome, must be prefixed with ``chr``
         :param Assembly liftover_to_assembly: Assembly to liftover to
         """
         liftover_start_i = self.get_liftover(

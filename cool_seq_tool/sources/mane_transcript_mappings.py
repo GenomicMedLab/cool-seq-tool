@@ -15,6 +15,7 @@ class MANETranscriptMappings:
 
     def __init__(self, mane_data_path: Path = MANE_SUMMARY_PATH) -> None:
         """Initialize the MANE Transcript mappings class.
+
         :param Path mane_data_path: Path to RefSeq MANE summary data
         """
         self.mane_data_path = mane_data_path
@@ -28,10 +29,10 @@ class MANETranscriptMappings:
 
     def get_gene_mane_data(self, gene_symbol: str) -> List[Dict]:
         """Return MANE Transcript data for a gene.
+
         :param str gene_symbol: HGNC Gene Symbol
-        :return: List of MANE Transcript data (Transcript accessions,
-            gene, and location information). Sorted list: MANE Select and then MANE Plus
-            Clinical
+        :return: List of MANE Transcript data (Transcript accessions, gene, and
+            location information). Sorted list: MANE Select and then MANE Plus Clinical
         """
         data = self.df.filter(pl.col("symbol") == gene_symbol.upper())
 
@@ -59,6 +60,7 @@ class MANETranscriptMappings:
         self, alt_ac: str, start: int, end: int
     ) -> List[Dict]:
         """Get MANE data given chromosome, start pos, end end pos. Assumes GRCh38.
+
         :param str alt_ac: NC Accession
         :param int start: Start genomic position. Assumes residue coordinates.
         :param int end: End genomic position. Assumes residue coordinates.

@@ -25,13 +25,15 @@ class SeqRepoAccess(SeqRepoDataProxy):
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
     ) -> Tuple[str, Optional[str]]:
         """Get reference sequence for an accession given a start and end position.
-        If `start` and `end` are not given, it will return the entire reference sequence
+
+        If ``start`` and ``end`` are not given, it will return the entire reference
+        sequence
 
         :param ac: Accession
         :param start: Start pos change
-        :param end: End pos change. If `None` assumes both `start` and `end` have same
-            values, if `start` exists.
-        :param residue_mode: Residue mode for `start` and `end`
+        :param end: End pos change. If ``None`` assumes both ``start`` and ``end`` have
+            same values, if ``start`` exists.
+        :param residue_mode: Residue mode for ``start`` and ``end``
         :return: Sequence at position (if accession and positions actually
             exist, else return empty string), warning if any
         """
@@ -123,7 +125,7 @@ class SeqRepoAccess(SeqRepoDataProxy):
     ) -> Tuple[Optional[List[str]], Optional[str]]:
         """Get accessions for a chromosome
 
-        :param str chromosome: Chromosome number. Must be either 1-22, X, or Y
+        :param chromosome: Chromosome number. Must be either 1-22, X, or Y
         :return: Accessions for chromosome (ordered by latest assembly)
         """
         acs = []
@@ -160,9 +162,10 @@ class SeqRepoAccess(SeqRepoDataProxy):
 
     def get_fasta_file(self, sequence_id: str, outfile_path: Path) -> None:
         """Retrieve FASTA file containing sequence for requested sequence ID.
-        :param sequence_id: accession ID, sans namespace, eg `NM_152263.3`
+
+        :param sequence_id: accession ID, sans namespace, eg ``NM_152263.3``
         :param outfile_path: path to save file to
-        :return: None, but saves sequence data to `outfile_path` if successful
+        :return: None, but saves sequence data to ``outfile_path`` if successful
         :raise: KeyError if SeqRepo doesn't have sequence data for the given ID
         """
         sequence = self.get_reference_sequence(sequence_id)[0]

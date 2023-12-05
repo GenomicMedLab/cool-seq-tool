@@ -43,8 +43,8 @@ class ExonGenomicCoordsMapper:
         """Add warnings to response object
 
         :param resp: Response object
-        :param warning_msg: Warning message on why `transcript_exon_data` or
-            `genomic_data` field is None
+        :param warning_msg: Warning message on why ``transcript_exon_data`` or
+            ``genomic_data`` field is ``None``
         :return: Response object with warning message
         """
         logger.warning(warning_msg)
@@ -168,21 +168,23 @@ class ExonGenomicCoordsMapper:
         **kwargs,
     ) -> GenomicDataResponse:
         """Get transcript data for genomic data.
-        MANE Transcript data will be returned iff `transcript` is not supplied.
-            `gene` must be supplied in order to retrieve MANE Transcript data.
+
+        MANE Transcript data will be returned iff `transcript` is not supplied. ``gene``
+        must be supplied in order to retrieve MANE Transcript data.
+
         Liftovers genomic coordinates to GRCh38
 
-        :param chromosome: Chromosome. Must either give chromosome number (i.e. `1`) or
-            accession (i.e. `NC_000001.11`).
+        :param chromosome: Chromosome. Must either give chromosome number (i.e. ``1``)
+            or accession (i.e. ``NC_000001.11``).
         :param start: Start genomic position
         :param end: End genomic position
-        :param strand: Strand. Must be either `-1` or `1`.
+        :param strand: Strand. Must be either ``-1`` or ``1``.
         :param transcript: The transcript to use. If this is not given, we will try the
             following transcripts: MANE Select, MANE Clinical Plus, Longest Remaining
             Compatible Transcript
         :param gene: Gene symbol
-        :param residue_mode: Default is `resiude` (1-based). Must be either `residue` or
-            `inter-residue` (0-based).
+        :param residue_mode: Default is ``resiude`` (1-based). Must be either
+            ``residue`` or ``inter-residue`` (0-based).
         :return: Genomic data (inter-residue coordinates)
         """
         resp = GenomicDataResponse(
@@ -265,26 +267,26 @@ class ExonGenomicCoordsMapper:
         self,
         chromosome: Union[str, int],
         pos: int,
-        strand: int = None,
-        transcript: str = None,
-        gene: str = None,
+        strand: Optional[int] = None,
+        transcript: Optional[str] = None,
+        gene: Optional[str] = None,
         is_start: bool = True,
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
     ) -> TranscriptExonDataResponse:
         """Convert individual genomic data to transcript data
 
-        :param chromosome: Chromosome. Must either give chromosome number (i.e. `1`) or
-            accession (i.e. `NC_000001.11`).
+        :param chromosome: Chromosome. Must either give chromosome number (i.e. ``1``)
+            or accession (i.e. ``NC_000001.11``).
         :param pos: Genomic position
-        :param strand: Strand. Must be either `-1` or `1`.
+        :param strand: Strand. Must be either ``-1`` or ``1``.
         :param transcript: The transcript to use. If this is not given, we will try the
             following transcripts: MANE Select, MANE Clinical Plus, Longest Remaining
             Compatible Transcript
         :param gene: Gene symbol
-        :param is_start: `True` if `pos` is start position. `False` if `pos` is end
-            position.
-        :param residue_mode: Default is `resiude` (1-based). Must be either `residue`
-            or `inter-residue` (0-based).
+        :param is_start: ``True`` if ``pos`` is start position. ``False`` if ``pos`` is
+            end position.
+        :param residue_mode: Default is ``resiude`` (1-based). Must be either ``residue``
+            or ``inter-residue`` (0-based).
         :return: Transcript data (inter-residue coordinates)
         """
         resp = TranscriptExonDataResponse(
@@ -405,9 +407,9 @@ class ExonGenomicCoordsMapper:
         :param alt_ac: Genomic accession
         :param pos: Genomic position
         :param strand: Strand
-        :param is_start: `True` if `pos` is start position. `False` if `pos` is end
-            position.
-        :param residue_mode: Residue mode for `pos`
+        :param is_start: ``True`` if ``pos`` is start position. ``False`` if ``pos`` is
+            end position.
+        :param residue_mode: Residue mode for ``pos``
         :return: Warnings if found
         """
         mane_data = await self.mane_transcript.get_mane_transcript(
@@ -485,12 +487,12 @@ class ExonGenomicCoordsMapper:
     async def _set_genomic_data(
         self, params: Dict, strand: int, is_start: bool
     ) -> Optional[str]:
-        """Set genomic data in `params`
+        """Set genomic data in ``params``
 
         :param params: Parameters for response
         :param strand: Strand
-        :param is_start: `True` if `pos` is start position. `False` if `pos` is end
-            position.
+        :param is_start: ``True`` if ``pos`` is start position. ``False`` if ``pos`` is
+            end position.
         :return: Warnings if found
         """
         # We should always try to liftover
@@ -565,14 +567,14 @@ class ExonGenomicCoordsMapper:
     def _set_exon_offset(
         params: Dict, start: int, end: int, pos: int, is_start: bool, strand: int
     ) -> None:
-        """Set `exon_offset` in params.
+        """Set ``exon_offset`` in params.
 
         :param params: Parameters for response
         :param start: Start exon coord (can be transcript or genomic)
         :param end: End exon coord (can be transcript or genomic)
         :param pos: Position change (can be transcript or genomic)
-        :param is_start: `True` if `pos` is start position. `False` if `pos` is end
-            position
+        :param is_start: ``True`` if ``pos`` is start position. ``False`` if ``pos`` is
+            end position
         :param int strand: Strand
         """
         if is_start:

@@ -19,11 +19,10 @@ class AlignmentMapper:
     ) -> None:
         """Initialize the AlignmentMapper class.
 
-        :param SeqRepoAccess seqrepo_access: Access to seqrepo queries
-        :param TranscriptMappings transcript_mappings: Access to transcript
-            accession mappings and conversions
-        :param UTADatabase uta_db: UTADatabase instance to give access to query
-            UTA database
+        :param seqrepo_access: Access to seqrepo queries
+        :param transcript_mappings: Access to transcript accession mappings and
+            conversions
+        :param uta_db: UTADatabase instance to give access to query UTA database
         """
         self.seqrepo_access = seqrepo_access
         self.transcript_mappings = transcript_mappings
@@ -38,15 +37,16 @@ class AlignmentMapper:
     ) -> Tuple[Optional[Dict], Optional[str]]:
         """Translate protein representation to cDNA representation.
 
-        :param str p_ac: Protein RefSeq accession
-        :param int p_start_pos: Protein start position
-        :param int p_end_pos: Protein end position
-        :param ResidueMode residue_mode: Residue mode for `p_start_pos` and `p_end_pos`
+        :param p_ac: Protein RefSeq accession
+        :param p_start_pos: Protein start position
+        :param p_end_pos: Protein end position
+        :param residue_mode: Residue mode for ``p_start_pos`` and ``p_end_pos``
         :return: Tuple containing:
-            - cDNA representation (accession, codon range positions for corresponding
-              change, cds start site) if able to translate. Will return positions as
-              inter-residue coordinates. If unable to translate, returns `None`.
-            - Warning, if unable to translate to cDNA representation. Else `None`
+
+        * cDNA representation (accession, codon range positions for corresponding
+          change, cds start site) if able to translate. Will return positions as
+          inter-residue coordinates. If unable to translate, returns ``None``.
+        * Warning, if unable to translate to cDNA representation. Else ``None``
         """
         # Get cDNA accession
         temp_c_ac = await self.uta_db.p_to_c_ac(p_ac)
@@ -86,10 +86,10 @@ class AlignmentMapper:
     async def _get_cds_start(self, c_ac: str) -> Tuple[Optional[int], Optional[str]]:
         """Get CDS start for a given cDNA RefSeq accession
 
-        :param str c_ac: cDNA RefSeq accession
+        :param c_ac: cDNA RefSeq accession
         :return: Tuple containing:
-            - CDS start site if found. Else `None`
-            - Warning, if unable to get CDS start. Else `None`
+            - CDS start site if found. Else ``None``
+            - Warning, if unable to get CDS start. Else ``None``
         """
         cds_start_end = await self.uta_db.get_cds_start_end(c_ac)
         if not cds_start_end:
@@ -111,16 +111,17 @@ class AlignmentMapper:
     ) -> Tuple[Optional[Dict], Optional[str]]:
         """Translate cDNA representation to genomic representation
 
-        :param str c_ac: cDNA RefSeq accession
-        :param int c_start_pos: cDNA start position for codon
-        :param int c_end_pos: cDNA end position for codon
-        :param Optional[int] coding_start_site: Coding start site. If not provided,
-            this will be computed.
-        :param Assembly target_genome_assembly: Genome assembly to get genomic data for
+        :param c_ac: cDNA RefSeq accession
+        :param c_start_pos: cDNA start position for codon
+        :param c_end_pos: cDNA end position for codon
+        :param coding_start_site: Coding start site. If not provided, this will be
+            computed.
+        :param target_genome_assembly: Genome assembly to get genomic data for
         :return: Tuple containing:
-            - Genomic representation (ac, positions) if able to translate. Will return
-              positions as inter-residue coordinates. Else `None`.
-            - Warning, if unable to translate to genomic representation. Else `None`
+
+        * Genomic representation (ac, positions) if able to translate. Will return
+          positions as inter-residue coordinates. Else ``None``.
+        * Warning, if unable to translate to genomic representation. Else ``None``
         """
         if any(
             (
@@ -214,15 +215,17 @@ class AlignmentMapper:
     ) -> Tuple[Optional[Dict], Optional[str]]:
         """Translate protein representation to genomic representation
 
-        :param str p_ac: Protein RefSeq accession
-        :param int p_start_pos: Protein start position
-        :param int p_end_pos: Protein end position
-        :param ResidueMode residue_mode: Residue mode for `p_start_pos` and `p_end_pos`.
-        :param Assembly target_genome_assembly: Genome assembly to get genomic data for
+        :param p_ac: Protein RefSeq accession
+        :param p_start_pos: Protein start position
+        :param p_end_pos: Protein end position
+        :param residue_mode: Residue mode for ``p_start_pos`` and ``p_end_pos``.
+        :param target_genome_assembly: Genome assembly to get genomic data for
         :return: Tuple containing:
-            - Genomic representation (ac, positions) if able to translate. Will return
-              positions as inter-residue coordinates. Else `None`.
-            and warnings. The genomic data will always return inter-residue coordinates
+
+        * Genomic representation (ac, positions) if able to translate. Will return
+          positions as inter-residue coordinates. Else ``None``.
+        * and warnings. The genomic data will always return inter-residue coordinates
+          TODO something got cut off here
         """
         c_data, warning = await self.p_to_c(
             p_ac, p_start_pos, p_end_pos, residue_mode=residue_mode

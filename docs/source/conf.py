@@ -6,10 +6,10 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "cool-seq-tool"
+project = "Cool-Seq-Tool"
 copyright = "2023, Wagner Lab"
 author = "Wagner Lab"
-html_title = "cool-seq-tool"
+html_title = "Cool-Seq-Tool"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

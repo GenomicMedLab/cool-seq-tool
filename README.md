@@ -15,25 +15,6 @@ The **cool-seq-tool** provides:
 pip install cool-seq-tool[dev,tests]
 ```
 
-### Development
-
-Clone the repo:
-
-```commandline
-git clone https://github.com/GenomicMedLab/cool-seq-tool
-cd cool_seq_tool
-```
-
-[Install Pipenv](https://pipenv-fork.readthedocs.io/en/latest/#install-pipenv-today) if necessary.
-
-Install backend dependencies and enter Pipenv environment:
-
-```commandline
-pipenv shell
-pipenv update
-pipenv install --dev
-```
-
 ### UTA Database Installation
 
 `cool-seq-tool` uses intalls local UTA database. For other ways to install, visit [biocommons.uta](https://github.com/biocommons/uta).
@@ -126,28 +107,3 @@ uvicorn cool_seq_tool.api:app --reload
 ```
 
 Next, view the FastAPI on your local machine: http://127.0.0.1:8000/cool_seq_tool
-
-## Init coding style tests
-
-Code style is managed by [Ruff](https://github.com/astral-sh/ruff) and [Black](https://github.com/psf/black), and should be checked prior to commit.
-
-We use [pre-commit](https://pre-commit.com/#usage) to run conformance tests.
-
-This ensures:
-
-* Check code style
-* Check for added large files
-* Detect AWS Credentials
-* Detect Private Key
-
-Before first commit run:
-
-```
-pre-commit install
-```
-
-## Testing
-From the _root_ directory of the repository:
-```
-pytest
-```
