@@ -18,6 +18,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx_autodoc_typehints",
     "sphinx.ext.linkcode",
+    "sphinx.ext.autosummary",
     "sphinx_copybutton",
 ]
 

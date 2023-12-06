@@ -15,6 +15,7 @@ Description here.
    :maxdepth: 2
 
     Installation<install>
+    Overview<overview>
     Usage<usage>
     API Reference<reference/index>
     Contributing<contributing>
