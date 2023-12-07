@@ -1,4 +1,6 @@
-"""A module for accessing SeqRepo."""
+"""Wrap SeqRepo to provide additional lookup and identification methods on top of basic
+dereferencing functions.
+"""
 import logging
 from os import environ
 from pathlib import Path
@@ -13,7 +15,9 @@ logger = logging.getLogger(__name__)
 
 
 class SeqRepoAccess(SeqRepoDataProxy):
-    """The SeqRepoAccess class."""
+    """Provide a wrapper around the base SeqRepoDataProxy class from ``VRS-Python`` to
+    provide additional lookup and identification methods.
+    """
 
     environ["SEQREPO_LRU_CACHE_MAXSIZE"] = "none"
 
@@ -28,6 +32,8 @@ class SeqRepoAccess(SeqRepoDataProxy):
 
         If ``start`` and ``end`` are not given, it will return the entire reference
         sequence
+
+        # TODO exmaple
 
         :param ac: Accession
         :param start: Start pos change
@@ -89,6 +95,8 @@ class SeqRepoAccess(SeqRepoDataProxy):
         self, ac: str, target_namespaces: Optional[Union[str, List[str]]] = None
     ) -> Tuple[List[str], Optional[str]]:
         """Return list of identifiers for accession.
+
+        # TODO example
 
         :param ac: Identifier accession
         :param target_namespace: The namespace(s) of identifier to return
@@ -162,6 +170,8 @@ class SeqRepoAccess(SeqRepoDataProxy):
 
     def get_fasta_file(self, sequence_id: str, outfile_path: Path) -> None:
         """Retrieve FASTA file containing sequence for requested sequence ID.
+
+        # TODO example
 
         :param sequence_id: accession ID, sans namespace, eg ``NM_152263.3``
         :param outfile_path: path to save file to

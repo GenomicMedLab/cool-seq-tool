@@ -39,7 +39,7 @@ html_theme_options = {
     "footer_icons": [
         {
             "name": "GitHub",
-            "url": "https://github.com/cancervariants/gene-normalization",
+            "url": "https://github.com/genomicmedlab/cool-seq-tool",
             "html": "",
             "class": "fa-brands fa-solid fa-github",
         },

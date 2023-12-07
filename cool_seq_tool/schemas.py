@@ -1,4 +1,4 @@
-"""Module for data models."""
+"""Defines attribute constants, useful object structures, and API response schemas."""
 import re
 from datetime import datetime
 from enum import Enum

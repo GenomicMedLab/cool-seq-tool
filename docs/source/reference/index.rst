@@ -42,7 +42,7 @@ Data Handlers
 
    cool_seq_tool.handlers.seqrepo_access
 
-.. _mappers_module_api_index:
+.. _mappers_modules_api_index:
 
 Data Mappers
 ------------

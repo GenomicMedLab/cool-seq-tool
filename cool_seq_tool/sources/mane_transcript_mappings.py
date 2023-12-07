@@ -1,4 +1,4 @@
-"""The module for loading MANE Transcript mappings to genes."""
+"""Provide fast tabular access to MANE summary file."""
 import logging
 from pathlib import Path
 from typing import Dict, List
@@ -11,7 +11,14 @@ logger = logging.getLogger(__name__)
 
 
 class MANETranscriptMappings:
-    """The MANE Transcript mappings class."""
+    """Provide fast tabular access to MANE summary file.
+
+    By default, acquires data from `NCBI FTP server <ftp.ncbi.nlm.nih.gov/refseq/MANE/MANE_human/current/>`_
+    if unavailable locally. The local data location can be passed as an argument or
+    given under the environment variable ``MANE_SUMMARY_PATH``.
+
+    See the `NCBI MANE page <https://www.ncbi.nlm.nih.gov/refseq/MANE/>`_ for more information.
+    """
 
     def __init__(self, mane_data_path: Path = MANE_SUMMARY_PATH) -> None:
         """Initialize the MANE Transcript mappings class.
@@ -30,9 +37,18 @@ class MANETranscriptMappings:
     def get_gene_mane_data(self, gene_symbol: str) -> List[Dict]:
         """Return MANE Transcript data for a gene.
 
+        >>> from cool_seq_tool.sources import MANETranscriptMappings
+        >>> m = MANETranscriptMappings()
+        >>> braf_mane = m.get_gene_mane_data("BRAF")
+        >>> (braf_mane[0]["RefSeq_nuc"], braf_mane[0]["MANE_status"])
+        ('NM_04333.6', 'MANE Select')
+        >>> (braf_mane[1]["RefSeq_nuc"], braf_mane[1]["MANE_status"])
+        ('NM_001374258.1', 'MANE Plus Clinical')
+
         :param str gene_symbol: HGNC Gene Symbol
         :return: List of MANE Transcript data (Transcript accessions, gene, and
-            location information). Sorted list: MANE Select and then MANE Plus Clinical
+            location information). The list is sorted so that a MANE Select entry comes
+            first, followed by a MANE Plus Clinical entry, if available.
         """
         data = self.df.filter(pl.col("symbol") == gene_symbol.upper())
 
@@ -59,7 +75,7 @@ class MANETranscriptMappings:
     def get_mane_data_from_chr_pos(
         self, alt_ac: str, start: int, end: int
     ) -> List[Dict]:
-        """Get MANE data given chromosome, start pos, end end pos. Assumes GRCh38.
+        """Get MANE data given a GRCh38 genomic position.
 
         :param str alt_ac: NC Accession
         :param int start: Start genomic position. Assumes residue coordinates.

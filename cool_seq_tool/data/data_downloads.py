@@ -1,4 +1,4 @@
-"""Module for handling downloadable data files."""
+"""Handle acquisition of external data."""
 import datetime
 import gzip
 import logging
@@ -15,8 +15,8 @@ logger = logging.getLogger("cool_seq_tool")
 
 
 class DataDownload:
-    """Class for managing downloadable data files. Responsible for checking if files
-    are available under default locations, and fetching them if not.
+    """Manage downloadable data files. Responsible for checking if files are available
+    under expected locations, and fetching them if not.
     """
 
     def __init__(self) -> None:

@@ -30,6 +30,8 @@ Set up UTA
 
 Cool-Seq-Tool requires an available instance of the Universal Transcript Archive (UTA) database. Complete installation instructions (via Docker or a local server) are available at the `UTA GitHub repository <https://github.com/biocommons/uta>`_. For local usage, we recommend the following:
 
+.. long-term, it would be best to move this over to the UTA repo to avoid duplication
+
 .. code-block::
 
    createuser -U postgres uta_admin
@@ -46,6 +48,8 @@ Set up SeqRepo
 --------------
 
 Cool-Seq-Tool requires access to `SeqRepo <https://github.com/biocommons/biocommons.seqrepo>`_ data. In general, we recommend the following for local setup:
+
+.. long-term, it would be best to move this over to seqrepo to avoid duplication
 
 .. code-block::
 
@@ -68,6 +72,8 @@ Try moving data manually with ``sudo``:
    sudo mv /usr/local/share/seqrepo/$SEQREPO_VERSION.* /usr/local/share/seqrepo/$SEQREPO_VERSION
 
 See `mirroring documentation <https://github.com/biocommons/biocommons.seqrepo/blob/main/docs/mirror.rst>`_ on the SeqRepo GitHub repo for instructions and additional troubleshooting.
+
+.. _required_files:
 
 Acquire genome and transcript data
 ----------------------------------

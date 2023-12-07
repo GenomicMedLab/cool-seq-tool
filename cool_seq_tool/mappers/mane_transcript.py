@@ -442,6 +442,9 @@ class MANETranscript:
     ) -> bool:
         """Validate that positions actually exist on accession
 
+        # TODO example
+        even though it's not public (it should be?)
+
         :param ac: Accession
         :param pos: Start position change, End position change
         :param coding_start_site: coding start site for accession
@@ -708,6 +711,8 @@ class MANETranscript:
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
     ) -> Optional[Dict]:
         """Return mane transcript.
+
+        # TODO example
 
         :param ac: Accession
         :param start_pos: Start position change

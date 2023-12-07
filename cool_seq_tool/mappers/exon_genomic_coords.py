@@ -1,4 +1,4 @@
-"""Module for mapping transcript exon to and from genomic coordinates"""
+"""Provide mapping capabilities between transcript exon and genomic coordinates."""
 import logging
 from typing import Dict, List, Optional, Tuple, TypeVar, Union
 
@@ -23,12 +23,18 @@ logger = logging.getLogger(__name__)
 
 
 class ExonGenomicCoordsMapper:
-    """Class for mapping transcript exon representation to/from genomic coordinate
-    representation
+    """Provide capabilties for mapping transcript exon representation to/from genomic
+    coordinate representation.
     """
 
     def __init__(self, uta_db: UTADatabase, mane_transcript: MANETranscript) -> None:
-        """Initialize ExonGenomicCoordsMapper class
+        """Initialize ExonGenomicCoordsMapper class.
+
+        A lot of resources are required for initialization, so when defaults are enough,
+        it's easiest to let the core CoolSeqTool class handle it for you:
+
+        >>> from cool_seq_tool.app import CoolSeqTool
+        >>> egc = CoolSeqTool().ex_g_coords_mapper
 
         :param uta_db: UTADatabase instance to give access to query UTA database
         :param mane_transcript: Instance to align to MANE or compatible representation
@@ -62,7 +68,25 @@ class ExonGenomicCoordsMapper:
         **kwargs,
     ) -> GenomicDataResponse:
         """Get genomic data given transcript data.
-        Will use GRCh38 coordinates if possible
+
+        By default, inputs are assumed to be in GRCh38 where they aren't otherwise
+        precisely defined.  # TODO is this correct?
+
+        >>> from cool_seq_tool.app import CoolSeqTool
+        >>> egc = CoolSeqTool().ex_g_coords_mapper
+        >>> tpm3 = await egc.transcript_to_genomic_coordinates(
+        ...     gene="TPM3", chr="NC_000001.11",
+        ...     exon_start=1, exon_end=8,
+        ...     transcript="NM_152263.3"
+        ... )
+        >>> (tpm3.genomic_data.chr, tpm3.genomic_data.start, tpm3.genomic_data.end)
+        ('NC_000001.11', 164192135, 154170399)
+        >>> ntrk1 = await egc.transcript_to_genomic_coordinates(
+        ...     transcript="NM_002529.3",
+        ...     exon_end=17
+        ... )
+        >>> (ntrk1.genomic_data.chr, ntrk1.genomic_data.end)
+        ('NC_000001.11', 156881456)
 
         :param gene: Gene symbol
         :param transcript: Transcript accession
@@ -173,6 +197,8 @@ class ExonGenomicCoordsMapper:
         must be supplied in order to retrieve MANE Transcript data.
 
         Liftovers genomic coordinates to GRCh38
+
+        TODO clean up and provide example
 
         :param chromosome: Chromosome. Must either give chromosome number (i.e. ``1``)
             or accession (i.e. ``NC_000001.11``).
