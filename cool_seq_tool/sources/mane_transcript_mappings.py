@@ -1,4 +1,6 @@
-"""Provide fast tabular access to MANE summary file."""
+"""Provide fast tabular access to MANE summary file. Enables retrieval of associated
+MANE transcripts for gene symbols, genomic positions, or transcript accessions.
+"""
 import logging
 from pathlib import Path
 from typing import Dict, List
@@ -30,6 +32,7 @@ class MANETranscriptMappings:
 
     def _load_mane_transcript_data(self) -> pl.DataFrame:
         """Load RefSeq MANE data file into DataFrame.
+
         :return: DataFrame containing RefSeq MANE Transcript data
         """
         return pl.read_csv(self.mane_data_path, separator="\t")

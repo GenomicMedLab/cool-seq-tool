@@ -16,6 +16,7 @@ Description here.
 
     Installation<install>
     Usage<usage>
+    Transcript Selection<transcript_selection>
     API Reference<reference/index>
     Contributing<contributing>
     License<license>

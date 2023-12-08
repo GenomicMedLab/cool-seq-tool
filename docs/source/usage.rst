@@ -16,13 +16,14 @@ A core :py:class:`CoolSeqTool <cool_seq_tool.app.CoolSeqTool>` class encapsulate
    >>> from cool_seq_tool.app import CoolSeqTool
    >>> cst = CoolSeqTool()
 
-.. _configuration:
+Descriptions and examples of functions can be found in the :ref:`API Reference <api_reference>` section.
 
 REST server
 -----------
 
-Possibly staged for deletion?
+TODO Possibly staged for deletion?
 
+.. _configuration:
 
 Environment configuration
 -------------------------
@@ -52,3 +53,5 @@ Individual classes will accept arguments upon initialization to set parameters r
 
 Schema support
 --------------
+
+Many genomic data objects produced by Cool-Seq-Tool are structured in conformance with the `Variation Representation Specification <https://vrs.ga4gh.org/en/stable/>`_, courtesy of the `VRS-Python <https://github.com/ga4gh/vrs-python>` library.
