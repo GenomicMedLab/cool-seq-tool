@@ -5,6 +5,17 @@ One of the core uses of Cool-Seq-Tool is to acquire and use consensus, represent
 
 We rely heavily on transcripts annotated under the `Matched Annotation from NCBI and EMBL-EBI (MANE)` Transcripts project. For more information on the MANE project, see the `NCBI MANE page <https://www.ncbi.nlm.nih.gov/refseq/MANE/>`_.
 
+Transcript compatibility
+------------------------
+
+The following validation checks are performed to determine compatibility of a transcript position:
+
+* The position exists on an accession
+* "Validating reference sequences"  # TODO what does this mean?
+* "Validating exon structure"  # TODO what does this mean?
+
+A transcript that fails to pass any of these checks is discarded as incompatible.
+
 Representative transcript priority
 ----------------------------------
 

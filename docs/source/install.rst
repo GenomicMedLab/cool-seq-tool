@@ -72,25 +72,3 @@ Try moving data manually with ``sudo``:
    sudo mv /usr/local/share/seqrepo/$SEQREPO_VERSION.* /usr/local/share/seqrepo/$SEQREPO_VERSION
 
 See `mirroring documentation <https://github.com/biocommons/biocommons.seqrepo/blob/main/docs/mirror.rst>`_ on the SeqRepo GitHub repo for instructions and additional troubleshooting.
-
-.. _required_files:
-
-Acquire genome and transcript data
-----------------------------------
-
-Cool-Seq-Tool also makes use of external data extracted from a handful of sources. This data is fetched automatically at runtime if it's not available, so no additional action is necessary by default -- however, if necessary, it can be configured and placed manually.
-
-LRG_RefSeqGene
-++++++++++++++
-
-Cool-Seq-Tool fetches the latest version of ``LRG_RefSeqGene`` if the environment variable ``LRG_REFSEQGENE_PATH`` is not set. When ``LRG_REFSEQGENE_PATH`` is set, Cool-Seq-Tool will look at this path and expect the ``LRG_RefSeqGene`` file. This file is found can be found `here <https://ftp.ncbi.nlm.nih.gov/refseq/H_sapiens/RefSeqGene>`_.
-
-MANE summary
-++++++++++++
-
-Cool-Seq-Tool fetches the latest version of ``MANE.GRCh38.*.summary.txt.gz`` if the environment variable ``MANE_SUMMARY_PATH`` is not set. When ``MANE_SUMMARY_PATH`` is set, Cool-Seq-Tool will look at this path and expect the MANE Summary Data file. This file is found can be found `here <https://ftp.ncbi.nlm.nih.gov/refseq/MANE/MANE_human/current/>`_.
-
-Transcript mappings
-+++++++++++++++++++
-
-Cool-Seq-Tool is packaged with transcript mapping data acquired from `Ensembl BioMart <http://www.ensembl.org/biomart/martview>`_. If the environment variable ``TRANSCRIPT_MAPPINGS_PATH`` is not set, Cool-Seq-Tool will use the built-in file. When ``TRANSCRIPT_MAPPINGS_PATH`` is set, Cool-Seq-Tool will look at this path and expect to find the transcript mapping TSV file. To manually acquire this file, see the :ref:`contributor instructions <build_transcript_mappings_tsv>`.

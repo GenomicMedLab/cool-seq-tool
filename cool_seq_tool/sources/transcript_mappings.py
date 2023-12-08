@@ -9,9 +9,10 @@ from cool_seq_tool.paths import LRG_REFSEQGENE_PATH, TRANSCRIPT_MAPPINGS_PATH
 class TranscriptMappings:
     """Provide mappings between gene symbols and RefSeq + Ensembl transcript accessions.
 
-    Uses ``LRG_RefSeqGene`` and ``transcript_mappings.csv``. See the
-    :ref:`installation instructions <required_files>` for information about manual
-    acquisition of data.
+    Uses ``LRG_RefSeqGene`` and ``transcript_mappings.csv``, which will automatically
+    be acquired if they aren't already available. See the
+    :ref:`configuration <configuration>` section in the documentation for information
+    about manual acquisition of data.
 
     In general, this class's methods expect to receive NCBI gene symbols, so users
     should be careful about the sourcing of their input in cases where terms are

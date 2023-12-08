@@ -21,7 +21,13 @@ Descriptions and examples of functions can be found in the :ref:`API Reference <
 REST server
 -----------
 
-TODO Possibly staged for deletion?
+Core Cool-Seq-Tool functions can also be performed via a REST HTTP interface, provided via `FastAPI <https://fastapi.tiangolo.com/>`_. Use the ``uvicorn`` shell command to start a server instance:
+
+.. code-block:: shell
+
+   uvicorn cool_seq_tool.api:app
+
+By default, ``uvicorn`` serves to port 8000. Once initialized, go to `<http://localhost:8000/cool_seq_tool>`_ in a web browser for OpenAPI docs describing available endpoints.
 
 .. _configuration:
 
@@ -37,9 +43,9 @@ Individual classes will accept arguments upon initialization to set parameters r
    * - Variable
      - Description
    * - ``LRG_REFSEQGENE_PATH``
-     - Path to LRG_RefSeqGene file. Used in :py:class:`TranscriptMappings <cool_seq_tool.sources.transcript_mappings.TranscriptMappings>` to provide mappings between gene symbols and RefSeq/Ensembl transcript accessions. If not defined, defaults to the most recent version (formatted as ``data/LRG_RefSeqGene_YYYYMMDD``) within the Cool-Seq-Tool library directory.
+     - Path to LRG_RefSeqGene file. Used in :py:class:`TranscriptMappings <cool_seq_tool.sources.transcript_mappings.TranscriptMappings>` to provide mappings between gene symbols and RefSeq/Ensembl transcript accessions. If not defined, defaults to the most recent version (formatted as ``data/LRG_RefSeqGene_YYYYMMDD``) within the Cool-Seq-Tool library directory. Cool-Seq-Tool will acquire this data manually if no configuration is provided.
    * - ``TRANSCRIPT_MAPPINGS_PATH``
-     - Path to transcript mapping file generated from `Ensembl BioMart <http://www.ensembl.org/biomart/martview>`_. Used in :py:class:`TranscriptMappings <cool_seq_tool.sources.transcript_mappings.TranscriptMappings>`. If not defined, uses a copy of the file that is bundled within the Cool-Seq-Tool installation. See the :ref:`contributor instructions <build_transcript_mappings_tsv>` for information on manually rebuilding it.
+     - Path to transcript mapping file generated from `Ensembl BioMart <http://www.ensembl.org/biomart/martview>`_. Used in :py:class:`TranscriptMappings <cool_seq_tool.sources.transcript_mappings.TranscriptMappings>`. If not defined, uses a copy of the file that is bundled within the Cool-Seq-Tool installation. See the :ref:`contributor instructions <build_transcript_mappings_tsv>` for information on manually rebuilding it. Cool-Seq-Tool will acquire this data manually if no configuration is provided.
    * - ``MANE_SUMMARY_PATH``
      - Path to MANE Summary file. Used in :py:class:`MANETranscriptMappings <cool_seq_tool.sources.mane_transcript_mappings.MANETranscriptMappings>` to provide MANE transcript annotations. If not defined, defaults to the most recent version (formatted as ``data/MANE.GRCh38vX.X.summary.txt``) within the Cool-Seq-Tool library directory.
    * - ``SEQREPO_ROOT_DIR``
@@ -54,4 +60,4 @@ Individual classes will accept arguments upon initialization to set parameters r
 Schema support
 --------------
 
-Many genomic data objects produced by Cool-Seq-Tool are structured in conformance with the `Variation Representation Specification <https://vrs.ga4gh.org/en/stable/>`_, courtesy of the `VRS-Python <https://github.com/ga4gh/vrs-python>` library.
+Many genomic data objects produced by Cool-Seq-Tool are structured in conformance with the `Variation Representation Specification <https://vrs.ga4gh.org/en/stable/>`_, courtesy of the `VRS-Python <https://github.com/ga4gh/vrs-python>`_ library.
