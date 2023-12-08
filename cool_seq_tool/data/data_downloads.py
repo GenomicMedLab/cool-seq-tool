@@ -25,7 +25,7 @@ class DataDownload:
 
     def get_mane_summary(self) -> Path:
         """Identify latest MANE summary data. If unavailable locally, download from
-        source.
+        `NCBI FTP server <https://ftp.ncbi.nlm.nih.gov/refseq/MANE/MANE_human/current/>`_.
 
         :return: path to MANE summary file
         """
@@ -52,7 +52,7 @@ class DataDownload:
 
     def get_lrg_refseq_gene_data(self) -> Path:
         """Identify latest LRG RefSeq Gene file. If unavailable locally, download from
-        source.
+        `NCBI FTP server <https://ftp.ncbi.nlm.nih.gov/refseq/H_sapiens/RefSeqGene/>`_.
 
         :return: path to acquired LRG RefSeq Gene data file
         """
