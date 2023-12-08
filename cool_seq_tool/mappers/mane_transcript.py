@@ -544,9 +544,12 @@ class MANETranscript:
         :param residue_mode: Residue mode for `start_pos` and `end_pos`
         :param mane_transcripts: Attempted mane transcripts that were not compatible
         :param alt_ac: Genomic accession
-        :param end_annotation_layer: Annotation layer for final representation
-        :return: Data for longest compatible transcript if successful. Else, return
-            empty dictionary
+        :param end_annotation_layer: The end annotation layer. If not provided, will be
+            set to the following
+                `EndAnnotationLayer.PROTEIN` if
+                    `start_annotation_layer == AnnotationLayer.PROTEIN`
+                `EndAnnotationLayer.CDNA` otherwise
+        :return: Data for longest compatible transcript if successful. Else, None
         """
         lcr_result = None
         inter_residue_pos, _ = get_inter_residue_pos(
