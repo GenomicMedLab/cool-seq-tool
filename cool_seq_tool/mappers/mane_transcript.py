@@ -544,6 +544,7 @@ class MANETranscript:
         :param residue_mode: Residue mode for `start_pos` and `end_pos`
         :param mane_transcripts: Attempted mane transcripts that were not compatible
         :param alt_ac: Genomic accession
+        :param end_annotation_layer: Annotation layer for final representation
         :return: Data for longest compatible transcript if successful. Else, return
             empty dictionary
         """
