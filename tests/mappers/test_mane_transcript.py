@@ -6,6 +6,7 @@ import pytest
 from mock import patch
 
 from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
+from cool_seq_tool.mappers.mane_transcript import EndAnnotationLayer
 from cool_seq_tool.schemas import AnnotationLayer, ResidueMode, TranscriptPriority
 
 
@@ -137,12 +138,25 @@ def mybpc3_s236g():
     https://www.ncbi.nlm.nih.gov/clinvar/variation/922707/?new_evidence=true
     """
     return {
-        "refseq": "NP_000247.2",
-        "ensembl": "ENSP00000442795.1",
-        "pos": (235, 235),
-        "status": TranscriptPriority.MANE_SELECT,
-        "strand": "-",
-        "gene": "MYBPC3",
+        "protein": {
+            "refseq": "NP_000247.2",
+            "ensembl": "ENSP00000442795.1",
+            "pos": (235, 235),
+            "status": TranscriptPriority.MANE_SELECT,
+            "strand": "-",
+            "gene": "MYBPC3",
+        },
+        "cdna": {
+            "alt_ac": "NC_000011.10",
+            "refseq": "NM_000256.3",
+            "ensembl": "ENST00000545968.6",
+            "pos": (704, 705),
+            "status": TranscriptPriority.MANE_SELECT,
+            "strand": "-",
+            "coding_start_site": 55,
+            "coding_end_site": 3880,
+            "gene": "MYBPC3",
+        },
     }
 
 
@@ -506,6 +520,7 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         "ensembl": None,
         "pos": (599, 599),
         "strand": "-",
+        "gene": "BRAF",
         "status": TranscriptPriority.LONGEST_COMPATIBLE_REMAINING,
     }
     resp = await test_mane_transcript.get_longest_compatible_transcript(
@@ -533,6 +548,9 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         "ensembl": None,
         "pos": (1798, 1798),
         "strand": "-",
+        "gene": "BRAF",
+        "coding_start_site": 226,
+        "coding_end_site": 2539,
         "status": TranscriptPriority.LONGEST_COMPATIBLE_REMAINING,
     }
     resp = await test_mane_transcript.get_longest_compatible_transcript(
@@ -567,6 +585,9 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         "ensembl": None,
         "pos": (1807, 1807),
         "strand": "-",
+        "gene": "BRAF",
+        "coding_start_site": 226,
+        "coding_end_site": 2539,
         "status": TranscriptPriority.LONGEST_COMPATIBLE_REMAINING,
     }
 
@@ -595,6 +616,9 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         "ensembl": None,
         "pos": (2103, 2120),
         "strand": "+",
+        "gene": None,
+        "coding_start_site": 261,
+        "coding_end_site": 3759,
         "status": TranscriptPriority.LONGEST_COMPATIBLE_REMAINING,
     }
 
@@ -605,13 +629,14 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         start_annotation_layer=AnnotationLayer.GENOMIC,
         mane_transcripts=mane_transcripts,
         alt_ac="NC_000007.14",
-        end_annotation_layer=AnnotationLayer.PROTEIN,
+        end_annotation_layer=EndAnnotationLayer.PROTEIN,
     )
     assert resp == {
         "refseq": "NP_001333828.1",
         "ensembl": None,
         "pos": (701, 706),
         "strand": "+",
+        "gene": None,
         "status": TranscriptPriority.LONGEST_COMPATIBLE_REMAINING,
     }
 
@@ -621,13 +646,14 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         start_annotation_layer=AnnotationLayer.GENOMIC,
         mane_transcripts={"ENST00000370060.7", "NM_001278116.2"},
         alt_ac="NC_000023.11",
-        end_annotation_layer=AnnotationLayer.PROTEIN,
+        end_annotation_layer=EndAnnotationLayer.PROTEIN,
     )
     assert resp == {
         "refseq": "NP_000416.1",
         "ensembl": None,
         "pos": (239, 258),
         "strand": "-",
+        "gene": None,
         "status": TranscriptPriority.LONGEST_COMPATIBLE_REMAINING,
     }
 
@@ -745,61 +771,92 @@ async def test_g_to_mane_c(
 
 
 @pytest.mark.asyncio
-async def test_grch38_to_mane_p(
-    test_mane_transcript, braf_v600e_mane_p, egfr_l858r_mane_p, mybpc3_s236g
+async def test_grch38_to_mane_c_p(
+    test_mane_transcript,
+    braf_v600e_mane_p,
+    egfr_l858r_mane_p,
+    mybpc3_s236g,
+    braf_v600e_mane_c,
+    egfr_l858r_mane_c,
 ):
-    """Test that grch38_to_mane_p works correctly"""
-    resp = await test_mane_transcript.grch38_to_mane_p(
+    """Test that grch38_to_mane_c_p works correctly"""
+    resp = await test_mane_transcript.grch38_to_mane_c_p(
         "NC_000007.14", 140753336, 140753336, gene="BRAF"
     )
-    assert resp == braf_v600e_mane_p
+    assert resp == {"protein": braf_v600e_mane_p, "cdna": braf_v600e_mane_c}
 
-    resp = await test_mane_transcript.grch38_to_mane_p(
+    resp = await test_mane_transcript.grch38_to_mane_c_p(
         "NC_000007.14", 55191822, 55191822
     )
-    assert resp == egfr_l858r_mane_p
+    assert resp == {"protein": egfr_l858r_mane_p, "cdna": egfr_l858r_mane_c}
 
     # https://www.ncbi.nlm.nih.gov/clinvar/variation/922707/?new_evidence=true
     # Without gene
-    resp = await test_mane_transcript.grch38_to_mane_p(
-        "NC_000011.10", 47348490, 47348490
+    resp = await test_mane_transcript.grch38_to_mane_c_p(
+        "NC_000011.10", 47348490, 47348491
     )
     assert resp == mybpc3_s236g
 
     # With gene
-    resp = await test_mane_transcript.grch38_to_mane_p(
+    resp = await test_mane_transcript.grch38_to_mane_c_p(
         "NC_000011.10", 47348490, 47348491, gene="MYBPC3"
     )
     assert resp == mybpc3_s236g
 
     # CA645561524 (without gene)
-    resp = await test_mane_transcript.grch38_to_mane_p(
+    resp = await test_mane_transcript.grch38_to_mane_c_p(
         "NC_000007.14", 55174776, 55174793
     )
     resp == {
-        "refseq": "NP_005219.2",
-        "ensembl": "ENSP00000275493.2",
-        "pos": (746, 751),
-        "status": TranscriptPriority.MANE_SELECT,
-        "strand": "+",
-        "gene": " EGFR",
+        "protein": {
+            "refseq": "NP_005219.2",
+            "ensembl": "ENSP00000275493.2",
+            "pos": (746, 751),
+            "status": TranscriptPriority.MANE_SELECT,
+            "strand": "+",
+            "gene": " EGFR",
+        },
+        "cdna": {
+            "alt_ac": "NC_000007.14",
+            "refseq": "NM_005228.5",
+            "ensembl": "ENST00000275493.7",
+            "pos": (2238, 2255),
+            "status": TranscriptPriority.MANE_SELECT,
+            "strand": "+",
+            "coding_start_site": 261,
+            "coding_end_site": 3894,
+            "gene": "EGFR",
+        },
     }
 
     # CA2499226460 (without gene)
-    resp = await test_mane_transcript.grch38_to_mane_p(
+    resp = await test_mane_transcript.grch38_to_mane_c_p(
         "NC_000023.11", 153870419, 153870476
     )
     assert resp == {
-        "refseq": "NP_001265045.1",
-        "ensembl": "ENSP00000359077.1",
-        "pos": (239, 258),
-        "status": TranscriptPriority.MANE_SELECT,
-        "strand": "-",
-        "gene": "L1CAM",
+        "protein": {
+            "refseq": "NP_001265045.1",
+            "ensembl": "ENSP00000359077.1",
+            "pos": (239, 258),
+            "status": TranscriptPriority.MANE_SELECT,
+            "strand": "-",
+            "gene": "L1CAM",
+        },
+        "cdna": {
+            "alt_ac": "NC_000023.11",
+            "refseq": "NM_001278116.2",
+            "ensembl": "ENST00000370060.7",
+            "pos": (717, 774),
+            "status": TranscriptPriority.MANE_SELECT,
+            "strand": "-",
+            "coding_start_site": 217,
+            "coding_end_site": 3991,
+            "gene": "L1CAM",
+        },
     }
 
     # GENE not valid
-    resp = await test_mane_transcript.grch38_to_mane_p(
+    resp = await test_mane_transcript.grch38_to_mane_c_p(
         "NC_000023.11", 153870419, 153870476, gene="FAKE"
     )
     assert resp is None
