@@ -28,12 +28,16 @@ class SeqRepoAccess(SeqRepoDataProxy):
         end: Optional[int] = None,
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
     ) -> Tuple[str, Optional[str]]:
-        """Get reference sequence for an accession given a start and end position.
+        """Get reference sequence for an accession given a start and end position. If
+        ``start`` and ``end`` are not given, returns the entire reference sequence.
 
-        If ``start`` and ``end`` are not given, it will return the entire reference
-        sequence
-
-        # TODO exmaple
+        >>> from cool_seq_tool.handlers import SeqRepoAccess
+        >>> from biocommons.seqrepo import SeqRepo
+        >>> sr = SeqRepoAccess(SeqRepo("/usr/local/share/seqrepo/latest"))
+        >>> sr.get_reference_sequence("NM_002529.3", 1, 10)[0]
+        'TGCAGCTGG'
+        >>> sr.get_reference_sequence("NP_001341538.1", 1, 10)[0]
+        'MAALSGGGG'
 
         :param ac: Accession
         :param start: Start pos change
@@ -96,7 +100,23 @@ class SeqRepoAccess(SeqRepoDataProxy):
     ) -> Tuple[List[str], Optional[str]]:
         """Return list of identifiers for accession.
 
-        # TODO example
+        >>> from cool_seq_tool.handlers import SeqRepoAccess
+        >>> from biocommons.seqrepo import SeqRepo
+        >>> sr = SeqRepoAccess(SeqRepo("/usr/local/share/seqrepo/latest"))
+        >>> sr.translate_identifier("NM_002529.3")[0]
+        ['MD5:18f0a6e3af9e1bbd8fef1948c7156012',
+         'NCBI:NM_002529.3',
+         'refseq:NM_002529.3',
+         'SEGUID:dEJQBkga9d9VeBHTyTbg6JEtTGQ',
+         'SHA1:74425006481af5df557811d3c936e0e8912d4c64',
+         'VMC:GS_RSkww1aYmsMiWbNdNnOTnVDAM3ZWp1uA',
+         'sha512t24u:RSkww1aYmsMiWbNdNnOTnVDAM3ZWp1uA',
+         'ga4gh:SQ.RSkww1aYmsMiWbNdNnOTnVDAM3ZWp1uA']
+        >>> sr.translate_identifier("NM_002529.3", "ga4gh")[0]
+        ['ga4gh:SQ.RSkww1aYmsMiWbNdNnOTnVDAM3ZWp1uA']
+        >>> # SeqRepo doesn't store Ensembl accession IDs
+        >>> sr.translate_identifier("ENST00000380152.8")
+        ([], 'SeqRepo unable to get translated identifiers for ENST00000380152.8')
 
         :param ac: Identifier accession
         :param target_namespace: The namespace(s) of identifier to return
@@ -171,7 +191,15 @@ class SeqRepoAccess(SeqRepoDataProxy):
     def get_fasta_file(self, sequence_id: str, outfile_path: Path) -> None:
         """Retrieve FASTA file containing sequence for requested sequence ID.
 
-        # TODO example
+        >>> from pathlib import Path
+        >>> from cool_seq_tool.handlers import SeqRepoAccess
+        >>> from biocommons.seqrepo import SeqRepo
+        >>> sr = SeqRepoAccess(SeqRepo("/usr/local/share/seqrepo/latest"))
+        >>> # write to local file tpm3.fasta:
+        >>> sr.get_fasta_file("NM_002529.3", Path("tpm3.fasta"))
+
+        FASTA file headers will include GA4GH sequence digest, Ensembl accession ID,
+        and RefSeq accession ID.
 
         :param sequence_id: accession ID, sans namespace, eg ``NM_152263.3``
         :param outfile_path: path to save file to

@@ -191,14 +191,22 @@ class ExonGenomicCoordsMapper:
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
         **kwargs,
     ) -> GenomicDataResponse:
-        """Get transcript data for genomic data.
+        """Get transcript data for genomic data, lifted over to GRCh38.
 
-        MANE Transcript data will be returned iff `transcript` is not supplied. ``gene``
-        must be supplied in order to retrieve MANE Transcript data.
+        MANE Transcript data will be returned if and only if `transcript` is not
+        supplied. ``gene`` must be given in order to retrieve MANE Transcript data.
 
-        Liftovers genomic coordinates to GRCh38
-
-        TODO clean up and provide example
+        >>> from cool_seq_tool.app import CoolSeqTool
+        >>> egc = CoolSeqTool().ex_g_coords_mapper
+        >>> result = await egc.genomic_to_transcript_exon_coordinates(
+        ...     chromosome="NC_000001.11",
+        ...     start=154192136,
+        ...     end=154170400,
+        ...     strand=-1,
+        ...     transcript="NM_152263.3"
+        ... )
+        >>> (result.genomic_data.exon_start, result.genomic_data.exon_end)
+        (1, 8)
 
         :param chromosome: Chromosome. Must either give chromosome number (i.e. ``1``)
             or accession (i.e. ``NC_000001.11``).
@@ -207,7 +215,8 @@ class ExonGenomicCoordsMapper:
         :param strand: Strand. Must be either ``-1`` or ``1``.
         :param transcript: The transcript to use. If this is not given, we will try the
             following transcripts: MANE Select, MANE Clinical Plus, Longest Remaining
-            Compatible Transcript
+            Compatible Transcript. See the :ref:`Transcript Selection policy <transcript_selection_policy>`
+            page.
         :param gene: Gene symbol
         :param residue_mode: Default is ``resiude`` (1-based). Must be either
             ``residue`` or ``inter-residue`` (0-based).

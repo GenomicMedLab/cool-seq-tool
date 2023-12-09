@@ -19,14 +19,10 @@ def get_inter_residue_pos(
     `VRS docs <https://vrs.ga4gh.org/en/stable/appendices/design_decisions.html#inter-residue-coordinates>`_.
     This function is used internally to shift user-provided coordinates accordingly.
 
-    For example:
-
-    .. code-block:: pycon
-
-       >>> from cool_seq_tool.utils import get_inter_residue_pos
-       >>> from cool_seq_tool.schemas import ResidueMode
-       >>> get_inter_residue_pos(10, ResidueMode.RESIDUE)
-       ((9, 9), None)
+    >>> from cool_seq_tool.utils import get_inter_residue_pos
+    >>> from cool_seq_tool.schemas import ResidueMode
+    >>> get_inter_residue_pos(10, ResidueMode.RESIDUE)
+    ((9, 9), None)
 
     :param start_pos: Start position
     :param residue_mode: Residue mode for ``start_pos`` and ``end_pos``

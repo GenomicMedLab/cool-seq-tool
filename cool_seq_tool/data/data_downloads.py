@@ -17,6 +17,9 @@ logger = logging.getLogger("cool_seq_tool")
 class DataDownload:
     """Manage downloadable data files. Responsible for checking if files are available
     under expected locations, and fetching them if not.
+
+    Relevant methods are called automatically by data classes; users should not have
+    to interact with this class under normal circumstances.
     """
 
     def __init__(self) -> None:

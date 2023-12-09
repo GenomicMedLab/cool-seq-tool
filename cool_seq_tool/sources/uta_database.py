@@ -34,10 +34,16 @@ class UTADatabase:
     """Provide transcript lookup and metadata tools via the Universal Transcript Archive
     (UTA) database.
 
-    Downstream libraries should use the create() method to construct a new instance:
+    Users should use the create() method to construct a new instance:
 
     >>> from cool_seq_tool.sources.uta_database import UTADatabase
-    >>> uta = await UTADatabase.create()
+    >>> uta_db = await UTADatabase.create()
+
+    This class uses the `asyncpg <https://magicstack.github.io/asyncpg/current/>`_
+    library to connect to PostgreSQL. This means that most methods are defined as
+    coroutines and must be called with ``await``. See the
+    `Python stdlib docs <https://docs.python.org/3/library/asyncio-task.html>`_
+    for more information.
     """
 
     def __init__(
@@ -149,7 +155,7 @@ class UTADatabase:
         instance.
 
         >>> from cool_seq_tool.sources.uta_database import UTADatabase
-        >>> uta = await UTADatabase.create()
+        >>> uta_db = await UTADatabase.create()
 
         :param cls: supplied implicitly
         :param db_url: PostgreSQL connection URL
@@ -568,8 +574,8 @@ class UTADatabase:
         from older (pre-GRCh38) builds.
 
         >>> from cool_seq_tool.sources.uta_database import UTADatabase
-        >>> u = await UTADatabase.create()
-        >>> await u.get_ac_descr("NC_000001.10")
+        >>> uta_db = await UTADatabase.create()
+        >>> await uta_db.get_ac_descr("NC_000001.10")
         'Homo sapiens chromosome 1, GRCh37.p13 Primary Assembly'
 
         :param ac: chromosome accession, e.g. ``"NC_000001.10"``
@@ -711,13 +717,25 @@ class UTADatabase:
     ) -> Optional[Dict]:
         """Get MANE Transcript and genomic data.
 
-        Used when going from g -> MANE c
+        Used when going from g -> MANE c  # TODO is this an HGVS reference?
 
-        # TODO example
+        >>> from cool_seq_tool.sources import UTADatabase
+        >>> uta_db = await UTADatabase.create()
+        >>> result = await uta_db.get_mane_c_genomic_data(
+        ...     "NM_004333.6",
+        ...     None,
+        ...     140753335,
+        ...     140753335,
+        ... )
+        >>> result["gene"]
+        'BRAF'
+        >>> result["alt_ac"]
+        'NC_000007.14'
 
-        :param ac: MANE Transcript accession
-        :param alt_ac: NC Accession
-        :param start_pos: Genomic start position change
+        :param ac: MANE transcript accession
+        :param alt_ac: NC accession. Used to triangulate on correct genomic data. Can
+            be set to ``None`` if unavailable.
+        :param start_pos: Genomic start position change  # TODO do we still want to say "change" here?
         :param end_pos: Genomic end position change
         :return: MANE transcript results if successful
         """
@@ -852,7 +870,12 @@ class UTADatabase:
     ) -> Optional[List[str]]:
         """Get transcripts from NC accession and positions.
 
-        :param ac: NC Accession
+        >>> from cool_seq_tool.sources import UTADatabase
+        >>> uta_db = await UTADatabase.create()
+        >>> await uta_db.get_gene_from_ac("NC_000017.11", 43044296, 43045802)
+        ['BRCA1']
+
+        :param ac: NC accession, e.g. ``"NC_000001.11"``
         :param start_pos: Start position change
         :param end_pos: End position change
         :return: List of HGNC gene symbols
@@ -1102,7 +1125,8 @@ class UTADatabase:
         genomic_tx_data[key] = liftover_start_i[1], liftover_end_i[1]
 
     async def p_to_c_ac(self, p_ac: str) -> List[str]:
-        """Return c. accession from p. accession.
+        """Return cDNA reference sequence accession from protein reference sequence
+        accession (i.e. ``p.`` to ``c.`` in HGVS syntax)
 
         :param p_ac: Protein accession
         :return: List of rows containing c. accessions that are associated with the
@@ -1151,7 +1175,7 @@ class UTADatabase:
 
     @staticmethod
     def get_secret() -> str:
-        """Get secrets for UTA DB instances."""
+        """Get secrets for UTA DB instances. Used for deployment on AWS."""
         secret_name = environ["UTA_DB_SECRET"]
         region_name = "us-east-2"
 
