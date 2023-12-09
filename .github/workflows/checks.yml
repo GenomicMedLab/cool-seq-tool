@@ -30,3 +30,12 @@ jobs:
 
       - name: ruff
         uses: chartboost/ruff-action@v1
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: ammaraskar/sphinx-action@master
+        with:
+          pre-build-command: 'python3 -m pip install --upgrade pip &&  python3 -m pip install .[docs]'
+          docs-folder: "docs/"
