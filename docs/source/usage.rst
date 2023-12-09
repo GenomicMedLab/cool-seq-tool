@@ -29,6 +29,16 @@ Core Cool-Seq-Tool functions can also be performed via a REST HTTP interface, pr
 
 By default, ``uvicorn`` serves to port 8000. Once initialized, go to `<http://localhost:8000/cool_seq_tool>`_ in a web browser for OpenAPI docs describing available endpoints.
 
+REST routes are defined using the FastAPI ``APIRouter`` class, meaning that they can also be mounted to other FastAPI applications:
+
+.. code-block:: python
+
+   from fastapi import FastAPI
+   from cool_seq_tool.routers import mane
+
+   app = FastAPI()
+   app.include_router(mane.router)
+
 .. _configuration:
 
 Environment configuration
