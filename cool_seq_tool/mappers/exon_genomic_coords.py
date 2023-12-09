@@ -9,6 +9,7 @@ from cool_seq_tool.schemas import (
     GenomicData,
     GenomicDataResponse,
     ResidueMode,
+    Strand,
     TranscriptExonData,
     TranscriptExonDataResponse,
 )
@@ -425,23 +426,23 @@ class ExonGenomicCoordsMapper:
             logger.warning(msg)
             return msg
 
-        if mane_data["strand"] == "-":
-            mane_data["strand"] = -1
-        elif mane_data["strand"] == "+":
-            mane_data["strand"] = 1
+        if mane_data.strand == Strand.NEGATIVE:
+            mane_data.strand = -1
+        elif mane_data.strand == Strand.POSITIVE:
+            mane_data.strand = 1
 
-        params["gene"] = mane_data["gene"]
+        params["gene"] = mane_data.gene
         params["transcript"] = (
-            mane_data["refseq"]
-            if mane_data["refseq"]
-            else mane_data["ensembl"]
-            if mane_data["ensembl"]
+            mane_data.refseq
+            if mane_data.refseq
+            else mane_data.ensembl
+            if mane_data.ensembl
             else None
         )
         tx_exons = await self._structure_exons(params["transcript"], alt_ac=alt_ac)
         if not tx_exons:
             return f"Unable to get exons for {params['transcript']}"
-        tx_pos = mane_data["pos"][0] + mane_data["coding_start_site"]
+        tx_pos = mane_data.pos[0] + mane_data.coding_start_site
         params["exon"] = self._get_exon_number(tx_exons, tx_pos)
 
         try:
@@ -454,7 +455,7 @@ class ExonGenomicCoordsMapper:
             logger.warning(msg)
             return msg
 
-        strand_to_use = strand if strand is not None else mane_data["strand"]
+        strand_to_use = strand if strand is not None else mane_data.strand
         params["strand"] = strand_to_use
         self._set_exon_offset(
             params,

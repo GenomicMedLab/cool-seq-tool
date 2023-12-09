@@ -13,12 +13,14 @@ from enum import StrEnum
 from typing import Dict, List, Optional, Set, Tuple, Union
 
 import polars as pl
+from pydantic import BaseModel
 
 from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
 from cool_seq_tool.schemas import (
     AnnotationLayer,
     Assembly,
     ResidueMode,
+    Strand,
     TranscriptPriority,
 )
 from cool_seq_tool.sources import (
@@ -39,6 +41,41 @@ class EndAnnotationLayer(StrEnum):
     PROTEIN = AnnotationLayer.PROTEIN
     CDNA = AnnotationLayer.CDNA
     PROTEIN_AND_CDNA = "p_and_c"
+
+
+class DataRepresentation(BaseModel):
+    """Create model for final output representation"""
+
+    gene: Optional[str] = None
+    refseq: str
+    ensembl: Optional[str] = None
+    pos: Tuple[int, int]
+    strand: Strand
+    status: TranscriptPriority
+
+
+class CdnaRepresentation(DataRepresentation):
+    """Create model for coding dna representation"""
+
+    coding_start_site: int
+    coding_end_site: int
+    alt_ac: Optional[str] = None
+
+
+class GenomicRepresentation(BaseModel):
+    """Create model for genomic representation"""
+
+    refseq: str
+    pos: Tuple[int, int]
+    status: TranscriptPriority
+    alt_ac: str
+
+
+class ProteinAndCdnaRepresentation(BaseModel):
+    """Create model for protein and coding dna representation"""
+
+    protein: DataRepresentation
+    cdna: CdnaRepresentation
 
 
 class MANETranscript:
@@ -218,7 +255,7 @@ class MANETranscript:
         gene: Optional[str] = None,
         ensembl_c_ac: Optional[str] = None,
         alt_ac: Optional[str] = None,
-    ) -> Dict:
+    ) -> CdnaRepresentation:
         """Return transcript data on c. coordinate.
 
         :param cds_start_end: Coding start and end site for transcript
@@ -229,7 +266,7 @@ class MANETranscript:
         :param gene: HGNC gene symbol
         :param ensembl_c_ac: Ensembl transcript
         :param alt_ac: Genomic accession
-        :return: Transcript data on c. coord
+        :return: Coding dna representation
         """
         cds_start = cds_start_end[0]
         cds_end = cds_start_end[1]
@@ -238,10 +275,10 @@ class MANETranscript:
 
         if lt_cds_start or gt_cds_end:
             logger.info(
-                f"{refseq_c_ac} with position"
-                f" {c_pos_change} is not within CDS start/end"
+                f"{refseq_c_ac} with position {c_pos_change} is not within CDS start/end"
             )
-        return dict(
+
+        return CdnaRepresentation(
             gene=gene,
             refseq=refseq_c_ac,
             ensembl=ensembl_c_ac,
@@ -265,16 +302,17 @@ class MANETranscript:
         end = math.floor(end)
         return start, end
 
-    def _get_mane_p(self, mane_data: Dict, mane_c_pos_range: Tuple[int, int]) -> Dict:
+    def _get_mane_p(
+        self, mane_data: Dict, mane_c_pos_range: Tuple[int, int]
+    ) -> DataRepresentation:
         """Translate MANE Transcript c. annotation to p. annotation
 
         :param Dict mane_data: MANE Transcript data
         :param Tuple[int, int] mane_c_pos_range: Position change range
             on MANE Transcript c. coordinate
-        :return: MANE transcripts accessions and position change on
-            p. coordinate
+        :return: Protein representation
         """
-        return dict(
+        return DataRepresentation(
             gene=mane_data["symbol"],
             refseq=mane_data["RefSeq_prot"],
             ensembl=mane_data["Ensembl_prot"],
@@ -293,7 +331,7 @@ class MANETranscript:
         ensembl_c_ac: Optional[str] = None,
         alt_ac: Optional[str] = None,
         found_result: bool = False,
-    ) -> Optional[Dict]:
+    ) -> Optional[CdnaRepresentation]:
         """Get transcript c. annotation data from g. annotation.
 
         :param Dict g: Genomic data
@@ -359,29 +397,27 @@ class MANETranscript:
         )
 
     def _validate_reading_frames(
-        self, ac: str, start_pos: int, end_pos: int, transcript_data: Dict
+        self, ac: str, start_pos: int, end_pos: int, transcript_data: CdnaRepresentation
     ) -> bool:
         """Return whether reading frames are the same after translation.
 
-        :param str ac: Query accession
-        :param int start_pos: Original start cDNA position change
-        :param int end_pos: Original end cDNA position change
-        :param Dict transcript_data: Ensembl and RefSeq transcripts with
-            corresponding position change
+        :param ac: Query accession
+        :param start_pos: Original start cDNA position change
+        :param end_pos: Original end cDNA position change
+        :param transcript_data: Ensembl and RefSeq transcripts with corresponding
+            position change
         :return: `True` if reading frames are the same after translation.
             `False` otherwise
         """
         for pos, pos_index in [(start_pos, 0), (end_pos, 1)]:
             if pos is not None:
                 og_rf = self._get_reading_frame(pos)
-                new_rf = self._get_reading_frame(transcript_data["pos"][pos_index])
+                new_rf = self._get_reading_frame(transcript_data.pos[pos_index])
 
                 if og_rf != new_rf:
                     logger.warning(
-                        f"{ac} original reading frame ({og_rf}) "
-                        f"does not match new "
-                        f"{transcript_data['ensembl']}, "
-                        f"{transcript_data['refseq']} reading "
+                        f"{ac} original reading frame ({og_rf}) does not match new "
+                        f"{transcript_data.ensembl}, {transcript_data.refseq} reading "
                         f"frame ({new_rf})"
                     )
                     return False
@@ -397,7 +433,9 @@ class MANETranscript:
         coding_start_site: int,
         start_pos: int,
         end_pos: int,
-        mane_transcript: Dict,
+        mane_transcript: Union[
+            DataRepresentation, CdnaRepresentation, GenomicRepresentation
+        ],
         expected_ref: str,
         anno: AnnotationLayer,
         residue_mode: ResidueMode,
@@ -419,21 +457,21 @@ class MANETranscript:
             start_pos += coding_start_site
             end_pos += coding_start_site
 
-        ref, warnings = self.seqrepo_access.get_reference_sequence(
+        ref, _ = self.seqrepo_access.get_reference_sequence(
             ac, start_pos, end=end_pos, residue_mode=residue_mode
         )
         if ref is None:
             return False
 
         if mane_transcript:
-            mane_start_pos = mane_transcript["pos"][0]
-            mane_end_pos = mane_transcript["pos"][1]
+            mane_start_pos = mane_transcript.pos[0]
+            mane_end_pos = mane_transcript.pos[1]
             if anno == AnnotationLayer.CDNA:
-                mane_cds = mane_transcript["coding_start_site"]
+                mane_cds = mane_transcript.coding_start_site
                 mane_start_pos += mane_cds
                 mane_end_pos += mane_cds
-            mane_ref, warnings = self.seqrepo_access.get_reference_sequence(
-                mane_transcript["refseq"],
+            mane_ref, _ = self.seqrepo_access.get_reference_sequence(
+                mane_transcript.refseq,
                 mane_start_pos,
                 end=mane_end_pos if mane_start_pos != mane_end_pos else None,
                 residue_mode=residue_mode,
@@ -444,12 +482,12 @@ class MANETranscript:
             if expected_ref != mane_ref:
                 logger.info(
                     f"Expected ref, {expected_ref}, but got {mane_ref}"
-                    f" on MANE accession, {mane_transcript['refseq']}"
+                    f" on MANE accession, {mane_transcript.refseq}"
                 )
 
         if expected_ref != ref:
             logger.warning(
-                f"Expected ref, {expected_ref}, but got {ref} " f"on accession, {ac}"
+                f"Expected ref, {expected_ref}, but got {ref} on accession, {ac}"
             )
             return False
 
@@ -533,7 +571,9 @@ class MANETranscript:
         mane_transcripts: Optional[Set] = None,
         alt_ac: Optional[str] = None,
         end_annotation_layer: Optional[EndAnnotationLayer] = None,
-    ) -> Optional[Dict]:
+    ) -> Optional[
+        Union[DataRepresentation, CdnaRepresentation, ProteinAndCdnaRepresentation]
+    ]:
         """Get longest compatible transcript from a gene.
 
         :param start_pos: Start position change
@@ -685,33 +725,40 @@ class MANETranscript:
                 EndAnnotationLayer.PROTEIN,
             }:
                 if end_annotation_layer == EndAnnotationLayer.CDNA:
-                    lcr_result = {
-                        "gene": gene,
-                        "refseq": tx_ac if tx_ac.startswith("N") else None,
-                        "ensembl": tx_ac if tx_ac.startswith("E") else None,
-                        "coding_start_site": lcr_c_data["coding_start_site"],
-                        "coding_end_site": lcr_c_data["coding_end_site"],
-                        "pos": lcr_c_data["pos"],
-                        "strand": g["strand"],
-                        "status": lcr_c_data["status"],
-                    }
+                    lcr_result = CdnaRepresentation(
+                        **{
+                            "gene": gene,
+                            "refseq": tx_ac if tx_ac.startswith("N") else None,
+                            "ensembl": tx_ac if tx_ac.startswith("E") else None,
+                            "coding_start_site": lcr_c_data.coding_start_site,
+                            "coding_end_site": lcr_c_data.coding_end_site,
+                            "pos": lcr_c_data.pos,
+                            "strand": g["strand"],
+                            "status": lcr_c_data.status,
+                        }
+                    )
                 else:
-                    lcr_result = {
-                        "gene": gene,
-                        "refseq": row["pro_ac"]
-                        if row["pro_ac"].startswith("N")
-                        else None,
-                        "ensembl": row["pro_ac"]
-                        if row["pro_ac"].startswith("E")
-                        else None,
-                        "pos": self._c_to_p_pos(lcr_c_data["pos"]),
-                        "strand": g["strand"],
-                        "status": lcr_c_data["status"],
-                    }
+                    lcr_result = DataRepresentation(
+                        **{
+                            "gene": gene,
+                            "refseq": row["pro_ac"]
+                            if row["pro_ac"].startswith("N")
+                            else None,
+                            "ensembl": row["pro_ac"]
+                            if row["pro_ac"].startswith("E")
+                            else None,
+                            "pos": self._c_to_p_pos(lcr_c_data.pos),
+                            "strand": g["strand"],
+                            "status": lcr_c_data.status,
+                        }
+                    )
 
-                ac = lcr_result["refseq"] or lcr_result["ensembl"]
-                pos = lcr_result["pos"]
-                coding_start_site = lcr_result.get("coding_start_site", 0)
+                ac = lcr_result.refseq or lcr_result.ensembl
+                pos = lcr_result.pos
+                try:
+                    coding_start_site = lcr_result.coding_start_site
+                except AttributeError:
+                    coding_start_site = 0
                 if not self._validate_index(ac, pos, coding_start_site):
                     logger.warning(
                         f"{pos} are not valid positions on {ac} with coding start site "
@@ -720,30 +767,32 @@ class MANETranscript:
                     continue
                 return lcr_result
             else:
-                lcr_result = {
-                    "protein": {
-                        "gene": gene,
-                        "refseq": row["pro_ac"]
-                        if row["pro_ac"].startswith("N")
-                        else None,
-                        "ensembl": row["pro_ac"]
-                        if row["pro_ac"].startswith("E")
-                        else None,
-                        "pos": self._c_to_p_pos(lcr_c_data["pos"]),
-                        "strand": g["strand"],
-                        "status": lcr_c_data["status"],
-                    },
-                    "cdna": {
-                        "gene": gene,
-                        "refseq": tx_ac if tx_ac.startswith("N") else None,
-                        "ensembl": tx_ac if tx_ac.startswith("E") else None,
-                        "coding_start_site": lcr_c_data["coding_start_site"],
-                        "coding_end_site": lcr_c_data["coding_end_site"],
-                        "pos": lcr_c_data["pos"],
-                        "strand": g["strand"],
-                        "status": lcr_c_data["status"],
-                    },
-                }
+                lcr_result = ProteinAndCdnaRepresentation(
+                    **{
+                        "protein": {
+                            "gene": gene,
+                            "refseq": row["pro_ac"]
+                            if row["pro_ac"].startswith("N")
+                            else None,
+                            "ensembl": row["pro_ac"]
+                            if row["pro_ac"].startswith("E")
+                            else None,
+                            "pos": self._c_to_p_pos(lcr_c_data["pos"]),
+                            "strand": g["strand"],
+                            "status": lcr_c_data["status"],
+                        },
+                        "cdna": {
+                            "gene": gene,
+                            "refseq": tx_ac if tx_ac.startswith("N") else None,
+                            "ensembl": tx_ac if tx_ac.startswith("E") else None,
+                            "coding_start_site": lcr_c_data["coding_start_site"],
+                            "coding_end_site": lcr_c_data["coding_end_site"],
+                            "pos": lcr_c_data["pos"],
+                            "strand": g["strand"],
+                            "status": lcr_c_data["status"],
+                        },
+                    }
+                )
 
                 valid = True
                 for k in lcr_result.keys():
@@ -771,7 +820,7 @@ class MANETranscript:
         ref: Optional[str] = None,
         try_longest_compatible: bool = False,
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
-    ) -> Optional[Dict]:
+    ) -> Optional[Union[DataRepresentation, CdnaRepresentation]]:
         """Return mane transcript.
 
         :param ac: Accession
@@ -840,10 +889,10 @@ class MANETranscript:
                 if not mane:
                     continue
 
-                if not mane["alt_ac"]:
+                if not mane.alt_ac:
                     g_alt_ac = g.get("alt_ac")
                     if g_alt_ac:
-                        mane["alt_ac"] = g_alt_ac
+                        mane.alt_ac = g_alt_ac
 
                 valid_reading_frame = self._validate_reading_frames(
                     c_ac, c_pos[0], c_pos[1], mane
@@ -852,7 +901,7 @@ class MANETranscript:
                     continue
 
                 if start_annotation_layer == AnnotationLayer.PROTEIN:
-                    mane = self._get_mane_p(current_mane_data, mane["pos"])
+                    mane = self._get_mane_p(current_mane_data, mane.pos)
 
                 if ref:
                     valid_references = self._validate_references(
@@ -985,7 +1034,7 @@ class MANETranscript:
         end_pos: int,
         gene: Optional[str] = None,
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
-    ) -> Optional[Dict]:
+    ) -> Optional[Union[GenomicRepresentation, CdnaRepresentation]]:
         """Return MANE Transcript on the c. coordinate.
         If gene is provided, g->GRCh38->MANE c.
             If MANE c. cannot be found, we return the genomic coordinate on
@@ -1015,14 +1064,9 @@ class MANETranscript:
             if not grch38:
                 return None
 
-            return dict(
-                gene=None,
+            return GenomicRepresentation(
                 refseq=grch38["ac"],
-                ensembl=None,
-                coding_start_site=None,
-                coding_end_site=None,
                 pos=grch38["pos"],
-                strand=None,
                 status=TranscriptPriority.GRCH38,
                 alt_ac=grch38["ac"],
             )
@@ -1094,7 +1138,7 @@ class MANETranscript:
         gene: Optional[str] = None,
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
         try_longest_compatible: bool = False,
-    ) -> Optional[Dict]:
+    ) -> Optional[ProteinAndCdnaRepresentation]:
         """Given GRCh38 genomic representation, return cdna and protein representation.
         Will try MANE Select and then MANE Plus Clinical. If neither is found and
         `try_longest_compatible` is set to `true`, will also try to find the longest
@@ -1162,9 +1206,9 @@ class MANETranscript:
                 )
                 continue
 
-            return {
-                "protein": self._get_mane_p(current_mane_data, mane_c_pos_change),
-                "cdna": self._get_c_data(
+            return ProteinAndCdnaRepresentation(
+                protein=self._get_mane_p(current_mane_data, mane_c_pos_change),
+                cdna=self._get_c_data(
                     (coding_start_site, coding_end_site),
                     mane_c_pos_change,
                     mane_tx_genomic_data["strand"],
@@ -1176,7 +1220,7 @@ class MANETranscript:
                     ensembl_c_ac=current_mane_data["Ensembl_nuc"],
                     gene=current_mane_data["symbol"],
                 ),
-            }
+            )
 
         if try_longest_compatible:
             return await self.get_longest_compatible_transcript(
