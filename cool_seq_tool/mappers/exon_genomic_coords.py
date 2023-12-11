@@ -2,7 +2,7 @@
 import logging
 from typing import Dict, List, Optional, Tuple, TypeVar, Union
 
-from cool_seq_tool.mappers import MANETranscript
+from cool_seq_tool.mappers.mane_transcript import CdnaRepresentation, MANETranscript
 from cool_seq_tool.schemas import (
     AnnotationLayer,
     Assembly,
@@ -411,7 +411,9 @@ class ExonGenomicCoordsMapper:
         :param residue_mode: Residue mode for `pos`
         :return: Warnings if found
         """
-        mane_data = await self.mane_transcript.get_mane_transcript(
+        mane_data: Optional[
+            CdnaRepresentation
+        ] = await self.mane_transcript.get_mane_transcript(
             alt_ac,
             pos,
             AnnotationLayer.GENOMIC,

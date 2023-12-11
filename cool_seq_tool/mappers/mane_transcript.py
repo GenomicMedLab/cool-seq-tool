@@ -591,6 +591,32 @@ class MANETranscript:
                 `EndAnnotationLayer.CDNA` otherwise
         :return: Data for longest compatible transcript if successful. Else, None
         """
+
+        def _get_protein_rep(
+            gene: Optional[str],
+            pro_ac: str,
+            lcr_c_data_pos: Tuple[int, int],
+            strand: Strand,
+            status: TranscriptPriority,
+        ) -> DataRepresentation:
+            """Get longest compatible remaining protein representation
+
+            :param gene: HGNC gene symbol
+            :param pro_ac: Protein accession
+            :param lcr_c_data_pos: Longest compatible remaining position
+            :param strand: Strand
+            :param status: Status for `pro_ac`
+            :return: Protein representation for longest compatible remaining result
+            """
+            return DataRepresentation(
+                gene=gene,
+                refseq=pro_ac if pro_ac.startswith("N") else None,
+                ensembl=pro_ac if pro_ac.startswith("E") else None,
+                pos=self._c_to_p_pos(lcr_c_data_pos),
+                strand=strand,
+                status=status,
+            )
+
         lcr_result = None
         inter_residue_pos, _ = get_inter_residue_pos(
             start_pos, residue_mode, end_pos=end_pos
@@ -725,32 +751,14 @@ class MANETranscript:
                 EndAnnotationLayer.PROTEIN,
             }:
                 if end_annotation_layer == EndAnnotationLayer.CDNA:
-                    lcr_result = CdnaRepresentation(
-                        **{
-                            "gene": gene,
-                            "refseq": tx_ac if tx_ac.startswith("N") else None,
-                            "ensembl": tx_ac if tx_ac.startswith("E") else None,
-                            "coding_start_site": lcr_c_data.coding_start_site,
-                            "coding_end_site": lcr_c_data.coding_end_site,
-                            "pos": lcr_c_data.pos,
-                            "strand": g["strand"],
-                            "status": lcr_c_data.status,
-                        }
-                    )
+                    lcr_result = lcr_c_data
                 else:
-                    lcr_result = DataRepresentation(
-                        **{
-                            "gene": gene,
-                            "refseq": row["pro_ac"]
-                            if row["pro_ac"].startswith("N")
-                            else None,
-                            "ensembl": row["pro_ac"]
-                            if row["pro_ac"].startswith("E")
-                            else None,
-                            "pos": self._c_to_p_pos(lcr_c_data.pos),
-                            "strand": g["strand"],
-                            "status": lcr_c_data.status,
-                        }
+                    lcr_result = _get_protein_rep(
+                        gene,
+                        row["pro_ac"],
+                        lcr_c_data.pos,
+                        g["strand"],
+                        lcr_c_data.status,
                     )
 
                 ac = lcr_result.refseq or lcr_result.ensembl
@@ -768,37 +776,22 @@ class MANETranscript:
                 return lcr_result
             else:
                 lcr_result = ProteinAndCdnaRepresentation(
-                    **{
-                        "protein": {
-                            "gene": gene,
-                            "refseq": row["pro_ac"]
-                            if row["pro_ac"].startswith("N")
-                            else None,
-                            "ensembl": row["pro_ac"]
-                            if row["pro_ac"].startswith("E")
-                            else None,
-                            "pos": self._c_to_p_pos(lcr_c_data["pos"]),
-                            "strand": g["strand"],
-                            "status": lcr_c_data["status"],
-                        },
-                        "cdna": {
-                            "gene": gene,
-                            "refseq": tx_ac if tx_ac.startswith("N") else None,
-                            "ensembl": tx_ac if tx_ac.startswith("E") else None,
-                            "coding_start_site": lcr_c_data["coding_start_site"],
-                            "coding_end_site": lcr_c_data["coding_end_site"],
-                            "pos": lcr_c_data["pos"],
-                            "strand": g["strand"],
-                            "status": lcr_c_data["status"],
-                        },
-                    }
+                    protein=_get_protein_rep(
+                        gene,
+                        row["pro_ac"],
+                        lcr_c_data.pos,
+                        g["strand"],
+                        lcr_c_data.status,
+                    ),
+                    cdna=lcr_c_data,
                 )
+                lcr_result_dict = lcr_result.model_dump()
 
                 valid = True
-                for k in lcr_result.keys():
-                    cds = lcr_result[k].get("coding_start_site", 0)
-                    ac = lcr_result[k]["refseq"] or lcr_result[k]["ensembl"]
-                    pos = lcr_result[k]["pos"]
+                for k in lcr_result_dict.keys():
+                    cds = lcr_result_dict[k].get("coding_start_site", 0)
+                    ac = lcr_result_dict[k]["refseq"] or lcr_result_dict[k]["ensembl"]
+                    pos = lcr_result_dict[k]["pos"]
                     if not self._validate_index(ac, pos, cds):
                         valid = False
                         logger.warning(

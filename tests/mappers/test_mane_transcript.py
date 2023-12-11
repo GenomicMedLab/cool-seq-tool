@@ -525,7 +525,7 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         "NM_004333.6",
         "ENST00000644969.2",
     }
-    expected = DataRepresentation(
+    p_expected = DataRepresentation(
         **{
             "refseq": "NP_001365396.1",
             "ensembl": None,
@@ -543,7 +543,7 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         residue_mode=ResidueMode.INTER_RESIDUE,
         mane_transcripts=mane_transcripts,
     )
-    assert resp == expected
+    assert resp == p_expected
 
     resp = await test_mane_transcript.get_longest_compatible_transcript(
         600,
@@ -553,9 +553,9 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         residue_mode=ResidueMode.RESIDUE,
         mane_transcripts=mane_transcripts,
     )
-    assert resp == expected
+    assert resp == p_expected
 
-    expected = CdnaRepresentation(
+    c_expected = CdnaRepresentation(
         **{
             "refseq": "NM_001378467.1",
             "ensembl": None,
@@ -574,7 +574,7 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         start_annotation_layer=AnnotationLayer.CDNA,
         mane_transcripts=mane_transcripts,
     )
-    assert resp == expected
+    assert resp == c_expected
 
     resp = await test_mane_transcript.get_longest_compatible_transcript(
         1798,
@@ -584,7 +584,19 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         residue_mode=ResidueMode.INTER_RESIDUE,
         mane_transcripts=mane_transcripts,
     )
-    assert resp == expected
+    assert resp == c_expected
+
+    # Both protein and cdna end annotation layer
+    resp = await test_mane_transcript.get_longest_compatible_transcript(
+        1798,
+        1798,
+        gene="BRAF",
+        start_annotation_layer=AnnotationLayer.CDNA,
+        residue_mode=ResidueMode.INTER_RESIDUE,
+        mane_transcripts=mane_transcripts,
+        end_annotation_layer=EndAnnotationLayer.PROTEIN_AND_CDNA,
+    )
+    assert resp == ProteinAndCdnaRepresentation(protein=p_expected, cdna=c_expected)
 
     resp = await test_mane_transcript.get_longest_compatible_transcript(
         140453136,
@@ -633,7 +645,7 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
             "ensembl": None,
             "pos": (2103, 2120),
             "strand": "+",
-            "gene": None,
+            "gene": "EGFR",
             "coding_start_site": 261,
             "coding_end_site": 3759,
             "status": TranscriptPriority.LONGEST_COMPATIBLE_REMAINING,
