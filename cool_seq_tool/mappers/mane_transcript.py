@@ -575,6 +575,7 @@ class MANETranscript:
         Union[DataRepresentation, CdnaRepresentation, ProteinAndCdnaRepresentation]
     ]:
         """Get longest compatible transcript from a gene.
+        Transcript is compatible if it passes validation checks.
 
         :param start_pos: Start position change
         :param end_pos: End position change
@@ -684,7 +685,7 @@ class MANETranscript:
 
             # Get prioritized transcript data for gene
             # grch38 -> c
-            lcr_c_data = await self._g_to_c(
+            lcr_c_data: Optional[CdnaRepresentation] = await self._g_to_c(
                 g=g,
                 refseq_c_ac=tx_ac,
                 status=TranscriptPriority.LONGEST_COMPATIBLE_REMAINING,
@@ -752,6 +753,7 @@ class MANETranscript:
             }:
                 if end_annotation_layer == EndAnnotationLayer.CDNA:
                     lcr_result = lcr_c_data
+                    coding_start_site = lcr_result.coding_start_site
                 else:
                     lcr_result = _get_protein_rep(
                         gene,
@@ -760,13 +762,11 @@ class MANETranscript:
                         g["strand"],
                         lcr_c_data.status,
                     )
+                    coding_start_site = 0
 
                 ac = lcr_result.refseq or lcr_result.ensembl
                 pos = lcr_result.pos
-                try:
-                    coding_start_site = lcr_result.coding_start_site
-                except AttributeError:
-                    coding_start_site = 0
+
                 if not self._validate_index(ac, pos, coding_start_site):
                     logger.warning(
                         f"{pos} are not valid positions on {ac} with coding start site "
@@ -871,7 +871,7 @@ class MANETranscript:
                 mane_transcripts |= set(
                     (current_mane_data["RefSeq_nuc"], current_mane_data["Ensembl_nuc"])
                 )
-                mane = await self._g_to_c(
+                mane: Optional[CdnaRepresentation] = await self._g_to_c(
                     g=g,
                     refseq_c_ac=current_mane_data["RefSeq_nuc"],
                     status=TranscriptPriority(
@@ -894,7 +894,9 @@ class MANETranscript:
                     continue
 
                 if start_annotation_layer == AnnotationLayer.PROTEIN:
-                    mane = self._get_mane_p(current_mane_data, mane.pos)
+                    mane: DataRepresentation = self._get_mane_p(
+                        current_mane_data, mane.pos
+                    )
 
                 if ref:
                     valid_references = self._validate_references(
