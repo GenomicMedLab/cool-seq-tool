@@ -699,8 +699,8 @@ class UTADatabase:
         Used when going from g -> MANE c
         :param str ac: MANE Transcript accession
         :param str alt_ac: NC Accession
-        :param int start_pos: Genomic start position change
-        :param int end_pos: Genomic end position change
+        :param int start_pos: Genomic start position change (inter-residue)
+        :param int end_pos: Genomic end position change (inter-residue)
         """
         results = await self.get_tx_exon_aln_v_data(
             ac, start_pos, end_pos, alt_ac=alt_ac, use_tx_pos=False
@@ -724,8 +724,6 @@ class UTADatabase:
         data["coding_end_site"] = coding_start_site[1]
 
         if data["strand"] == "-":
-            end_pos += 1
-            start_pos += 1
             data["alt_pos_change_range"] = (end_pos, start_pos)
             data["alt_pos_change"] = (
                 data["alt_pos_range"][1] - data["alt_pos_change_range"][0],
@@ -801,7 +799,7 @@ class UTADatabase:
                 )
         else:
             if data["strand"] == "-":
-                data["alt_pos_change_range"] = (pos[1] + 1, pos[0] + 1)
+                data["alt_pos_change_range"] = (pos[1], pos[0])
             else:
                 data["alt_pos_change_range"] = pos
 

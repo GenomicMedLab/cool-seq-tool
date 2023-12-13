@@ -216,8 +216,6 @@ class ExonGenomicCoordsMapper:
             start_data = None
 
         if end:
-            if residue_mode == ResidueMode.RESIDUE:
-                end -= 1
             end_data = await self._genomic_to_transcript_exon_coordinate(
                 chromosome,
                 end,
@@ -415,6 +413,7 @@ class ExonGenomicCoordsMapper:
             CdnaRepresentation
         ] = await self.mane_transcript.get_mane_transcript(
             alt_ac,
+            pos,
             pos,
             AnnotationLayer.GENOMIC,
             gene=gene,

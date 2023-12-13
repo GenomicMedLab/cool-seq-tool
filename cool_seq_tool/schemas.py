@@ -48,8 +48,15 @@ class TranscriptPriority(str, Enum):
 
 
 class ResidueMode(str, Enum):
-    """Create Enum for residue modes."""
+    """Create Enum for residue modes.
 
+                      |   | C |   | T |   | G |   |
+    ZERO              |   | 0 |   | 1 |   | 2 |   |
+    RESIDUE           |   | 1 |   | 2 |   | 3 |   |
+    INTER_RESIDUE     | 0 |   | 1 |   | 2 |   | 3 |
+    """
+
+    ZERO = "zero"
     RESIDUE = "residue"
     INTER_RESIDUE = "inter-residue"
 
