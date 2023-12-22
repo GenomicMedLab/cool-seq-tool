@@ -2,13 +2,10 @@
 CoolSeqTool
 </h1>
 
-<p align="center">
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/cool-seq-tool?color=gr) [![tests](https://github.com/genomicmedlab/cool-seq-tool/actions/workflows/github-actions.yml/badge.svg)](https://github.com/genomicmedlab/cool-seq-tool/actions/workflows/github-actions.yml)
 
 **[Documentation](#)** · [Installation](#) · [Usage](#) · [API reference](#)
 
-</p>
-
-![PyPI - Python Version](https://img.shields.io/pypi/pyversions/cool-seq-tool?color=gr) [![tests](https://github.com/genomicmedlab/cool-seq-tool/actions/workflows/github-actions.yml/badge.svg)](https://github.com/genomicmedlab/cool-seq-tool/actions/workflows/github-actions.yml)
 
 ## Overview
 
