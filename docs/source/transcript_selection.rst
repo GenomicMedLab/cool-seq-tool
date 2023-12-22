@@ -7,6 +7,8 @@ One of the core uses of Cool-Seq-Tool is to acquire and use consensus-based, rep
 
 We rely heavily on transcripts annotated under the `Matched Annotation from NCBI and EMBL-EBI (MANE)` Transcripts project. For more information on the MANE project, see the `NCBI MANE page <https://www.ncbi.nlm.nih.gov/refseq/MANE/>`_.
 
+.. _transcript_compatibility:
+
 Transcript compatibility
 ------------------------
 
@@ -30,4 +32,4 @@ All compatible transcripts are evaluated and ordered against the below criteria.
 
 .. note::
 
-   We prefer the most recent version of a transcript associated with an assembly.
+   We always prefer the most recent version of a transcript associated with an assembly.

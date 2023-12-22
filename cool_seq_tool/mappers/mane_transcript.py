@@ -1,14 +1,15 @@
-"""Module for retrieving MANE Transcript from variation on p/c/g coordinate.
+"""Retrieve MANE transcript from a location on p./c./g. coordinates.
 
 Steps:
-1. Map annotation layer to genome
 
-2. Liftover to preferred genome. We want to liftover to GRCh38. We do not support
-   getting MANE transcripts for GRCh36 and earlier assemblies.
+#. Map annotation layer to genome
+#. Liftover to preferred genome (GRCh38). GRCh36 and earlier assemblies are not supported
+   for fetching MANE transcripts.
+#. Select preferred compatible annotation (see :ref:`transcript compatibility <transcript_compatibility>`)
+#. Map back to correct annotation layer
 
-3. Select preferred compatible annotation
-
-4. Map back to correct annotation layer
+In addition to a mapper utility class, this module also defines several vocabulary
+constraints and data models for coordinate representation.
 """
 import logging
 import math
@@ -47,7 +48,7 @@ class EndAnnotationLayer(StrEnum):
 
 
 class DataRepresentation(BaseModel):
-    """Create model for final output representation"""
+    """Define object model for final output representation"""
 
     gene: Optional[str] = None
     refseq: str
@@ -58,7 +59,7 @@ class DataRepresentation(BaseModel):
 
 
 class CdnaRepresentation(DataRepresentation):
-    """Create model for coding dna representation"""
+    """Define object model for coding DNA representation"""
 
     coding_start_site: int
     coding_end_site: int
@@ -66,7 +67,7 @@ class CdnaRepresentation(DataRepresentation):
 
 
 class GenomicRepresentation(BaseModel):
-    """Create model for genomic representation"""
+    """Define object model for genomic representation"""
 
     refseq: str
     pos: Tuple[int, int]
@@ -75,7 +76,7 @@ class GenomicRepresentation(BaseModel):
 
 
 class ProteinAndCdnaRepresentation(BaseModel):
-    """Create model for protein and coding dna representation"""
+    """Define object model for protein and cDNA representation"""
 
     protein: DataRepresentation
     cdna: CdnaRepresentation
@@ -92,6 +93,18 @@ class MANETranscript:
         uta_db: UTADatabase,
     ) -> None:
         """Initialize the MANETranscript class.
+
+        A handful of resources are required for initialization, so when defaults are
+        enough, it's easiest to let the core CoolSeqTool class handle it for you:
+
+        >>> from cool_seq_tool.app import CoolSeqTool
+        >>> mane_mapper = CoolSeqTool().mane_transcript
+
+        Note that most methods are defined as Python coroutines, so they must be called
+        with ``await``:
+
+        >>> mane_mapper.g_to_grch38("NC_000001.11", 100, 200)
+        <coroutine object MANETranscript.g_to_grch38 at 0x112ec7e00>
 
         :param seqrepo_access: Access to seqrepo queries
         :param transcript_mappings: Access to transcript accession mappings and
@@ -577,11 +590,33 @@ class MANETranscript:
     ) -> Optional[
         Union[DataRepresentation, CdnaRepresentation, ProteinAndCdnaRepresentation]
     ]:
-        """Get longest compatible transcript from a gene.
+        """Get longest compatible transcript from a gene. See the documentation for
+        the :ref:`transcript compatibility policy <transcript_compatibility>` for more
+        information.
+
+        >>> from cool_seq_tool.app import CoolSeqTool
+        >>> from cool_seq_tool.schemas import AnnotationLayer, ResidueMode
+        >>> mane_mapper = CoolSeqTool().mane_transcript
+        >>> mane_transcripts = {
+        ...     "ENST00000646891.2",
+        ...     "NM_001374258.1",
+        ...     "NM_004333.6",
+        ...     "ENST00000644969.2",
+        ... }
+        >>> result = await mane_mapper.get_longest_compatible_transcript(
+        ...     599,
+        ...     599,
+        ...     gene="BRAF",
+        ...     start_annotation_layer=AnnotationLayer.PROTEIN,
+        ...     residue_mode=ResidueMode.INTER_RESIDUE,
+        ...     mane_transcripts=mane_transcripts,
+        ... )
+        >>> result.refseq
+        'NP_001365396.1'
 
         Try GRCh38 first, then GRCh37.
 
-        Transcript is compatible if it passes validation checks.
+        # TODO example for this?
 
         :param start_pos: Start position change
         :param end_pos: End position change
@@ -819,9 +854,18 @@ class MANETranscript:
         try_longest_compatible: bool = False,
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
     ) -> Optional[Union[DataRepresentation, CdnaRepresentation]]:
-        """Return mane transcript.
+        """Return MANE transcript.
 
-        # TODO example
+        >>> from cool_seq_tool.app import CoolSeqTool
+        >>> mane_mapper = CoolSeqTool().mane_transcript
+        >>> result = await mane_mapper.get_mane_transcript(
+        ...     "NP_004324.2",
+        ...     599,
+        ...     AnnotationLayer.PROTEIN,
+        ...     residue_mode=ResidueMode.INTER_RESIDUE,
+        ... )
+        >>> (result.gene, result.refseq, result.status)
+        ('BRAF', 'NP_004324.2', <TranscriptPriority.MANE_SELECT: 'mane_select'>)
 
         :param ac: Accession
         :param start_pos: Start position change
@@ -956,8 +1000,8 @@ class MANETranscript:
         """Return genomic coordinate on GRCh38 when not given gene context.
 
         :param ac: Genomic accession
-        :param start_pos: Genomic start position change
-        :param end_pos: Genomic end position change
+        :param start_pos: Genomic start position
+        :param end_pos: Genomic end position
         :return: NC accession, start and end pos on GRCh38 assembly
         """
         if end_pos is None:
@@ -1032,22 +1076,50 @@ class MANETranscript:
         self,
         ac: str,
         start_pos: int,
-        end_pos: int,
+        end_pos: int,  # TODO is this supposed to be marked as optional (see examples)?
         gene: Optional[str] = None,
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
     ) -> Optional[Union[GenomicRepresentation, CdnaRepresentation]]:
         """Return MANE Transcript on the c. coordinate.
 
-        If gene is provided, g->GRCh38->MANE c.
+        >>> from cool_seq_tool.app import CoolSeqTool
+        >>> mane_mapper = CoolSeqTool().mane_transcript
 
-        If MANE c. cannot be found, we return the genomic coordinate on GRCh38.
+        If an arg for ``gene`` is provided, lifts to GRCh38, then gets MANE cDNA
+        representation.
 
-        If gene is not provided, g -> GRCh38.
+        >>> result = await mane_mapper.g_to_mane_c(
+        ...     "NC_000007.13",
+        ...     55259515,
+        ...     None,
+        ...     gene="EGFR"
+        ... )
+        >>> type(result)
+        cool_seq_tool.mappers.mane_transcript.CdnaRepresentation
+        >>> result.status
+        <TranscriptPriority.MANE_SELECT: 'mane_select'>
+
+        If no matching MANE cDNA representation is found, instead returns genomic
+        coordinates on GRCh38.
+
+        # TODO is this true? code makes it look like it returns None
+        # otherwise find example
+
+        Locating a MANE transcript requires a ``gene`` symbol argument -- if none is
+        given, only lifts over to genomic coordinates on GRCh38.
+
+        >>> result = await mane_mapper.g_to_mane_c(
+        ...     "NC_000007.13", 55259515, None
+        ... )
+        >>> type(result)
+        cool_seq_tool.mappers.mane_transcript.GenomicRepresentation
+        >>> result.refseq, result.pos, result.status
+        ('NC_000007.14', (55191821, 55191821), <TranscriptPriority.GRCH38: 'grch38'>)
 
         :param ac: Transcript accession on g. coordinate
-        :param start_pos: genomic change start position
-        :param end_pos: genomic change end position
-        :param gene: Gene symbol
+        :param start_pos: genomic start position
+        :param end_pos: genomic end position
+        :param gene: HGNC gene symbol
         :param residue_mode: Starting residue mode for ``start_pos`` and ``end_pos``.
             Will always return coordinates in inter-residue.
         :return: MANE Transcripts with cDNA change on c. coordinate if gene

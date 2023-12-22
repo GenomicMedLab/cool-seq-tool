@@ -9,7 +9,7 @@ Cool-Seq-Tool provides easy access to, and useful operations on, a selection of 
 
 * :ref:`Data mappers <mappers_modules_api_index>`, for functions that incorporate multiple sources/handlers to produce output
 
-A core :py:class:`CoolSeqTool <cool_seq_tool.app.CoolSeqTool>` class encapsulates all of their functions and can be used for easy initialization:
+The core :py:class:`CoolSeqTool <cool_seq_tool.app.CoolSeqTool>` class encapsulates all of their functions and can be used for easy initialization:
 
 .. code-block:: pycon
 

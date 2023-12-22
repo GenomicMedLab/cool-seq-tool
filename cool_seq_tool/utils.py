@@ -51,7 +51,8 @@ def get_inter_residue_pos(
 
 @staticmethod
 def service_meta() -> ServiceMeta:
-    """Return ServiceMeta for cool_seq_tool
+    """Return description of request and service, including parameters like software
+    version for reproducibility.
 
     :return: ServiceMeta object
     """
