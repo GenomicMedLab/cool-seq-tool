@@ -33,8 +33,8 @@ _The following commands will likely need modification appropriate for the instal
 
 3. To install locally, from the _cool_seq_tool/data_ directory:
 ```
-export UTA_VERSION=uta_20210129.pgd.gz
-curl -O http://dl.biocommons.org/uta/$UTA_VERSION
+export UTA_VERSION=uta_20210129b.pgd.gz
+curl -O https://dl.biocommons.org/uta/$UTA_VERSION
 gzip -cdq ${UTA_VERSION} | grep -v "^REFRESH MATERIALIZED VIEW" | psql -h localhost -U uta_admin --echo-errors --single-transaction -v ON_ERROR_STOP=1 -d uta -p 5433
 ```
 
@@ -43,7 +43,7 @@ If you have trouble installing UTA, you can visit [these two READMEs](https://gi
 
 #### Connecting to the database
 
-To connect to the UTA database, you can use the default url (`postgresql://uta_admin:uta@localhost:5433/uta/uta_20210129`).
+To connect to the UTA database, you can use the default url (`postgresql://uta_admin:uta@localhost:5433/uta/uta_20210129b`).
 
 If you do not wish to use the default, you must set the environment variable `UTA_DB_URL` which has the format of `driver://user:password@host:port/database/schema`.
 
