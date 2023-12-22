@@ -37,5 +37,5 @@ jobs:
 
       - uses: ammaraskar/sphinx-action@master
         with:
-          pre-build-command: 'apt-get update -y && apt-get install -y postgresql && python3 -m pip install --upgrade pip && python3 -m pip install .[dev,docs]'
+          pre-build-command: 'apt-get update -y && python3 -m pip install --upgrade pip && python3 -m pip install .[dev,docs]'
           docs-folder: "docs/"
