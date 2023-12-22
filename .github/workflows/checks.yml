@@ -35,17 +35,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      # manually perform setup
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.11
-
-      - name: Install dependencies
-        run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install '.[dev,docs]'
-
       - uses: ammaraskar/sphinx-action@master
         with:
+          pre-build-command: 'apt-get -y install postgresql && python3 -m pip install --upgrade pip && python3 -m pip install .[dev,docs]'
           docs-folder: "docs/"
