@@ -1,11 +1,14 @@
 <h1 align="center">
-**C**ommon **O**perations **O**n **L**ots-of **Seq**uences Tool
+CoolSeqTool
 </h1>
 
-![PyPI - Python Version](https://img.shields.io/pypi/pyversions/cool-seq-tool?color=gr) [![tests](https://github.com/genomicmedlab/cool-seq-tool/actions/workflows/github-actions.yml/badge.svg)](https://github.com/genomicmedlab/cool-seq-tool/actions/workflows/github-actions.yml)
+<p align="center">
 
 **[Documentation](#)** · [Installation](#) · [Usage](#) · [API reference](#)
 
+</p>
+
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/cool-seq-tool?color=gr) [![tests](https://github.com/genomicmedlab/cool-seq-tool/actions/workflows/github-actions.yml/badge.svg)](https://github.com/genomicmedlab/cool-seq-tool/actions/workflows/github-actions.yml)
 
 ## Overview
 
