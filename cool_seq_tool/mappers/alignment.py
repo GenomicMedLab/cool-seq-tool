@@ -224,8 +224,8 @@ class AlignmentMapper:
 
         * Genomic representation (ac, positions) if able to translate. Will return
           positions as inter-residue coordinates. Else ``None``.
-        * and warnings. The genomic data will always return inter-residue coordinates
-          TODO something got cut off here
+        * Warnings. The genomic data will always return inter-residue coordinates
+        (# TODO: something got cut off here?)
         """
         c_data, warning = await self.p_to_c(
             p_ac, p_start_pos, p_end_pos, residue_mode=residue_mode

@@ -511,9 +511,6 @@ class MANETranscript:
     ) -> bool:
         """Validate that positions actually exist on accession
 
-        # TODO example
-        even though it's not public (it should be?)
-
         :param ac: Accession
         :param pos: Start position change, End position change
         :param coding_start_site: coding start site for accession
@@ -614,9 +611,10 @@ class MANETranscript:
         >>> result.refseq
         'NP_001365396.1'
 
-        Try GRCh38 first, then GRCh37.
+        If unable to find a match on GRCh38, this method will then attempt to drop down
+        to GRCh37.
 
-        # TODO example for this?
+        # TODO example for inputs that demonstrate this?
 
         :param start_pos: Start position change
         :param end_pos: End position change
@@ -1076,7 +1074,7 @@ class MANETranscript:
         self,
         ac: str,
         start_pos: int,
-        end_pos: int,  # TODO is this supposed to be marked as optional (see examples)?
+        end_pos: int,
         gene: Optional[str] = None,
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
     ) -> Optional[Union[GenomicRepresentation, CdnaRepresentation]]:

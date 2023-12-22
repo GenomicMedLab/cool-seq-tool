@@ -715,9 +715,8 @@ class UTADatabase:
     async def get_mane_c_genomic_data(
         self, ac: str, alt_ac: Optional[str], start_pos: int, end_pos: int
     ) -> Optional[Dict]:
-        """Get MANE Transcript and genomic data.
-
-        Used when going from g -> MANE c  # TODO is this an HGVS reference?
+        """Get MANE transcript and genomic data. Used when going from g. to MANE c.
+        representation.
 
         >>> from cool_seq_tool.sources import UTADatabase
         >>> uta_db = await UTADatabase.create()
@@ -735,7 +734,7 @@ class UTADatabase:
         :param ac: MANE transcript accession
         :param alt_ac: NC accession. Used to triangulate on correct genomic data. Can
             be set to ``None`` if unavailable.
-        :param start_pos: Genomic start position change  # TODO do we still want to say "change" here?
+        :param start_pos: Genomic start position
         :param end_pos: Genomic end position change
         :return: MANE transcript results if successful
         """
