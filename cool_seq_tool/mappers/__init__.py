@@ -5,4 +5,4 @@ from .mane_transcript import MANETranscript
 from .exon_genomic_coords import ExonGenomicCoordsMapper
 
 
-__all__ = ["AlignmentMapper", "MANETranscript", "ExonGenomicCoordsMapper"]
+__all__ = ["AlignmentMapper", "Liftover", "MANETranscript", "ExonGenomicCoordsMapper"]

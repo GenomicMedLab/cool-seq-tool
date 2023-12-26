@@ -1,5 +1,6 @@
 """Provide position conversion between GRCh37 and GRCh38 assemblies via PyLiftover"""
 import logging
+from enum import StrEnum
 from os import environ
 from typing import Optional
 
@@ -11,8 +12,14 @@ from cool_seq_tool.schemas import Assembly
 LIFTOVER_CHAIN_37_TO_38 = environ.get("LIFTOVER_CHAIN_37_TO_38")
 LIFTOVER_CHAIN_38_TO_37 = environ.get("LIFTOVER_CHAIN_38_TO_37")
 
-
 logger = logging.getLogger(__name__)
+
+
+class UcscAssembly(StrEnum):
+    """Define UCSC assemblies"""
+
+    HG19 = "hg19"
+    HG38 = "hg38"
 
 
 class Liftover:
@@ -38,23 +45,28 @@ class Liftover:
         if chain_file_37_to_38:
             self.grch37_to_grch38 = PyLiftOver(chain_file_37_to_38)
         else:
-            self.grch37_to_grch38 = PyLiftOver("hg19", "hg38")
+            self.grch37_to_grch38 = PyLiftOver(
+                UcscAssembly.HG19.value, UcscAssembly.HG38.value
+            )
 
         chain_file_38_to_37 = chain_file_38_to_37 or LIFTOVER_CHAIN_38_TO_37
         if chain_file_38_to_37:
             self.grch38_to_grch37 = PyLiftOver(chain_file_38_to_37)
         else:
-            self.grch38_to_grch37 = PyLiftOver("hg38", "hg19")
+            self.grch38_to_grch37 = PyLiftOver(
+                UcscAssembly.HG38.value, UcscAssembly.HG19.value
+            )
 
     def convert_pos(
         self, chromosome: str, pos: int, target_assembly: Assembly = Assembly.GRCH38
     ) -> Optional[int]:
-        """Get new genome assembly data for a position on a chromosome.
+        """Get position on ``target_assembly`` for a ``chromosome``.
 
         :param chromosome: The chromosome number. Must be prefixed with ``chr``
         :param pos: Position on the chromosome
         :param target_assembly: Assembly to liftover to
-        :return: Position on ``target_assembly``
+        :return: Position on ``target_assembly`` if successful liftover. Otherwise,
+            ``None``
         """
         if not chromosome.startswith("chr"):
             logger.warning("`chromosome` must be prefixed with chr")

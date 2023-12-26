@@ -1,7 +1,7 @@
 """Module for testing the Liftover class"""
 import pytest
 
-from cool_seq_tool.mappers.liftover import Liftover
+from cool_seq_tool.mappers import Liftover
 from cool_seq_tool.schemas import Assembly
 
 
