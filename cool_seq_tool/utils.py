@@ -1,4 +1,4 @@
-"""Module for common utilities used throughout the app"""
+"""Provide a small set of general helper functions."""
 import logging
 from datetime import datetime
 from typing import Tuple
@@ -12,12 +12,22 @@ logger = logging.getLogger(__name__)
 def get_inter_residue_pos(
     start_pos: int, end_pos: int, residue_mode: ResidueMode
 ) -> Tuple[int, int]:
-    """Return inter-residue position
+    """Return equivalent inter-residue position.
+
+    Generally, we prefer to work with inter-residue coordinates where possible. Our
+    rationale is detailed in an appendix to the
+    `VRS docs <https://vrs.ga4gh.org/en/stable/appendices/design_decisions.html#inter-residue-coordinates>`_.
+    This function is used internally to shift user-provided coordinates accordingly.
+
+    >>> from cool_seq_tool.utils import get_inter_residue_pos
+    >>> from cool_seq_tool.schemas import ResidueMode
+    >>> get_inter_residue_pos(10, ResidueMode.RESIDUE)
+    ((9, 9), None)
 
     :param start_pos: Start position
     :param end_pos: End position
     :param residue_mode: Residue mode for `start_pos` and `end_pos`
-    :return: Positions represented as inter-residue coordinates
+    :return: Inter-residue coordinates
     """
     if residue_mode == ResidueMode.RESIDUE:
         start_pos -= 1
@@ -28,7 +38,8 @@ def get_inter_residue_pos(
 
 @staticmethod
 def service_meta() -> ServiceMeta:
-    """Return ServiceMeta for cool_seq_tool
+    """Return description of request and service, including parameters like software
+    version for reproducibility.
 
     :return: ServiceMeta object
     """
