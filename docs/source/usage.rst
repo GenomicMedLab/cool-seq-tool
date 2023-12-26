@@ -1,3 +1,5 @@
+.. _usage:
+
 Usage
 =====
 
@@ -9,12 +11,18 @@ Cool-Seq-Tool provides easy access to, and useful operations on, a selection of 
 
 * :ref:`Data mappers <mappers_modules_api_index>`, for functions that incorporate multiple sources/handlers to produce output
 
-The core :py:class:`CoolSeqTool <cool_seq_tool.app.CoolSeqTool>` class encapsulates all of their functions and can be used for easy initialization:
+The core :py:class:`CoolSeqTool <cool_seq_tool.app.CoolSeqTool>` class encapsulates all of their functions and can be used for easy initialization and access:
 
 .. code-block:: pycon
 
    >>> from cool_seq_tool.app import CoolSeqTool
    >>> cst = CoolSeqTool()
+   >>> cst.seqrepo_access.translate_alias("NM_002529.3")[0][-1]
+   'ga4gh:SQ.RSkww1aYmsMiWbNdNnOTnVDAM3ZWp1uA'
+   >>> cst.transcript_mappings.ensembl_protein_for_gene_symbol["BRAF"][0]
+   'ENSP00000419060'
+   >>> await cst.uta_db.get_ac_from_gene("BRAF")
+   ['NC_000007.14', 'NC_000007.13']
 
 Descriptions and examples of functions can be found in the :ref:`API Reference <api_reference>` section.
 

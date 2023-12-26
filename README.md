@@ -2,20 +2,16 @@
 CoolSeqTool
 </h1>
 
-![PyPI - Python Version](https://img.shields.io/pypi/pyversions/cool-seq-tool?color=gr) [![tests](https://github.com/genomicmedlab/cool-seq-tool/actions/workflows/github-actions.yml/badge.svg)](https://github.com/genomicmedlab/cool-seq-tool/actions/workflows/github-actions.yml)
-
 **[Documentation](#)** · [Installation](#) · [Usage](#) · [API reference](#)
-
 
 ## Overview
 
 <!-- description -->
 The **CoolSeqTool** provides:
 
-  - Transcript alignment data from the [UTA](https://github.com/biocommons/uta) database
-  - Fast access to sequence data using [SeqRepo](https://github.com/biocommons/biocommons.seqrepo)
-  - Liftover between assemblies (GRCh38 <--> GRCh37) from [PyLiftover](https://github.com/konstantint/pyliftover)
-  - Lifting over to preferred [MANE](https://www.ncbi.nlm.nih.gov/refseq/MANE/) compatible transcript. See [here]() for more information.
+ - A Pythonic API on top of sequence data of interest to tertiary analysis tools, including mappings between gene names and transcripts, [MANE transcript](https://www.ncbi.nlm.nih.gov/refseq/MANE/) descriptions, and the [Universal Transcript Archive](https://github.com/biocommons/uta)
+ - Augmented access to the [SeqRepo](https://github.com/biocommons/biocommons.seqrepo) database, including multiple additional methods and tools
+ - Mapping tools that combine the above to support translation between references sequences, annotation layers, and MANE transcripts
 <!-- /description -->
 
 ---
@@ -29,6 +25,25 @@ python3 -m pip install cool-seq-tool
 ```
 
 See the [installation instructions](#) in the documentation for a description of dependency setup requirements.
+
+---
+
+## Usage
+
+All CoolSeqTool resources can be initialized by way of a top-level class instance:
+
+```pycon
+>>> from cool_seq_tool.app import CoolSeqTool
+>>> cst = CoolSeqTool()
+>>> result = await cst.mane_transcript.get_mane_transcript(
+...     "NP_004324.2",
+...     599,
+...     AnnotationLayer.PROTEIN,
+...     residue_mode=ResidueMode.INTER_RESIDUE,
+... )
+>>> result.gene, result.refseq, result.status
+('EGFR', 'NM_005228.5', <TranscriptPriority.MANE_SELECT: 'mane_select'>)
+```
 
 ---
 
