@@ -1015,22 +1015,18 @@ class MANETranscript:
             logger.warning("Liftover only supported for GRCh37")
             return None
 
-        liftover_start_i = self.uta_db.get_liftover(
+        start_pos = self.uta_db.liftover.convert_pos(
             chromosome, start_pos, Assembly.GRCH38
         )
-        if liftover_start_i is None:
+        if start_pos is None:
             return None
-        else:
-            start_pos = liftover_start_i[1]
 
         if not is_same_pos:
-            liftover_end_i = self.uta_db.get_liftover(
+            end_pos = self.uta_db.liftover.convert_pos(
                 chromosome, end_pos, Assembly.GRCH38
             )
-            if liftover_end_i is None:
+            if end_pos is None:
                 return None
-            else:
-                end_pos = liftover_end_i[1]
         else:
             end_pos = start_pos
 

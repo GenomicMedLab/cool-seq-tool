@@ -337,19 +337,6 @@ async def test_liftover_to_38(test_db, genomic_tx_data):
     assert cpy == expected
 
 
-def test_get_liftover(test_db):
-    """Test that get_liftover works correctly."""
-    resp = test_db.get_liftover("chr7", 140453136, "GRCh38")
-    assert resp == ("chr7", 140753336, "+", 14633688187)
-
-    resp = test_db.get_liftover("chr17", 140453136, "GRCh38")
-    assert resp is None
-
-    # not prefixed w chr
-    resp = test_db.get_liftover("7", 140453136, "GRCh38")
-    assert resp is None
-
-
 def test_set_liftover(test_db, genomic_tx_data):
     """Test that _set_liftover works correctly."""
     cpy = copy.deepcopy(genomic_tx_data)
