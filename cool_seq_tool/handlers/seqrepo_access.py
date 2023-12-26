@@ -37,7 +37,7 @@ class SeqRepoAccess(SeqRepoDataProxy):
         """
         if start and end:
             if start > end:
-                msg = (f"start ({start}) cannot be greater than end ({end})")
+                msg = f"start ({start}) cannot be greater than end ({end})"
                 return "", msg
 
             start, end = get_inter_residue_pos(start, end, residue_mode)

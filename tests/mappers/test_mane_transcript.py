@@ -340,7 +340,7 @@ async def test_p_to_mane_p(test_mane_transcript, braf_v600e_mane_p, egfr_l858r_m
         AnnotationLayer.PROTEIN,
         gene="DIS3",
         ref="P",
-        try_longest_compatible=True
+        try_longest_compatible=True,
     )
     assert mane_p == DataRepresentation(
         **{
@@ -850,7 +850,9 @@ async def test_grch38_to_mane_c_p(
 
     # CA16042245
     resp = await test_mane_transcript.grch38_to_mane_c_p(
-        "NC_000002.12", 74530927, 74530929,
+        "NC_000002.12",
+        74530927,
+        74530929,
     )
     assert resp == ProteinAndCdnaRepresentation(
         protein=DataRepresentation(
@@ -873,7 +875,7 @@ async def test_grch38_to_mane_c_p(
                 "strand": "+",
                 "coding_start_site": 74,
                 "coding_end_site": 1451,
-                "gene":  "HTRA2",
+                "gene": "HTRA2",
             }
         ),
     )
