@@ -114,9 +114,6 @@ class SeqRepoAccess(SeqRepoDataProxy):
          'ga4gh:SQ.RSkww1aYmsMiWbNdNnOTnVDAM3ZWp1uA']
         >>> sr.translate_identifier("NM_002529.3", "ga4gh")[0]
         ['ga4gh:SQ.RSkww1aYmsMiWbNdNnOTnVDAM3ZWp1uA']
-        >>> # SeqRepo doesn't store Ensembl accession IDs
-        >>> sr.translate_identifier("ENST00000380152.8")
-        ([], 'SeqRepo unable to get translated identifiers for ENST00000380152.8')
 
         :param ac: Identifier accession
         :param target_namespace: The namespace(s) of identifier to return
