@@ -24,9 +24,9 @@ def custom_openapi() -> Dict:
     if app.openapi_schema:
         return app.openapi_schema
     openapi_schema = get_openapi(
-        title="The GenomicMedLab Cool Seq Tool",
+        title="The GenomicMedLab Cool-Seq-Tool",
         version=__version__,
-        description="Common Operations On Lots-of Sequences Tool.",
+        description="Common Operations On Lots of Sequences Tool.",
         routes=app.routes,
     )
 

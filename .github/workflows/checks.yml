@@ -30,3 +30,21 @@ jobs:
 
       - name: ruff
         uses: chartboost/ruff-action@v1
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install '.[docs]'
+
+      - name: Attempt docs build
+        working-directory: ./docs
+        run: make html

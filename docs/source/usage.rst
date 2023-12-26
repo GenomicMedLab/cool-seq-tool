@@ -1,0 +1,81 @@
+.. _usage:
+
+Usage
+=====
+
+Cool-Seq-Tool provides easy access to, and useful operations on, a selection of important genomic resources. Modules are divided into three groups:
+
+* :ref:`Data sources <sources_modules_api_index>`, for basic acquisition and setup for a data source via Python
+
+* :ref:`Data handlers <handlers_modules_api_index>`, for additional operations on top of existing sources
+
+* :ref:`Data mappers <mappers_modules_api_index>`, for functions that incorporate multiple sources/handlers to produce output
+
+The core :py:class:`CoolSeqTool <cool_seq_tool.app.CoolSeqTool>` class encapsulates all of their functions and can be used for easy initialization and access:
+
+.. code-block:: pycon
+
+   >>> from cool_seq_tool.app import CoolSeqTool
+   >>> cst = CoolSeqTool()
+   >>> cst.seqrepo_access.translate_alias("NM_002529.3")[0][-1]
+   'ga4gh:SQ.RSkww1aYmsMiWbNdNnOTnVDAM3ZWp1uA'
+   >>> cst.transcript_mappings.ensembl_protein_for_gene_symbol["BRAF"][0]
+   'ENSP00000419060'
+   >>> await cst.uta_db.get_ac_from_gene("BRAF")
+   ['NC_000007.14', 'NC_000007.13']
+
+Descriptions and examples of functions can be found in the :ref:`API Reference <api_reference>` section.
+
+REST server
+-----------
+
+Core Cool-Seq-Tool functions can also be performed via a REST HTTP interface, provided via `FastAPI <https://fastapi.tiangolo.com/>`_. Use the ``uvicorn`` shell command to start a server instance:
+
+.. code-block:: shell
+
+   uvicorn cool_seq_tool.api:app
+
+By default, ``uvicorn`` serves to port 8000. Once initialized, go to `<http://localhost:8000/cool_seq_tool>`_ in a web browser for OpenAPI docs describing available endpoints.
+
+REST routes are defined using the FastAPI ``APIRouter`` class, meaning that they can also be mounted to other FastAPI applications:
+
+.. code-block:: python
+
+   from fastapi import FastAPI
+   from cool_seq_tool.routers import mane
+
+   app = FastAPI()
+   app.include_router(mane.router)
+
+.. _configuration:
+
+Environment configuration
+-------------------------
+
+Individual classes will accept arguments upon initialization to set parameters regarding data sources. In general, these parameters are also configurable via environment variables, e.g. in a cloud deployment.
+
+.. list-table::
+   :widths: 25 100
+   :header-rows: 1
+
+   * - Variable
+     - Description
+   * - ``LRG_REFSEQGENE_PATH``
+     - Path to LRG_RefSeqGene file. Used in :py:class:`TranscriptMappings <cool_seq_tool.sources.transcript_mappings.TranscriptMappings>` to provide mappings between gene symbols and RefSeq/Ensembl transcript accessions. If not defined, defaults to the most recent version (formatted as ``data/LRG_RefSeqGene_YYYYMMDD``) within the Cool-Seq-Tool library directory. Cool-Seq-Tool will acquire this data manually if no configuration is provided.
+   * - ``TRANSCRIPT_MAPPINGS_PATH``
+     - Path to transcript mapping file generated from `Ensembl BioMart <http://www.ensembl.org/biomart/martview>`_. Used in :py:class:`TranscriptMappings <cool_seq_tool.sources.transcript_mappings.TranscriptMappings>`. If not defined, uses a copy of the file that is bundled within the Cool-Seq-Tool installation. See the :ref:`contributor instructions <build_transcript_mappings_tsv>` for information on manually rebuilding it. Cool-Seq-Tool will acquire this data manually if no configuration is provided.
+   * - ``MANE_SUMMARY_PATH``
+     - Path to MANE Summary file. Used in :py:class:`MANETranscriptMappings <cool_seq_tool.sources.mane_transcript_mappings.MANETranscriptMappings>` to provide MANE transcript annotations. If not defined, defaults to the most recent version (formatted as ``data/MANE.GRCh38vX.X.summary.txt``) within the Cool-Seq-Tool library directory.
+   * - ``SEQREPO_ROOT_DIR``
+     - Path to SeqRepo directory (i.e. contains ``aliases.sqlite3`` database file, and ``sequences`` directory). Used by :py:class:`SeqRepoAccess <cool_seq_tool.handlers.seqrepo_access.SeqRepoAccess`. If not defined, defaults to ``/usr/local/share/seqrepo/latest``.
+   * - ``UTA_DB_URL``
+     - A `libpq connection string <https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING>`_, i.e. of the form ``postgresql://<user>:<password>@<host>:<port>/<database>/<schema>``, used by the :py:class:`cool_seq_tool.sources.uta_database.UTADatabase` class. By default, it is set to ``postgresql://uta_admin:uta@localhost:5433/uta/uta_20210129b``.
+   * - ``LIFTOVER_CHAIN_37_TO_38``
+     - A path to a `chainfile <https://genome.ucsc.edu/goldenPath/help/chain.html>`_ for lifting from GRCh37 to GRCh38. Used by :py:class:`cool_seq_tool.sources.uta_database.UTADatabase` as input to `pyliftover <https://pypi.org/project/pyliftover/>`_. If not provided, pyliftover will fetch it automatically from UCSC.
+   * - ``LIFTOVER_CHAIN_38_TO_37``
+     - A path to a `chainfile <https://genome.ucsc.edu/goldenPath/help/chain.html>`_ for lifting from GRCh38 to GRCh37. Used by :py:class:`cool_seq_tool.sources.uta_database.UTADatabase` as input to `pyliftover <https://pypi.org/project/pyliftover/>`_. If not provided, pyliftover will fetch it automatically from UCSC.
+
+Schema support
+--------------
+
+Many genomic data objects produced by Cool-Seq-Tool are structured in conformance with the `Variation Representation Specification <https://vrs.ga4gh.org/en/stable/>`_, courtesy of the `VRS-Python <https://github.com/ga4gh/vrs-python>`_ library.

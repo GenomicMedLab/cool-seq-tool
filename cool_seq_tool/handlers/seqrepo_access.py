@@ -1,4 +1,6 @@
-"""A module for accessing SeqRepo."""
+"""Wrap SeqRepo to provide additional lookup and identification methods on top of basic
+dereferencing functions.
+"""
 import logging
 from os import environ
 from pathlib import Path
@@ -13,7 +15,9 @@ logger = logging.getLogger(__name__)
 
 
 class SeqRepoAccess(SeqRepoDataProxy):
-    """The SeqRepoAccess class."""
+    """Provide a wrapper around the base SeqRepoDataProxy class from ``VRS-Python`` to
+    provide additional lookup and identification methods.
+    """
 
     environ["SEQREPO_LRU_CACHE_MAXSIZE"] = "none"
 
@@ -24,14 +28,22 @@ class SeqRepoAccess(SeqRepoDataProxy):
         end: Optional[int] = None,
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
     ) -> Tuple[str, Optional[str]]:
-        """Get reference sequence for an accession given a start and end position.
-        If `start` and `end` are not given, it will return the entire reference sequence
+        """Get reference sequence for an accession given a start and end position. If
+        ``start`` and ``end`` are not given, returns the entire reference sequence.
+
+        >>> from cool_seq_tool.handlers import SeqRepoAccess
+        >>> from biocommons.seqrepo import SeqRepo
+        >>> sr = SeqRepoAccess(SeqRepo("/usr/local/share/seqrepo/latest"))
+        >>> sr.get_reference_sequence("NM_002529.3", 1, 10)[0]
+        'TGCAGCTGG'
+        >>> sr.get_reference_sequence("NP_001341538.1", 1, 10)[0]
+        'MAALSGGGG'
 
         :param ac: Accession
         :param start: Start pos change
-        :param end: End pos change. If `None` assumes both `start` and `end` have same
-            values, if `start` exists.
-        :param residue_mode: Residue mode for `start` and `end`
+        :param end: End pos change. If ``None`` assumes both ``start`` and ``end`` have
+            same values, if ``start`` exists.
+        :param residue_mode: Residue mode for ``start`` and ``end``
         :return: Sequence at position (if accession and positions actually
             exist, else return empty string), warning if any
         """
@@ -88,6 +100,21 @@ class SeqRepoAccess(SeqRepoDataProxy):
     ) -> Tuple[List[str], Optional[str]]:
         """Return list of identifiers for accession.
 
+        >>> from cool_seq_tool.handlers import SeqRepoAccess
+        >>> from biocommons.seqrepo import SeqRepo
+        >>> sr = SeqRepoAccess(SeqRepo("/usr/local/share/seqrepo/latest"))
+        >>> sr.translate_identifier("NM_002529.3")[0]
+        ['MD5:18f0a6e3af9e1bbd8fef1948c7156012',
+         'NCBI:NM_002529.3',
+         'refseq:NM_002529.3',
+         'SEGUID:dEJQBkga9d9VeBHTyTbg6JEtTGQ',
+         'SHA1:74425006481af5df557811d3c936e0e8912d4c64',
+         'VMC:GS_RSkww1aYmsMiWbNdNnOTnVDAM3ZWp1uA',
+         'sha512t24u:RSkww1aYmsMiWbNdNnOTnVDAM3ZWp1uA',
+         'ga4gh:SQ.RSkww1aYmsMiWbNdNnOTnVDAM3ZWp1uA']
+        >>> sr.translate_identifier("NM_002529.3", "ga4gh")[0]
+        ['ga4gh:SQ.RSkww1aYmsMiWbNdNnOTnVDAM3ZWp1uA']
+
         :param ac: Identifier accession
         :param target_namespace: The namespace(s) of identifier to return
         :return: List of identifiers, warning
@@ -123,7 +150,7 @@ class SeqRepoAccess(SeqRepoDataProxy):
     ) -> Tuple[Optional[List[str]], Optional[str]]:
         """Get accessions for a chromosome
 
-        :param str chromosome: Chromosome number. Must be either 1-22, X, or Y
+        :param chromosome: Chromosome number. Must be either 1-22, X, or Y
         :return: Accessions for chromosome (ordered by latest assembly)
         """
         acs = []
@@ -160,9 +187,20 @@ class SeqRepoAccess(SeqRepoDataProxy):
 
     def get_fasta_file(self, sequence_id: str, outfile_path: Path) -> None:
         """Retrieve FASTA file containing sequence for requested sequence ID.
-        :param sequence_id: accession ID, sans namespace, eg `NM_152263.3`
+
+        >>> from pathlib import Path
+        >>> from cool_seq_tool.handlers import SeqRepoAccess
+        >>> from biocommons.seqrepo import SeqRepo
+        >>> sr = SeqRepoAccess(SeqRepo("/usr/local/share/seqrepo/latest"))
+        >>> # write to local file tpm3.fasta:
+        >>> sr.get_fasta_file("NM_002529.3", Path("tpm3.fasta"))
+
+        FASTA file headers will include GA4GH sequence digest, Ensembl accession ID,
+        and RefSeq accession ID.
+
+        :param sequence_id: accession ID, sans namespace, eg ``NM_152263.3``
         :param outfile_path: path to save file to
-        :return: None, but saves sequence data to `outfile_path` if successful
+        :return: None, but saves sequence data to ``outfile_path`` if successful
         :raise: KeyError if SeqRepo doesn't have sequence data for the given ID
         """
         sequence = self.get_reference_sequence(sequence_id)[0]

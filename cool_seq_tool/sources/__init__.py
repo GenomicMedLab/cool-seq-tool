@@ -2,3 +2,5 @@
 from .mane_transcript_mappings import MANETranscriptMappings
 from .transcript_mappings import TranscriptMappings
 from .uta_database import UTADatabase
+
+__all__ = ["MANETranscriptMappings", "TranscriptMappings", "UTADatabase"]
