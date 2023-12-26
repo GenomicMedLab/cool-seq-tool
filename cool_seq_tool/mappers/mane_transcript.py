@@ -174,7 +174,9 @@ class MANETranscript:
             if not self.transcript_mappings.ensembl_transcript_version_to_gene_symbol.get(
                 ac
             ):
-                if not self.seqrepo_access.get_reference_sequence(ac, start=1, end=1)[0]:
+                if not self.seqrepo_access.get_reference_sequence(ac, start=1, end=1)[
+                    0
+                ]:
                     logger.warning(f"Ensembl transcript not found: {ac}")
                     return None
 
@@ -508,9 +510,7 @@ class MANETranscript:
         end_pos = pos[1] + coding_start_site
         if self.seqrepo_access.get_reference_sequence(
             ac, start=start_pos, end=end_pos, residue_mode=ResidueMode.INTER_RESIDUE
-        )[
-            0
-        ]:
+        )[0]:
             return True
         else:
             return False
@@ -808,7 +808,7 @@ class MANETranscript:
         gene: Optional[str] = None,
         ref: Optional[str] = None,
         try_longest_compatible: bool = False,
-        residue_mode: Union[ResidueMode.RESIDUE, ResidueMode.INTER_RESIDUE] = ResidueMode.RESIDUE,
+        residue_mode: ResidueMode = ResidueMode.RESIDUE,
     ) -> Optional[Union[DataRepresentation, CdnaRepresentation]]:
         """Return mane transcript.
 

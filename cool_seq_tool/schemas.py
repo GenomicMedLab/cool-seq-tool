@@ -56,7 +56,6 @@ class ResidueMode(str, Enum):
     INTER_RESIDUE     | 0 |   | 1 |   | 2 |   | 3 |
     """
 
-    ZERO = "zero"
     RESIDUE = "residue"
     INTER_RESIDUE = "inter-residue"
 
