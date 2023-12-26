@@ -63,11 +63,11 @@ def nm_004333v6_g():
 
 @pytest.fixture(scope="module")
 def braf_v600e_mane_p():
-    """Create test fixture for BRAF V600E MANE Transcript on p coordinate."""
+    """Create test fixture for BRAF V600E MANE Transcript on p coordinate (CA123643)."""
     params = {
         "refseq": "NP_004324.2",
         "ensembl": "ENSP00000493543.1",
-        "pos": (599, 599),
+        "pos": (599, 600),
         "status": TranscriptPriority.MANE_SELECT,
         "strand": "-",
         "gene": "BRAF",
@@ -77,11 +77,11 @@ def braf_v600e_mane_p():
 
 @pytest.fixture(scope="module")
 def egfr_l858r_mane_p():
-    """Create test fixture for EGFR L858R MANE Transcript on p coordinate."""
+    """Create test fixture for EGFR L858R MANE Transcript on p coordinate (CA126713)."""
     params = {
         "refseq": "NP_005219.2",
         "ensembl": "ENSP00000275493.2",
-        "pos": (857, 857),
+        "pos": (857, 858),
         "status": TranscriptPriority.MANE_SELECT,
         "strand": "+",
         "gene": "EGFR",
@@ -91,12 +91,12 @@ def egfr_l858r_mane_p():
 
 @pytest.fixture(scope="module")
 def braf_v600e_mane_c():
-    """Create test fixture for BRAF V600E MANE Transcript on c coordinate."""
+    """Create test fixture for BRAF V600E MANE Transcript on c coordinate (CA123643)."""
     params = {
         "alt_ac": "NC_000007.14",
         "refseq": "NM_004333.6",
         "ensembl": "ENST00000646891.2",
-        "pos": (1798, 1798),
+        "pos": (1798, 1799),
         "status": TranscriptPriority.MANE_SELECT,
         "strand": "-",
         "coding_start_site": 226,
@@ -108,12 +108,12 @@ def braf_v600e_mane_c():
 
 @pytest.fixture(scope="module")
 def egfr_l858r_mane_c():
-    """Create test fixture for EGFR L858R MANE Transcript on c coordinate."""
+    """Create test fixture for EGFR L858R MANE Transcript on c coordinate (CA126713)."""
     params = {
         "alt_ac": "NC_000007.14",
         "refseq": "NM_005228.5",
         "ensembl": "ENST00000275493.7",
-        "pos": (2572, 2572),
+        "pos": (2572, 2573),
         "status": TranscriptPriority.MANE_SELECT,
         "strand": "+",
         "coding_start_site": 261,
@@ -125,10 +125,10 @@ def egfr_l858r_mane_c():
 
 @pytest.fixture(scope="module")
 def grch38():
-    """Create a test fixture for grch38 responses."""
+    """Create a test fixture for grch38 responses (CA126713)."""
     params = {
         "refseq": "NC_000007.14",
-        "pos": (55191821, 55191821),
+        "pos": (55191821, 55191822),
         "status": TranscriptPriority.GRCH38,
         "alt_ac": "NC_000007.14",
     }
@@ -141,12 +141,15 @@ def mybpc3_s236g():
 
     CA1139661942
     https://www.ncbi.nlm.nih.gov/clinvar/variation/922707/?new_evidence=true
+
+    The reason why the protein position is not (235, 236) is because the cdna position
+    spans two codons
     """
     params = {
         "protein": {
             "refseq": "NP_000247.2",
             "ensembl": "ENSP00000442795.1",
-            "pos": (235, 235),
+            "pos": (234, 236),
             "status": TranscriptPriority.MANE_SELECT,
             "strand": "-",
             "gene": "MYBPC3",
@@ -155,7 +158,7 @@ def mybpc3_s236g():
             "alt_ac": "NC_000011.10",
             "refseq": "NM_000256.3",
             "ensembl": "ENST00000545968.6",
-            "pos": (704, 705),
+            "pos": (704, 706),
             "status": TranscriptPriority.MANE_SELECT,
             "strand": "-",
             "coding_start_site": 55,
@@ -166,7 +169,7 @@ def mybpc3_s236g():
     return ProteinAndCdnaRepresentation(**params)
 
 
-def test__get_reading_frame(test_mane_transcript):
+def test_get_reading_frame(test_mane_transcript):
     """Test that _get_reading_frame works correctly."""
     rf = test_mane_transcript._get_reading_frame(1797)
     assert rf == 3
@@ -186,65 +189,65 @@ def test__get_reading_frame(test_mane_transcript):
 
 def test_p_to_c_pos(test_mane_transcript):
     """Test that _p_to_c_pos method works correctly."""
-    # https://civicdb.org/events/genes/5/summary/variants/12/summary#variant
-    c_pos = test_mane_transcript._p_to_c_pos(600, 600)
-    assert c_pos == (1798, 1800)
+    # https://civicdb.org/variants/12/summary
+    c_pos = test_mane_transcript._p_to_c_pos(599, 600)
+    assert c_pos == (1797, 1799)
 
-    # https://civicdb.org/events/genes/19/summary/variants/33/summary#variant
-    c_pos = test_mane_transcript._p_to_c_pos(858, 858)
-    assert c_pos == (2572, 2574)
+    # https://civicdb.org/variants/33/summary
+    c_pos = test_mane_transcript._p_to_c_pos(857, 858)
+    assert c_pos == (2571, 2573)
 
-    # https://civicdb.org/events/genes/29/summary/variants/72/summary#variant
-    c_pos = test_mane_transcript._p_to_c_pos(576, 576)
-    assert c_pos == (1726, 1728)
+    # https://civicdb.org//variants/72/summary
+    c_pos = test_mane_transcript._p_to_c_pos(575, 576)
+    assert c_pos == (1725, 1727)
 
-    # https://civicdb.org/events/genes/38/summary/variants/99/summary#variant
-    c_pos = test_mane_transcript._p_to_c_pos(842, 842)
-    assert c_pos == (2524, 2526)
+    # https://civicdb.org/variants/99/summary
+    c_pos = test_mane_transcript._p_to_c_pos(841, 842)
+    assert c_pos == (2523, 2525)
 
-    # https://civicdb.org/events/genes/30/summary/variants/78/summary#variant
-    c_pos = test_mane_transcript._p_to_c_pos(12, 12)
-    assert c_pos == (34, 36)
+    # https://civicdb.org/variants/78/summary
+    c_pos = test_mane_transcript._p_to_c_pos(11, 12)
+    assert c_pos == (33, 35)
 
     c_pos = test_mane_transcript._p_to_c_pos(747, 751)
-    assert c_pos == (2239, 2253)
+    assert c_pos == (2241, 2252)
 
 
 @pytest.mark.asyncio
 async def test_p_to_c(test_mane_transcript):
     """Test that _p_to_c method works correctly."""
     # Amino Acid Substitution
-    expected_pos = 1798, 1800
-    ac, pos = await test_mane_transcript._p_to_c("NP_004324.2", 600, 600)
+    expected_pos = 1797, 1799
+    ac, pos = await test_mane_transcript._p_to_c("NP_004324.2", 599, 600)
     assert ac == "NM_004333.6"
     assert pos == expected_pos
 
-    ac, pos = await test_mane_transcript._p_to_c("ENSP00000288602.7", 600, 600)
+    ac, pos = await test_mane_transcript._p_to_c("ENSP00000288602.7", 599, 600)
     assert ac == "ENST00000288602.11"
     assert pos == expected_pos
 
-    expected_pos = 2572, 2574
-    ac, pos = await test_mane_transcript._p_to_c("NP_005219.2", 858, 858)
+    expected_pos = 2571, 2573
+    ac, pos = await test_mane_transcript._p_to_c("NP_005219.2", 857, 858)
     assert ac == "NM_005228.5"
     assert pos == expected_pos
 
-    ac, pos = await test_mane_transcript._p_to_c("ENSP00000275493.2", 858, 858)
+    ac, pos = await test_mane_transcript._p_to_c("ENSP00000275493.2", 857, 858)
     assert ac == "ENST00000275493.7"
     assert pos == expected_pos
 
     # Polypeptide Truncation
-    expected_pos = 553, 555
-    ac, pos = await test_mane_transcript._p_to_c("NP_000542.1", 185, 185)
+    expected_pos = 552, 554
+    ac, pos = await test_mane_transcript._p_to_c("NP_000542.1", 184, 185)
     assert ac == "NM_000551.4"
     assert pos == expected_pos
 
-    ac, pos = await test_mane_transcript._p_to_c("ENSP00000256474.3", 185, 185)
+    ac, pos = await test_mane_transcript._p_to_c("ENSP00000256474.3", 184, 185)
     assert ac == "ENST00000256474.3"
     assert pos == expected_pos
 
     # Silent Mutation
-    expected_pos = 181, 183
-    ac, pos = await test_mane_transcript._p_to_c("NP_000542.1", 61, 61)
+    expected_pos = 180, 182
+    ac, pos = await test_mane_transcript._p_to_c("NP_000542.1", 60, 61)
     assert ac == "NM_000551.4"
     assert pos == expected_pos
 
@@ -258,7 +261,7 @@ async def test_c_to_g(test_mane_transcript, nm_004333v6_g):
 
 
 @pytest.mark.asyncio
-async def test__g_to_c(
+async def test_g_to_c(
     test_mane_transcript, braf_mane_data, nm_004333v6_g, braf_v600e_mane_c
 ):
     """Test that _g_to_c method works correctly."""
@@ -276,7 +279,7 @@ async def test__g_to_c(
 
 def test_get_mane_p(test_mane_transcript, braf_mane_data, braf_v600e_mane_p):
     """Test that _get_mane_p method works correctly."""
-    mane_p = test_mane_transcript._get_mane_p(braf_mane_data, (1797, 1799))
+    mane_p = test_mane_transcript._get_mane_p(braf_mane_data, (1798, 1799))
     assert mane_p == braf_v600e_mane_p
 
 
@@ -287,27 +290,14 @@ async def test_p_to_mane_p(test_mane_transcript, braf_v600e_mane_p, egfr_l858r_m
     mane_p = await test_mane_transcript.get_mane_transcript(
         "NP_004324.2",
         599,
+        600,
         AnnotationLayer.PROTEIN,
         residue_mode=ResidueMode.INTER_RESIDUE,
     )
     assert mane_p == braf_v600e_mane_p
 
     mane_p = await test_mane_transcript.get_mane_transcript(
-        "NP_004324.2", 600, AnnotationLayer.PROTEIN
-    )
-    assert mane_p == braf_v600e_mane_p
-
-    mane_p = await test_mane_transcript.get_mane_transcript(
-        "NP_004324.2",
-        599,
-        AnnotationLayer.PROTEIN,
-        residue_mode=ResidueMode.INTER_RESIDUE,
-        end_pos=599,
-    )
-    assert mane_p == braf_v600e_mane_p
-
-    mane_p = await test_mane_transcript.get_mane_transcript(
-        "NP_004324.2", 600, AnnotationLayer.PROTEIN, end_pos=600
+        "NP_004324.2", 600, 600, AnnotationLayer.PROTEIN
     )
     assert mane_p == braf_v600e_mane_p
 
@@ -315,71 +305,49 @@ async def test_p_to_mane_p(test_mane_transcript, braf_v600e_mane_p, egfr_l858r_m
     mane_p = await test_mane_transcript.get_mane_transcript(
         "ENSP00000288602.7",
         599,
+        600,
         AnnotationLayer.PROTEIN,
         residue_mode=ResidueMode.INTER_RESIDUE,
     )
     assert mane_p == braf_v600e_mane_p
 
     mane_p = await test_mane_transcript.get_mane_transcript(
-        "ENSP00000288602.7", 600, AnnotationLayer.PROTEIN
-    )
-    assert mane_p == braf_v600e_mane_p
-
-    mane_p = await test_mane_transcript.get_mane_transcript(
-        "ENSP00000288602.7",
-        599,
-        AnnotationLayer.PROTEIN,
-        residue_mode=ResidueMode.INTER_RESIDUE,
-        end_pos=599,
-    )
-    assert mane_p == braf_v600e_mane_p
-
-    mane_p = await test_mane_transcript.get_mane_transcript(
-        "ENSP00000288602.7", 600, AnnotationLayer.PROTEIN, end_pos=600
+        "ENSP00000288602.7", 600, 600, AnnotationLayer.PROTEIN
     )
     assert mane_p == braf_v600e_mane_p
 
     # EGFR L858R RefSeq Accessions
     mane_p = await test_mane_transcript.get_mane_transcript(
-        "NP_005219.2", 858, AnnotationLayer.PROTEIN
-    )
-    assert mane_p == egfr_l858r_mane_p
-
-    mane_p = await test_mane_transcript.get_mane_transcript(
-        "NP_005219.2", 858, AnnotationLayer.PROTEIN, end_pos=858
+        "NP_005219.2", 858, 858, AnnotationLayer.PROTEIN
     )
     assert mane_p == egfr_l858r_mane_p
 
     # EGFR L858R Ensembl Accessions
     mane_p = await test_mane_transcript.get_mane_transcript(
-        "ENSP00000275493.2", 858, AnnotationLayer.PROTEIN
-    )
-    assert mane_p == egfr_l858r_mane_p
-
-    mane_p = await test_mane_transcript.get_mane_transcript(
-        "ENSP00000275493.2", 858, AnnotationLayer.PROTEIN, end_pos=858
+        "ENSP00000275493.2", 858, 858, AnnotationLayer.PROTEIN
     )
     assert mane_p == egfr_l858r_mane_p
 
     assert test_mane_transcript.get_mane_transcript(
-        "NP_004439.2", 755, AnnotationLayer.PROTEIN, end_pos=759
+        "NP_004439.2", 755, 759, AnnotationLayer.PROTEIN
     )
 
+    # CA388294838
     mane_p = await test_mane_transcript.get_mane_transcript(
         "ENSP00000366997.4",
+        63,
         63,
         AnnotationLayer.PROTEIN,
         gene="DIS3",
         ref="P",
         try_longest_compatible=True,
-        end_pos=63,
     )
     assert mane_p == DataRepresentation(
         **{
             "gene": "DIS3",
             "refseq": "NP_055768.3",
             "ensembl": "ENSP00000366997.4",
-            "pos": (62, 62),
+            "pos": (62, 63),
             "strand": "-",
             "status": TranscriptPriority.MANE_SELECT,
         }
@@ -392,87 +360,55 @@ async def test_c_to_mane_c(test_mane_transcript, braf_v600e_mane_c, egfr_l858r_m
     # BRAF V600E RefSeq Accessions
     cpy_braf_v600e_mane_c = braf_v600e_mane_c.model_copy(deep=True)
     mane_c = await test_mane_transcript.get_mane_transcript(
-        "NM_004333.4", 1799, AnnotationLayer.CDNA
+        "NM_004333.4", 1799, 1799, AnnotationLayer.CDNA
     )
     assert mane_c == cpy_braf_v600e_mane_c
 
     mane_c = await test_mane_transcript.get_mane_transcript(
         "NM_004333.4",
         1798,
+        1799,
         AnnotationLayer.CDNA,
         residue_mode=ResidueMode.INTER_RESIDUE,
     )
     assert mane_c == cpy_braf_v600e_mane_c
 
     mane_c = await test_mane_transcript.get_mane_transcript(
-        "NM_004333.4",
-        1798,
-        AnnotationLayer.CDNA,
-        residue_mode=ResidueMode.INTER_RESIDUE,
-        end_pos=1798,
-    )
-    assert mane_c == cpy_braf_v600e_mane_c
-
-    mane_c = await test_mane_transcript.get_mane_transcript(
-        "NM_004333.5", 1799, AnnotationLayer.CDNA
-    )
-    assert mane_c == cpy_braf_v600e_mane_c
-
-    mane_c = await test_mane_transcript.get_mane_transcript(
-        "NM_004333.6", 1799, AnnotationLayer.CDNA
+        "NM_004333.5", 1799, 1799, AnnotationLayer.CDNA
     )
     assert mane_c == cpy_braf_v600e_mane_c
 
     # BRAF V600E Ensembl Accessions
     mane_c = await test_mane_transcript.get_mane_transcript(
-        "ENST00000288602.10", 1799, AnnotationLayer.CDNA
+        "ENST00000288602.10", 1799, 1799, AnnotationLayer.CDNA
     )
     cpy_braf_v600e_mane_c.alt_ac = "NC_000007.13"
-    assert mane_c == cpy_braf_v600e_mane_c
-
-    mane_c = await test_mane_transcript.get_mane_transcript(
-        "ENST00000288602.11", 1799, AnnotationLayer.CDNA
-    )
     assert mane_c == cpy_braf_v600e_mane_c
 
     cpy_egfr_l858r_mane_c = egfr_l858r_mane_c.model_copy(deep=True)
     # EGFR L858R RefSeq Accessions
     mane_c = await test_mane_transcript.get_mane_transcript(
-        "NM_005228.3", 2573, AnnotationLayer.CDNA
-    )
-    assert mane_c == cpy_egfr_l858r_mane_c
-
-    mane_c = await test_mane_transcript.get_mane_transcript(
-        "NM_005228.4", 2573, AnnotationLayer.CDNA
-    )
-    assert mane_c == cpy_egfr_l858r_mane_c
-
-    mane_c = await test_mane_transcript.get_mane_transcript(
-        "NM_005228.5", 2573, AnnotationLayer.CDNA, end_pos=2573
+        "NM_005228.3", 2573, 2573, AnnotationLayer.CDNA
     )
     assert mane_c == cpy_egfr_l858r_mane_c
 
     # EGFR L858R Ensembl Accessions
     mane_c = await test_mane_transcript.get_mane_transcript(
-        "ENST00000275493.7", 2573, AnnotationLayer.CDNA
+        "ENST00000275493.7", 2573, 2573, AnnotationLayer.CDNA
     )
     cpy_egfr_l858r_mane_c.alt_ac = "NC_000007.13"
     assert mane_c == cpy_egfr_l858r_mane_c
 
+    # CA645372623
     mane_c = await test_mane_transcript.get_mane_transcript(
-        "ENST00000275493.6", 2573, AnnotationLayer.CDNA
-    )
-    assert mane_c == cpy_egfr_l858r_mane_c
-
-    mane_c = await test_mane_transcript.get_mane_transcript(
-        "NM_004448.3", 2264, AnnotationLayer.CDNA, end_pos=2278, ref="TGAGGGAAAACACAT"
+        "NM_004448.3", 2264, 2278, AnnotationLayer.CDNA, ref="TGAGGGAAAACACAT"
     )
     assert mane_c == CdnaRepresentation(
         **{
             "alt_ac": "NC_000017.11",
             "refseq": "NM_004448.4",
             "ensembl": "ENST00000269571.10",
-            "pos": (2263, 2277),
+            "pos": (2263, 2278),
             "status": TranscriptPriority.MANE_SELECT,
             "strand": "+",
             "coding_start_site": 175,
@@ -484,7 +420,7 @@ async def test_c_to_mane_c(test_mane_transcript, braf_v600e_mane_c, egfr_l858r_m
 
 @pytest.fixture(scope="function")
 @patch.object(SeqRepoAccess, "get_reference_sequence")
-def test__get_prioritized_transcripts_from_gene(test_get_seqrepo, test_mane_transcript):
+def test_get_prioritized_transcripts_from_gene(test_get_seqrepo, test_mane_transcript):
     """Test that _get_prioritized_transcripts_from_gene works as expected"""
 
     def get_reference_sequence(ac):
@@ -525,11 +461,12 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         "NM_004333.6",
         "ENST00000644969.2",
     }
+    # TODO: Check this. Should this be: NP_001365396.1:p.Val603Glu ?
     p_expected = DataRepresentation(
         **{
             "refseq": "NP_001365396.1",
             "ensembl": None,
-            "pos": (599, 599),
+            "pos": (599, 600),
             "strand": "-",
             "gene": "BRAF",
             "status": TranscriptPriority.LONGEST_COMPATIBLE_REMAINING,
@@ -537,7 +474,7 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
     )
     resp = await test_mane_transcript.get_longest_compatible_transcript(
         599,
-        599,
+        600,
         gene="BRAF",
         start_annotation_layer=AnnotationLayer.PROTEIN,
         residue_mode=ResidueMode.INTER_RESIDUE,
@@ -555,11 +492,12 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
     )
     assert resp == p_expected
 
+    # TODO: Check this. Should this be NM_001378467.1:c.1808T>A ?
     c_expected = CdnaRepresentation(
         **{
             "refseq": "NM_001378467.1",
             "ensembl": None,
-            "pos": (1798, 1798),
+            "pos": (1798, 1799),
             "strand": "-",
             "gene": "BRAF",
             "coding_start_site": 226,
@@ -578,7 +516,7 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
 
     resp = await test_mane_transcript.get_longest_compatible_transcript(
         1798,
-        1798,
+        1799,
         gene="BRAF",
         start_annotation_layer=AnnotationLayer.CDNA,
         residue_mode=ResidueMode.INTER_RESIDUE,
@@ -589,7 +527,7 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
     # Both protein and cdna end annotation layer
     resp = await test_mane_transcript.get_longest_compatible_transcript(
         1798,
-        1798,
+        1799,
         gene="BRAF",
         start_annotation_layer=AnnotationLayer.CDNA,
         residue_mode=ResidueMode.INTER_RESIDUE,
@@ -610,7 +548,7 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         **{
             "refseq": "NM_001378467.1",
             "ensembl": None,
-            "pos": (1807, 1807),
+            "pos": (1807, 1808),
             "strand": "-",
             "gene": "BRAF",
             "coding_start_site": 226,
@@ -619,7 +557,7 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         }
     )
 
-    #  CA1139661942 has no other RefSeq accessions
+    # CA1139661942 has no other RefSeq accessions
     mane_transcripts = {"NM_000256.3", "ENST00000545968.6"}
     resp = await test_mane_transcript.get_longest_compatible_transcript(
         47348490,
@@ -631,7 +569,7 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
     assert resp is None
 
     mane_transcripts = {"NM_005228.5", "ENST00000275493.7"}
-    # CDNA
+    # CDNA (CA645561524, NM_001346899.2:c.2104_2121delinsCAA)
     resp = await test_mane_transcript.get_longest_compatible_transcript(
         55174776,
         55174793,
@@ -643,7 +581,7 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         **{
             "refseq": "NM_001346899.2",
             "ensembl": None,
-            "pos": (2103, 2120),
+            "pos": (2103, 2121),
             "strand": "+",
             "gene": "EGFR",
             "coding_start_site": 261,
@@ -652,7 +590,7 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         }
     )
 
-    # protein
+    # protein (CA645561524, NP_001333828.1:p.Leu702_Ser707delinsGln)
     resp = await test_mane_transcript.get_longest_compatible_transcript(
         55174776,
         55174793,
@@ -665,13 +603,14 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         **{
             "refseq": "NP_001333828.1",
             "ensembl": None,
-            "pos": (701, 706),
+            "pos": (701, 707),
             "strand": "+",
             "gene": None,
             "status": TranscriptPriority.LONGEST_COMPATIBLE_REMAINING,
         }
     )
 
+    # CA2499226460 (NP_000416.1:p.Pro240_Pro259delinsThrLeuTh...)
     resp = await test_mane_transcript.get_longest_compatible_transcript(
         153870419,
         153870476,
@@ -684,7 +623,7 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         **{
             "refseq": "NP_000416.1",
             "ensembl": None,
-            "pos": (239, 258),
+            "pos": (239, 259),
             "strand": "-",
             "gene": None,
             "status": TranscriptPriority.LONGEST_COMPATIBLE_REMAINING,
@@ -698,14 +637,14 @@ async def test_g_to_mane_c(
 ):
     """Test that g_to_mane_c method works correctly."""
     mane_c = await test_mane_transcript.g_to_mane_c(
-        "NC_000007.13", 55259515, None, gene="EGFR"
+        "NC_000007.13", 55259515, 55259515, gene="EGFR"
     )
     assert mane_c == egfr_l858r_mane_c
 
     mane_c = await test_mane_transcript.g_to_mane_c(
         "NC_000007.13",
         55259514,
-        None,
+        55259515,
         gene="EGFR",
         residue_mode=ResidueMode.INTER_RESIDUE,
     )
@@ -719,20 +658,21 @@ async def test_g_to_mane_c(
     mane_c = await test_mane_transcript.g_to_mane_c(
         "NC_000007.13",
         140453135,
-        None,
+        140453136,
         gene="BRAF",
         residue_mode=ResidueMode.INTER_RESIDUE,
     )
     assert mane_c == braf_v600e_mane_c
 
     mane_c = await test_mane_transcript.get_mane_transcript(
-        "NC_000007.13", 140453136, AnnotationLayer.GENOMIC, gene="BRAF"
+        "NC_000007.13", 140453136, 140453136, AnnotationLayer.GENOMIC, gene="BRAF"
     )
     assert mane_c == braf_v600e_mane_c
 
     mane_c = await test_mane_transcript.get_mane_transcript(
         "NC_000007.13",
         140453135,
+        140453136,
         AnnotationLayer.GENOMIC,
         gene="BRAF",
         residue_mode=ResidueMode.INTER_RESIDUE,
@@ -740,48 +680,50 @@ async def test_g_to_mane_c(
     assert mane_c == braf_v600e_mane_c
 
     mane_c = await test_mane_transcript.g_to_mane_c(
-        "NC_000007.13", 140453136, None, gene="BRAF"
+        "NC_000007.13", 140453136, 140453136, gene="BRAF"
     )
     assert mane_c == braf_v600e_mane_c
 
-    resp = await test_mane_transcript.g_to_mane_c("NC_000007.13", 55259515, None)
+    resp = await test_mane_transcript.g_to_mane_c("NC_000007.13", 55259515, 55259515)
     assert resp == grch38
 
     resp = await test_mane_transcript.get_mane_transcript(
         "NC_000007.13",
         55259514,
+        55259515,
         AnnotationLayer.GENOMIC,
         residue_mode=ResidueMode.INTER_RESIDUE,
     )
     assert resp == grch38
 
     resp = await test_mane_transcript.get_mane_transcript(
-        "NC_000007.13", 55259515, AnnotationLayer.GENOMIC
+        "NC_000007.13", 55259515, 55259515, AnnotationLayer.GENOMIC
     )
     assert resp == grch38
 
-    resp = await test_mane_transcript.g_to_mane_c("NC_000007.13", 140453136, None)
-    grch38.pos = (140753335, 140753335)
+    resp = await test_mane_transcript.g_to_mane_c("NC_000007.13", 140453136, 140453136)
+    grch38.pos = (140753335, 140753336)
     assert resp == grch38
 
     resp = await test_mane_transcript.g_to_mane_c(
-        "NC_000007.13", 140453135, None, residue_mode=ResidueMode.INTER_RESIDUE
+        "NC_000007.13", 140453135, 140453136, residue_mode=ResidueMode.INTER_RESIDUE
     )
     assert resp == grch38
 
-    resp = await test_mane_transcript.g_to_mane_c("NC_000007.14", 140753336, None)
-    grch38.pos = (140753335, 140753335)
+    resp = await test_mane_transcript.g_to_mane_c("NC_000007.14", 140753336, 140753336)
+    grch38.pos = (140753335, 140753336)
     assert resp == grch38
 
+    # CA122528
     mane_c = await test_mane_transcript.g_to_mane_c(
-        "NC_000012.11", 25398284, None, gene="KRAS"
+        "NC_000012.11", 25398284, 25398284, gene="KRAS"
     )
     assert mane_c == CdnaRepresentation(
         **{
             "alt_ac": "NC_000012.12",
             "refseq": "NM_004985.5",
             "ensembl": "ENST00000311936.8",
-            "pos": (34, 34),
+            "pos": (34, 35),
             "status": TranscriptPriority.MANE_SELECT,
             "strand": "-",
             "coding_start_site": 190,
@@ -790,15 +732,16 @@ async def test_g_to_mane_c(
         }
     )
 
+    # CA090928
     mane_c = await test_mane_transcript.get_mane_transcript(
-        "NC_000007.13", 55249071, AnnotationLayer.GENOMIC, 55249071, "EGFR"
+        "NC_000007.13", 55249071, 55249071, AnnotationLayer.GENOMIC, gene="EGFR"
     )
     assert mane_c == CdnaRepresentation(
         **{
             "alt_ac": "NC_000007.14",
             "refseq": "NM_005228.5",
             "ensembl": "ENST00000275493.7",
-            "pos": (2368, 2368),
+            "pos": (2368, 2369),
             "status": TranscriptPriority.MANE_SELECT,
             "strand": "+",
             "coding_start_site": 261,
@@ -854,7 +797,7 @@ async def test_grch38_to_mane_c_p(
             **{
                 "refseq": "NP_005219.2",
                 "ensembl": "ENSP00000275493.2",
-                "pos": (746, 751),
+                "pos": (746, 752),
                 "status": TranscriptPriority.MANE_SELECT,
                 "strand": "+",
                 "gene": " EGFR",
@@ -865,7 +808,7 @@ async def test_grch38_to_mane_c_p(
                 "alt_ac": "NC_000007.14",
                 "refseq": "NM_005228.5",
                 "ensembl": "ENST00000275493.7",
-                "pos": (2238, 2255),
+                "pos": (2238, 2256),
                 "status": TranscriptPriority.MANE_SELECT,
                 "strand": "+",
                 "coding_start_site": 261,
@@ -879,12 +822,12 @@ async def test_grch38_to_mane_c_p(
     resp = await test_mane_transcript.grch38_to_mane_c_p(
         "NC_000023.11", 153870419, 153870476
     )
-    assert ProteinAndCdnaRepresentation(
+    assert resp == ProteinAndCdnaRepresentation(
         protein=DataRepresentation(
             **{
                 "refseq": "NP_001265045.1",
                 "ensembl": "ENSP00000359077.1",
-                "pos": (239, 258),
+                "pos": (239, 259),
                 "status": TranscriptPriority.MANE_SELECT,
                 "strand": "-",
                 "gene": "L1CAM",
@@ -895,12 +838,44 @@ async def test_grch38_to_mane_c_p(
                 "alt_ac": "NC_000023.11",
                 "refseq": "NM_001278116.2",
                 "ensembl": "ENST00000370060.7",
-                "pos": (717, 774),
+                "pos": (717, 775),
                 "status": TranscriptPriority.MANE_SELECT,
                 "strand": "-",
                 "coding_start_site": 217,
                 "coding_end_site": 3991,
                 "gene": "L1CAM",
+            }
+        ),
+    )
+
+    # CA16042245
+    resp = await test_mane_transcript.grch38_to_mane_c_p(
+        "NC_000002.12",
+        74530927,
+        74530929,
+    )
+    assert resp == ProteinAndCdnaRepresentation(
+        protein=DataRepresentation(
+            **{
+                "refseq": "NP_037379.1",
+                "ensembl": "ENSP00000258080.3",
+                "pos": (242, 244),
+                "status": TranscriptPriority.MANE_SELECT,
+                "strand": "+",
+                "gene": "HTRA2",
+            }
+        ),
+        cdna=CdnaRepresentation(
+            **{
+                "alt_ac": "NC_000002.12",
+                "refseq": "NM_013247.5",
+                "ensembl": "ENST00000258080.8",
+                "pos": (727, 730),
+                "status": TranscriptPriority.MANE_SELECT,
+                "strand": "+",
+                "coding_start_site": 74,
+                "coding_end_site": 1451,
+                "gene": "HTRA2",
             }
         ),
     )
@@ -918,8 +893,8 @@ async def test_valid(test_mane_transcript):
     resp = await test_mane_transcript.get_mane_transcript(
         "NP_001296812.1",
         201,
+        201,
         AnnotationLayer.PROTEIN,
-        end_pos=201,
         ref="R",
         try_longest_compatible=True,
     )
@@ -931,12 +906,6 @@ async def test_no_matches(test_mane_transcript):
     """Test that invalid queries return None."""
     # Invalid ENST version
     mane_c = await test_mane_transcript.get_mane_transcript(
-        "ENST00000275493.15645", 2573, AnnotationLayer.CDNA
-    )
-    assert mane_c is None
-
-    # Invalid residue-mode
-    mane_c = await test_mane_transcript.get_mane_transcript(
-        "ENST00000288602.11", 2573, AnnotationLayer.CDNA, residue_mode="residues"
+        "ENST00000275493.15645", 2573, 2573, AnnotationLayer.CDNA
     )
     assert mane_c is None
