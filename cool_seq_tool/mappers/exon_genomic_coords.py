@@ -40,11 +40,12 @@ class ExonGenomicCoordsMapper:
         Note that this class's methods are all defined as ``async``, so they will
         need to be called with ``await``.
 
-        >>> egc.ex_g_coords_mapper().transcript_to_genomic_coordinates(
+        >>> result = egc.transcript_to_genomic_coordinates(
         ...     transcript="NM_002529.3",
         ...     exon_end=17
         ... )
-        <coroutine object ExonGenomicCoordsMapper.transcript_to_genomic_coordinates at 0x1050377c0>
+        >>> result.genomic_data
+        AttributeError: 'coroutine' object has no attribute 'genomic_data'
 
         :param uta_db: UTADatabase instance to give access to query UTA database
         :param mane_transcript: Instance to align to MANE or compatible representation

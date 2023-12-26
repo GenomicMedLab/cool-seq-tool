@@ -103,8 +103,9 @@ class MANETranscript:
         Note that most methods are defined as Python coroutines, so they must be called
         with ``await``:
 
-        >>> mane_mapper.g_to_grch38("NC_000001.11", 100, 200)
-        <coroutine object MANETranscript.g_to_grch38 at 0x112ec7e00>
+        >>> result = mane_mapper.g_to_grch38("NC_000001.11", 100, 200)
+        >>> result['ac']
+        TypeError: 'coroutine' object is not subscriptable
 
         :param seqrepo_access: Access to seqrepo queries
         :param transcript_mappings: Access to transcript accession mappings and
