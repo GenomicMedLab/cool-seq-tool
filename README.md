@@ -24,7 +24,7 @@ CoolSeqTool is available on [PyPI](https://pypi.org/project/cool-seq-tool)
 python3 -m pip install cool-seq-tool
 ```
 
-See the [installation instructions](#) in the documentation for a description of dependency setup requirements.
+See the [installation instructions](https://coolseqtool.readthedocs.io/en/latest/install.html) in the documentation for a description of dependency setup requirements.
 
 ---
 
