@@ -15,8 +15,8 @@ Transcript compatibility
 The following validation checks are performed to determine compatibility of a transcript position:
 
 * The position exists on an accession
-* "Validating reference sequences"  # TODO what does this mean?
-* "Validating exon structure"  # TODO what does this mean?
+* The sequence matches the expected reference sequence for a given accession or position
+* Exon numbering matches known exon structure
 
 A transcript that fails to pass any of these checks is discarded as incompatible.
 
