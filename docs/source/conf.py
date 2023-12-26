@@ -49,12 +49,6 @@ html_theme_options = {
             "html": "",
             "class": "fa-solid fa-house",
         },
-        {
-            "name": "Twitter",
-            "url": "https://twitter.com/genomicmedlab",
-            "html": "",
-            "class": "fa-solid fa-brands fa-twitter",
-        },
     ],
 }
 # -- autodoc things ----------------------------------------------------------

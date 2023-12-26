@@ -856,6 +856,7 @@ class MANETranscript:
         """Return MANE transcript.
 
         >>> from cool_seq_tool.app import CoolSeqTool
+        >>> from cool_seq_tool.schemas import AnnotationLayer, ResidueMode
         >>> mane_mapper = CoolSeqTool().mane_transcript
         >>> result = await mane_mapper.get_mane_transcript(
         ...     "NP_004324.2",
@@ -1098,14 +1099,8 @@ class MANETranscript:
         >>> result.status
         <TranscriptPriority.MANE_SELECT: 'mane_select'>
 
-        If no matching MANE cDNA representation is found, instead returns genomic
-        coordinates on GRCh38.
-
-        # TODO is this true? code makes it look like it returns None
-        # otherwise find example
-
         Locating a MANE transcript requires a ``gene`` symbol argument -- if none is
-        given, only lifts over to genomic coordinates on GRCh38.
+        given, this method will only lift over to genomic coordinates on GRCh38.
 
         >>> result = await mane_mapper.g_to_mane_c(
         ...     "NC_000007.13", 55259515, None

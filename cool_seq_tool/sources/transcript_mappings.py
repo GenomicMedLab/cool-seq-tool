@@ -16,7 +16,7 @@ class TranscriptMappings:
 
     In general, this class's methods expect to receive NCBI gene symbols, so users
     should be careful about the sourcing of their input in cases where terms are
-    conflicted or ambiguous.  # TODO double-checking: NCBI not HGNC?
+    conflicted or ambiguous (which, to be fair, should be relatively rare).
     """
 
     def __init__(

@@ -81,7 +81,7 @@ class ExonGenomicCoordsMapper:
         """Get genomic data given transcript data.
 
         By default, inputs are assumed to be in GRCh38 where they aren't otherwise
-        precisely defined.  # TODO is this correct?
+        precisely defined.
 
         >>> from cool_seq_tool.app import CoolSeqTool
         >>> egc = CoolSeqTool().ex_g_coords_mapper
@@ -204,7 +204,7 @@ class ExonGenomicCoordsMapper:
     ) -> GenomicDataResponse:
         """Get transcript data for genomic data, lifted over to GRCh38.
 
-        MANE Transcript data will be returned if and only if `transcript` is not
+        MANE Transcript data will be returned if and only if ``transcript`` is not
         supplied. ``gene`` must be given in order to retrieve MANE Transcript data.
 
         >>> from cool_seq_tool.app import CoolSeqTool
@@ -229,7 +229,7 @@ class ExonGenomicCoordsMapper:
             Compatible Transcript. See the :ref:`Transcript Selection policy <transcript_selection_policy>`
             page.
         :param gene: Gene symbol
-        :param residue_mode: Default is ``resiude`` (1-based). Must be either
+        :param residue_mode: Default is ``residue`` (1-based). Must be either
             ``residue`` or ``inter-residue`` (0-based).
         :return: Genomic data (inter-residue coordinates)
         """
@@ -331,7 +331,7 @@ class ExonGenomicCoordsMapper:
         :param gene: Gene symbol
         :param is_start: ``True`` if ``pos`` is start position. ``False`` if ``pos`` is
             end position.
-        :param residue_mode: Default is ``resiude`` (1-based). Must be either ``residue``
+        :param residue_mode: Default is ``residue`` (1-based). Must be either ``residue``
             or ``inter-residue`` (0-based).
         :return: Transcript data (inter-residue coordinates)
         """

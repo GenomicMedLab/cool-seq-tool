@@ -213,7 +213,8 @@ class AlignmentMapper:
         residue_mode: ResidueMode = ResidueMode.INTER_RESIDUE,
         target_genome_assembly: Assembly = Assembly.GRCH38,
     ) -> Tuple[Optional[Dict], Optional[str]]:
-        """Translate protein representation to genomic representation
+        """Translate protein representation to genomic representation, by way of
+        intermediary conversion into cDNA coordinates.
 
         :param p_ac: Protein RefSeq accession
         :param p_start_pos: Protein start position
@@ -224,8 +225,7 @@ class AlignmentMapper:
 
         * Genomic representation (ac, positions) if able to translate. Will return
           positions as inter-residue coordinates. Else ``None``.
-        * Warnings. The genomic data will always return inter-residue coordinates
-        (# TODO: something got cut off here?)
+        * Warnings, if conversion to cDNA or genomic coordinates fails.
         """
         c_data, warning = await self.p_to_c(
             p_ac, p_start_pos, p_end_pos, residue_mode=residue_mode
