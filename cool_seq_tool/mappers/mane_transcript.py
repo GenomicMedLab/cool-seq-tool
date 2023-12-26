@@ -289,7 +289,7 @@ class MANETranscript:
             alt_ac=alt_ac,
         )
 
-    def _c_to_p_pos(self, c_pos: Tuple[int, int], strand: Strand) -> Tuple[int, int]:
+    def _c_to_p_pos(self, c_pos: Tuple[int, int]) -> Tuple[int, int]:
         """Get protein position from cdna position
 
         :param c_pos: cdna position. inter-residue coordinates
@@ -317,7 +317,7 @@ class MANETranscript:
             gene=mane_data["symbol"],
             refseq=mane_data["RefSeq_prot"],
             ensembl=mane_data["Ensembl_prot"],
-            pos=self._c_to_p_pos(mane_c_pos_range, strand),
+            pos=self._c_to_p_pos(mane_c_pos_range),
             strand=strand,
             status=TranscriptPriority(
                 "_".join(mane_data["MANE_status"].split()).lower()
@@ -614,7 +614,7 @@ class MANETranscript:
                 gene=gene,
                 refseq=pro_ac if pro_ac.startswith("N") else None,
                 ensembl=pro_ac if pro_ac.startswith("E") else None,
-                pos=self._c_to_p_pos(lcr_c_data_pos, strand),
+                pos=self._c_to_p_pos(lcr_c_data_pos),
                 strand=strand,
                 status=status,
             )
