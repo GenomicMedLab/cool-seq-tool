@@ -2,7 +2,7 @@
 CoolSeqTool
 </h1>
 
-**[Documentation](#)** · [Installation](#) · [Usage](#) · [API reference](#)
+**[Documentation](https://coolseqtool.readthedocs.io/en/latest/)** · [Installation](https://coolseqtool.readthedocs.io/en/latest/install.html) · [Usage](https://coolseqtool.readthedocs.io/en/latest/usage.html) · [API reference](https://coolseqtool.readthedocs.io/en/latest/reference/index.html)
 
 ## Overview
 
@@ -49,4 +49,4 @@ All CoolSeqTool resources can be initialized by way of a top-level class instanc
 
 ## Feedback and contributing
 
-We welcome bug reports, feature requests, and code contributions from users and interested collaborators. The [documentation](#) contains guidance for submitting feedback and contributing new code.
+We welcome bug reports, feature requests, and code contributions from users and interested collaborators. The [documentation](https://coolseqtool.readthedocs.io/en/latest/contributing.html) contains guidance for submitting feedback and contributing new code.
