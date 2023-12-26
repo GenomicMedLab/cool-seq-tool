@@ -21,6 +21,14 @@ def test_get_reference_sequence(test_seqrepo_access):
     resp = test_seqrepo_access.get_reference_sequence("NP_004324.2")
     assert len(resp[0]) == 766
 
+    # Test only setting end
+    resp = test_seqrepo_access.get_reference_sequence("NP_001341538.1", end=10)
+    assert resp == ("MAALSGGGGG", None)
+
+    # Test only setting start
+    resp = test_seqrepo_access.get_reference_sequence("NP_001341538.1", start=758)
+    assert resp == ("GGYGEFAAFK", None)
+
     resp = test_seqrepo_access.get_reference_sequence("NP_004324.2", 601, 600)
     assert resp == (
         "",
