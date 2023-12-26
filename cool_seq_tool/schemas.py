@@ -1,4 +1,4 @@
-"""Module for data models."""
+"""Defines attribute constants, useful object structures, and API response schemas."""
 import re
 from datetime import datetime
 from enum import Enum
@@ -71,7 +71,7 @@ class GenomicRequestBody(BaseModelForbidExtra):
 
     @model_validator(mode="after")
     def check_start_and_end(cls, values):
-        """Check that at least one of {`start`, `end`} is set"""
+        """Check that at least one of {``start``, ``end``} is set"""
         msg = "Must provide either `start` or `end`"
         start, end = values.start, values.end
         assert start or end, msg
@@ -104,7 +104,7 @@ class TranscriptRequestBody(BaseModelForbidExtra):
 
     @model_validator(mode="after")
     def check_exon_start_and_exon_end(cls, values):
-        """Check that at least one of {`exon_start`, `exon_end`} is set"""
+        """Check that at least one of {``exon_start``, ``exon_end``} is set"""
         msg = "Must provide either `exon_start` or `exon_end`"
         exon_start, exon_end = values.exon_start, values.exon_end
         assert exon_start or exon_end, msg
@@ -166,9 +166,9 @@ class GenomicData(BaseModelForbidExtra):
 
     @model_validator(mode="after")
     def check_start_end(cls, values):
-        """Check that at least one of {`start`, `end`} is set.
-        Check that at least one of {`exon_start`, `exon_end`} is set.
-        If not set, set corresponding offset to `None`
+        """Check that at least one of {``start``, ``end``} is set.
+        Check that at least one of {``exon_start``, ``exon_end``} is set.
+        If not set, set corresponding offset to ``None``
         """
         msg = "Missing values for `start` or `end`"
         start = values.start

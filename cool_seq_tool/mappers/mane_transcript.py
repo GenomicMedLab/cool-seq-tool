@@ -1,11 +1,15 @@
-"""Module for retrieving MANE Transcript from variation on p/c/g coordinate.
+"""Retrieve MANE transcript from a location on p./c./g. coordinates.
+
 Steps:
-1. Map annotation layer to genome
-2. Liftover to preferred genome
-    We want to liftover to GRCh38. We do not support getting MANE transcripts
-    for GRCh36 and earlier assemblies.
-3. Select preferred compatible annotation
-4. Map back to correct annotation layer
+
+#. Map annotation layer to genome
+#. Liftover to preferred genome (GRCh38). GRCh36 and earlier assemblies are not supported
+   for fetching MANE transcripts.
+#. Select preferred compatible annotation (see :ref:`transcript compatibility <transcript_compatibility>`)
+#. Map back to correct annotation layer
+
+In addition to a mapper utility class, this module also defines several vocabulary
+constraints and data models for coordinate representation.
 """
 import logging
 import math
@@ -44,7 +48,7 @@ class EndAnnotationLayer(StrEnum):
 
 
 class DataRepresentation(BaseModel):
-    """Create model for final output representation"""
+    """Define object model for final output representation"""
 
     gene: Optional[str] = None
     refseq: str
@@ -55,7 +59,7 @@ class DataRepresentation(BaseModel):
 
 
 class CdnaRepresentation(DataRepresentation):
-    """Create model for coding dna representation"""
+    """Define object model for coding DNA representation"""
 
     coding_start_site: int
     coding_end_site: int
@@ -63,7 +67,7 @@ class CdnaRepresentation(DataRepresentation):
 
 
 class GenomicRepresentation(BaseModel):
-    """Create model for genomic representation"""
+    """Define object model for genomic representation"""
 
     refseq: str
     pos: Tuple[int, int]
@@ -72,7 +76,7 @@ class GenomicRepresentation(BaseModel):
 
 
 class ProteinAndCdnaRepresentation(BaseModel):
-    """Create model for protein and coding dna representation"""
+    """Define object model for protein and cDNA representation"""
 
     protein: DataRepresentation
     cdna: CdnaRepresentation
@@ -90,6 +94,19 @@ class MANETranscript:
     ) -> None:
         """Initialize the MANETranscript class.
 
+        A handful of resources are required for initialization, so when defaults are
+        enough, it's easiest to let the core CoolSeqTool class handle it for you:
+
+        >>> from cool_seq_tool.app import CoolSeqTool
+        >>> mane_mapper = CoolSeqTool().mane_transcript
+
+        Note that most methods are defined as Python coroutines, so they must be called
+        with ``await``:
+
+        >>> result = mane_mapper.g_to_grch38("NC_000001.11", 100, 200)
+        >>> result['ac']
+        TypeError: 'coroutine' object is not subscriptable
+
         :param seqrepo_access: Access to seqrepo queries
         :param transcript_mappings: Access to transcript accession mappings and
             conversions
@@ -104,10 +121,9 @@ class MANETranscript:
 
     @staticmethod
     def _get_reading_frame(pos: int) -> int:
-        """Return reading frame number.
-        Only used on c. coordinate
+        """Return reading frame number. Only used on c. coordinate.
 
-        :param int pos: cDNA position
+        :param pos: cDNA position
         :return: Reading frame
         """
         pos_mod_3 = pos % 3
@@ -119,8 +135,8 @@ class MANETranscript:
     def _p_to_c_pos(start: int, end: int) -> Tuple[int, int]:
         """Return cDNA position given a protein position.
 
-        :param int start: Start protein position
-        :param int end: End protein position
+        :param start: Start protein position
+        :param end: End protein position
         :return: cDNA position start, cDNA position end
         """
         start_pos = start * 3 - 1
@@ -136,9 +152,9 @@ class MANETranscript:
     ) -> Optional[Tuple[str, Tuple[int, int]]]:
         """Convert protein (p.) annotation to cDNA (c.) annotation.
 
-        :param str ac: Protein accession
-        :param int start_pos: Protein start position
-        :param int end_pos: Protein end position
+        :param ac: Protein accession
+        :param start_pos: Protein start position
+        :param end_pos: Protein end position
         :return: [cDNA transcript accession, [cDNA pos start, cDNA pos end]]
         """
         # TODO: Check version mappings 1 to 1 relationship
@@ -164,8 +180,8 @@ class MANETranscript:
     async def _c_to_g(self, ac: str, pos: Tuple[int, int]) -> Optional[Dict]:
         """Get g. annotation from c. annotation.
 
-        :param str ac: cDNA accession
-        :param Tuple[int, int] pos: [cDNA pos start, cDNA pos end]
+        :param ac: cDNA accession
+        :param pos: [cDNA pos start, cDNA pos end]
         :return: Gene, Transcript accession and position change,
             Altered transcript accession and position change, Strand
         """
@@ -208,12 +224,11 @@ class MANETranscript:
     ) -> Optional[Dict]:
         """Get and validate genomic_tx_data
 
-        :param str tx_ac: Accession on c. coordinate
-        :param Tuple[int, int] pos: (start pos, end pos)
-        :param Union[AnnotationLayer.CDNA, AnnotationLayer.GENOMIC] annotation_layer:
-            Annotation layer for `ac` and `pos`
-        :param Optional[int] coding_start_site: Coding start site
-        :param Optional[str] alt_ac: Accession on g. coordinate
+        :param tx_ac: Accession on c. coordinate
+        :param pos: (start pos, end pos)
+        :param annotation_layer: Annotation layer for ``ac`` and ``pos``
+        :param coding_start_site: Coding start site
+        :param alt_ac: Accession on g. coordinate
         :return: genomic_tx_data if found and validated, else None
         """
         genomic_tx_data = await self.uta_db.get_genomic_tx_data(
@@ -258,15 +273,15 @@ class MANETranscript:
     ) -> CdnaRepresentation:
         """Return transcript data on c. coordinate.
 
+        :param gene: Gene symbol
         :param cds_start_end: Coding start and end site for transcript
         :param c_pos_change: Start and end positions for change on c. coordinate
         :param strand: Strand
         :param status: Status of transcript
         :param refseq_c_ac: Refseq transcript
-        :param gene: HGNC gene symbol
         :param ensembl_c_ac: Ensembl transcript
         :param alt_ac: Genomic accession
-        :return: Coding dna representation
+        :return: Transcript data on c. coord
         """
         cds_start = cds_start_end[0]
         cds_end = cds_start_end[1]
@@ -307,10 +322,9 @@ class MANETranscript:
     ) -> DataRepresentation:
         """Translate MANE Transcript c. annotation to p. annotation
 
-        :param Dict mane_data: MANE Transcript data
-        :param Tuple[int, int] mane_c_pos_range: Position change range
-            on MANE Transcript c. coordinate
-        :return: Protein representation
+        :param mane_data: MANE Transcript data
+        :param mane_c_pos_range: Position change range on MANE Transcript c. coordinate
+        :return: MANE transcripts accessions and position change on p. coordinate
         """
         return DataRepresentation(
             gene=mane_data["symbol"],
@@ -334,14 +348,14 @@ class MANETranscript:
     ) -> Optional[CdnaRepresentation]:
         """Get transcript c. annotation data from g. annotation.
 
-        :param Dict g: Genomic data
-        :param str refseq_c_ac: Refseq transcript accession
-        :param TranscriptPriority status: Status of transcript
-        :param Optional[str] ensembl_c_ac: Ensembl transcript accession
-        :param Optional[str] alt_ac: Genomic accession
-        :param bool found_result: `True` if found result, so do not need to query
+        :param g: Genomic data
+        :param refseq_c_ac: Refseq transcript accession
+        :param status: Status of transcript
+        :param ensembl_c_ac: Ensembl transcript accession
+        :param alt_ac: Genomic accession
+        :param found_result: ``True`` if found result, so do not need to query
             tx_exon_aln_v table. This is because the user did not need to liftover.
-            `False` if need to get result from tx_exon_aln_v table.
+            ``False`` if need to get result from tx_exon_aln_v table.
         :return: Transcript data
         """
         if found_result:
@@ -406,8 +420,8 @@ class MANETranscript:
         :param end_pos: Original end cDNA position change
         :param transcript_data: Ensembl and RefSeq transcripts with corresponding
             position change
-        :return: `True` if reading frames are the same after translation.
-            `False` otherwise
+        :return: ``True`` if reading frames are the same after translation.
+            ``False`` otherwise
         """
         for pos, pos_index in [(start_pos, 0), (end_pos, 1)]:
             if pos is not None:
@@ -450,8 +464,8 @@ class MANETranscript:
             position change
         :param expected_ref: Reference at position given during input
         :param anno: Annotation layer we are starting from
-        :param residue_mode: Residue mode for `start_pos` and `end_pos`
-        :return: `True` if reference check passes. `False` otherwise.
+        :param residue_mode: Residue mode for ``start_pos`` and ``end_pos``
+        :return: ``True`` if reference check passes. ``False`` otherwise.
         """
         if anno == AnnotationLayer.CDNA:
             start_pos += coding_start_site
@@ -498,10 +512,10 @@ class MANETranscript:
     ) -> bool:
         """Validate that positions actually exist on accession
 
-        :param str ac: Accession
-        :param Tuple[int, int] pos: Start position change, End position change
-        :param int coding_start_site: coding start site for accession
-        :return: `True` if positions exist on accession. `False` otherwise
+        :param ac: Accession
+        :param pos: Start position change, End position change
+        :param coding_start_site: coding start site for accession
+        :return: ``True`` if positions exist on accession. ``False`` otherwise
         """
         start_pos = pos[0] + coding_start_site
         end_pos = pos[1] + coding_start_site
@@ -574,23 +588,48 @@ class MANETranscript:
     ) -> Optional[
         Union[DataRepresentation, CdnaRepresentation, ProteinAndCdnaRepresentation]
     ]:
-        """Get longest compatible transcript from a gene.
-        Transcript is compatible if it passes validation checks.
+        """Get longest compatible transcript from a gene. See the documentation for
+        the :ref:`transcript compatibility policy <transcript_compatibility>` for more
+        information.
+
+        >>> from cool_seq_tool.app import CoolSeqTool
+        >>> from cool_seq_tool.schemas import AnnotationLayer, ResidueMode
+        >>> mane_mapper = CoolSeqTool().mane_transcript
+        >>> mane_transcripts = {
+        ...     "ENST00000646891.2",
+        ...     "NM_001374258.1",
+        ...     "NM_004333.6",
+        ...     "ENST00000644969.2",
+        ... }
+        >>> result = await mane_mapper.get_longest_compatible_transcript(
+        ...     599,
+        ...     599,
+        ...     gene="BRAF",
+        ...     start_annotation_layer=AnnotationLayer.PROTEIN,
+        ...     residue_mode=ResidueMode.INTER_RESIDUE,
+        ...     mane_transcripts=mane_transcripts,
+        ... )
+        >>> result.refseq
+        'NP_001365396.1'
+
+        If unable to find a match on GRCh38, this method will then attempt to drop down
+        to GRCh37.
+
+        # TODO example for inputs that demonstrate this?
 
         :param start_pos: Start position change
         :param end_pos: End position change
         :param start_annotation_layer: Starting annotation layer
         :param gene: HGNC gene symbol
         :param ref: Reference at position given during input
-        :param residue_mode: Residue mode for `start_pos` and `end_pos`
+        :param residue_mode: Residue mode for ``start_pos`` and ``end_pos``
         :param mane_transcripts: Attempted mane transcripts that were not compatible
         :param alt_ac: Genomic accession
         :param end_annotation_layer: The end annotation layer. If not provided, will be
-            set to the following
-                `EndAnnotationLayer.PROTEIN` if
-                    `start_annotation_layer == AnnotationLayer.PROTEIN`
-                `EndAnnotationLayer.CDNA` otherwise
-        :return: Data for longest compatible transcript if successful. Else, None
+            set to ``EndAnnotationLayer.PROTEIN`` if
+            ``start_annotation_layer == AnnotationLayer.PROTEIN``,
+            ``EndAnnotationLayer.CDNA`` otherwise
+        :return: Data for longest compatible transcript
         """
 
         def _get_protein_rep(
@@ -814,22 +853,33 @@ class MANETranscript:
         try_longest_compatible: bool = False,
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
     ) -> Optional[Union[DataRepresentation, CdnaRepresentation]]:
-        """Return mane transcript.
+        """Return MANE transcript.
+
+        >>> from cool_seq_tool.app import CoolSeqTool
+        >>> from cool_seq_tool.schemas import AnnotationLayer, ResidueMode
+        >>> mane_mapper = CoolSeqTool().mane_transcript
+        >>> result = await mane_mapper.get_mane_transcript(
+        ...     "NP_004324.2",
+        ...     599,
+        ...     AnnotationLayer.PROTEIN,
+        ...     residue_mode=ResidueMode.INTER_RESIDUE,
+        ... )
+        >>> (result.gene, result.refseq, result.status)
+        ('BRAF', 'NP_004324.2', <TranscriptPriority.MANE_SELECT: 'mane_select'>)
 
         :param ac: Accession
         :param start_pos: Start position change
         :param start_annotation_layer: Starting annotation layer.
-        :param end_pos: End position change. If `None` assumes both  `start_pos` and
-            `end_pos` have same values.
+        :param end_pos: End position change. If ``None`` assumes both  ``start_pos`` and
+            ``end_pos`` have same values.
         :param gene: HGNC gene symbol
         :param ref: Reference at position given during input
-        :param try_longest_compatible: `True` if should try longest compatible remaining
-            if mane transcript was not compatible. `False` otherwise.
-        :param ResidueMode residue_mode: Starting residue mode for `start_pos`
-            and `end_pos`. Will always return coordinates in inter-residue
+        :param try_longest_compatible: ``True`` if should try longest compatible remaining
+            if mane transcript was not compatible. ``False`` otherwise.
+        :param ResidueMode residue_mode: Starting residue mode for ``start_pos`` and
+            ``end_pos``. Will always return coordinates in inter-residue
         :return: MANE data or longest transcript compatible data if validation
-            checks are correct. Will return inter-residue coordinates.
-            Else, `None`
+            checks are correct. Will return inter-residue coordinates. Else, ``None``.
         """
         inter_residue_pos, warning = get_inter_residue_pos(
             start_pos, residue_mode, end_pos=end_pos
@@ -949,9 +999,9 @@ class MANETranscript:
     ) -> Optional[Dict]:
         """Return genomic coordinate on GRCh38 when not given gene context.
 
-        :param str ac: Genomic accession
-        :param int start_pos: Genomic start position change
-        :param int end_pos: Genomic end position change
+        :param ac: Genomic accession
+        :param start_pos: Genomic start position
+        :param end_pos: Genomic end position
         :return: NC accession, start and end pos on GRCh38 assembly
         """
         if end_pos is None:
@@ -1006,8 +1056,8 @@ class MANETranscript:
     ) -> Tuple[int, int]:
         """Get mane c position change
 
-        :param Dict mane_tx_genomic_data: MANE transcript and genomic data
-        :param int coding_start_site: Coding start site
+        :param mane_tx_genomic_data: MANE transcript and genomic data
+        :param coding_start_site: Coding start site
         :return: cDNA pos start, cDNA pos end
         """
         tx_pos_range = mane_tx_genomic_data["tx_pos_range"]
@@ -1031,17 +1081,41 @@ class MANETranscript:
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
     ) -> Optional[Union[GenomicRepresentation, CdnaRepresentation]]:
         """Return MANE Transcript on the c. coordinate.
-        If gene is provided, g->GRCh38->MANE c.
-            If MANE c. cannot be found, we return the genomic coordinate on
-                GRCh38
-        If gene is not provided, g -> GRCh38
 
-        :param str ac: Transcript accession on g. coordinate
-        :param int start_pos: genomic change start position
-        :param int end_pos: genomic change end position
-        :param str gene: Gene symbol
-        :param ResidueMode residue_mode: Starting residue mode for `start_pos`
-            and `end_pos`. Will always return coordinates in inter-residue
+        >>> from cool_seq_tool.app import CoolSeqTool
+        >>> mane_mapper = CoolSeqTool().mane_transcript
+
+        If an arg for ``gene`` is provided, lifts to GRCh38, then gets MANE cDNA
+        representation.
+
+        >>> result = await mane_mapper.g_to_mane_c(
+        ...     "NC_000007.13",
+        ...     55259515,
+        ...     None,
+        ...     gene="EGFR"
+        ... )
+        >>> type(result)
+        cool_seq_tool.mappers.mane_transcript.CdnaRepresentation
+        >>> result.status
+        <TranscriptPriority.MANE_SELECT: 'mane_select'>
+
+        Locating a MANE transcript requires a ``gene`` symbol argument -- if none is
+        given, this method will only lift over to genomic coordinates on GRCh38.
+
+        >>> result = await mane_mapper.g_to_mane_c(
+        ...     "NC_000007.13", 55259515, None
+        ... )
+        >>> type(result)
+        cool_seq_tool.mappers.mane_transcript.GenomicRepresentation
+        >>> result.refseq, result.pos, result.status
+        ('NC_000007.14', (55191821, 55191821), <TranscriptPriority.GRCH38: 'grch38'>)
+
+        :param ac: Transcript accession on g. coordinate
+        :param start_pos: genomic start position
+        :param end_pos: genomic end position
+        :param gene: HGNC gene symbol
+        :param residue_mode: Starting residue mode for ``start_pos`` and ``end_pos``.
+            Will always return coordinates in inter-residue.
         :return: MANE Transcripts with cDNA change on c. coordinate if gene
             is provided. Else, GRCh38 data
         """
@@ -1133,22 +1207,23 @@ class MANETranscript:
         gene: Optional[str] = None,
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
         try_longest_compatible: bool = False,
-    ) -> Optional[ProteinAndCdnaRepresentation]:
-        """Given GRCh38 genomic representation, return cdna and protein representation.
+    ) -> Optional[Dict]:
+        """Given GRCh38 genomic representation, return protein representation.
+
         Will try MANE Select and then MANE Plus Clinical. If neither is found and
-        `try_longest_compatible` is set to `true`, will also try to find the longest
+        ``try_longest_compatible`` is set to ``true``, will also try to find the longest
         compatible remaining representation.
 
         :param alt_ac: Genomic RefSeq accession on GRCh38
         :param start_pos: Start position
         :param end_pos: End position
         :param gene: HGNC gene symbol
-        :param residue_mode: Starting residue mode for `start_pos` and `end_pos`. Will
+        :param residue_mode: Starting residue mode for ``start_pos`` and ``end_pos``. Will
             always return coordinates as inter-residue.
-        :param try_longest_compatible: `True` if should try longest compatible remaining
-            if mane transcript(s) not compatible. `False` otherwise.
+        :param try_longest_compatible: ``True`` if should try longest compatible remaining
+            if mane transcript(s) not compatible. ``False`` otherwise.
         :return: If successful, return MANE data or longest compatible remaining (if
-            `try_longest_compatible` set to `True`) cdna and protein representation.
+            ``try_longest_compatible`` set to ``True``) cDNA and protein representation.
             Will return inter-residue coordinates.
         """
         # Step 1: Get MANE data to map to
