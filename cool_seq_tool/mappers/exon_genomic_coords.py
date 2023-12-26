@@ -14,7 +14,7 @@ from cool_seq_tool.schemas import (
     TranscriptExonDataResponse,
 )
 from cool_seq_tool.sources.uta_database import UTADatabase
-from cool_seq_tool.utils import service_meta
+from cool_seq_tool.utils import get_inter_residue_pos, service_meta
 
 CoordinatesResponseType = TypeVar(
     "CoordinatesResponseType", GenomicDataResponse, TranscriptExonDataResponse
@@ -158,8 +158,8 @@ class ExonGenomicCoordsMapper:
                 "genomic start or end data",
             )
 
-        start = alt_ac_start[3] if alt_ac_start else None
-        end = alt_ac_end[2] if alt_ac_end else None
+        start = alt_ac_start[3] - 1 if alt_ac_start else None
+        end = alt_ac_end[2] + 1 if alt_ac_end else None
         strand = alt_ac_start[4] if alt_ac_start else alt_ac_end[4]
 
         # Using none since could set to 0
@@ -199,7 +199,9 @@ class ExonGenomicCoordsMapper:
         strand: Optional[int] = None,
         transcript: Optional[str] = None,
         gene: Optional[str] = None,
-        residue_mode: ResidueMode = ResidueMode.RESIDUE,
+        residue_mode: Union[
+            ResidueMode.INTER_RESIDUE, ResidueMode.RESIDUE
+        ] = ResidueMode.RESIDUE,
         **kwargs,
     ) -> GenomicDataResponse:
         """Get transcript data for genomic data, lifted over to GRCh38.
@@ -245,7 +247,9 @@ class ExonGenomicCoordsMapper:
 
         if start:
             if residue_mode == ResidueMode.RESIDUE:
+                # zero-based for UTA
                 start -= 1
+            residue_mode = ResidueMode.ZERO
             start_data = await self._genomic_to_transcript_exon_coordinate(
                 chromosome,
                 start,
@@ -253,7 +257,6 @@ class ExonGenomicCoordsMapper:
                 transcript=transcript,
                 gene=gene,
                 is_start=True,
-                residue_mode=ResidueMode.INTER_RESIDUE,
             )
             if start_data.transcript_exon_data:
                 start_data = start_data.transcript_exon_data.model_dump()
@@ -263,8 +266,8 @@ class ExonGenomicCoordsMapper:
             start_data = None
 
         if end:
-            if residue_mode == ResidueMode.RESIDUE:
-                end -= 1
+            end -= 1
+            residue_mode = ResidueMode.ZERO
             end_data = await self._genomic_to_transcript_exon_coordinate(
                 chromosome,
                 end,
@@ -272,7 +275,6 @@ class ExonGenomicCoordsMapper:
                 transcript=transcript,
                 gene=gene,
                 is_start=False,
-                residue_mode=ResidueMode.INTER_RESIDUE,
             )
             if end_data.transcript_exon_data:
                 end_data = end_data.transcript_exon_data.model_dump()
@@ -317,14 +319,13 @@ class ExonGenomicCoordsMapper:
         transcript: Optional[str] = None,
         gene: Optional[str] = None,
         is_start: bool = True,
-        residue_mode: ResidueMode = ResidueMode.RESIDUE,
     ) -> TranscriptExonDataResponse:
         """Convert individual genomic data to transcript data
 
-        :param chromosome: Chromosome. Must either give chromosome number (i.e. ``1``)
-            or accession (i.e. ``NC_000001.11``).
-        :param pos: Genomic position
-        :param strand: Strand. Must be either ``-1`` or ``1``.
+        :param chromosome: Chromosome. Must either give chromosome number (i.e. `1`) or
+            accession (i.e. `NC_000001.11`).
+        :param pos: Genomic position (zero-based)
+        :param strand: Strand. Must be either `-1` or `1`.
         :param transcript: The transcript to use. If this is not given, we will try the
             following transcripts: MANE Select, MANE Clinical Plus, Longest Remaining
             Compatible Transcript
@@ -380,7 +381,7 @@ class ExonGenomicCoordsMapper:
 
         if transcript is None:
             warnings = await self._set_mane_genomic_data(
-                params, gene, alt_ac, pos, strand, is_start, residue_mode
+                params, gene, alt_ac, pos, strand, is_start
             )
             if warnings:
                 return self._return_warnings(resp, warnings)
@@ -444,7 +445,6 @@ class ExonGenomicCoordsMapper:
         pos: int,
         strand: int,
         is_start: bool,
-        residue_mode: ResidueMode,
     ) -> Optional[str]:
         """Set genomic data in `params` found from MANE.
 
@@ -453,20 +453,21 @@ class ExonGenomicCoordsMapper:
         :param alt_ac: Genomic accession
         :param pos: Genomic position
         :param strand: Strand
-        :param is_start: ``True`` if ``pos`` is start position. ``False`` if ``pos`` is
-            end position.
-        :param residue_mode: Residue mode for ``pos``
+        :param is_start: `True` if `pos` is start position. `False` if `pos` is end
+            position.
         :return: Warnings if found
         """
+        start, end = get_inter_residue_pos(pos, pos, residue_mode=ResidueMode.ZERO)
         mane_data: Optional[
             CdnaRepresentation
         ] = await self.mane_transcript.get_mane_transcript(
             alt_ac,
-            pos,
+            start,
+            end,
             AnnotationLayer.GENOMIC,
             gene=gene,
             try_longest_compatible=True,
-            residue_mode=residue_mode,
+            residue_mode=ResidueMode.INTER_RESIDUE,
         )
         if not mane_data:
             msg = f"Unable to find mane data for {alt_ac} with position {pos}"
@@ -524,7 +525,7 @@ class ExonGenomicCoordsMapper:
 
         params["chr"] = genomic_data[1]
         genomic_coords = genomic_data[2], genomic_data[3]
-        genomic_pos = genomic_coords[1] if is_start else genomic_coords[0]
+        genomic_pos = genomic_coords[1] - 1 if is_start else genomic_coords[0] + 1
         params["pos"] = (
             genomic_pos - params["exon_offset"]
             if strand_to_use == -1
@@ -601,10 +602,13 @@ class ExonGenomicCoordsMapper:
 
         strand_to_use = strand if strand is not None else data[7]
         params["strand"] = strand_to_use
+        if not is_start:
+            # convert back to inter-residue for end position
+            params["pos"] += 1
         self._set_exon_offset(
             params,
-            data[5],
-            data[6],
+            data[5] if is_start else data[5] + 1,  # need to convert to inter-residue
+            data[6] - 1 if is_start else data[6],  # need to convert to inter-residue
             params["pos"],
             is_start=is_start,
             strand=strand_to_use,

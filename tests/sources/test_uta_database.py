@@ -223,8 +223,8 @@ async def test_mane_c_genomic_data(test_db):
         alt_exon_id=9353476,
         coding_start_site=226,
         coding_end_site=2650,
-        alt_pos_change=(57, 62),
-        alt_pos_change_range=(140753336, 140753336),
+        alt_pos_change=(58, 61),
+        alt_pos_change_range=(140753335, 140753335),
         tx_ac="NM_001374258.1",
         alt_ac="NC_000007.14",
     )
