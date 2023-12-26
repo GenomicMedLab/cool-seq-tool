@@ -21,6 +21,8 @@ def get_inter_residue_pos(
     """
     if residue_mode == ResidueMode.RESIDUE:
         start_pos -= 1
+    elif residue_mode == ResidueMode.ZERO:
+        end_pos += 1
     return start_pos, end_pos
 
 
