@@ -47,14 +47,18 @@ class SeqRepoAccess(SeqRepoDataProxy):
         :return: Sequence at position (if accession and positions actually
             exist, else return empty string), warning if any
         """
-        if start or end:
-            pos, warning = get_inter_residue_pos(start, residue_mode, end_pos=end)
-            if pos is None:
-                return "", warning
-            else:
-                start, end = pos
-                if start == end:
-                    end += 1
+        if start and end:
+            if start > end:
+                msg = f"start ({start}) cannot be greater than end ({end})"
+                return "", msg
+
+            start, end = get_inter_residue_pos(start, end, residue_mode)
+            if start == end:
+                end += 1
+        else:
+            if start is not None and residue_mode == ResidueMode.RESIDUE:
+                start -= 1
+
         try:
             sequence = self.sr.fetch(ac, start=start, end=end)
         except KeyError:
@@ -65,17 +69,11 @@ class SeqRepoAccess(SeqRepoDataProxy):
             error = str(e)
             if error.startswith("start out of range"):
                 msg = (
-                    f"Start inter-residue coordinate ({start}) is out of "
-                    f"index on {ac}"
+                    f"Start inter-residue coordinate ({start}) is out of index on {ac}"
                 )
             elif error.startswith("stop out of range"):
                 msg = (
                     f"End inter-residue coordinate ({end}) is out of " f"index on {ac}"
-                )
-            elif error.startswith("invalid coordinates") and ">" in error:
-                msg = (
-                    f"Invalid inter-residue coordinates: start ({start}) "
-                    f"cannot be greater than end ({end})"
                 )
             else:
                 msg = f"{e}"
@@ -90,8 +88,7 @@ class SeqRepoAccess(SeqRepoDataProxy):
                 if len(sequence) != expected_len_of_seq:
                     return (
                         "",
-                        f"End inter-residue coordinate ({end})"
-                        f" is out of index on {ac}",
+                        f"End inter-residue coordinate ({end}) is out of index on {ac}",
                     )
             return sequence, None
 

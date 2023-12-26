@@ -138,17 +138,16 @@ class MANETranscript:
     def _p_to_c_pos(start: int, end: int) -> Tuple[int, int]:
         """Return cDNA position given a protein position.
 
-        :param start: Start protein position
-        :param end: End protein position
+        :param start: Start protein position. Inter-residue coordinates
+        :param end: End protein position. Inter-residue coordinates
         :return: cDNA position start, cDNA position end
         """
-        start_pos = start * 3 - 1
+        start_pos = start * 3
         if end != start:
-            end_pos = end * 3 - 1
+            end_pos = end * 3
         else:
             end_pos = start_pos
-
-        return start_pos - 1, end_pos + 1
+        return start_pos, end_pos - 1
 
     async def _p_to_c(
         self, ac: str, start_pos: int, end_pos: int
@@ -156,8 +155,8 @@ class MANETranscript:
         """Convert protein (p.) annotation to cDNA (c.) annotation.
 
         :param ac: Protein accession
-        :param start_pos: Protein start position
-        :param end_pos: Protein end position
+        :param start_pos: Protein start position. Inter-residue coordinates
+        :param end_pos: Protein end position. Inter-residue coordinates
         :return: [cDNA transcript accession, [cDNA pos start, cDNA pos end]]
         """
         # TODO: Check version mappings 1 to 1 relationship
@@ -194,7 +193,9 @@ class MANETranscript:
             if not self.transcript_mappings.ensembl_transcript_version_to_gene_symbol.get(
                 ac
             ):
-                if not self.seqrepo_access.get_reference_sequence(ac, 1)[0]:
+                if not self.seqrepo_access.get_reference_sequence(ac, start=1, end=1)[
+                    0
+                ]:
                     logger.warning(f"Ensembl transcript not found: {ac}")
                     return None
 
@@ -314,10 +315,11 @@ class MANETranscript:
         :param c_pos: cdna position. inter-residue coordinates
         :return: protein position. inter-residue coordinates
         """
-        start = c_pos[0] / 3
-        end = c_pos[1] / 3
-        start = math.floor(start) if start == end else math.ceil(start)
-        end = math.floor(end)
+        end = math.ceil(c_pos[1] / 3)
+        if c_pos[1] - c_pos[0] == 1:
+            start = end - 1
+        else:
+            start = math.ceil((c_pos[0] + 1) / 3) - 1
         return start, end
 
     def _get_mane_p(
@@ -327,7 +329,8 @@ class MANETranscript:
 
         :param mane_data: MANE Transcript data
         :param mane_c_pos_range: Position change range on MANE Transcript c. coordinate
-        :return: MANE transcripts accessions and position change on p. coordinate
+            using inter-residue coordinates
+        :return: Protein representation
         """
         return DataRepresentation(
             gene=mane_data["symbol"],
@@ -475,7 +478,7 @@ class MANETranscript:
             end_pos += coding_start_site
 
         ref, _ = self.seqrepo_access.get_reference_sequence(
-            ac, start_pos, end=end_pos, residue_mode=residue_mode
+            ac, start=start_pos, end=end_pos, residue_mode=residue_mode
         )
         if ref is None:
             return False
@@ -489,7 +492,7 @@ class MANETranscript:
                 mane_end_pos += mane_cds
             mane_ref, _ = self.seqrepo_access.get_reference_sequence(
                 mane_transcript.refseq,
-                mane_start_pos,
+                start=mane_start_pos,
                 end=mane_end_pos if mane_start_pos != mane_end_pos else None,
                 residue_mode=residue_mode,
             )
@@ -523,10 +526,8 @@ class MANETranscript:
         start_pos = pos[0] + coding_start_site
         end_pos = pos[1] + coding_start_site
         if self.seqrepo_access.get_reference_sequence(
-            ac, start_pos, end_pos, residue_mode=ResidueMode.INTER_RESIDUE
-        )[
-            0
-        ]:  # noqa E501
+            ac, start=start_pos, end=end_pos, residue_mode=ResidueMode.INTER_RESIDUE
+        )[0]:
             return True
         else:
             return False
@@ -662,13 +663,8 @@ class MANETranscript:
             )
 
         lcr_result = None
-        inter_residue_pos, _ = get_inter_residue_pos(
-            start_pos, residue_mode, end_pos=end_pos
-        )
-        if not inter_residue_pos:
-            return lcr_result
+        start_pos, end_pos = get_inter_residue_pos(start_pos, end_pos, residue_mode)
         residue_mode = ResidueMode.INTER_RESIDUE
-        start_pos, end_pos = inter_residue_pos
 
         is_p_or_c_start_anno = True
         if start_annotation_layer == AnnotationLayer.PROTEIN:
@@ -850,12 +846,14 @@ class MANETranscript:
         self,
         ac: str,
         start_pos: int,
+        end_pos: int,
         start_annotation_layer: AnnotationLayer,
-        end_pos: Optional[int] = None,
         gene: Optional[str] = None,
         ref: Optional[str] = None,
         try_longest_compatible: bool = False,
-        residue_mode: ResidueMode = ResidueMode.RESIDUE,
+        residue_mode: Union[
+            ResidueMode.RESIDUE, ResidueMode.INTER_RESIDUE
+        ] = ResidueMode.RESIDUE,
     ) -> Optional[Union[DataRepresentation, CdnaRepresentation]]:
         """Return MANE transcript.
 
@@ -874,9 +872,8 @@ class MANETranscript:
 
         :param ac: Accession
         :param start_pos: Start position change
+        :param end_pos: End position change
         :param start_annotation_layer: Starting annotation layer.
-        :param end_pos: End position change. If ``None`` assumes both  ``start_pos`` and
-            ``end_pos`` have same values.
         :param gene: HGNC gene symbol
         :param ref: Reference at position given during input
         :param try_longest_compatible: ``True`` if should try longest compatible remaining
@@ -886,12 +883,7 @@ class MANETranscript:
         :return: MANE data or longest transcript compatible data if validation
             checks are correct. Will return inter-residue coordinates. Else, ``None``.
         """
-        inter_residue_pos, warning = get_inter_residue_pos(
-            start_pos, residue_mode, end_pos=end_pos
-        )
-        if not inter_residue_pos:
-            return None
-        start_pos, end_pos = inter_residue_pos
+        start_pos, end_pos = get_inter_residue_pos(start_pos, end_pos, residue_mode)
         residue_mode = ResidueMode.INTER_RESIDUE
         if ref:
             ref = ref[: end_pos - start_pos]
@@ -1117,12 +1109,7 @@ class MANETranscript:
         :return: MANE Transcripts with cDNA change on c. coordinate if gene
             is provided. Else, GRCh38 data
         """
-        inter_residue_pos, _ = get_inter_residue_pos(
-            start_pos, residue_mode, end_pos=end_pos
-        )
-        if not inter_residue_pos:
-            return None
-        start_pos, end_pos = inter_residue_pos
+        start_pos, end_pos = get_inter_residue_pos(start_pos, end_pos, residue_mode)
         residue_mode = ResidueMode.INTER_RESIDUE
 
         # If gene not provided, return GRCh38
@@ -1155,7 +1142,7 @@ class MANETranscript:
             if grch38:
                 # GRCh38 -> MANE C
                 mane_tx_genomic_data = await self.uta_db.get_mane_c_genomic_data(
-                    mane_c_ac, None, grch38["pos"][0], grch38["pos"][1]
+                    mane_c_ac, grch38["ac"], grch38["pos"][0], grch38["pos"][1]
                 )
 
             if not grch38 or not mane_tx_genomic_data:
@@ -1236,12 +1223,7 @@ class MANETranscript:
             return None
 
         # Step 2: Get inter-residue position
-        inter_residue_pos, _ = get_inter_residue_pos(
-            start_pos, residue_mode, end_pos=end_pos
-        )
-        if not inter_residue_pos:
-            return None
-        start_pos, end_pos = inter_residue_pos
+        start_pos, end_pos = get_inter_residue_pos(start_pos, end_pos, residue_mode)
         residue_mode = ResidueMode.INTER_RESIDUE
 
         # Step 3: Try getting MANE protein representation
