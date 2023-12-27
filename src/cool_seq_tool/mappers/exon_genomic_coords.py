@@ -37,15 +37,18 @@ class ExonGenomicCoordsMapper:
         >>> from cool_seq_tool.app import CoolSeqTool
         >>> egc = CoolSeqTool().ex_g_coords_mapper
 
-        Note that this class's methods are all defined as ``async``, so they will
-        need to be called with ``await``.
+        Note that this class's public methods are all defined as ``async``, so they will
+        need to be called with ``await`` when called from a function, or run from an
+        event loop. See the :ref:`Usage section <async_note>` for more information.
 
-        >>> result = egc.transcript_to_genomic_coordinates(
+        >>> import asyncio
+        >>> result = asyncio.run(egc.transcript_to_genomic_coordinates(
         ...     "NM_002529.3",
+        ...     exon_start=2,
         ...     exon_end=17
-        ... )
-        >>> result.genomic_data
-        AttributeError: 'coroutine' object has no attribute 'genomic_data'
+        ... ))
+        >>> result.genomic_data.start, result.genomic_data.end
+        (156864428, 156881456)
 
         :param uta_db: UTADatabase instance to give access to query UTA database
         :param mane_transcript: Instance to align to MANE or compatible representation
@@ -81,21 +84,16 @@ class ExonGenomicCoordsMapper:
 
         By default, transcript data is aligned to the GRCh38 assembly.
 
+        >>> import asyncio
         >>> from cool_seq_tool.app import CoolSeqTool
         >>> egc = CoolSeqTool().ex_g_coords_mapper
-        >>> tpm3 = await egc.transcript_to_genomic_coordinates(
-        ...     "NM_152263.3",
+        >>> tpm3 = asyncio.run(egc.transcript_to_genomic_coordinates(
+        ...     "NM_152263.3"
         ...     gene="TPM3", chr="NC_000001.11",
         ...     exon_start=1, exon_end=8,
-        ... )
-        >>> (tpm3.genomic_data.chr, tpm3.genomic_data.start, tpm3.genomic_data.end)
-        ('NC_000001.11', 164192135, 154170399)
-        >>> ntrk1 = await egc.transcript_to_genomic_coordinates(
-        ...     "NM_002529.3",
-        ...     exon_end=17
-        ... )
-        >>> (ntrk1.genomic_data.chr, ntrk1.genomic_data.end)
-        ('NC_000001.11', 156881456)
+        ... ))
+        >>> tpm3.genomic_data.chr, tpm3.genomic_data.start, tpm3.genomic_data.end
+        ('NC_000001.11', 154192135, 154170399)
 
         :param transcript: Transcript accession
         :param gene: HGNC gene symbol
@@ -216,16 +214,17 @@ class ExonGenomicCoordsMapper:
         MANE Transcript data will be returned if and only if ``transcript`` is not
         supplied. ``gene`` must be given in order to retrieve MANE Transcript data.
 
+        >>> import asyncio
         >>> from cool_seq_tool.app import CoolSeqTool
         >>> egc = CoolSeqTool().ex_g_coords_mapper
-        >>> result = await egc.genomic_to_transcript_exon_coordinates(
+        >>> result = asyncio.run(egc.genomic_to_transcript_exon_coordinates(
         ...     chromosome="NC_000001.11",
         ...     start=154192136,
         ...     end=154170400,
         ...     strand=-1,
         ...     transcript="NM_152263.3"
-        ... )
-        >>> (result.genomic_data.exon_start, result.genomic_data.exon_end)
+        ... ))
+        >>> result.genomic_data.exon_start, result.genomic_data.exon_end
         (1, 8)
 
         :param chromosome: Chromosome. Must give chromosome without a prefix

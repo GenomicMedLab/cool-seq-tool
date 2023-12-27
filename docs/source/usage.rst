@@ -26,6 +26,38 @@ The core :py:class:`CoolSeqTool <cool_seq_tool.app.CoolSeqTool>` class encapsula
 
 Descriptions and examples of functions can be found in the :ref:`API Reference <api_reference>` section.
 
+.. _async_note:
+
+.. note::
+
+   Many component classes in CoolSeqTool, including :py:class:`UTADatabase <cool_seq_tool.sources.uta_database.UTADatabase>`, :py:class:`ExonGenomicCoordsMapper <cool_seq_tool.mappers.exon_genomic_coords.ExonGenomicCoordsMapper>`, and :py:class:`MANETranscript <cool_seq_tool.mappers.mane_transcript>`, define public methods as ``async``. This means that, when used inside another function, they must be called with ``await``:
+
+   .. code-block:: python
+
+       from cool_seq_tool.app import CoolSeqTool
+
+       async def do_thing():
+           mane_mapper = CoolSeqTool().mane_transcript
+           result = mane_mapper.g_to_grch38("NC_000001.11", 100, 200)
+           print(type(result))
+           # <class 'coroutine'>
+           awaited_result = await result
+           print(awaited_result)
+           # {'ac': 'NC_000001.11', 'pos': (100, 200)}
+
+   In a REPL, ``asyncio.run()`` can be used to call coroutines outside of functions. Many of our docstring examples will use this pattern.
+
+   .. code-block:: pycon
+
+      >>> import asyncio
+      >>> from cool_seq_tool.app import cool_seq_tool
+      >>> mane_mapper = CoolSeqTool().mane_transcript
+      >>> result = asyncio.run(mane_mapper.g_to_grch38("NC_000001.11", 100, 200))
+      >>> print(result)
+      {'ac': 'NC_000001.11', 'pos': (100, 200)}
+
+   See the `asyncio module documentation <https://docs.python.org/3/library/asyncio.html>`_ for more information.
+
 REST server
 -----------
 
