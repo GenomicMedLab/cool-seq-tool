@@ -99,11 +99,11 @@ class GenomicRequestBody(BaseModelForbidExtra):
     )
 
 
-class TranscriptRequestBody(BaseModelForbidExtra):
+class TranscriptRequestBody(BaseModel):
     """Define constraints for transcript exon to genomic coordinates request body"""
 
+    transcript: StrictStr
     gene: Optional[StrictStr] = None
-    transcript: Optional[StrictStr] = None
     exon_start: Optional[StrictInt] = None
     exon_start_offset: Optional[StrictInt] = 0
     exon_end: Optional[StrictInt] = None

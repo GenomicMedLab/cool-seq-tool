@@ -42,3 +42,20 @@ def test_transcript_mappings(test_cool_seq_tool):
 def test_mane_transcript_mappings(test_cool_seq_tool):
     """Create MANE Transcript Mappings test fixture"""
     return test_cool_seq_tool.mane_transcript_mappings
+
+
+@pytest.fixture(scope="session")
+def nm_152263_exons():
+    """Create test fixture for NM_152263.3 exons."""
+    return [
+        (0, 234),
+        (234, 360),
+        (360, 494),
+        (494, 612),
+        (612, 683),
+        (683, 759),
+        (759, 822),
+        (822, 892),
+        (892, 971),
+        (971, 7099),
+    ]
