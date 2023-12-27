@@ -43,9 +43,9 @@ class MANETranscriptMappings:
         >>> from cool_seq_tool.sources import MANETranscriptMappings
         >>> m = MANETranscriptMappings()
         >>> braf_mane = m.get_gene_mane_data("BRAF")
-        >>> (braf_mane[0]["RefSeq_nuc"], braf_mane[0]["MANE_status"])
+        >>> braf_mane[0]["RefSeq_nuc"], braf_mane[0]["MANE_status"]
         ('NM_04333.6', 'MANE Select')
-        >>> (braf_mane[1]["RefSeq_nuc"], braf_mane[1]["MANE_status"])
+        >>> braf_mane[1]["RefSeq_nuc"], braf_mane[1]["MANE_status"]
         ('NM_001374258.1', 'MANE Plus Clinical')
 
         :param str gene_symbol: HGNC Gene Symbol
