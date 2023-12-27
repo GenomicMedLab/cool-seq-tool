@@ -44,7 +44,7 @@ class MANETranscriptMappings:
         >>> m = MANETranscriptMappings()
         >>> braf_mane = m.get_gene_mane_data("BRAF")
         >>> braf_mane[0]["RefSeq_nuc"], braf_mane[0]["MANE_status"]
-        ('NM_04333.6', 'MANE Select')
+        ('NM_004333.6', 'MANE Select')
         >>> braf_mane[1]["RefSeq_nuc"], braf_mane[1]["MANE_status"]
         ('NM_001374258.1', 'MANE Plus Clinical')
 

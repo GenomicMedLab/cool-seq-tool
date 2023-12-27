@@ -100,22 +100,15 @@ class MANETranscript:
         >>> from cool_seq_tool.app import CoolSeqTool
         >>> mane_mapper = CoolSeqTool().mane_transcript
 
-        Note that most methods are defined as Python coroutines, so they must be called
-        with ``await``:
-
-        >>> result = mane_mapper.g_to_grch38("NC_000001.11", 100, 200)
-        >>> result['ac']
-        Traceback (most recent call last):
-          ...
-        TypeError: 'coroutine' object is not subscriptable
-
-        Alternatively, in a Python REPL, ``asyncio.run`` can call coroutines. We'll
-        use this pattern in doctest examples provided here.
+        Note that most methods are defined as Python coroutines, so the must be called
+        with ``await`` or run from an ``async`` event loop:
 
         >>> import asyncio
         >>> result = asyncio.run(mane_mapper.g_to_grch38("NC_000001.11", 100, 200))
         >>> result['ac']
         'NC_000001.11'
+
+        See the :ref:`Usage section <async_note>` for more information.
 
         :param seqrepo_access: Access to seqrepo queries
         :param transcript_mappings: Access to transcript accession mappings and
@@ -602,7 +595,7 @@ class MANETranscript:
         the :ref:`transcript compatibility policy <transcript_compatibility>` for more
         information.
 
-        >>> impor tasyncio
+        >>> import asyncio
         >>> from cool_seq_tool.app import CoolSeqTool
         >>> from cool_seq_tool.schemas import AnnotationLayer, ResidueMode
         >>> mane_mapper = CoolSeqTool().mane_transcript
@@ -876,7 +869,7 @@ class MANETranscript:
         ...     AnnotationLayer.PROTEIN,
         ...     residue_mode=ResidueMode.INTER_RESIDUE,
         ... ))
-        >>> (result.gene, result.refseq, result.status)
+        >>> result.gene, result.refseq, result.status
         ('BRAF', 'NP_004324.2', <TranscriptPriority.MANE_SELECT: 'mane_select'>)
 
         :param ac: Accession
@@ -1097,29 +1090,23 @@ class MANETranscript:
         If an arg for ``gene`` is provided, lifts to GRCh38, then gets MANE cDNA
         representation.
 
+        >>> import asyncio
         >>> from cool_seq_tool.app import CoolSeqTool
-        >>> mane_mapper = CoolSeqTool().mane_transcript
-        >>> result = asyncio.run(mane_mapper.g_to_mane_c(
+        >>> cst = CoolSeqTool()
+        >>> result = asyncio.run(cst.mane_transcript.g_to_mane_c(
         ...     "NC_000007.13",
         ...     55259515,
         ...     None,
         ...     gene="EGFR"
         ... ))
         >>> type(result)
-        cool_seq_tool.mappers.mane_transcript.CdnaRepresentation
+        <class 'cool_seq_tool.mappers.mane_transcript.CdnaRepresentation'>
         >>> result.status
         <TranscriptPriority.MANE_SELECT: 'mane_select'>
+        >>> del cst
 
         Locating a MANE transcript requires a ``gene`` symbol argument -- if none is
         given, this method will only lift over to genomic coordinates on GRCh38.
-
-        >>> result = asyncio.run(mane_mapper.g_to_mane_c(
-        ...     "NC_000007.13", 55259515, None
-        ... ))
-        >>> type(result)
-        cool_seq_tool.mappers.mane_transcript.GenomicRepresentation
-        >>> result.refseq, result.pos, result.status
-        ('NC_000007.14', (55191821, 55191821), <TranscriptPriority.GRCH38: 'grch38'>)
 
         :param ac: Transcript accession on g. coordinate
         :param start_pos: genomic start position

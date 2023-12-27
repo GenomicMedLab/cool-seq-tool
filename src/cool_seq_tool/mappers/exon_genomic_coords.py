@@ -38,27 +38,17 @@ class ExonGenomicCoordsMapper:
         >>> egc = CoolSeqTool().ex_g_coords_mapper
 
         Note that this class's public methods are all defined as ``async``, so they will
-        need to be called with ``await`` when called from a function.
-
-        >>> result = egc.transcript_to_genomic_coordinates(
-        ...     transcript="NM_002529.3",
-        ...     exon_end=17
-        ... )
-        >>> result.genomic_data
-        Traceback (most recent call last):
-          ...
-        AttributeError: 'coroutine' object has no attribute 'genomic_data'
-
-        Alternatively, in a Python REPL, ``asyncio.run`` can call coroutines. We'll
-        use this pattern in doctest examples provided here.
+        need to be called with ``await`` when called from a function, or run from an
+        event loop. See the :ref:`Usage section <async_note>` for more information.
 
         >>> import asyncio
         >>> result = asyncio.run(egc.transcript_to_genomic_coordinates(
         ...     transcript="NM_002529.3",
+        ...     exon_start=2,
         ...     exon_end=17
         ... ))
         >>> result.genomic_data.start, result.genomic_data.end
-        (154192135, 154170399)
+        (156864428, 156881456)
 
         :param uta_db: UTADatabase instance to give access to query UTA database
         :param mane_transcript: Instance to align to MANE or compatible representation
@@ -99,19 +89,13 @@ class ExonGenomicCoordsMapper:
         >>> import asyncio
         >>> from cool_seq_tool.app import CoolSeqTool
         >>> egc = CoolSeqTool().ex_g_coords_mapper
-        >>> tpm3 = asyncio.run(await egc.transcript_to_genomic_coordinates(
+        >>> tpm3 = asyncio.run(egc.transcript_to_genomic_coordinates(
         ...     gene="TPM3", chr="NC_000001.11",
         ...     exon_start=1, exon_end=8,
         ...     transcript="NM_152263.3"
         ... ))
-        >>> (tpm3.genomic_data.chr, tpm3.genomic_data.start, tpm3.genomic_data.end)
-        ('NC_000001.11', 164192135, 154170399)
-        >>> ntrk1 = asyncio.run(egc.transcript_to_genomic_coordinates(
-        ...     transcript="NM_002529.3",
-        ...     exon_end=17
-        ... ))
-        >>> (ntrk1.genomic_data.chr, ntrk1.genomic_data.end)
-        ('NC_000001.11', 156881456)
+        >>> tpm3.genomic_data.chr, tpm3.genomic_data.start, tpm3.genomic_data.end
+        ('NC_000001.11', 154192135, 154170399)
 
         :param gene: Gene symbol
         :param transcript: Transcript accession
@@ -231,7 +215,7 @@ class ExonGenomicCoordsMapper:
         ...     strand=-1,
         ...     transcript="NM_152263.3"
         ... ))
-        >>> (result.genomic_data.exon_start, result.genomic_data.exon_end)
+        >>> result.genomic_data.exon_start, result.genomic_data.exon_end
         (1, 8)
 
         :param chromosome: Chromosome. Must either give chromosome number (i.e. ``1``)
