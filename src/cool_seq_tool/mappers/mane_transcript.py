@@ -524,7 +524,7 @@ class MANETranscript:
         end_pos = pos[1] + coding_start_site
         if self.seqrepo_access.get_reference_sequence(
             ac, start_pos, end_pos, residue_mode=ResidueMode.INTER_RESIDUE
-        )[0]:  # noqa E501
+        )[0]:
             return True
         else:
             return False
