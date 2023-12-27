@@ -1,7 +1,7 @@
 """Defines attribute constants, useful object structures, and API response schemas."""
 import re
 from datetime import datetime
-from enum import Enum
+from enum import Enum, IntEnum
 from typing import List, Literal, Optional, Tuple, Union
 
 from pydantic import (
@@ -24,11 +24,11 @@ class AnnotationLayer(str, Enum):
     GENOMIC: Literal["g"] = "g"
 
 
-class Strand(str, Enum):
+class Strand(IntEnum):
     """Create enum for positive and negative strand"""
 
-    POSITIVE = "+"
-    NEGATIVE = "-"
+    POSITIVE = 1
+    NEGATIVE = -1
 
 
 class Assembly(str, Enum):
@@ -71,7 +71,7 @@ class GenomicRequestBody(BaseModelForbidExtra):
     chromosome: Union[StrictStr, StrictInt]
     start: Optional[StrictInt] = None
     end: Optional[StrictInt] = None
-    strand: Optional[StrictInt] = None
+    strand: Optional[Strand] = None
     transcript: Optional[StrictStr] = None
     gene: Optional[StrictStr] = None
     residue_mode: ResidueMode = ResidueMode.RESIDUE
@@ -90,7 +90,7 @@ class GenomicRequestBody(BaseModelForbidExtra):
                 "chromosome": "NC_000001.11",
                 "start": 154192135,
                 "end": None,
-                "strand": -1,
+                "strand": Strand.NEGATIVE,
                 "transcript": "NM_152263.3",
                 "gene": "TPM3",
                 "residue_mode": "residue",
@@ -140,7 +140,7 @@ class TranscriptExonData(BaseModelForbidExtra):
     exon_offset: StrictInt = 0
     gene: StrictStr
     chr: StrictStr
-    strand: StrictInt
+    strand: Strand
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -151,7 +151,7 @@ class TranscriptExonData(BaseModelForbidExtra):
                 "exon": 1,
                 "exon_offset": 0,
                 "transcript": "NM_152263.3",
-                "strand": -1,
+                "strand": Strand.NEGATIVE,
             }
         }
     )
@@ -169,7 +169,7 @@ class GenomicData(BaseModelForbidExtra):
     exon_end: Optional[StrictInt] = None
     exon_end_offset: Optional[StrictInt] = 0
     transcript: StrictStr
-    strand: StrictInt
+    strand: Strand
 
     @model_validator(mode="after")
     def check_start_end(cls, values):
@@ -207,7 +207,7 @@ class GenomicData(BaseModelForbidExtra):
                 "exon_start_offset": 0,
                 "exon_end_offset": None,
                 "transcript": "NM_152263.3",
-                "strand": -1,
+                "strand": Strand.NEGATIVE,
             }
         }
     )
@@ -261,7 +261,7 @@ class TranscriptExonDataResponse(BaseModelForbidExtra):
                     "exon": 1,
                     "exon_offset": 0,
                     "transcript": "NM_152263.3",
-                    "strand": -1,
+                    "strand": Strand.NEGATIVE,
                 },
                 "warnings": [],
                 "service_meta": {
@@ -295,7 +295,7 @@ class GenomicDataResponse(BaseModelForbidExtra):
                     "exon_start_offset": 0,
                     "exon_end_offset": None,
                     "transcript": "NM_152263.3",
-                    "strand": -1,
+                    "strand": Strand.NEGATIVE,
                 },
                 "warnings": [],
                 "service_meta": {
@@ -326,7 +326,7 @@ class MappedManeData(BaseModel):
                 "gene": "BRAF",
                 "refseq": "NM_001374258.1",
                 "ensembl": "ENST00000644969.2",
-                "strand": "-",
+                "strand": Strand.NEGATIVE,
                 "status": TranscriptPriority.MANE_PLUS_CLINICAL,
                 "alt_ac": "NC_000007.13",
                 "assembly": "GRCh37",
@@ -349,7 +349,7 @@ class MappedManeDataService(BaseModelForbidExtra):
                     "gene": "BRAF",
                     "refseq": "NM_001374258.1",
                     "ensembl": "ENST00000644969.2",
-                    "strand": "-",
+                    "strand": Strand.NEGATIVE,
                     "status": TranscriptPriority.MANE_PLUS_CLINICAL,
                     "alt_ac": "NC_000007.13",
                     "assembly": "GRCh37",
@@ -383,7 +383,7 @@ class ManeData(BaseModel):
                 "refseq": "NP_004324.2",
                 "ensembl": "ENSP00000493543.1",
                 "pos": (598, 598),
-                "strand": "-",
+                "strand": Strand.NEGATIVE,
                 "status": TranscriptPriority.MANE_SELECT,
             }
         }
@@ -405,7 +405,7 @@ class ManeDataService(BaseModelForbidExtra):
                     "refseq": "NP_004324.2",
                     "ensembl": "ENSP00000493543.1",
                     "pos": (598, 598),
-                    "strand": "-",
+                    "strand": Strand.NEGATIVE,
                     "status": TranscriptPriority.MANE_SELECT,
                 },
                 "warnings": [],

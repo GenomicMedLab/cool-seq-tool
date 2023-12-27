@@ -163,15 +163,19 @@ class ExonGenomicCoordsMapper:
 
         g_start = alt_ac_start_data[3] - 1 if alt_ac_start_data else None
         g_end = alt_ac_end_data[2] + 1 if alt_ac_end_data else None
-        strand = alt_ac_start_data[4] if alt_ac_start_data else alt_ac_end_data[4]
+        strand = (
+            Strand(alt_ac_start_data[4])
+            if alt_ac_start_data
+            else Strand(alt_ac_end_data[4])
+        )
 
         # Using none since could set to 0
         start_exits = g_start is not None
         end_exists = g_end is not None
 
         # Calculate offsets
-        if strand == -1:
-            start_offset = exon_start_offset * -1 if start_exits else 0
+        if strand == Strand.NEGATIVE:
+            start_offset = exon_start_offset * -1 if start_exits else None
             end_offset = exon_end_offset * -1 if end_exists else None
         else:
             start_offset = exon_start_offset if start_exits else 0
@@ -202,7 +206,7 @@ class ExonGenomicCoordsMapper:
         alt_ac: Optional[str] = None,
         start: Optional[int] = None,
         end: Optional[int] = None,
-        strand: Optional[int] = None,
+        strand: Optional[Strand] = None,
         transcript: Optional[str] = None,
         gene: Optional[str] = None,
         residue_mode: Union[
@@ -216,12 +220,13 @@ class ExonGenomicCoordsMapper:
 
         >>> import asyncio
         >>> from cool_seq_tool.app import CoolSeqTool
+        >>> from cool_seq_tool.schemas import Strand
         >>> egc = CoolSeqTool().ex_g_coords_mapper
         >>> result = asyncio.run(egc.genomic_to_transcript_exon_coordinates(
         ...     chromosome="NC_000001.11",
         ...     start=154192136,
         ...     end=154170400,
-        ...     strand=-1,
+        ...     strand=Strand.NEGATIVE,
         ...     transcript="NM_152263.3"
         ... ))
         >>> result.genomic_data.exon_start, result.genomic_data.exon_end
@@ -383,7 +388,7 @@ class ExonGenomicCoordsMapper:
         pos: int,
         chromosome: Optional[str] = None,
         alt_ac: Optional[str] = None,
-        strand: Optional[int] = None,
+        strand: Optional[Strand] = None,
         transcript: Optional[str] = None,
         gene: Optional[str] = None,
         is_start: bool = True,
@@ -515,7 +520,7 @@ class ExonGenomicCoordsMapper:
         gene: str,
         alt_ac: str,
         pos: int,
-        strand: int,
+        strand: Strand,
         is_start: bool,
     ) -> Optional[str]:
         """Set genomic data in `params` found from MANE.
@@ -547,11 +552,6 @@ class ExonGenomicCoordsMapper:
                 msg += f" on gene {gene}"
             logger.warning(msg)
             return msg
-
-        if mane_data.strand == Strand.NEGATIVE:
-            mane_data.strand = -1
-        elif mane_data.strand == Strand.POSITIVE:
-            mane_data.strand = 1
 
         params["gene"] = mane_data.gene
         params["transcript"] = (
@@ -606,7 +606,7 @@ class ExonGenomicCoordsMapper:
         return None
 
     async def _set_genomic_data(
-        self, params: Dict, strand: int, is_start: bool
+        self, params: Dict, strand: Strand, is_start: bool
     ) -> Optional[str]:
         """Set genomic data in ``params``
 
@@ -673,7 +673,7 @@ class ExonGenomicCoordsMapper:
             i = 1 if data_exons == (0, tx_exons[0][1]) else i - 1
         params["exon"] = i
 
-        strand_to_use = strand if strand is not None else data[7]
+        strand_to_use = strand if strand is not None else Strand(data[7])
         params["strand"] = strand_to_use
         if not is_start:
             # convert back to inter-residue for end position
@@ -690,7 +690,7 @@ class ExonGenomicCoordsMapper:
 
     @staticmethod
     def _set_exon_offset(
-        params: Dict, start: int, end: int, pos: int, is_start: bool, strand: int
+        params: Dict, start: int, end: int, pos: int, is_start: bool, strand: Strand
     ) -> None:
         """Set value for ``exon_offset`` in ``params``.
 
@@ -703,12 +703,12 @@ class ExonGenomicCoordsMapper:
         :param strand: Strand
         """
         if is_start:
-            if strand == -1:
+            if strand == Strand.NEGATIVE:
                 params["exon_offset"] = end - pos
             else:
                 params["exon_offset"] = pos - end
         else:
-            if strand == -1:
+            if strand == Strand.NEGATIVE:
                 params["exon_offset"] = start - pos
             else:
                 params["exon_offset"] = pos - start

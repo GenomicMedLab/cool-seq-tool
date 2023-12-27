@@ -3,6 +3,8 @@ import copy
 
 import pytest
 
+from cool_seq_tool.schemas import Strand
+
 
 @pytest.fixture(scope="module")
 def tpm3_1_8_start_genomic():
@@ -39,7 +41,7 @@ def data_from_result():
     """Create test fixture for data from result"""
     return dict(
         gene="BRAF",
-        strand="-",
+        strand=Strand.NEGATIVE,
         tx_pos_range=(1802, 1921),
         alt_pos_range=(140453074, 140453193),
         alt_aln_method="splign",
@@ -53,7 +55,7 @@ def genomic_tx_data():
     """Create test fixture for genomic_tx_data"""
     return dict(
         gene="BRAF",
-        strand="-",
+        strand=Strand.NEGATIVE,
         tx_pos_range=(2053, 2188),
         alt_pos_range=(140439611, 140439746),
         alt_aln_method="splign",
@@ -198,7 +200,7 @@ async def test_mane_c_genomic_data(test_db):
     )
     expected = dict(
         gene="BRAF",
-        strand="-",
+        strand=Strand.NEGATIVE,
         tx_pos_range=(2087, 2206),
         alt_pos_range=(140753274, 140753393),
         alt_aln_method="splign",
@@ -220,7 +222,7 @@ async def test_get_genomic_tx_data(test_db, genomic_tx_data):
     resp = await test_db.get_genomic_tx_data("NM_004333.4", (2145, 2145))
     assert resp == {
         "gene": "BRAF",
-        "strand": "-",
+        "strand": Strand.NEGATIVE,
         "tx_pos_range": (2053, 2188),
         "alt_pos_range": (140739811, 140739946),
         "alt_aln_method": "splign",
