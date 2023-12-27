@@ -42,6 +42,10 @@ Tests are executed with `pytest <https://docs.pytest.org/en/7.1.x/getting-starte
 
     pytest
 
+Docstring code snippets are also runnable as doctests: ::
+
+    pytest --doctest-modules src/
+
 Documentation
 -------------
 
