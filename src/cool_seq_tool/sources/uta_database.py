@@ -34,16 +34,13 @@ class UTADatabase:
     """Provide transcript lookup and metadata tools via the Universal Transcript Archive
     (UTA) database.
 
-    Users should use the create() method to construct a new instance:
-
-    >>> from cool_seq_tool.sources.uta_database import UTADatabase
-    >>> uta_db = await UTADatabase.create()
-
-    This class uses the `asyncpg <https://magicstack.github.io/asyncpg/current/>`_
-    library to connect to PostgreSQL. This means that most methods are defined as
-    coroutines and must be called with ``await``. See the
-    `Python stdlib docs <https://docs.python.org/3/library/asyncio-task.html>`_
+    Users should use the ``create()`` method to construct a new instance. Note that
+    almost all public methods are defined as ``async`` -- see the :ref:`Usage section <async_note>`
     for more information.
+
+    >>> import asyncio
+    >>> from cool_seq_tool.sources.uta_database import UTADatabase
+    >>> uta_db = asyncio.run(UTADatabase.create())
     """
 
     def __init__(
@@ -154,8 +151,9 @@ class UTADatabase:
         method should be used instead of calling the class directly to create a new
         instance.
 
+        >>> import asyncio
         >>> from cool_seq_tool.sources.uta_database import UTADatabase
-        >>> uta_db = await UTADatabase.create()
+        >>> uta_db = asyncio.run(UTADatabase.create())
 
         :param cls: supplied implicitly
         :param db_url: PostgreSQL connection URL
@@ -576,9 +574,13 @@ class UTADatabase:
         """Return accession description. This is typically available only for accessions
         from older (pre-GRCh38) builds.
 
+        >>> import asyncio
         >>> from cool_seq_tool.sources.uta_database import UTADatabase
-        >>> uta_db = await UTADatabase.create()
-        >>> await uta_db.get_ac_descr("NC_000001.10")
+        >>> async def describe():
+        ...     uta_db = await UTADatabase.create()
+        ...     result = await uta_db.get_ac_descr("NC_000001.10")
+        ...     return result
+        >>> asyncio.run(describe())
         'Homo sapiens chromosome 1, GRCh37.p13 Primary Assembly'
 
         :param ac: chromosome accession, e.g. ``"NC_000001.10"``
@@ -718,17 +720,19 @@ class UTADatabase:
         """Get MANE transcript and genomic data. Used when going from g. to MANE c.
         representation.
 
+        >>> import asyncio
         >>> from cool_seq_tool.sources import UTADatabase
-        >>> uta_db = await UTADatabase.create()
-        >>> result = await uta_db.get_mane_c_genomic_data(
-        ...     "NM_004333.6",
-        ...     None,
-        ...     140753335,
-        ...     140753335,
-        ... )
-        >>> result["gene"]
-        'BRAF'
-        >>> result["alt_ac"]
+        >>> async def get_braf_mane():
+        ...     uta_db = await UTADatabase.create()
+        ...     result = await uta_db.get_mane_c_genomic_data(
+        ...         "NM_004333.6",
+        ...         None,
+        ...         140753335,
+        ...         140753335,
+        ...     )
+        ...     return result
+        >>> braf = asyncio.run(get_braf_mane())
+        >>> braf["alt_ac"]
         'NC_000007.14'
 
         :param ac: MANE transcript accession
@@ -865,11 +869,15 @@ class UTADatabase:
     async def get_gene_from_ac(
         self, ac: str, start_pos: int, end_pos: int
     ) -> Optional[List[str]]:
-        """Get transcripts from NC accession and positions.
+        """Get gene(s) within the provided coordinate range
 
+        >>> import asyncio
         >>> from cool_seq_tool.sources import UTADatabase
-        >>> uta_db = await UTADatabase.create()
-        >>> await uta_db.get_gene_from_ac("NC_000017.11", 43044296, 43045802)
+        >>> async def get_gene():
+        ...     uta_db = await UTADatabase.create()
+        ...     result = await uta_db.get_gene_from_ac("NC_000017.11", 43044296, 43045802)
+        ...     return result
+        >>> asyncio.run(get_gene())
         ['BRCA1']
 
         :param ac: NC accession, e.g. ``"NC_000001.11"``
