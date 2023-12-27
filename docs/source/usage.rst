@@ -45,7 +45,7 @@ Descriptions and examples of functions can be found in the :ref:`API Reference <
            print(awaited_result)
            # {'ac': 'NC_000001.11', 'pos': (100, 200)}
 
-   In a REPL, ``asyncio.run()`` can be used to call coroutines outside of functions. Our docstring examples will use this pattern.
+   In a REPL, ``asyncio.run()`` can be used to call coroutines outside of functions. Many of our docstring examples will use this pattern.
 
    .. code-block:: pycon
 
