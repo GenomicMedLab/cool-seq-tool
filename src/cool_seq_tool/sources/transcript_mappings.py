@@ -138,10 +138,10 @@ class TranscriptMappings:
         """Return a list of protein transcripts for a gene symbol.
 
         >>> from cool_seq_tool.sources import TranscriptMappings
-        >>> TranscriptMappings().protein_transcripts("BRAF")[:3]
-        ['ENSP00000420119.2',
-         'ENSP00000288602',
-         'NP_004324.2']
+        >>> braf_txs = TranscriptMappings().protein_transcripts("BRAF")
+        >>> braf_txs.sort()
+        >>> braf_txs[-1]
+        'NP_004324.2'
 
         :param identifier: Gene identifier to get protein transcripts for
         :return: Protein transcripts for a gene symbol
