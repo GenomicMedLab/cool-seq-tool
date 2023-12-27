@@ -1,8 +1,83 @@
+[project]
+name = "cool_seq_tool"
+authors = [
+    {name = "Kori Kuzma"},
+    {name = "James Stevenson"},
+    {name = "Katie Stahl"},
+    {name = "Alex Wagner"},
+]
+readme = "README.md"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: FastAPI",
+    "Framework :: Pydantic",
+    "Framework :: Pydantic :: 2",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+requires-python = ">=3.8"
+description = "Common Operation on Lots of Sequences Tool"
+license = {file = "LICENSE"}
+dependencies = [
+    "asyncpg",
+    "aiofiles",
+    "boto3",
+    "pyliftover",
+    "polars",
+    "hgvs",
+    "biocommons.seqrepo",
+    "pydantic == 2.*",
+    "uvicorn",
+    "fastapi",
+    "ga4gh.vrs",
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+dev = ["pre-commit", "ipython", "ipykernel", "psycopg2-binary", "ruff", "black"]
+tests = ["pytest", "pytest-cov", "pytest-asyncio==0.18.3", "mock"]
+docs = [
+    "sphinx==6.1.3",
+    "sphinx-autodoc-typehints==1.22.0",
+    "sphinx-autobuild==2021.3.14",
+    "sphinx-copybutton==0.5.2",
+    "sphinxext-opengraph==0.8.2",
+    "furo==2023.3.27",
+]
+
+[project.urls]
+Homepage = "https://github.com/genomicmedlab/cool-seq-tool"
+Documentation = "https://coolseqtool.readthedocs.io/en/latest/index.html"
+Changelog = "https://github.com/genomicmedlab/cool-seq-tool/releases"
+Source = "https://github.com/genomicmedlab/cool-seq-tool"
+"Bug Tracker" = "https://github.com/genomicmedlab/cool-seq-tool/issues"
+
 [build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta:__legacy__"
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.dynamic]
+version = {attr = "cool_seq_tool.version.__version__"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "--cov=src --cov-report term-missing"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
 
 [tool.ruff]
+src = ["src"]
 exclude = ["docs/source/conf.py"]
 # pycodestyle (E, W)
 # Pyflakes (F)
@@ -43,6 +118,5 @@ ignore = [
 # F821 - undefined-name
 # F401 - unused-import
 "tests/*" = ["ANN001", "ANN2", "ANN102"]
-"setup.py" = ["F821"]
 "*__init__.py" = ["F401"]
-"cool_seq_tool/schemas.py" = ["ANN201", "N805", "ANN001"]
+"src/cool_seq_tool/schemas.py" = ["ANN201", "N805", "ANN001"]

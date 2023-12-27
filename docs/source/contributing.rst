@@ -6,24 +6,14 @@ Bug reports and feature requests
 
 Bugs and new feature requests can be submitted to the Cool-Seq-Tool `issue tracker on GitHub <https://github.com/genomicmedlab/cool-seq-tool/issues>`_. See `this StackOverflow post <https://stackoverflow.com/help/minimal-reproducible-example>`_ for tips on how to craft a helpful bug report.
 
-Development prerequisites
--------------------------
-For a development install, we recommend using Pipenv. See the `Pipenv docs <https://pipenv-fork.readthedocs.io/en/latest/#install-pipenv-today>`_ for direction on installing Pipenv in your environment.
-
-Setup
------
+Development Setup
+-----------------
 Clone the repository: ::
 
     git clone https://github.com/genomicmedlab/cool-seq-tool
     cd cool-seq-tool
 
-Then initialize the Pipenv environment: ::
-
-    pipenv update
-    pipenv install --dev
-    pipenv shell
-
-Alternatively, use a virtual environment and install :ref:`all dependency groups<dependency-groups>`: ::
+Create a virtual environment and install :ref:`all dependency groups<dependency-groups>`: ::
 
     python3 -m venv venv
     source venv/bin/activate
@@ -52,12 +42,17 @@ Tests are executed with `pytest <https://docs.pytest.org/en/7.1.x/getting-starte
 
     pytest
 
+Docstring code snippets are also runnable as doctests: ::
+
+    pytest --doctest-modules src/
+
 Documentation
 -------------
 
-The documentation is built with Sphinx, which is included as part of the Pipenv developer dependencies, or in the ``docs`` dependency group. Navigate to the ``docs/`` subdirectory and use ``make`` to build the HTML version: ::
+The documentation is built with Sphinx, which is included in the ``docs`` dependency group. Navigate to the ``docs/`` subdirectory and use ``make`` to build the HTML version: ::
 
-    pipenv shell
+    # in an existing virtualenv environment
+    python3 -m pip install -e '.[docs]'
     cd docs
     make html
 

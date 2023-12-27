@@ -104,14 +104,7 @@ class SeqRepoAccess(SeqRepoDataProxy):
         >>> from biocommons.seqrepo import SeqRepo
         >>> sr = SeqRepoAccess(SeqRepo("/usr/local/share/seqrepo/latest"))
         >>> sr.translate_identifier("NM_002529.3")[0]
-        ['MD5:18f0a6e3af9e1bbd8fef1948c7156012',
-         'NCBI:NM_002529.3',
-         'refseq:NM_002529.3',
-         'SEGUID:dEJQBkga9d9VeBHTyTbg6JEtTGQ',
-         'SHA1:74425006481af5df557811d3c936e0e8912d4c64',
-         'VMC:GS_RSkww1aYmsMiWbNdNnOTnVDAM3ZWp1uA',
-         'sha512t24u:RSkww1aYmsMiWbNdNnOTnVDAM3ZWp1uA',
-         'ga4gh:SQ.RSkww1aYmsMiWbNdNnOTnVDAM3ZWp1uA']
+        ['MD5:18f0a6e3af9e1bbd8fef1948c7156012', 'NCBI:NM_002529.3', 'refseq:NM_002529.3', 'SEGUID:dEJQBkga9d9VeBHTyTbg6JEtTGQ', 'SHA1:74425006481af5df557811d3c936e0e8912d4c64', 'VMC:GS_RSkww1aYmsMiWbNdNnOTnVDAM3ZWp1uA', 'sha512t24u:RSkww1aYmsMiWbNdNnOTnVDAM3ZWp1uA', 'ga4gh:SQ.RSkww1aYmsMiWbNdNnOTnVDAM3ZWp1uA']
         >>> sr.translate_identifier("NM_002529.3", "ga4gh")[0]
         ['ga4gh:SQ.RSkww1aYmsMiWbNdNnOTnVDAM3ZWp1uA']
 
