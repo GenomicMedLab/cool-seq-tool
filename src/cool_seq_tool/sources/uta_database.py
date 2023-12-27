@@ -14,7 +14,7 @@ from asyncpg.exceptions import InterfaceError, InvalidAuthorizationSpecification
 from botocore.exceptions import ClientError
 from pyliftover import LiftOver
 
-from cool_seq_tool.schemas import AnnotationLayer, Assembly
+from cool_seq_tool.schemas import AnnotationLayer, Assembly, Strand
 
 # use `bound` to upper-bound UTADatabase or child classes
 UTADatabaseType = TypeVar("UTADatabaseType", bound="UTADatabase")
@@ -254,7 +254,7 @@ class UTADatabase:
         self,
         chromosome: int,
         pos: int,
-        strand: Optional[int] = None,
+        strand: Optional[Strand] = None,
         alt_ac: Optional[str] = None,
         gene: Optional[str] = None,
     ) -> Tuple[Optional[Dict], Optional[str]]:
@@ -262,7 +262,7 @@ class UTADatabase:
 
         :param chromosome: Chromosome number
         :param pos: Genomic position
-        :param strand: Strand. Must be either ``-1`` or ``1``
+        :param strand: Strand
         :param alt_ac: Genomic accession
         :param gene: Gene symbol
         :return: Dictionary containing genes and genomic accessions and warnings if found
@@ -272,7 +272,7 @@ class UTADatabase:
             if alt_ac
             else f"WHERE alt_ac ~ '^NC_[0-9]+0{chromosome}.[0-9]+$'"
         )
-        strand_cond = f"AND alt_strand = '{strand}'" if strand else ""
+        strand_cond = f"AND alt_strand = '{strand.value}'" if strand else ""
         gene_cond = f"AND hgnc = '{gene}'" if gene else ""
 
         query = f"""
@@ -293,7 +293,10 @@ class UTADatabase:
                 f" is mapped between an exon's start and end coordinates"
             )
             if strand:
-                msg += f" on the " f"{'positive' if strand == 1 else 'negative'} strand"
+                msg += (
+                    f" on the "
+                    f"{'positive' if strand == Strand.POSITIVE else 'negative'} strand"
+                )
             if gene:
                 msg += f" and on gene {gene}"
             return None, msg
@@ -684,12 +687,9 @@ class UTADatabase:
         :return: Gene, strand, and position ranges for tx and alt_ac
         """
         gene = result[0]
-        if result[7] == -1:
-            strand = "-"
-        else:
-            strand = "+"
         tx_pos_range = result[2], result[3]
         alt_pos_range = result[5], result[6]
+        strand = Strand(result[7])
         alt_aln_method = result[8]
         tx_exon_id = result[9]
         alt_exon_id = result[10]
@@ -759,7 +759,7 @@ class UTADatabase:
         data["coding_start_site"] = coding_start_site[0]
         data["coding_end_site"] = coding_start_site[1]
 
-        if data["strand"] == "-":
+        if data["strand"] == Strand.NEGATIVE:
             data["alt_pos_change_range"] = (end_pos, start_pos)
             data["alt_pos_change"] = (
                 data["alt_pos_range"][1] - data["alt_pos_change_range"][0],
@@ -822,7 +822,7 @@ class UTADatabase:
         )
 
         if annotation_layer == AnnotationLayer.CDNA:
-            if data["strand"] == "-":
+            if data["strand"] == Strand.NEGATIVE:
                 data["alt_pos_change_range"] = (
                     data["alt_pos_range"][1] - data["pos_change"][0],
                     data["alt_pos_range"][0] + data["pos_change"][1],
@@ -833,7 +833,7 @@ class UTADatabase:
                     data["alt_pos_range"][1] - data["pos_change"][1],
                 )
         else:
-            if data["strand"] == "-":
+            if data["strand"] == Strand.NEGATIVE:
                 data["alt_pos_change_range"] = (pos[1], pos[0])
             else:
                 data["alt_pos_change_range"] = pos
