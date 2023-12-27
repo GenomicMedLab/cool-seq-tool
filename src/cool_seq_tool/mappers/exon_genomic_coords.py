@@ -644,6 +644,7 @@ class ExonGenomicCoordsMapper:
         tx_exons = await self._structure_exons(params["transcript"], alt_ac=grch38_ac)
         if not tx_exons:
             return f"Unable to get exons for {params['transcript']}"
+
         data = await self.uta_db.get_tx_exon_aln_v_data(
             params["transcript"],
             params["pos"],
@@ -691,15 +692,15 @@ class ExonGenomicCoordsMapper:
     def _set_exon_offset(
         params: Dict, start: int, end: int, pos: int, is_start: bool, strand: int
     ) -> None:
-        """Set ``exon_offset`` in params.
+        """Set value for ``exon_offset`` in ``params``.
 
         :param params: Parameters for response
-        :param start: Start exon coord (can be transcript or genomic)
-        :param end: End exon coord (can be transcript or genomic)
+        :param start: Start exon coord (can be transcript or aligned genomic)
+        :param end: End exon coord (can be transcript or aligned genomic)
         :param pos: Position change (can be transcript or genomic)
         :param is_start: ``True`` if ``pos`` is start position. ``False`` if ``pos`` is
             end position
-        :param int strand: Strand
+        :param strand: Strand
         """
         if is_start:
             if strand == -1:
@@ -721,21 +722,23 @@ class ExonGenomicCoordsMapper:
         :param alt_ac: Genomic accession
         :return: List of tuples containing transcript exon coordinates
         """
-        result = list()
+        result = []
         tx_exons, _ = await self.uta_db.get_tx_exons(transcript, alt_ac=alt_ac)
+
         if not tx_exons:
             return result
+
         for coords in tx_exons:
             result.append((coords[0], coords[1]))
         return result
 
     @staticmethod
     def _get_exon_number(tx_exons: List, tx_pos: int) -> int:
-        """Find exon number.
+        """Find related exon number for a position
 
-        :param tx_exons: List of exon coordinates
+        :param tx_exons: List of exon coordinates for a transcript
         :param tx_pos: Transcript position change
-        :return: Exon number associated to transcript position change
+        :return: Exon number associated to transcript position change. Will be 1-based
         """
         i = 1
         for coords in tx_exons:
