@@ -100,7 +100,7 @@ class MANETranscript:
         >>> from cool_seq_tool.app import CoolSeqTool
         >>> mane_mapper = CoolSeqTool().mane_transcript
 
-        Note that most methods are defined as Python coroutines, so the must be called
+        Note that most methods are defined as Python coroutines, so they must be called
         with ``await`` or run from an ``async`` event loop:
 
         >>> import asyncio
