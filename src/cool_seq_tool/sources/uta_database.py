@@ -976,7 +976,10 @@ class UTADatabase:
         results = [
             (r["pro_ac"], r["tx_ac"], r["alt_ac"], r["cds_start_i"]) for r in results
         ]
-        return pl.DataFrame(results, schema=schema).unique()
+        results_df = pl.DataFrame(results, schema=schema)
+        if results:
+            results_df = results_df.unique()
+        return results_df
 
     async def get_chr_assembly(self, ac: str) -> Optional[Tuple[str, str]]:
         """Get chromosome and assembly for NC accession if not in GRCh38.
