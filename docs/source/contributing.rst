@@ -33,7 +33,7 @@ Before your first commit, run: ::
 Style
 -----
 
-Code style is managed by `Ruff <https://github.com/astral-sh/ruff>`_ and `Black <https://github.com/psf/black>`_, and should be checked via pre-commit hook before commits. Final QC is applied with GitHub Actions to every pull request.
+Code style is managed by `Ruff <https://github.com/astral-sh/ruff>`_, and should be checked via pre-commit hook before commits. Final QC is applied with GitHub Actions to every pull request.
 
 Tests
 -----
