@@ -163,7 +163,7 @@ async def test_p_to_c(test_alignment_mapper, braf_v600e_c, egfr_l858r_c):
     }
 
 
-@pytest.fixture(scope="module")
+@pytest.mark.asyncio
 async def test_p_to_c_invalid(test_alignment_mapper):
     """Test invalid queries for p_to_c method"""
     # Invalid protein accession
