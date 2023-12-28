@@ -249,6 +249,22 @@ async def test_get_tx_exon_coords(test_egc_mapper, nm_152263_exons):
 
 
 @pytest.mark.asyncio
+async def test_get_alt_ac_start_and_end(
+    test_egc_mapper, tpm3_1_8_start_genomic, tpm3_1_8_end_genomic
+):
+    """Test that _get_alt_ac_start_and_end works correctly."""
+    resp = await test_egc_mapper._get_alt_ac_start_and_end(
+        "NM_152263.3", ["117", "234"], ["822", "892"], "TPM3"
+    )
+    assert resp[0] == (tpm3_1_8_start_genomic, tpm3_1_8_end_genomic)
+    assert resp[1] is None
+
+    resp = await test_egc_mapper._get_alt_ac_start_and_end("NM_152263.3", gene="TPM3")
+    assert resp[0] is None
+    assert resp[1] == "Must provide either `tx_exon_start` or `tx_exon_end` or both"
+
+
+@pytest.mark.asyncio
 async def test_genomic_to_transcript(test_egc_mapper, tpm3_exon1, tpm3_exon8):
     """Test that _genomic_to_transcript_exon_coordinate
     method works correctly.
@@ -833,14 +849,14 @@ async def test_invalid(test_egc_mapper):
         exon_start=-1, exon_end=0, transcript="NM_152263.3"
     )
     genomic_data_assertion_checks(resp, is_valid=False)
-    assert resp.warnings == ["Exon -1 does not exist on NM_152263.3"]
+    assert resp.warnings == ["`exon_start` cannot be less than 1"]
 
     # Cant supply 0 based exons
     resp = await test_egc_mapper.transcript_to_genomic_coordinates(
-        exon_start=0, exon_end=1, transcript="NM_152263.3"
+        exon_end=0, transcript="NM_152263.3"
     )
     genomic_data_assertion_checks(resp, is_valid=False)
-    assert resp.warnings == ["Exon 0 does not exist on NM_152263.3"]
+    assert resp.warnings == ["`exon_end` cannot be less than 1"]
 
     # Gene that does not match transcript
     resp = await test_egc_mapper.transcript_to_genomic_coordinates(

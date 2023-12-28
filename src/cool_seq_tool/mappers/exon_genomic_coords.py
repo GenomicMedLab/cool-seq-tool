@@ -97,11 +97,11 @@ class ExonGenomicCoordsMapper:
 
         :param transcript: Transcript accession
         :param gene: HGNC gene symbol
-        :param exon_start: Starting transcript exon number. If not provided, must
-            provide ``exon_end``
+        :param exon_start: Starting transcript exon number (1-based). If not provided,
+            must provide ``exon_end``
         :param exon_start_offset: Starting exon offset
-        :param exon_end: Ending transcript exon number. If not provided, must provide
-            ``exon_start``
+        :param exon_end: Ending transcript exon number (1-based). If not provided, must
+            provide ``exon_start``
         :param exon_end_offset: Ending exon offset
         :return: GRCh38 genomic data (inter-residue coordinates)
         """
@@ -109,20 +109,28 @@ class ExonGenomicCoordsMapper:
             genomic_data=None, warnings=[], service_meta=service_meta()
         )
 
+        # Ensure valid inputs
         if not transcript:
             return self._return_warnings(resp, "Must provide `transcript`")
         else:
             transcript = transcript.strip()
 
-        if exon_start is None and exon_end is None:
+        exon_start_exists, exon_end_exists = False, False
+        if exon_start is not None:
+            if exon_start < 1:
+                return self._return_warnings(resp, "`exon_start` cannot be less than 1")
+            exon_start_exists = True
+
+        if exon_end is not None:
+            if exon_end < 1:
+                return self._return_warnings(resp, "`exon_end` cannot be less than 1")
+            exon_end_exists = True
+
+        if not exon_start_exists and not exon_end_exists:
             return self._return_warnings(
                 resp, "Must provide either `exon_start` or `exon_end`"
             )
-
-        if gene:
-            gene = gene.upper().strip()
-
-        if exon_start and exon_end:
+        elif exon_start_exists and exon_end_exists:
             if exon_start > exon_end:
                 return self._return_warnings(
                     resp,
@@ -142,9 +150,12 @@ class ExonGenomicCoordsMapper:
             return self._return_warnings(resp, warning or "")
         tx_exon_start_coords, tx_exon_end_coords = tx_exon_coords
 
+        if gene:
+            gene = gene.upper().strip()
+
         # Get aligned genomic data (hgnc gene, alt_ac, alt_start_i, alt_end_i, strand)
         # for exon(s)
-        alt_ac_start_end, warning = await self.uta_db.get_alt_ac_start_and_end(
+        alt_ac_start_end, warning = await self._get_alt_ac_start_and_end(
             transcript, tx_exon_start_coords, tx_exon_end_coords, gene=gene
         )
         if not alt_ac_start_end:
@@ -357,10 +368,10 @@ class ExonGenomicCoordsMapper:
         Optional[Tuple[Optional[Tuple[int, int]], Optional[Tuple[int, int]]]],
         Optional[str],
     ]:
-        """Get transcript exon coordinates
+        """Get exon coordinates for ``exon_start`` and ``exon_end``
 
         :param transcript: Transcript accession
-        :param tx_exons: List of transcript exons
+        :param tx_exons: List of all transcript exons and coordinates
         :param exon_start: Start exon number
         :param exon_end: End exon number
         :return: [Transcript start exon coords, Transcript end exon coords],
@@ -382,6 +393,57 @@ class ExonGenomicCoordsMapper:
         else:
             tx_exon_end = None
         return (tx_exon_start, tx_exon_end), None
+
+    async def _get_alt_ac_start_and_end(
+        self,
+        tx_ac: str,
+        tx_exon_start: Optional[Tuple[int, int]] = None,
+        tx_exon_end: Optional[Tuple[int, int]] = None,
+        gene: Optional[str] = None,
+    ) -> Tuple[Optional[Tuple[Tuple, Tuple]], Optional[str]]:
+        """Get aligned genomic coordinates for transcript exon start and end.
+
+        :param tx_ac: Transcript accession
+        :param tx_exon_start: Transcript's exon start coordinates. If not provided,
+            must provide ``tx_exon_end``
+        :param tx_exon_end: Transcript's exon end coordinates. If not provided, must
+            provide ``tx_exon_start``
+        :param gene: HGNC gene symbol
+        :return: Aligned genomic data, and warnings if found
+        """
+        if tx_exon_start is None and tx_exon_end is None:
+            msg = "Must provide either `tx_exon_start` or `tx_exon_end` or both"
+            logger.warning(msg)
+            return None, msg
+
+        alt_ac_data = {"start": None, "end": None}
+        for exon, key in [(tx_exon_start, "start"), (tx_exon_end, "end")]:
+            if exon:
+                alt_ac_val, warning = await self.uta_db.get_alt_ac_start_or_end(
+                    tx_ac, exon[0], exon[1], gene=gene
+                )
+                if alt_ac_val:
+                    alt_ac_data[key] = alt_ac_val
+                else:
+                    return None, warning
+
+        alt_ac_data_values = alt_ac_data.values()
+        # Validate that start and end alignments have matching gene, genomic accession,
+        # and strand
+        if all(alt_ac_data_values):
+            for i in (0, 1, 4):
+                if alt_ac_data["start"][i] != alt_ac_data["end"][i]:
+                    if i == 0:
+                        error = "HGNC gene symbol does not match"
+                    elif i == 1:
+                        error = "Genomic accession does not match"
+                    else:
+                        error = "Strand does not match"
+                    logger.warning(
+                        f"{error}: {alt_ac_data['start'][i]} != {alt_ac_data['end'][i]}"
+                    )
+                    return None, error
+        return tuple(alt_ac_data_values), None
 
     async def _genomic_to_transcript_exon_coordinate(
         self,

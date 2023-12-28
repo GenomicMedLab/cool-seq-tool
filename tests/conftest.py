@@ -59,3 +59,15 @@ def nm_152263_exons():
         (892, 971),
         (971, 7099),
     ]
+
+
+@pytest.fixture(scope="session")
+def tpm3_1_8_start_genomic():
+    """Create test fixture for genomic data for exon 1, 8"""
+    return "TPM3", "NC_000001.11", 154191901, 154192135, -1
+
+
+@pytest.fixture(scope="session")
+def tpm3_1_8_end_genomic():
+    """Create test fixture for genomic data for exon 1, 8"""
+    return "TPM3", "NC_000001.11", 154170399, 154170469, -1

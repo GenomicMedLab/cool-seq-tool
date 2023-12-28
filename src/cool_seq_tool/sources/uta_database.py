@@ -352,57 +352,6 @@ class UTADatabase:
             tx_exons = [(r["tx_start_i"], r["tx_end_i"]) for r in result]
             return tx_exons, None
 
-    async def get_alt_ac_start_and_end(
-        self,
-        tx_ac: str,
-        tx_exon_start: Optional[Tuple[int, int]] = None,
-        tx_exon_end: Optional[Tuple[int, int]] = None,
-        gene: Optional[str] = None,
-    ) -> Tuple[Optional[Tuple[Tuple, Tuple]], Optional[str]]:
-        """Get genomic coordinates for related transcript exon start and end.
-
-        :param tx_ac: Transcript accession
-        :param tx_exon_start: Transcript's exon start coordinates
-        :param tx_exon_end: Transcript's exon end coordinates
-        :param gene: HGNC gene symbol
-        :return: Alt ac start and end data, and warnings if found
-        """
-        if tx_exon_start:
-            alt_ac_start, warning = await self.get_alt_ac_start_or_end(
-                tx_ac, tx_exon_start[0], tx_exon_start[1], gene=gene
-            )
-            if not alt_ac_start:
-                return None, warning
-        else:
-            alt_ac_start = None
-
-        if tx_exon_end:
-            alt_ac_end, warning = await self.get_alt_ac_start_or_end(
-                tx_ac, tx_exon_end[0], tx_exon_end[1], gene=gene
-            )
-            if not alt_ac_end:
-                return None, warning
-        else:
-            alt_ac_end = None
-
-        if alt_ac_start is None and alt_ac_end is None:
-            msg = "Unable to find `alt_ac_start` or `alt_ac_end`"
-            logger.warning(msg)
-            return None, msg
-
-        # validate
-        if alt_ac_start and alt_ac_end:
-            for i in (0, 1, 4):
-                if alt_ac_start[i] != alt_ac_end[i]:
-                    if i == 0:
-                        error = "HGNC gene symbol does not match"
-                    elif i == 1:
-                        error = "Genomic accession does not match"
-                    else:
-                        error = "Strand does not match"
-                    logger.warning(f"{error}: " f"{alt_ac_start[i]} != {alt_ac_end[i]}")
-        return (alt_ac_start, alt_ac_end), None
-
     async def get_alt_ac_start_or_end(
         self, tx_ac: str, tx_exon_start: int, tx_exon_end: int, gene: Optional[str]
     ) -> Tuple[Optional[Tuple[str, str, int, int, int]], Optional[str]]:
