@@ -52,14 +52,14 @@ html_theme_options = {
     ],
 }
 # -- autodoc things ----------------------------------------------------------
-import os  # noqa: E402
-import sys  # noqa: E402
+import os
+import sys
 
 sys.path.insert(0, os.path.abspath("../../cool_seq_tool"))
 autodoc_preserve_defaults = True
 
 # -- get version -------------------------------------------------------------
-from cool_seq_tool.version import __version__  # noqa: E402
+from cool_seq_tool.version import __version__
 
 version = __version__
 release = version

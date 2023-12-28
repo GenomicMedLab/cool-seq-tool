@@ -229,8 +229,8 @@ class UTADatabase:
             await self.execute_query(create_genomic_table)
 
             indexes = [
-                f"""CREATE INDEX alt_pos_index ON {self.schema}.genomic (alt_ac, alt_start_i, alt_end_i);""",  # noqa: E501
-                f"""CREATE INDEX gene_alt_index ON {self.schema}.genomic (hgnc, alt_ac);""",  # noqa: E501
+                f"""CREATE INDEX alt_pos_index ON {self.schema}.genomic (alt_ac, alt_start_i, alt_end_i);""",
+                f"""CREATE INDEX gene_alt_index ON {self.schema}.genomic (hgnc, alt_ac);""",
                 f"""CREATE INDEX alt_ac_index ON {self.schema}.genomic (alt_ac);""",
             ]
             for create_index in indexes:
