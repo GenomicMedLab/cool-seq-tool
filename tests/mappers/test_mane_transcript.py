@@ -12,7 +12,12 @@ from cool_seq_tool.mappers.mane_transcript import (
     GenomicRepresentation,
     ProteinAndCdnaRepresentation,
 )
-from cool_seq_tool.schemas import AnnotationLayer, ResidueMode, TranscriptPriority
+from cool_seq_tool.schemas import (
+    AnnotationLayer,
+    ResidueMode,
+    Strand,
+    TranscriptPriority,
+)
 
 
 @pytest.fixture(scope="module")
@@ -53,7 +58,7 @@ def nm_004333v6_g():
         "alt_pos_change_range": (140753336, 140753334),
         "alt_pos_range": (140753274, 140753393),
         "pos_change": (57, 60),
-        "strand": "-",
+        "strand": Strand.NEGATIVE,
         "alt_aln_method": "splign",
         "tx_exon_id": 7649345,
         "alt_exon_id": 9507338,
@@ -69,7 +74,7 @@ def braf_v600e_mane_p():
         "ensembl": "ENSP00000493543.1",
         "pos": (599, 600),
         "status": TranscriptPriority.MANE_SELECT,
-        "strand": "-",
+        "strand": Strand.NEGATIVE,
         "gene": "BRAF",
     }
     return DataRepresentation(**params)
@@ -83,7 +88,7 @@ def egfr_l858r_mane_p():
         "ensembl": "ENSP00000275493.2",
         "pos": (857, 858),
         "status": TranscriptPriority.MANE_SELECT,
-        "strand": "+",
+        "strand": Strand.POSITIVE,
         "gene": "EGFR",
     }
     return DataRepresentation(**params)
@@ -98,7 +103,7 @@ def braf_v600e_mane_c():
         "ensembl": "ENST00000646891.2",
         "pos": (1798, 1799),
         "status": TranscriptPriority.MANE_SELECT,
-        "strand": "-",
+        "strand": Strand.NEGATIVE,
         "coding_start_site": 226,
         "coding_end_site": 2527,
         "gene": "BRAF",
@@ -115,7 +120,7 @@ def egfr_l858r_mane_c():
         "ensembl": "ENST00000275493.7",
         "pos": (2572, 2573),
         "status": TranscriptPriority.MANE_SELECT,
-        "strand": "+",
+        "strand": Strand.POSITIVE,
         "coding_start_site": 261,
         "coding_end_site": 3894,
         "gene": "EGFR",
@@ -151,7 +156,7 @@ def mybpc3_s236g():
             "ensembl": "ENSP00000442795.1",
             "pos": (234, 236),
             "status": TranscriptPriority.MANE_SELECT,
-            "strand": "-",
+            "strand": Strand.NEGATIVE,
             "gene": "MYBPC3",
         },
         "cdna": {
@@ -160,7 +165,7 @@ def mybpc3_s236g():
             "ensembl": "ENST00000545968.6",
             "pos": (704, 706),
             "status": TranscriptPriority.MANE_SELECT,
-            "strand": "-",
+            "strand": Strand.NEGATIVE,
             "coding_start_site": 55,
             "coding_end_site": 3880,
             "gene": "MYBPC3",
@@ -348,7 +353,7 @@ async def test_p_to_mane_p(test_mane_transcript, braf_v600e_mane_p, egfr_l858r_m
             "refseq": "NP_055768.3",
             "ensembl": "ENSP00000366997.4",
             "pos": (62, 63),
-            "strand": "-",
+            "strand": Strand.NEGATIVE,
             "status": TranscriptPriority.MANE_SELECT,
         }
     )
@@ -410,7 +415,7 @@ async def test_c_to_mane_c(test_mane_transcript, braf_v600e_mane_c, egfr_l858r_m
             "ensembl": "ENST00000269571.10",
             "pos": (2263, 2278),
             "status": TranscriptPriority.MANE_SELECT,
-            "strand": "+",
+            "strand": Strand.POSITIVE,
             "coding_start_site": 175,
             "coding_end_site": 3943,
             "gene": "ERBB2",
@@ -467,7 +472,7 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
             "refseq": "NP_001365396.1",
             "ensembl": None,
             "pos": (599, 600),
-            "strand": "-",
+            "strand": Strand.NEGATIVE,
             "gene": "BRAF",
             "status": TranscriptPriority.LONGEST_COMPATIBLE_REMAINING,
         }
@@ -498,7 +503,7 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
             "refseq": "NM_001378467.1",
             "ensembl": None,
             "pos": (1798, 1799),
-            "strand": "-",
+            "strand": Strand.NEGATIVE,
             "gene": "BRAF",
             "coding_start_site": 226,
             "coding_end_site": 2539,
@@ -549,7 +554,7 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
             "refseq": "NM_001378467.1",
             "ensembl": None,
             "pos": (1807, 1808),
-            "strand": "-",
+            "strand": Strand.NEGATIVE,
             "gene": "BRAF",
             "coding_start_site": 226,
             "coding_end_site": 2539,
@@ -582,7 +587,7 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
             "refseq": "NM_001346899.2",
             "ensembl": None,
             "pos": (2103, 2121),
-            "strand": "+",
+            "strand": Strand.POSITIVE,
             "gene": "EGFR",
             "coding_start_site": 261,
             "coding_end_site": 3759,
@@ -604,7 +609,7 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
             "refseq": "NP_001333828.1",
             "ensembl": None,
             "pos": (701, 707),
-            "strand": "+",
+            "strand": Strand.POSITIVE,
             "gene": None,
             "status": TranscriptPriority.LONGEST_COMPATIBLE_REMAINING,
         }
@@ -624,7 +629,7 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
             "refseq": "NP_000416.1",
             "ensembl": None,
             "pos": (239, 259),
-            "strand": "-",
+            "strand": Strand.NEGATIVE,
             "gene": None,
             "status": TranscriptPriority.LONGEST_COMPATIBLE_REMAINING,
         }
@@ -725,7 +730,7 @@ async def test_g_to_mane_c(
             "ensembl": "ENST00000311936.8",
             "pos": (34, 35),
             "status": TranscriptPriority.MANE_SELECT,
-            "strand": "-",
+            "strand": Strand.NEGATIVE,
             "coding_start_site": 190,
             "coding_end_site": 757,
             "gene": "KRAS",
@@ -743,7 +748,7 @@ async def test_g_to_mane_c(
             "ensembl": "ENST00000275493.7",
             "pos": (2368, 2369),
             "status": TranscriptPriority.MANE_SELECT,
-            "strand": "+",
+            "strand": Strand.POSITIVE,
             "coding_start_site": 261,
             "coding_end_site": 3894,
             "gene": "EGFR",
@@ -799,7 +804,7 @@ async def test_grch38_to_mane_c_p(
                 "ensembl": "ENSP00000275493.2",
                 "pos": (746, 752),
                 "status": TranscriptPriority.MANE_SELECT,
-                "strand": "+",
+                "strand": Strand.POSITIVE,
                 "gene": " EGFR",
             }
         ),
@@ -810,7 +815,7 @@ async def test_grch38_to_mane_c_p(
                 "ensembl": "ENST00000275493.7",
                 "pos": (2238, 2256),
                 "status": TranscriptPriority.MANE_SELECT,
-                "strand": "+",
+                "strand": Strand.POSITIVE,
                 "coding_start_site": 261,
                 "coding_end_site": 3894,
                 "gene": "EGFR",
@@ -829,7 +834,7 @@ async def test_grch38_to_mane_c_p(
                 "ensembl": "ENSP00000359077.1",
                 "pos": (239, 259),
                 "status": TranscriptPriority.MANE_SELECT,
-                "strand": "-",
+                "strand": Strand.NEGATIVE,
                 "gene": "L1CAM",
             }
         ),
@@ -840,7 +845,7 @@ async def test_grch38_to_mane_c_p(
                 "ensembl": "ENST00000370060.7",
                 "pos": (717, 775),
                 "status": TranscriptPriority.MANE_SELECT,
-                "strand": "-",
+                "strand": Strand.NEGATIVE,
                 "coding_start_site": 217,
                 "coding_end_site": 3991,
                 "gene": "L1CAM",
@@ -861,7 +866,7 @@ async def test_grch38_to_mane_c_p(
                 "ensembl": "ENSP00000258080.3",
                 "pos": (242, 244),
                 "status": TranscriptPriority.MANE_SELECT,
-                "strand": "+",
+                "strand": Strand.POSITIVE,
                 "gene": "HTRA2",
             }
         ),
@@ -872,7 +877,7 @@ async def test_grch38_to_mane_c_p(
                 "ensembl": "ENST00000258080.8",
                 "pos": (727, 730),
                 "status": TranscriptPriority.MANE_SELECT,
-                "strand": "+",
+                "strand": Strand.POSITIVE,
                 "coding_start_site": 74,
                 "coding_end_site": 1451,
                 "gene": "HTRA2",
