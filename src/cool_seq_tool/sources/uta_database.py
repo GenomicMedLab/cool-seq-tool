@@ -764,8 +764,6 @@ class UTADatabase:
         data["coding_end_site"] = coding_start_site[1]
 
         if data["strand"] == "-":
-            end_pos += 1
-            start_pos += 1
             data["alt_pos_change_range"] = (end_pos, start_pos)
             data["alt_pos_change"] = (
                 data["alt_pos_range"][1] - data["alt_pos_change_range"][0],
@@ -840,7 +838,7 @@ class UTADatabase:
                 )
         else:
             if data["strand"] == "-":
-                data["alt_pos_change_range"] = (pos[1] + 1, pos[0] + 1)
+                data["alt_pos_change_range"] = (pos[1], pos[0])
             else:
                 data["alt_pos_change_range"] = pos
 
@@ -986,7 +984,10 @@ class UTADatabase:
         results = [
             (r["pro_ac"], r["tx_ac"], r["alt_ac"], r["cds_start_i"]) for r in results
         ]
-        return pl.DataFrame(results, schema=schema).unique()
+        results_df = pl.DataFrame(results, schema=schema)
+        if results:
+            results_df = results_df.unique()
+        return results_df
 
     async def get_chr_assembly(self, ac: str) -> Optional[Tuple[str, str]]:
         """Get chromosome and assembly for NC accession if not in GRCh38.
