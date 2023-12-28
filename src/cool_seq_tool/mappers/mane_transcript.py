@@ -268,7 +268,7 @@ class MANETranscript:
     def _get_c_data(
         cds_start_end: Tuple[int, int],
         c_pos_change: Tuple[int, int],
-        strand: str,
+        strand: Strand,
         status: TranscriptPriority,
         refseq_c_ac: str,
         gene: Optional[str] = None,
@@ -337,7 +337,9 @@ class MANETranscript:
             refseq=mane_data["RefSeq_prot"],
             ensembl=mane_data["Ensembl_prot"],
             pos=self._c_to_p_pos(mane_c_pos_range),
-            strand=mane_data["chr_strand"],
+            strand=Strand.NEGATIVE
+            if mane_data["chr_strand"] == "-"
+            else Strand.POSITIVE,
             status=TranscriptPriority(
                 "_".join(mane_data["MANE_status"].split()).lower()
             ),
@@ -394,7 +396,7 @@ class MANETranscript:
         g_pos = g["alt_pos_change_range"]  # start/end genomic change
         g_pos_change = g_pos[0] - tx_g_pos[0], tx_g_pos[1] - g_pos[1]
 
-        if g["strand"] == "-":
+        if g["strand"] == Strand.NEGATIVE:
             g_pos_change = (tx_g_pos[1] - g_pos[0], g_pos[1] - tx_g_pos[0])
 
         c_pos_change = (
@@ -1175,7 +1177,9 @@ class MANETranscript:
                 gene=current_mane_data["symbol"],
                 cds_start_end=(coding_start_site, coding_end_site),
                 c_pos_change=mane_c_pos_change,
-                strand=current_mane_data["chr_strand"],
+                strand=Strand.NEGATIVE
+                if current_mane_data["chr_strand"] == "-"
+                else Strand.POSITIVE,
                 status=TranscriptPriority(
                     "_".join(current_mane_data["MANE_status"].split()).lower()
                 ),
