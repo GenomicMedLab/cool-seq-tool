@@ -333,8 +333,19 @@ async def test_p_to_mane_p(test_mane_transcript, braf_v600e_mane_p, egfr_l858r_m
     )
     assert mane_p == egfr_l858r_mane_p
 
-    assert test_mane_transcript.get_mane_transcript(
+    # CA891842275
+    resp = await test_mane_transcript.get_mane_transcript(
         "NP_004439.2", 755, 759, AnnotationLayer.PROTEIN
+    )
+    assert resp == DataRepresentation(
+        **{
+            "gene": "ERBB2",
+            "refseq": "NP_004439.2",
+            "ensembl": "ENSP00000269571.4",
+            "pos": (754, 759),
+            "strand": Strand.POSITIVE,
+            "status": TranscriptPriority.MANE_SELECT,
+        }
     )
 
     # CA388294838
