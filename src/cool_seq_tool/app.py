@@ -11,7 +11,7 @@ from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
 from cool_seq_tool.mappers import (
     AlignmentMapper,
     ExonGenomicCoordsMapper,
-    MANETranscript,
+    ManeTranscript,
 )
 from cool_seq_tool.paths import (
     LRG_REFSEQGENE_PATH,
@@ -19,9 +19,9 @@ from cool_seq_tool.paths import (
     SEQREPO_ROOT_DIR,
     TRANSCRIPT_MAPPINGS_PATH,
 )
-from cool_seq_tool.sources.mane_transcript_mappings import MANETranscriptMappings
+from cool_seq_tool.sources.mane_transcript_mappings import ManeTranscriptMappings
 from cool_seq_tool.sources.transcript_mappings import TranscriptMappings
-from cool_seq_tool.sources.uta_database import UTA_DB_URL, UTADatabase
+from cool_seq_tool.sources.uta_database import UTA_DB_URL, UtaDatabase
 
 logger = logging.getLogger(__name__)
 
@@ -32,10 +32,10 @@ class CoolSeqTool:
 
     * ``self.seqrepo_access``: :py:class:`SeqRepoAccess <cool_seq_tool.handlers.seqrepo_access.SeqRepoAccess>`
     * ``self.transcript_mappings``: :py:class:`TranscriptMappings <cool_seq_tool.sources.transcript_mappings.TranscriptMappings>`
-    * ``self.mane_transcript_mappings``: :py:class:`MANETranscriptMappings <cool_seq_tool.sources.mane_transcript_mappings.MANETranscriptMappings>`
-    * ``self.uta_db``: :py:class:`UTADatabase <cool_seq_tool.sources.uta_database.UTADatabase>`
+    * ``self.mane_transcript_mappings``: :py:class:`ManeTranscriptMappings <cool_seq_tool.sources.mane_transcript_mappings.ManeTranscriptMappings>`
+    * ``self.uta_db``: :py:class:`UtaDatabase <cool_seq_tool.sources.uta_database.UtaDatabase>`
     * ``self.alignment_mapper``: :py:class:`AlignmentMapper <cool_seq_tool.mappers.alignment.AlignmentMapper>`
-    * ``self.mane_transcript``: :py:class:`MANETranscript <cool_seq_tool.mappers.mane_transcript.MANETranscript>`
+    * ``self.mane_transcript``: :py:class:`ManeTranscript <cool_seq_tool.mappers.mane_transcript.ManeTranscript>`
     * ``self.ex_g_coords_mapper``: :py:class:`ExonGenomicCoordsMapper <cool_seq_tool.mappers.exon_genomic_coords.ExonGenomicCoordsMapper>`
 
     Initialization with default resource locations is straightforward:
@@ -72,14 +72,14 @@ class CoolSeqTool:
             transcript_file_path=transcript_file_path,
             lrg_refseqgene_path=lrg_refseqgene_path,
         )
-        self.mane_transcript_mappings = MANETranscriptMappings(
+        self.mane_transcript_mappings = ManeTranscriptMappings(
             mane_data_path=mane_data_path
         )
-        self.uta_db = UTADatabase(db_url=db_url)
+        self.uta_db = UtaDatabase(db_url=db_url)
         self.alignment_mapper = AlignmentMapper(
             self.seqrepo_access, self.transcript_mappings, self.uta_db
         )
-        self.mane_transcript = MANETranscript(
+        self.mane_transcript = ManeTranscript(
             self.seqrepo_access,
             self.transcript_mappings,
             self.mane_transcript_mappings,

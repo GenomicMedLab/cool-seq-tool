@@ -28,9 +28,9 @@ from cool_seq_tool.schemas import (
     TranscriptPriority,
 )
 from cool_seq_tool.sources import (
-    MANETranscriptMappings,
+    ManeTranscriptMappings,
     TranscriptMappings,
-    UTADatabase,
+    UtaDatabase,
 )
 from cool_seq_tool.utils import get_inter_residue_pos
 
@@ -82,17 +82,17 @@ class ProteinAndCdnaRepresentation(BaseModel):
     cdna: CdnaRepresentation
 
 
-class MANETranscript:
+class ManeTranscript:
     """Class for retrieving MANE transcripts."""
 
     def __init__(
         self,
         seqrepo_access: SeqRepoAccess,
         transcript_mappings: TranscriptMappings,
-        mane_transcript_mappings: MANETranscriptMappings,
-        uta_db: UTADatabase,
+        mane_transcript_mappings: ManeTranscriptMappings,
+        uta_db: UtaDatabase,
     ) -> None:
-        """Initialize the MANETranscript class.
+        """Initialize the ManeTranscript class.
 
         A handful of resources are required for initialization, so when defaults are
         enough, it's easiest to let the core CoolSeqTool class handle it for you:
@@ -115,7 +115,7 @@ class MANETranscript:
             conversions
         :param mane_transcript_mappings: Access to MANE Transcript accession mapping
             data
-        :param uta_db: UTADatabase instance to give access to query UTA database
+        :param uta_db: UtaDatabase instance to give access to query UTA database
         """
         self.seqrepo_access = seqrepo_access
         self.transcript_mappings = transcript_mappings
