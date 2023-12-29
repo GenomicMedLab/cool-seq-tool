@@ -135,46 +135,6 @@ class SeqRepoAccess(SeqRepoDataProxy):
             logger.warning(msg)
             return [], msg
 
-    def chromosome_to_acs(
-        self, chromosome: str
-    ) -> Tuple[Optional[List[str]], Optional[str]]:
-        """Get accessions for a chromosome
-
-        :param chromosome: Chromosome number. Must be either 1-22, X, or Y
-        :return: Accessions for chromosome (ordered by latest assembly)
-        """
-        acs = []
-        for assembly in ["GRCh38", "GRCh37"]:
-            tmp_acs, _ = self.translate_identifier(
-                f"{assembly}:chr{chromosome}", target_namespaces="refseq"
-            )
-            for ac in tmp_acs:
-                acs.append(ac.split("refseq:")[-1])
-        if acs:
-            return acs, None
-        else:
-            return None, f"{chromosome} is not a valid chromosome"
-
-    def ac_to_chromosome(self, ac: str) -> Tuple[Optional[str], Optional[str]]:
-        """Get chromosome for accession.
-
-        :param str ac: Accession
-        :return: Chromosome, warning
-        """
-        aliases, _ = self.translate_alias(ac)
-        aliases = (
-            [
-                a.split(":")[-1]
-                for a in aliases
-                if a.startswith("GRCh") and "." not in a and "chr" not in a
-            ]
-            or [None]
-        )[0]
-        if aliases is None:
-            return None, f"Unable to get chromosome for {ac}"
-        else:
-            return aliases, None
-
     def get_fasta_file(self, sequence_id: str, outfile_path: Path) -> None:
         """Retrieve FASTA file containing sequence for requested sequence ID.
 

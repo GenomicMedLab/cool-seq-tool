@@ -112,30 +112,6 @@ def test_aliases(test_seqrepo_access):
     assert resp == ([], "SeqRepo could not translate alias GRCh38:2")
 
 
-def test_chromosome_to_acs(test_seqrepo_access):
-    """Test that chromosome_to_acs method works correctly"""
-    resp = test_seqrepo_access.chromosome_to_acs("7")
-    assert resp == (["NC_000007.14", "NC_000007.13"], None)
-
-    resp = test_seqrepo_access.chromosome_to_acs("X")
-    assert resp == (["NC_000023.11", "NC_000023.10"], None)
-
-    resp = test_seqrepo_access.chromosome_to_acs("Y")
-    assert resp == (["NC_000024.10", "NC_000024.9"], None)
-
-    resp = test_seqrepo_access.chromosome_to_acs("117")
-    assert resp == (None, "117 is not a valid chromosome")
-
-
-def test_ac_to_chromosome(test_seqrepo_access):
-    """Test that ac_to_chromosome method works correctly"""
-    resp = test_seqrepo_access.ac_to_chromosome("NC_000007.13")
-    assert resp == ("7", None)
-
-    resp = test_seqrepo_access.ac_to_chromosome("NC_000007.1323")
-    assert resp == (None, "Unable to get chromosome for NC_000007.1323")
-
-
 def test_get_fasta_file(test_seqrepo_access, tmp_path):
     """Test get_fasta_file method"""
     tpm3 = tmp_path / "NM_002529.3.fasta"

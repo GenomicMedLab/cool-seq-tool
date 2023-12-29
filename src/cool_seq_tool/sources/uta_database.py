@@ -866,49 +866,6 @@ class UtaDatabase:
         alt_acs.sort(key=lambda x: int(x.split(".")[-1]), reverse=True)
         return alt_acs
 
-    async def get_gene_from_ac(
-        self, ac: str, start_pos: int, end_pos: int
-    ) -> Optional[List[str]]:
-        """Get gene(s) within the provided coordinate range
-
-        >>> import asyncio
-        >>> from cool_seq_tool.sources import UtaDatabase
-        >>> async def get_gene():
-        ...     uta_db = await UtaDatabase.create()
-        ...     result = await uta_db.get_gene_from_ac("NC_000017.11", 43044296, 43045802)
-        ...     return result
-        >>> asyncio.run(get_gene())
-        ['BRCA1']
-
-        :param ac: NC accession, e.g. ``"NC_000001.11"``
-        :param start_pos: Start position change
-        :param end_pos: End position change
-        :return: List of HGNC gene symbols
-        """
-        if end_pos is None:
-            end_pos = start_pos
-        query = f"""
-            SELECT DISTINCT hgnc
-            FROM {self.schema}.genomic
-            WHERE alt_ac = '{ac}'
-            AND {start_pos} BETWEEN alt_start_i AND alt_end_i
-            AND {end_pos} BETWEEN alt_start_i AND alt_end_i;
-            """
-        results = await self.execute_query(query)
-        if not results:
-            logger.warning(
-                f"Unable to find gene between {start_pos} and" f" {end_pos} on {ac}"
-            )
-            return None
-        else:
-            if len(results) > 1:
-                logger.info(
-                    f"Found more than one gene between "
-                    f"{start_pos} and {end_pos} on {ac}"
-                )
-
-        return [r[0] for r in results]
-
     async def get_transcripts(
         self,
         start_pos: Optional[int] = None,
@@ -1159,27 +1116,6 @@ class UtaDatabase:
         if result:
             result = [r["tx_ac"] for r in result]
         return result
-
-    async def get_transcripts_from_genomic_pos(
-        self, alt_ac: str, g_pos: int
-    ) -> List[str]:
-        """Get transcripts associated to a genomic ac and position.
-
-        :param alt_ac: Genomic accession
-        :param g_pos: Genomic position
-        :return: RefSeq transcripts on c. coordinate
-        """
-        query = f"""
-               SELECT distinct tx_ac
-               FROM {self.schema}.tx_exon_aln_v
-               WHERE alt_ac = '{alt_ac}'
-               AND {g_pos} BETWEEN alt_start_i AND alt_end_i
-               AND tx_ac LIKE 'NM_%';
-               """
-        results = await self.execute_query(query)
-        if not results:
-            return []
-        return [item for sublist in results for item in sublist]
 
     @staticmethod
     def get_secret() -> str:
