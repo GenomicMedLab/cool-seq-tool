@@ -3,7 +3,7 @@
 Transcript Selection
 ====================
 
-One of the core uses of Cool-Seq-Tool is to acquire and use consensus-based, representative transcripts in performing genomic analysis. Here, we describe the selection processes, programmed in the :py:class:`MANETranscript <cool_seq_tool.mappers.mane_transcript.MANETranscript>` class, for choosing the best available transcripts that are compatible with requested data.
+One of the core uses of Cool-Seq-Tool is to acquire and use consensus-based, representative transcripts in performing genomic analysis. Here, we describe the selection processes, programmed in the :py:class:`ManeTranscript <cool_seq_tool.mappers.mane_transcript.ManeTranscript>` class, for choosing the best available transcripts that are compatible with requested data.
 
 We rely heavily on transcripts annotated under the `Matched Annotation from NCBI and EMBL-EBI (MANE)` Transcripts project. For more information on the MANE project, see the `NCBI MANE page <https://www.ncbi.nlm.nih.gov/refseq/MANE/>`_.
 

@@ -16,8 +16,8 @@ from pyliftover import LiftOver
 
 from cool_seq_tool.schemas import AnnotationLayer, Assembly, Strand
 
-# use `bound` to upper-bound UTADatabase or child classes
-UTADatabaseType = TypeVar("UTADatabaseType", bound="UTADatabase")
+# use `bound` to upper-bound UtaDatabase or child classes
+UTADatabaseType = TypeVar("UTADatabaseType", bound="UtaDatabase")
 
 # Environment variables for paths to chain files for pyliftover
 LIFTOVER_CHAIN_37_TO_38 = environ.get("LIFTOVER_CHAIN_37_TO_38")
@@ -30,7 +30,7 @@ UTA_DB_URL = environ.get(
 logger = logging.getLogger(__name__)
 
 
-class UTADatabase:
+class UtaDatabase:
     """Provide transcript lookup and metadata tools via the Universal Transcript Archive
     (UTA) database.
 
@@ -39,8 +39,8 @@ class UTADatabase:
     for more information.
 
     >>> import asyncio
-    >>> from cool_seq_tool.sources.uta_database import UTADatabase
-    >>> uta_db = asyncio.run(UTADatabase.create())
+    >>> from cool_seq_tool.sources.uta_database import UtaDatabase
+    >>> uta_db = asyncio.run(UtaDatabase.create())
     """
 
     def __init__(
@@ -152,8 +152,8 @@ class UTADatabase:
         instance.
 
         >>> import asyncio
-        >>> from cool_seq_tool.sources.uta_database import UTADatabase
-        >>> uta_db = asyncio.run(UTADatabase.create())
+        >>> from cool_seq_tool.sources.uta_database import UtaDatabase
+        >>> uta_db = asyncio.run(UtaDatabase.create())
 
         :param cls: supplied implicitly
         :param db_url: PostgreSQL connection URL
@@ -202,7 +202,7 @@ class UTADatabase:
         genomic_table_exists = genomic_table_exists[0].get("exists")
         if genomic_table_exists is None:
             logger.critical(
-                "SELECT EXISTS query in UTADatabase._create_genomic_table "
+                "SELECT EXISTS query in UtaDatabase._create_genomic_table "
                 "returned invalid response"
             )
             raise ValueError("SELECT EXISTS query returned invalid response")
@@ -575,9 +575,9 @@ class UTADatabase:
         from older (pre-GRCh38) builds.
 
         >>> import asyncio
-        >>> from cool_seq_tool.sources.uta_database import UTADatabase
+        >>> from cool_seq_tool.sources.uta_database import UtaDatabase
         >>> async def describe():
-        ...     uta_db = await UTADatabase.create()
+        ...     uta_db = await UtaDatabase.create()
         ...     result = await uta_db.get_ac_descr("NC_000001.10")
         ...     return result
         >>> asyncio.run(describe())
@@ -721,9 +721,9 @@ class UTADatabase:
         representation.
 
         >>> import asyncio
-        >>> from cool_seq_tool.sources import UTADatabase
+        >>> from cool_seq_tool.sources import UtaDatabase
         >>> async def get_braf_mane():
-        ...     uta_db = await UTADatabase.create()
+        ...     uta_db = await UtaDatabase.create()
         ...     result = await uta_db.get_mane_c_genomic_data(
         ...         "NM_004333.6",
         ...         None,
@@ -872,9 +872,9 @@ class UTADatabase:
         """Get gene(s) within the provided coordinate range
 
         >>> import asyncio
-        >>> from cool_seq_tool.sources import UTADatabase
+        >>> from cool_seq_tool.sources import UtaDatabase
         >>> async def get_gene():
-        ...     uta_db = await UTADatabase.create()
+        ...     uta_db = await UtaDatabase.create()
         ...     result = await uta_db.get_gene_from_ac("NC_000017.11", 43044296, 43045802)
         ...     return result
         >>> asyncio.run(get_gene())
