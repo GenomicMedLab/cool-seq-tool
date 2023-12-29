@@ -5,7 +5,7 @@ from typing import Dict, Optional, Tuple
 
 from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
 from cool_seq_tool.schemas import AnnotationLayer, Assembly, ResidueMode
-from cool_seq_tool.sources import TranscriptMappings, UTADatabase
+from cool_seq_tool.sources import TranscriptMappings, UtaDatabase
 
 
 class AlignmentMapper:
@@ -15,14 +15,14 @@ class AlignmentMapper:
         self,
         seqrepo_access: SeqRepoAccess,
         transcript_mappings: TranscriptMappings,
-        uta_db: UTADatabase,
+        uta_db: UtaDatabase,
     ) -> None:
         """Initialize the AlignmentMapper class.
 
         :param seqrepo_access: Access to seqrepo queries
         :param transcript_mappings: Access to transcript accession mappings and
             conversions
-        :param uta_db: UTADatabase instance to give access to query UTA database
+        :param uta_db: UtaDatabase instance to give access to query UTA database
         """
         self.seqrepo_access = seqrepo_access
         self.transcript_mappings = transcript_mappings

@@ -2,7 +2,7 @@
 import logging
 from typing import Dict, List, Optional, Tuple, TypeVar, Union
 
-from cool_seq_tool.mappers.mane_transcript import CdnaRepresentation, MANETranscript
+from cool_seq_tool.mappers.mane_transcript import CdnaRepresentation, ManeTranscript
 from cool_seq_tool.schemas import (
     AnnotationLayer,
     Assembly,
@@ -13,7 +13,7 @@ from cool_seq_tool.schemas import (
     TranscriptExonData,
     TranscriptExonDataResponse,
 )
-from cool_seq_tool.sources.uta_database import UTADatabase
+from cool_seq_tool.sources.uta_database import UtaDatabase
 from cool_seq_tool.utils import get_inter_residue_pos, service_meta
 
 CoordinatesResponseType = TypeVar(
@@ -28,7 +28,7 @@ class ExonGenomicCoordsMapper:
     coordinate representation.
     """
 
-    def __init__(self, uta_db: UTADatabase, mane_transcript: MANETranscript) -> None:
+    def __init__(self, uta_db: UtaDatabase, mane_transcript: ManeTranscript) -> None:
         """Initialize ExonGenomicCoordsMapper class.
 
         A lot of resources are required for initialization, so when defaults are enough,
@@ -50,7 +50,7 @@ class ExonGenomicCoordsMapper:
         >>> result.genomic_data.start, result.genomic_data.end
         (156864428, 156881456)
 
-        :param uta_db: UTADatabase instance to give access to query UTA database
+        :param uta_db: UtaDatabase instance to give access to query UTA database
         :param mane_transcript: Instance to align to MANE or compatible representation
         """
         self.uta_db = uta_db
