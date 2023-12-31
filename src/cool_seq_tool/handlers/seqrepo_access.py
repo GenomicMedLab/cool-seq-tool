@@ -4,10 +4,11 @@ dereferencing functions.
 import logging
 from os import environ
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Union
 
 from ga4gh.vrs.dataproxy import SeqRepoDataProxy
 
+from cool_seq_tool.exceptions import SeqRepoAccessError
 from cool_seq_tool.schemas import ResidueMode
 from cool_seq_tool.utils import get_inter_residue_pos
 
@@ -27,7 +28,7 @@ class SeqRepoAccess(SeqRepoDataProxy):
         start: Optional[int] = None,
         end: Optional[int] = None,
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
-    ) -> Tuple[str, Optional[str]]:
+    ) -> str:
         """Get reference sequence for an accession given a start and end position. If
         ``start`` and ``end`` are not given, returns the entire reference sequence.
 
@@ -44,13 +45,15 @@ class SeqRepoAccess(SeqRepoDataProxy):
         :param end: End pos change. If ``None`` assumes both ``start`` and ``end`` have
             same values, if ``start`` exists.
         :param residue_mode: Residue mode for ``start`` and ``end``
-        :return: Sequence at position (if accession and positions actually
-            exist, else return empty string), warning if any
+        :return: Sequence at position(s) on an accession
+        :raises SeqRepoAccessError: If ``start`` is greater than than ``end``, accession
+            does not exist in SeqRepo, or coordinates are out of index on an accession
         """
         if start and end:
             if start > end:
-                msg = f"start ({start}) cannot be greater than end ({end})"
-                return "", msg
+                raise SeqRepoAccessError(
+                    f"start ({start}) cannot be greater than end ({end})"
+                )
 
             start, end = get_inter_residue_pos(start, end, residue_mode)
             if start == end:
@@ -64,7 +67,7 @@ class SeqRepoAccess(SeqRepoDataProxy):
         except KeyError:
             msg = f"Accession, {ac}, not found in SeqRepo"
             logger.warning(msg)
-            return "", msg
+            raise SeqRepoAccessError(msg)
         except ValueError as e:
             error = str(e)
             if error.startswith("start out of range"):
@@ -78,7 +81,7 @@ class SeqRepoAccess(SeqRepoDataProxy):
             else:
                 msg = f"{e}"
             logger.warning(msg)
-            return "", msg
+            raise SeqRepoAccessError(msg)
         else:
             # If start is valid, but end is invalid, SeqRepo still returns
             # the sequence from valid positions. So we want to make sure
@@ -86,15 +89,15 @@ class SeqRepoAccess(SeqRepoDataProxy):
             if start and end:
                 expected_len_of_seq = end - start
                 if len(sequence) != expected_len_of_seq:
-                    return (
-                        "",
-                        f"End inter-residue coordinate ({end}) is out of index on {ac}",
+                    raise SeqRepoAccessError(
+                        f"End inter-residue coordinate ({end}) is out of index on {ac}"
                     )
-            return sequence, None
+
+            return sequence
 
     def translate_identifier(
         self, ac: str, target_namespaces: Optional[Union[str, List[str]]] = None
-    ) -> Tuple[List[str], Optional[str]]:
+    ) -> List[str]:
         """Return list of identifiers for accession.
 
         >>> from cool_seq_tool.handlers import SeqRepoAccess
@@ -107,7 +110,8 @@ class SeqRepoAccess(SeqRepoDataProxy):
 
         :param ac: Identifier accession
         :param target_namespace: The namespace(s) of identifier to return
-        :return: List of identifiers, warning
+        :return: List of identifiers
+        :raises SeqRepoAccessError: If accession does not exist in SeqRepo
         """
         try:
             ga4gh_identifiers = self.sr.translate_identifier(
@@ -116,24 +120,23 @@ class SeqRepoAccess(SeqRepoDataProxy):
         except KeyError:
             msg = f"SeqRepo unable to get translated identifiers for {ac}"
             logger.warning(msg)
-            return [], msg
+            raise SeqRepoAccessError(msg)
         else:
-            return ga4gh_identifiers, None
+            return ga4gh_identifiers
 
-    def translate_alias(
-        self, input_str: str
-    ) -> Tuple[List[Optional[str]], Optional[str]]:
+    def translate_alias(self, input_str: str) -> List[str]:
         """Get aliases for a given input.
 
-        :param str input_str: Input to get aliases for
-        :return: List of aliases, warning
+        :param input_str: Input to get aliases for
+        :return: List of aliases
+        :raises: SeqRepoAccessError if ``input_str`` does not exist in SeqRepo
         """
         try:
-            return self.sr.translate_alias(input_str), None
+            return self.sr.translate_alias(input_str)
         except KeyError:
             msg = f"SeqRepo could not translate alias {input_str}"
             logger.warning(msg)
-            return [], msg
+            raise SeqRepoAccessError(msg)
 
     def get_fasta_file(self, sequence_id: str, outfile_path: Path) -> None:
         """Retrieve FASTA file containing sequence for requested sequence ID.
@@ -151,11 +154,8 @@ class SeqRepoAccess(SeqRepoDataProxy):
         :param sequence_id: accession ID, sans namespace, eg ``NM_152263.3``
         :param outfile_path: path to save file to
         :return: None, but saves sequence data to ``outfile_path`` if successful
-        :raise: KeyError if SeqRepo doesn't have sequence data for the given ID
         """
-        sequence = self.get_reference_sequence(sequence_id)[0]
-        if not sequence:
-            raise KeyError
+        sequence = self.get_reference_sequence(sequence_id)
 
         refseq_prefixes = [
             "NC_",
@@ -178,15 +178,15 @@ class SeqRepoAccess(SeqRepoDataProxy):
 
         if sequence_id[:3] in refseq_prefixes:
             aliases = self.translate_identifier(sequence_id, ["ensembl", "ga4gh"])
-            header = f">refseq:{sequence_id}|{'|'.join(aliases[0])}"
+            header = f">refseq:{sequence_id}|{'|'.join(aliases)}"
         elif sequence_id[:4] in ensembl_prefixes:
             aliases = self.translate_identifier(sequence_id, ["refseq", "ga4gh"])
-            header = f">ensembl:{sequence_id}|{'|'.join(aliases[0])}"
+            header = f">ensembl:{sequence_id}|{'|'.join(aliases)}"
         else:
             aliases = self.translate_identifier(
                 sequence_id, ["ensembl", "refseq", "ga4gh"]
             )
-            header = f">gnl|ID|{sequence_id}|{'|'.join(aliases[0])}"
+            header = f">gnl|ID|{sequence_id}|{'|'.join(aliases)}"
 
         line_length = 60
         file_data = [header] + [

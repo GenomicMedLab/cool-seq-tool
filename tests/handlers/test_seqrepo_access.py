@@ -1,65 +1,65 @@
 """Module for testing seqrepo access class"""
 import pytest
 
+from cool_seq_tool.exceptions import SeqRepoAccessError
 from cool_seq_tool.schemas import ResidueMode
 
 
 def test_get_reference_sequence(test_seqrepo_access):
     """Test that get_reference_sequence method works correctly"""
     resp = test_seqrepo_access.get_reference_sequence("NP_004324.2", 600, 600)
-    assert resp == ("V", None)
+    assert resp == "V"
 
     resp = test_seqrepo_access.get_reference_sequence("NP_004324.2", 600, 601)
-    assert resp == ("VK", None)
+    assert resp == "VK"
 
     resp = test_seqrepo_access.get_reference_sequence(
         "NP_004324.2", 599, 600, residue_mode=ResidueMode.INTER_RESIDUE
     )
-    assert resp == ("V", None)
+    assert resp == "V"
 
     # Test getting entire sequence
     resp = test_seqrepo_access.get_reference_sequence("NP_004324.2")
-    assert len(resp[0]) == 766
+    assert len(resp) == 766
 
     # Test only setting end
     resp = test_seqrepo_access.get_reference_sequence("NP_001341538.1", end=10)
-    assert resp == ("MAALSGGGGG", None)
+    assert resp == "MAALSGGGGG"
 
     # Test only setting start
     resp = test_seqrepo_access.get_reference_sequence("NP_001341538.1", start=758)
-    assert resp == ("GGYGEFAAFK", None)
+    assert resp == "GGYGEFAAFK"
 
-    resp = test_seqrepo_access.get_reference_sequence("NP_004324.2", 601, 600)
-    assert resp == (
-        "",
-        "start (601) cannot be greater than end (600)",
+    with pytest.raises(SeqRepoAccessError) as e:
+        test_seqrepo_access.get_reference_sequence("NP_004324.2", 601, 600)
+    assert str(e.value) == "start (601) cannot be greater than end (600)"
+
+    with pytest.raises(SeqRepoAccessError) as e:
+        test_seqrepo_access.get_reference_sequence("NP_0043241311412", 600)
+    assert str(e.value) == "Accession, NP_0043241311412, not found in SeqRepo"
+
+    with pytest.raises(SeqRepoAccessError) as e:
+        test_seqrepo_access.get_reference_sequence("NP_004324.2", 600, 800)
+    assert (
+        str(e.value)
+        == "End inter-residue coordinate (800) is out of index on NP_004324.2"
     )
 
-    resp = test_seqrepo_access.get_reference_sequence("NP_0043241311412", 600)
-    assert resp == ("", "Accession, NP_0043241311412, not found in SeqRepo")
+    with pytest.raises(SeqRepoAccessError) as e:
+        test_seqrepo_access.get_reference_sequence("NP_004324.2", 4654645645654, 1)
+    assert str(e.value) == "start (4654645645654) cannot be greater than end (1)"
 
-    resp = test_seqrepo_access.get_reference_sequence("NP_004324.2", 600, 800)
-    assert resp == (
-        "",
-        "End inter-residue coordinate (800) is out of index on NP_004324.2",
-    )
-
-    resp = test_seqrepo_access.get_reference_sequence("NP_004324.2", 4654645645654, 1)
-    assert resp == (
-        "",
-        "start (4654645645654) cannot be greater than end (1)",
-    )
-
-    resp = test_seqrepo_access.get_reference_sequence("NP_004324.2", 600, 4654645645654)
-    assert resp == (
-        "",
-        "End inter-residue coordinate (4654645645654) is out of index on NP_004324.2",
+    with pytest.raises(SeqRepoAccessError) as e:
+        test_seqrepo_access.get_reference_sequence("NP_004324.2", 600, 4654645645654)
+    assert (
+        str(e.value)
+        == "End inter-residue coordinate (4654645645654) is out of index on NP_004324.2"
     )
 
 
 def test_translate_identifier(test_seqrepo_access):
     """Test that translate_identifier method works correctly"""
-    expected = (["ga4gh:SQ.ijXOSP3XSsuLWZhXQ7_TJ5JXu4RJO6VT"], None)
+    expected = ["ga4gh:SQ.ijXOSP3XSsuLWZhXQ7_TJ5JXu4RJO6VT"]
     resp = test_seqrepo_access.translate_identifier(
         "NM_152263.3", target_namespaces="ga4gh"
     )
@@ -71,45 +71,43 @@ def test_translate_identifier(test_seqrepo_access):
     assert resp == expected
 
     resp = test_seqrepo_access.translate_identifier("refseq:NM_152263.3")
-    assert len(resp[0]) > 0
-    assert resp[1] is None
-    assert expected[0][0] in resp[0]
+    assert len(resp) > 0
+    assert expected[0] in resp
 
     resp = test_seqrepo_access.translate_identifier("GRCh38:2")
-    assert len(resp[0]) > 0
-    assert resp[1] is None
-    assert "refseq:NC_000002.12" in resp[0]
+    assert len(resp) > 0
+    assert "refseq:NC_000002.12" in resp
 
     resp = test_seqrepo_access.translate_identifier("NC_000002.12")
-    assert len(resp[0]) > 0
-    assert resp[1] is None
-    assert "refseq:NC_000002.12" in resp[0]
+    assert len(resp) > 0
+    assert "refseq:NC_000002.12" in resp
 
-    resp = test_seqrepo_access.translate_identifier("refseq_152263.3")
-    assert resp == (
-        [],
-        "SeqRepo unable to get translated identifiers for" " refseq_152263.3",
+    with pytest.raises(SeqRepoAccessError) as e:
+        test_seqrepo_access.translate_identifier("refseq_152263.3")
+    assert (
+        str(e.value)
+        == "SeqRepo unable to get translated identifiers for refseq_152263.3"
     )
 
 
 def test_aliases(test_seqrepo_access):
     """Test that aliases method works correctly"""
-    expected = (["ga4gh:SQ.ijXOSP3XSsuLWZhXQ7_TJ5JXu4RJO6VT"], None)
+    expected = ["ga4gh:SQ.ijXOSP3XSsuLWZhXQ7_TJ5JXu4RJO6VT"]
     resp = test_seqrepo_access.translate_alias("NM_152263.3")
-    assert len(resp[0]) > 0
-    assert resp[1] is None
-    assert expected[0][0] in resp[0]
+    assert len(resp) > 0
+    assert expected[0] in resp
 
     resp = test_seqrepo_access.translate_alias("NC_000002.12")
-    assert len(resp[0]) > 0
-    assert resp[1] is None
-    assert "GRCh38:2" in resp[0]
+    assert len(resp) > 0
+    assert "GRCh38:2" in resp
 
-    resp = test_seqrepo_access.translate_alias("refseq_152263.3")
-    assert resp == ([], "SeqRepo could not translate alias refseq_152263.3")
+    with pytest.raises(SeqRepoAccessError) as e:
+        test_seqrepo_access.translate_alias("refseq_152263.3")
+    assert str(e.value) == "SeqRepo could not translate alias refseq_152263.3"
 
-    resp = test_seqrepo_access.translate_alias("GRCh38:2")
-    assert resp == ([], "SeqRepo could not translate alias GRCh38:2")
+    with pytest.raises(SeqRepoAccessError) as e:
+        test_seqrepo_access.translate_alias("GRCh38:2")
+    assert str(e.value) == "SeqRepo could not translate alias GRCh38:2"
 
 
 def test_get_fasta_file(test_seqrepo_access, tmp_path):
@@ -299,5 +297,5 @@ CTGGCAA"""
     assert limk2_seguid.read_text() == limk2_seguid_expected
 
     invalid = tmp_path / "invalid.fasta"
-    with pytest.raises(KeyError):
+    with pytest.raises(SeqRepoAccessError):
         test_seqrepo_access.get_fasta_file("NM_2529.3", invalid)
