@@ -400,7 +400,7 @@ class ExonGenomicCoordsMapper:
         tx_exon_start: Optional[Tuple[int, int]] = None,
         tx_exon_end: Optional[Tuple[int, int]] = None,
         gene: Optional[str] = None,
-    ) -> Tuple[Optional[Tuple[Tuple, Tuple]], Optional[str]]:
+    ) -> Tuple[Optional[Tuple[Tuple[int, int], Tuple[int, int]]], Optional[str]]:
         """Get aligned genomic coordinates for transcript exon start and end.
 
         :param tx_ac: Transcript accession
