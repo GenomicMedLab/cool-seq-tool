@@ -57,7 +57,7 @@ async def p_to_c(
     "/c_to_g",
     summary="Translate cDNA representation to genomic representation",
     response_description=RESP_DESCR,
-    description="Given cDNA accession and positions for codon(s), return associated genomic"  # noqa: E501
+    description="Given cDNA accession and positions for codon(s), return associated genomic"
     " accession and positions for a given target genome assembly",
     response_model=ToGenomicService,
     tags=[Tags.ALIGNMENT_MAPPER],

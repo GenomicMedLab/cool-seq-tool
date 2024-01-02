@@ -12,7 +12,7 @@ from cool_seq_tool.paths import MANE_SUMMARY_PATH
 logger = logging.getLogger(__name__)
 
 
-class MANETranscriptMappings:
+class ManeTranscriptMappings:
     """Provide fast tabular access to MANE summary file.
 
     By default, acquires data from `NCBI FTP server <ftp.ncbi.nlm.nih.gov/refseq/MANE/MANE_human/current/>`_
@@ -40,8 +40,8 @@ class MANETranscriptMappings:
     def get_gene_mane_data(self, gene_symbol: str) -> List[Dict]:
         """Return MANE Transcript data for a gene.
 
-        >>> from cool_seq_tool.sources import MANETranscriptMappings
-        >>> m = MANETranscriptMappings()
+        >>> from cool_seq_tool.sources import ManeTranscriptMappings
+        >>> m = ManeTranscriptMappings()
         >>> braf_mane = m.get_gene_mane_data("BRAF")
         >>> braf_mane[0]["RefSeq_nuc"], braf_mane[0]["MANE_status"]
         ('NM_004333.6', 'MANE Select')
