@@ -187,10 +187,10 @@ class ExonGenomicCoordsMapper:
         # Calculate offsets
         if strand == Strand.NEGATIVE:
             start_offset = exon_start_offset * -1 if start_exits else None
-            end_offset = exon_end_offset * -1 if end_exists else None
+            end_offset = exon_end_offset * -1 if end_exists else 0
         else:
             start_offset = exon_start_offset if start_exits else 0
-            end_offset = exon_end_offset if end_exists else None
+            end_offset = exon_end_offset if end_exists else 0
 
         # Get genomic coordinates with offsets included
         g_start = g_start + start_offset if start_exits else None
@@ -202,9 +202,9 @@ class ExonGenomicCoordsMapper:
             start=g_start,
             end=g_end,
             exon_start=exon_start if start_exits else None,
-            exon_start_offset=exon_start_offset if start_exits else 0,
+            exon_start_offset=exon_start_offset,
             exon_end=exon_end if end_exists else None,
-            exon_end_offset=exon_end_offset if end_exists else 0,
+            exon_end_offset=exon_end_offset,
             transcript=transcript,
             strand=strand,
         )
