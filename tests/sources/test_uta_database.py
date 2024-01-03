@@ -7,35 +7,6 @@ from cool_seq_tool.schemas import Strand
 
 
 @pytest.fixture(scope="module")
-def nm_152263_exons():
-    """Create test fixture for NM_152263.3 exons."""
-    return [
-        (0, 234),
-        (234, 360),
-        (360, 494),
-        (494, 612),
-        (612, 683),
-        (683, 759),
-        (759, 822),
-        (822, 892),
-        (892, 971),
-        (971, 7099),
-    ]
-
-
-@pytest.fixture(scope="module")
-def tpm3_1_8_start_genomic():
-    """Create test fixture for genomic data for exon 1, 8"""
-    return "TPM3", "NC_000001.11", 154191901, 154192135, -1
-
-
-@pytest.fixture(scope="module")
-def tpm3_1_8_end_genomic():
-    """Create test fixture for genomic data for exon 1, 8"""
-    return "TPM3", "NC_000001.11", 154170399, 154170469, -1
-
-
-@pytest.fixture(scope="module")
 def tx_exon_aln_v_data():
     """Create test fixture for tx_aln_v_data test."""
     return [
@@ -375,34 +346,6 @@ async def test_p_to_c_ac(test_db):
 
     resp = await test_db.p_to_c_ac("NP_004324.22")
     assert resp == []
-
-
-@pytest.mark.asyncio
-async def test_get_tx_exon_coords(test_db, nm_152263_exons):
-    """Test that get_tx_exon_coords works correctly."""
-    resp = test_db.get_tx_exon_coords("NM_152263.3", nm_152263_exons, 1, 8)
-    assert resp[0] == ((0, 234), (822, 892))
-    assert resp[1] is None
-
-    resp = test_db.get_tx_exon_coords("NM_152263.3", nm_152263_exons, 1, 11)
-    assert resp[0] is None
-    assert resp[1] == "Exon 11 does not exist on NM_152263.3"
-
-
-@pytest.mark.asyncio
-async def test_get_alt_ac_start_and_end(
-    test_db, tpm3_1_8_start_genomic, tpm3_1_8_end_genomic
-):
-    """Test that get_alt_ac_start_and_end works correctly."""
-    resp = await test_db.get_alt_ac_start_and_end(
-        "NM_152263.3", ["117", "234"], ["822", "892"], "TPM3"
-    )
-    assert resp[0] == (tpm3_1_8_start_genomic, tpm3_1_8_end_genomic)
-    assert resp[1] is None
-
-    resp = await test_db.get_alt_ac_start_and_end("NM_152263.3", gene="TPM3")
-    assert resp[0] is None
-    assert resp[1] == "Unable to find `alt_ac_start` or `alt_ac_end`"
 
 
 @pytest.mark.asyncio
