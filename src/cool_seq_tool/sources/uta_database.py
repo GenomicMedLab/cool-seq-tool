@@ -248,20 +248,24 @@ class UtaDatabase:
             results.append([field for field in item])
         return results
 
-    async def chr_to_gene_and_accessions(
+    async def get_genes_and_alt_acs(
         self,
-        chromosome: int,
         pos: int,
         strand: Optional[Strand] = None,
+        chromosome: Optional[int] = None,
         alt_ac: Optional[str] = None,
         gene: Optional[str] = None,
     ) -> Tuple[Optional[Dict], Optional[str]]:
-        """Return genes and genomic accessions related to a position on a chr.
+        """Return genes and genomic accessions for a position on a chromosome or alt_ac
 
-        :param chromosome: Chromosome number
         :param pos: Genomic position
         :param strand: Strand
-        :param alt_ac: Genomic accession
+        :param chromosome: Chromosome. Must give chromosome without a prefix
+            (i.e. ``1`` or ``X``). If not provided, must provide ``alt_ac``.
+            If ``alt_ac`` is also provided, ``alt_ac`` will be used.
+        :param alt_ac: Genomic accession (i.e. ``NC_000001.11``). If not provided,
+            must provide ``chromosome. If ``chromosome`` is also provided, ``alt_ac``
+            will be used.
         :param gene: Gene symbol
         :return: Dictionary containing genes and genomic accessions and warnings if found
         """
@@ -317,7 +321,7 @@ class UtaDatabase:
         :return: List of a transcript's accessions and warnings if found
         """
         if alt_ac:
-            # We know what asesmbly we're looking for since we have the
+            # We know what assembly we're looking for since we have the
             # genomic accession
             query = f"""
                 SELECT DISTINCT tx_start_i, tx_end_i
@@ -348,113 +352,6 @@ class UtaDatabase:
             tx_exons = [(r["tx_start_i"], r["tx_end_i"]) for r in result]
             return tx_exons, None
 
-    @staticmethod
-    def _validate_exon(
-        transcript: str, tx_exons: List[Tuple[int, int]], exon_number: int
-    ) -> Tuple[Optional[Tuple[int, int]], Optional[str]]:
-        """Validate that exon number is valid
-
-        :param transcript: Transcript accession
-        :param tx_exons: List of transcript's exons
-        :param exon_number: Exon number to validate
-        :return: Transcript coordinates and warnings if found
-        """
-        msg = f"Exon {exon_number} does not exist on {transcript}"
-        try:
-            if exon_number < 1:
-                return None, msg
-            exon = tx_exons[exon_number - 1]
-        except IndexError:
-            return None, msg
-        return exon, None
-
-    def get_tx_exon_coords(
-        self,
-        transcript: str,
-        tx_exons: List[Tuple[int, int]],
-        exon_start: Optional[int] = None,
-        exon_end: Optional[int] = None,
-    ) -> Tuple[
-        Optional[Tuple[Optional[Tuple[int, int]], Optional[Tuple[int, int]]]],
-        Optional[str],
-    ]:
-        """Get transcript exon coordinates
-
-        :param transcript: Transcript accession
-        :param tx_exons: List of transcript exons
-        :param exon_start: Start exon number
-        :param exon_end: End exon number
-        :return: [Transcript start exon coords, Transcript end exon coords],
-            and warnings if found
-        """
-        if exon_start is not None:
-            tx_exon_start, warning = self._validate_exon(
-                transcript, tx_exons, exon_start
-            )
-            if not tx_exon_start:
-                return None, warning
-        else:
-            tx_exon_start = None
-
-        if exon_end is not None:
-            tx_exon_end, warning = self._validate_exon(transcript, tx_exons, exon_end)
-            if not tx_exon_end:
-                return None, warning
-        else:
-            tx_exon_end = None
-        return (tx_exon_start, tx_exon_end), None
-
-    async def get_alt_ac_start_and_end(
-        self,
-        tx_ac: str,
-        tx_exon_start: Optional[List[str]] = None,
-        tx_exon_end: Optional[List[str]] = None,
-        gene: Optional[str] = None,
-    ) -> Tuple[Optional[Tuple[Tuple, Tuple]], Optional[str]]:
-        """Get genomic coordinates for related transcript exon start and end.
-
-        :param tx_ac: Transcript accession
-        :param tx_exon_start: Transcript's exon start coordinates
-        :param tx_exon_end: Transcript's exon end coordinates
-        :param gene: Gene symbol
-        :return: Alt ac start and end data, and warnings if found
-        """
-        if tx_exon_start:
-            alt_ac_start, warning = await self.get_alt_ac_start_or_end(
-                tx_ac, int(tx_exon_start[0]), int(tx_exon_start[1]), gene=gene
-            )
-            if not alt_ac_start:
-                return None, warning
-        else:
-            alt_ac_start = None
-
-        if tx_exon_end:
-            alt_ac_end, warning = await self.get_alt_ac_start_or_end(
-                tx_ac, int(tx_exon_end[0]), int(tx_exon_end[1]), gene=gene
-            )
-            if not alt_ac_end:
-                return None, warning
-        else:
-            alt_ac_end = None
-
-        if alt_ac_start is None and alt_ac_end is None:
-            msg = "Unable to find `alt_ac_start` or `alt_ac_end`"
-            logger.warning(msg)
-            return None, msg
-
-        # validate
-        if alt_ac_start and alt_ac_end:
-            for i in (0, 1, 4):
-                if alt_ac_start[i] != alt_ac_end[i]:
-                    if i == 0:
-                        error = "Gene symbol does not match"
-                    elif i == 1:
-                        error = "Chromosome does not match"
-                    else:
-                        error = "Strand does not match"
-                    logger.warning(f"{error}: " f"{alt_ac_start[i]} != {alt_ac_end[i]}")
-        return (alt_ac_start, alt_ac_end), None
-
     async def get_alt_ac_start_or_end(
         self, tx_ac: str, tx_exon_start: int, tx_exon_end: int, gene: Optional[str]
     ) -> Tuple[Optional[Tuple[str, str, int, int, int]], Optional[str]]:
@@ -463,9 +360,9 @@ class UtaDatabase:
         :param tx_ac: Transcript accession
         :param tx_exon_start: Transcript's exon start coordinate
         :param tx_exon_end: Transcript's exon end coordinate
-        :param gene: Gene symbol
+        :param gene: HGNC gene symbol
         :return: [hgnc symbol, genomic accession for chromosome,
-            start exon's end coordinate, end exon's start coordinate, strand],
+            aligned genomic start coordinate, aligned genomic end coordinate, strand],
             and warnings if found
         """
         if gene:
