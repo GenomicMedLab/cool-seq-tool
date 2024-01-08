@@ -477,7 +477,7 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         "NM_004333.6",
         "ENST00000644969.2",
     }
-    # TODO: Check this. Should this be: NP_001365396.1:p.Val603Glu ?
+
     p_expected = DataRepresentation(
         **{
             "refseq": "NP_001365396.1",
@@ -508,7 +508,6 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
     )
     assert resp == p_expected
 
-    # TODO: Check this. Should this be NM_001378467.1:c.1808T>A ?
     c_expected = CdnaRepresentation(
         **{
             "refseq": "NM_001378467.1",
