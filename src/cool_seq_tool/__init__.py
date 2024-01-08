@@ -10,3 +10,5 @@ logging.basicConfig(
 )
 logger = logging.getLogger("cool_seq_tool")
 logger.setLevel(logging.DEBUG)
+
+LOG_FN = "cool_seq_tool.log"

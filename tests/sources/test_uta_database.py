@@ -237,6 +237,22 @@ async def test_get_ac_from_gene(test_db):
 
 
 @pytest.mark.asyncio
+async def test_get_gene_from_ac(test_db):
+    """Tet that get_gene_from_ac works correctly."""
+    resp = await test_db.get_gene_from_ac("NC_000007.13", 140453136, None)
+    assert resp == ["BRAF"]
+
+    resp = await test_db.get_gene_from_ac("NC_000007.14", 140753336, None)
+    assert resp == ["BRAF"]
+
+    resp = await test_db.get_gene_from_ac("NC_000007.13", 55249071, None)
+    assert resp == ["EGFR", "EGFR-AS1"]
+
+    resp = await test_db.get_gene_from_ac("NC_0000078.1", 140453136, None)
+    assert resp is None
+
+
+@pytest.mark.asyncio
 async def test_get_transcripts_from_gene(test_db):
     """Test that get_transcripts works correctly."""
     resp = await test_db.get_transcripts(start_pos=2145, end_pos=2145, gene="BRAF")
@@ -352,3 +368,35 @@ async def test_get_alt_ac_start_or_end(
         "transcript coordinates 822 and 892 between an exon's "
         "start and end coordinates"
     )
+
+
+@pytest.mark.asyncio
+async def test_get_mane_transcripts_from_genomic_pos(test_db):
+    """Test that get_mane_transcripts_from_genomic_pos works correctly"""
+    resp = await test_db.get_transcripts_from_genomic_pos("NC_000007.14", 140753336)
+    assert set(resp) == {
+        "NM_001354609.1",
+        "NM_001354609.2",
+        "NM_001374244.1",
+        "NM_001374258.1",
+        "NM_001378467.1",
+        "NM_001378468.1",
+        "NM_001378469.1",
+        "NM_001378470.1",
+        "NM_001378471.1",
+        "NM_001378472.1",
+        "NM_001378473.1",
+        "NM_001378474.1",
+        "NM_001378475.1",
+        "NM_004333.4",
+        "NM_004333.5",
+        "NM_004333.6",
+    }
+
+    # invalid pos
+    resp = await test_db.get_transcripts_from_genomic_pos("NC_000007.14", 150753336)
+    assert resp == []
+
+    # invalid ac
+    resp = await test_db.get_transcripts_from_genomic_pos("NC_000007.14232", 140753336)
+    assert resp == []

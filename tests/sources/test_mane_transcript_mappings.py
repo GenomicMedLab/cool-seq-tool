@@ -123,6 +123,45 @@ def test_get_gene_mane_data(
     assert actual == []
 
 
+def test_get_mane_from_transcripts(
+    test_mane_transcript_mappings, braf_plus_clinical, braf_select, ercc6_plus_clinical
+):
+    """Test that get get_mane_from_transcripts method works correctly"""
+    transcripts = [
+        "NM_001354609.1",
+        "NM_001354609.2",
+        "NM_001374244.1",
+        "NM_001374258.1",
+        "NM_001378467.1",
+        "NM_001378468.1",
+        "NM_001378469.1",
+        "NM_001378470.1",
+        "NM_001378471.1",
+        "NM_001378472.1",
+        "NM_001378473.1",
+        "NM_001378474.1",
+        "NM_001378475.1",
+        "NM_004333.4",
+        "NM_004333.5",
+        "NM_004333.6",
+    ]
+    resp = test_mane_transcript_mappings.get_mane_from_transcripts(transcripts)
+    assert len(resp) == 2
+    assert braf_select in resp
+    assert braf_plus_clinical in resp
+
+    transcripts.append("NM_001277058.2")
+    resp = test_mane_transcript_mappings.get_mane_from_transcripts(transcripts)
+    assert len(resp) == 3
+    assert braf_select in resp
+    assert braf_plus_clinical in resp
+    assert ercc6_plus_clinical in resp
+
+    # Invalid transcripts
+    resp = test_mane_transcript_mappings.get_mane_from_transcripts(["NM_012334.34"])
+    assert resp == []
+
+
 def test_get_mane_data_from_chr_pos(
     test_mane_transcript_mappings, braf_select, braf_plus_clinical
 ):

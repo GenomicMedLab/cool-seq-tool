@@ -309,6 +309,63 @@ class GenomicDataResponse(BaseModelForbidExtra):
     )
 
 
+class MappedManeData(BaseModel):
+    """Define mapped mane data fields"""
+
+    gene: StrictStr
+    refseq: StrictStr
+    ensembl: Optional[StrictStr] = None
+    strand: Strand
+    status: TranscriptPriority
+    alt_ac: StrictStr
+    assembly: Assembly
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "gene": "BRAF",
+                "refseq": "NM_001374258.1",
+                "ensembl": "ENST00000644969.2",
+                "strand": Strand.NEGATIVE,
+                "status": TranscriptPriority.MANE_PLUS_CLINICAL,
+                "alt_ac": "NC_000007.13",
+                "assembly": "GRCh37",
+            }
+        }
+    )
+
+
+class MappedManeDataService(BaseModelForbidExtra):
+    """Service model response for mapped mane data"""
+
+    mapped_mane_data: Optional[MappedManeData] = None
+    warnings: List[StrictStr] = []
+    service_meta: ServiceMeta
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "mapped_mane_data": {
+                    "gene": "BRAF",
+                    "refseq": "NM_001374258.1",
+                    "ensembl": "ENST00000644969.2",
+                    "strand": Strand.NEGATIVE,
+                    "status": TranscriptPriority.MANE_PLUS_CLINICAL,
+                    "alt_ac": "NC_000007.13",
+                    "assembly": "GRCh37",
+                },
+                "warnings": [],
+                "service_meta": {
+                    "name": "cool_seq_tool",
+                    "version": __version__,
+                    "response_datetime": datetime.now(),
+                    "url": "https://github.com/GenomicMedLab/cool-seq-tool",
+                },
+            }
+        }
+    )
+
+
 class ManeData(BaseModel):
     """Define mane data fields"""
 
