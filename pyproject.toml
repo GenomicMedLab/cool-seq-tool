@@ -66,8 +66,12 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.dynamic]
 version = {attr = "cool_seq_tool.version.__version__"}
 
-[tool.setuptools.packages.find]
-where = ["src"]
+# Scanning for namespace packages in the ``src`` directory is true by
+# default in pyproject.toml, so you do NOT need to include the
+# `tool.setuptools.packages.find` if it looks like the following:
+# [tool.setuptools.packages.find]
+# namespaces = true
+# where = ["src"]
 
 [tool.setuptools.package-data]
 "cool_seq_tool.data" = ["transcript_mapping.tsv"]
