@@ -13,7 +13,7 @@ constraints and data models for coordinate representation.
 """
 import logging
 import math
-from enum import StrEnum
+from enum import Enum
 from typing import Dict, List, Optional, Set, Tuple, Union
 
 import polars as pl
@@ -37,7 +37,7 @@ from cool_seq_tool.utils import get_inter_residue_pos
 logger = logging.getLogger(__name__)
 
 
-class EndAnnotationLayer(StrEnum):
+class EndAnnotationLayer(str, Enum):
     """Define constraints for end annotation layer. This is used for determining the
     end annotation layer when getting the longest compatible remaining representation
     """
