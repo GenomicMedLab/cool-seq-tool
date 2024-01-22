@@ -20,4 +20,5 @@ CoolSeqTool was created to support the `Knowledgebase Integration Project <https
     Transcript Selection<transcript_selection>
     API Reference<reference/index>
     Contributing<contributing>
+    Changelog<changelog>
     License<license>

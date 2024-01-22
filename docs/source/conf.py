@@ -20,6 +20,7 @@ extensions = [
     "sphinx.ext.linkcode",
     "sphinx.ext.autosummary",
     "sphinx_copybutton",
+    "sphinx_github_changelog",
 ]
 
 templates_path = ["_templates"]
@@ -78,3 +79,8 @@ def linkcode_resolve(domain, info):
 # -- code block style --------------------------------------------------------
 pygments_style = "default"
 pygements_dark_style = "monokai"
+
+# -- changelog ---------------------------------------------------------------
+# import os
+#
+# sphinx_github_changelog_token = os.environ.get("GENOMICMEDLAB_GH_DOCS_API_TOKEN", "failed -- make sure to set API token")
