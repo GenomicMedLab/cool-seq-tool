@@ -15,6 +15,8 @@ from pydantic import (
 
 from cool_seq_tool.version import __version__
 
+_now = str(datetime.datetime.now(tz=datetime.timezone.utc))
+
 
 class AnnotationLayer(str, Enum):
     """Create enum for supported annotation layers"""
@@ -244,7 +246,7 @@ class ServiceMeta(BaseModelForbidExtra):
             "example": {
                 "name": "cool_seq_tool",
                 "version": __version__,
-                "response_datetime": datetime.datetime.now(datetime.timezone.utc),
+                "response_datetime": _now,
                 "url": "https://github.com/GenomicMedLab/cool-seq-tool",
             }
         }
@@ -274,7 +276,7 @@ class TranscriptExonDataResponse(BaseModelForbidExtra):
                 "service_meta": {
                     "name": "cool_seq_tool",
                     "version": __version__,
-                    "response_datetime": datetime.now(),
+                    "response_datetime": _now,
                     "url": "https://github.com/GenomicMedLab/cool-seq-tool",
                 },
             }
@@ -308,7 +310,7 @@ class GenomicDataResponse(BaseModelForbidExtra):
                 "service_meta": {
                     "name": "cool_seq_tool",
                     "version": __version__,
-                    "response_datetime": datetime.now(),
+                    "response_datetime": _now,
                     "url": "https://github.com/GenomicMedLab/cool-seq-tool",
                 },
             }
@@ -365,7 +367,7 @@ class MappedManeDataService(BaseModelForbidExtra):
                 "service_meta": {
                     "name": "cool_seq_tool",
                     "version": __version__,
-                    "response_datetime": datetime.now(),
+                    "response_datetime": _now,
                     "url": "https://github.com/GenomicMedLab/cool-seq-tool",
                 },
             }
@@ -419,7 +421,7 @@ class ManeDataService(BaseModelForbidExtra):
                 "service_meta": {
                     "name": "cool_seq_tool",
                     "version": __version__,
-                    "response_datetime": datetime.now(),
+                    "response_datetime": _now,
                     "url": "https://github.com/GenomicMedLab/cool-seq-tool",
                 },
             }
@@ -473,7 +475,7 @@ class ToCdnaService(BaseModelForbidExtra):
                 "service_meta": {
                     "name": "cool_seq_tool",
                     "version": __version__,
-                    "response_datetime": datetime.now(),
+                    "response_datetime": _now,
                     "url": "https://github.com/GenomicMedLab/cool-seq-tool",
                 },
             }
@@ -521,7 +523,7 @@ class ToGenomicService(BaseModelForbidExtra):
                 "service_meta": {
                     "name": "cool_seq_tool",
                     "version": __version__,
-                    "response_datetime": datetime.now(),
+                    "response_datetime": _now,
                     "url": "https://github.com/GenomicMedLab/cool-seq-tool",
                 },
             }
