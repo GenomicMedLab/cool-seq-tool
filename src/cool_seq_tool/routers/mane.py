@@ -73,7 +73,7 @@ async def get_mane_data(
     :param ResidueMode residue_mode: Starting residue mode for `start_pos`
         and `end_pos`. Will always return coordinates in inter-residue
     """
-    warnings = list()
+    warnings = []
     mane_data = None
     try:
         mane_data = await cool_seq_tool.mane_transcript.get_mane_transcript(
@@ -90,7 +90,7 @@ async def get_mane_data(
         if not mane_data:
             warnings.append("Unable to retrieve MANE data")
     except Exception as e:
-        logger.exception(f"get_mane_data unhandled exception {e}")
+        logger.exception("get_mane_data unhandled exception %s", e)
         warnings.append(UNHANDLED_EXCEPTION_MSG)
 
     return ManeDataService(

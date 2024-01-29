@@ -41,7 +41,7 @@ dependencies = [
 dynamic = ["version"]
 
 [project.optional-dependencies]
-dev = ["pre-commit", "ipython", "ipykernel", "psycopg2-binary", "ruff"]
+dev = ["pre-commit", "ipython", "ipykernel", "psycopg2-binary", "ruff>=0.1.14"]
 tests = ["pytest", "pytest-cov", "pytest-asyncio==0.18.3", "mock"]
 docs = [
     "sphinx==6.1.3",
@@ -87,14 +87,49 @@ branch = true
 [tool.ruff]
 src = ["src"]
 exclude = ["docs/source/conf.py"]
-# pycodestyle (E, W)
-# Pyflakes (F)
-# flake8-annotations (ANN)
-# pydocstyle (D)
-# pep8-naming (N)
-# isort (I)
-select = ["E", "W", "F", "ANN", "D", "N", "I"]
-fixable = ["I", "F401"]
+select = [
+    "F",  # https://docs.astral.sh/ruff/rules/#pyflakes-f
+    "E", "W",  # https://docs.astral.sh/ruff/rules/#pycodestyle-e-w
+    "I",  # https://docs.astral.sh/ruff/rules/#isort-i
+    "N",  # https://docs.astral.sh/ruff/rules/#pep8-naming-n
+    "D",  # https://docs.astral.sh/ruff/rules/#pydocstyle-d
+    "UP",  # https://docs.astral.sh/ruff/rules/#pyupgrade-up
+    "ANN",  # https://docs.astral.sh/ruff/rules/#flake8-annotations-ann
+    "ASYNC",  # https://docs.astral.sh/ruff/rules/#flake8-async-async
+    "S",  # https://docs.astral.sh/ruff/rules/#flake8-bandit-s
+    "B",  # https://docs.astral.sh/ruff/rules/#flake8-bugbear-b
+    "A",  # https://docs.astral.sh/ruff/rules/#flake8-builtins-a
+    "C4",  # https://docs.astral.sh/ruff/rules/#flake8-comprehensions-c4
+    "DTZ",  # https://docs.astral.sh/ruff/rules/#flake8-datetimez-dtz
+    "T10",  # https://docs.astral.sh/ruff/rules/#flake8-datetimez-dtz
+    "EM",  # https://docs.astral.sh/ruff/rules/#flake8-errmsg-em
+    "G",  # https://docs.astral.sh/ruff/rules/#flake8-logging-format-g
+    "PIE",  # https://docs.astral.sh/ruff/rules/#flake8-pie-pie
+    "T20",  # https://docs.astral.sh/ruff/rules/#flake8-print-t20
+    "PT",  # https://docs.astral.sh/ruff/rules/#flake8-pytest-style-pt
+    "Q",  # https://docs.astral.sh/ruff/rules/#flake8-quotes-q
+    "RSE",  # https://docs.astral.sh/ruff/rules/#flake8-raise-rse
+    "RET",  # https://docs.astral.sh/ruff/rules/#flake8-return-ret
+    "SIM",  # https://docs.astral.sh/ruff/rules/#flake8-simplify-sim
+    "PTH",  # https://docs.astral.sh/ruff/rules/#flake8-use-pathlib-pth
+    "PGH",  # https://docs.astral.sh/ruff/rules/#pygrep-hooks-pgh
+    "RUF",  # https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
+]
+fixable = [
+    "I",
+    "F401",
+    "D",
+    "UP",
+    "ANN",
+    "B",
+    "C4",
+    "G",
+    "PIE",
+    "PT",
+    "RSE",
+    "SIM",
+    "RUF"
+]
 
 # ANN101 - missing-type-self
 # ANN003 - missing-type-kwargs
@@ -110,12 +145,14 @@ fixable = ["I", "F401"]
 # E117 - over-indented*
 # E501 - line-too-long*
 # W191 - tab-indentation*
+# S321 - suspicious-ftp-lib-usage
 # *ignored for compatibility with formatter
 ignore = [
     "ANN101", "ANN003",
     "D203", "D205", "D206", "D213", "D300", "D400", "D415",
     "E111", "E114", "E117", "E501",
-    "W191"
+    "W191",
+    "S321",
 ]
 
 [tool.ruff.per-file-ignores]
@@ -125,6 +162,9 @@ ignore = [
 # N805 - invalid-first-argument-name-for-method
 # F821 - undefined-name
 # F401 - unused-import
-"tests/*" = ["ANN001", "ANN2", "ANN102"]
+"tests/*" = ["ANN001", "ANN2", "ANN102", "S101"]
 "*__init__.py" = ["F401"]
 "src/cool_seq_tool/schemas.py" = ["ANN201", "N805", "ANN001"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Query"]

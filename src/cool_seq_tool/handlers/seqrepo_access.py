@@ -152,8 +152,7 @@ class SeqRepoAccess(SeqRepoDataProxy):
                 acs.append(ac.split("refseq:")[-1])
         if acs:
             return acs, None
-        else:
-            return None, f"{chromosome} is not a valid chromosome"
+        return None, f"{chromosome} is not a valid chromosome"
 
     def ac_to_chromosome(self, ac: str) -> Tuple[Optional[str], Optional[str]]:
         """Get chromosome for accession.
@@ -172,8 +171,7 @@ class SeqRepoAccess(SeqRepoDataProxy):
         )[0]
         if aliases is None:
             return None, f"Unable to get chromosome for {ac}"
-        else:
-            return aliases, None
+        return aliases, None
 
     def get_fasta_file(self, sequence_id: str, outfile_path: Path) -> None:
         """Retrieve FASTA file containing sequence for requested sequence ID.
