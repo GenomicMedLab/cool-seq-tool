@@ -1,2 +1,2 @@
 """Module for data"""
-from .data_downloads import DataDownload  # noqa: F401
+from .data_downloads import DataDownload
