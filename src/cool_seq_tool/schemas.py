@@ -183,7 +183,7 @@ class GenomicData(BaseModelForbidExtra):
         """
         start = values.start
         end = values.end
-        if not start or end:
+        if not start and not end:
             msg = "Missing values for `start` or `end`"
             raise ValueError(msg)
 

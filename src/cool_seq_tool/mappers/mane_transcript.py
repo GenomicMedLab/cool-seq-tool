@@ -1019,7 +1019,7 @@ class ManeTranscript:
         if not descr:
             # Already GRCh38 assembly
             if self._validate_index(ac, (start_pos, end_pos), 0):
-                return {"ac": "ac", "pos": (start_pos, end_pos)}
+                return {"ac": ac, "pos": (start_pos, end_pos)}
             return None
         chromosome, assembly = descr
         is_same_pos = start_pos == end_pos
@@ -1050,8 +1050,7 @@ class ManeTranscript:
         if newest_ac:
             ac = newest_ac[0]
             if self._validate_index(ac, (start_pos, end_pos), 0):
-                return {"ac": "ac", "pos": (start_pos, end_pos)}
-
+                return {"ac": ac, "pos": (start_pos, end_pos)}
         return None
 
     @staticmethod

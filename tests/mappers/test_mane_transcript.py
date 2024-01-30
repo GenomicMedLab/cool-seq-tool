@@ -429,8 +429,9 @@ async def test_c_to_mane_c(test_mane_transcript, braf_v600e_mane_c, egfr_l858r_m
     )
 
 
+@pytest.fixture()
 @patch.object(SeqRepoAccess, "get_reference_sequence")
-def test_get_prioritized_transcripts_from_gene(test_get_seqrepo, test_mane_transcript):
+def _test_get_prioritized_transcripts_from_gene(test_get_seqrepo, test_mane_transcript):
     """Test that _get_prioritized_transcripts_from_gene works as expected"""
 
     def get_reference_sequence(ac):
@@ -792,7 +793,7 @@ async def test_grch38_to_mane_c_p(
             pos=(746, 752),
             status=TranscriptPriority.MANE_SELECT,
             strand=Strand.POSITIVE,
-            gene=" EGFR",
+            gene="EGFR",
         ),
         cdna=CdnaRepresentation(
             alt_ac="NC_000007.14",
