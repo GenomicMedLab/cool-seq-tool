@@ -143,7 +143,7 @@ class TranscriptExonData(BaseModelForbidExtra):
     exon: StrictInt
     exon_offset: StrictInt = 0
     gene: StrictStr
-    chr: StrictStr  # noqa: A003
+    chr: StrictStr
     strand: Strand
 
     model_config = ConfigDict(
@@ -165,7 +165,7 @@ class GenomicData(BaseModelForbidExtra):
     """Model containing genomic and transcript exon data."""
 
     gene: StrictStr
-    chr: StrictStr  # noqa: A003
+    chr: StrictStr
     start: Optional[StrictInt] = None  # Genomic start position
     end: Optional[StrictInt] = None  # Genomic end position
     exon_start: Optional[StrictInt] = None
