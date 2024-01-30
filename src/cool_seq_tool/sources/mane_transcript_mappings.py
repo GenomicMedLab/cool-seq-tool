@@ -57,7 +57,7 @@ class ManeTranscriptMappings:
 
         if len(data) == 0:
             logger.warning(
-                f"Unable to get MANE Transcript data for gene: " f"{gene_symbol}"
+                "Unable to get MANE Transcript data for gene: %s", gene_symbol
             )
             return []
 
