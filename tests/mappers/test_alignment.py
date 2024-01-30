@@ -110,7 +110,7 @@ def hras_t2a():
     return _expected
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_cds_start(test_alignment_mapper):
     """Test that _get_cds_start method works correctly"""
     # Valid
@@ -124,7 +124,7 @@ async def test_get_cds_start(test_alignment_mapper):
     assert w == "Accession NM_004333.6293702 not found in UTA db"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_p_to_c(test_alignment_mapper, braf_v600e_c, egfr_l858r_c):
     """Test that p_to_c works as expected"""
     # BRAF V600E
@@ -163,7 +163,7 @@ async def test_p_to_c(test_alignment_mapper, braf_v600e_c, egfr_l858r_c):
     }
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_p_to_c_invalid(test_alignment_mapper):
     """Test invalid queries for p_to_c method"""
     # Invalid protein accession
@@ -174,7 +174,7 @@ async def test_p_to_c_invalid(test_alignment_mapper):
     assert resp is None
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_c_to_g(
     test_alignment_mapper,
     braf_v600e_grch37,
@@ -218,7 +218,7 @@ async def test_c_to_g(
         assert resp == expected, params
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_c_to_g_invalid(test_alignment_mapper):
     """Test invalid queries for c_to_g method"""
     # Should not expect to find anything given these two positions
@@ -253,7 +253,7 @@ async def test_c_to_g_invalid(test_alignment_mapper):
     assert w == "c_start_pos and c_end_pos are not a valid range for the codon(s)"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_p_to_g(
     test_alignment_mapper,
     braf_v600e_grch37,
@@ -325,7 +325,7 @@ async def test_p_to_g(
         assert resp == hras_t2a(assembly), params
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_p_to_g_invalid(test_alignment_mapper):
     """Test invalid queries for p_to_g method"""
     # Invalid protein accession

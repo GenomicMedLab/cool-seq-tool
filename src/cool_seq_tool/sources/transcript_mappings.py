@@ -65,7 +65,7 @@ class TranscriptMappings:
 
         :param transcript_file_path: Path to transcript mappings file
         """
-        with open(transcript_file_path) as file:
+        with transcript_file_path.open() as file:
             reader = csv.DictReader(file, delimiter="\t")
             for row in reader:
                 gene = row["Gene name"]
@@ -108,7 +108,7 @@ class TranscriptMappings:
 
         :param Path lrg_refseqgene_path: Path to LRG RefSeqGene file
         """
-        with open(lrg_refseqgene_path) as file:
+        with lrg_refseqgene_path.open() as file:
             reader = csv.DictReader(file, delimiter="\t")
             for row in reader:
                 gene = row["Symbol"]
@@ -146,7 +146,7 @@ class TranscriptMappings:
         :param identifier: Gene identifier to get protein transcripts for
         :return: Protein transcripts for a gene symbol
         """
-        protein_transcripts = list()
+        protein_transcripts = []
         protein_transcripts += self.ensembl_protein_version_for_gene_symbol.get(
             identifier, ""
         )
@@ -160,7 +160,7 @@ class TranscriptMappings:
         :param identifier: Gene identifier to find transcripts for
         :return: cDNA transcripts for a gene symbol
         """
-        genomic_transcripts = list()
+        genomic_transcripts = []
         genomic_transcripts += self.ensembl_transcript_version_for_gene_symbol.get(
             identifier, ""
         )
@@ -179,10 +179,9 @@ class TranscriptMappings:
         :return: Gene symbol
         """
         gene_symbol = self.ensembl_protein_version_to_gene_symbol.get(q)
-        if not gene_symbol:
-            if "." in q:
-                q = q.split(".")[0]
-                gene_symbol = self.ensembl_protein_to_gene_symbol.get(q)
+        if not gene_symbol and "." in q:
+            q = q.split(".")[0]
+            gene_symbol = self.ensembl_protein_to_gene_symbol.get(q)
         return gene_symbol
 
     def get_gene_symbol_from_refeq_protein(self, q: str) -> Optional[str]:
@@ -200,10 +199,9 @@ class TranscriptMappings:
         :return: Gene symbol
         """
         gene_symbol = self.refseq_rna_version_to_gene_symbol.get(q)
-        if not gene_symbol:
-            if "." in q:
-                q = q.split(".")[0]
-                gene_symbol = self.refseq_rna_to_gene_symbol.get(q)
+        if not gene_symbol and "." in q:
+            q = q.split(".")[0]
+            gene_symbol = self.refseq_rna_to_gene_symbol.get(q)
         return gene_symbol
 
     def get_gene_symbol_from_ensembl_transcript(self, q: str) -> Optional[str]:
@@ -213,8 +211,7 @@ class TranscriptMappings:
         :return: Gene symbol
         """
         gene_symbol = self.ensembl_transcript_version_to_gene_symbol.get(q)
-        if not gene_symbol:
-            if "." in q:
-                q = q.split(".")[0]
-                gene_symbol = self.ensembl_transcript_to_gene_symbol.get(q)
+        if not gene_symbol and "." in q:
+            q = q.split(".")[0]
+            gene_symbol = self.ensembl_transcript_to_gene_symbol.get(q)
         return gene_symbol

@@ -194,7 +194,7 @@ def check_service_meta(actual):
     :param ServiceMeta actual: Actual service metadata
     """
     assert actual.name == "cool_seq_tool"
-    version_regex = r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$"  # noqa: E501
+    version_regex = r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$"
     assert bool(re.match(version_regex, actual.version))
     assert isinstance(actual.response_datetime, datetime)
     assert actual.url == "https://github.com/GenomicMedLab/cool-seq-tool"
@@ -236,7 +236,7 @@ def transcript_exon_data_assertion_checks(actual, expected=None, is_valid=True):
     check_service_meta(actual.service_meta)
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_tx_exon_coords(test_egc_mapper, nm_152263_exons):
     """Test that get_tx_exon_coords works correctly."""
     resp = test_egc_mapper.get_tx_exon_coords("NM_152263.3", nm_152263_exons, 1, 8)
@@ -248,7 +248,7 @@ async def test_get_tx_exon_coords(test_egc_mapper, nm_152263_exons):
     assert resp[1] == "Exon 11 does not exist on NM_152263.3"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_alt_ac_start_and_end(
     test_egc_mapper, tpm3_1_8_start_genomic, tpm3_1_8_end_genomic
 ):
@@ -264,7 +264,7 @@ async def test_get_alt_ac_start_and_end(
     assert resp[1] == "Must provide either `tx_exon_start` or `tx_exon_end` or both"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_genomic_to_transcript(test_egc_mapper, tpm3_exon1, tpm3_exon8):
     """Test that _genomic_to_transcript_exon_coordinate
     method works correctly.
@@ -312,7 +312,7 @@ async def test_genomic_to_transcript(test_egc_mapper, tpm3_exon1, tpm3_exon8):
     transcript_exon_data_assertion_checks(resp, tpm3_exon8)
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_tpm3(
     test_egc_mapper,
     tpm3_exon1_exon8,
@@ -471,7 +471,7 @@ async def test_tpm3(
     genomic_data_assertion_checks(t_to_g_resp, tpm3_exon8_g)
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_braf(test_egc_mapper, mane_braf):
     """Test BRAF genomic_to_transcript_exon_coordinates and
     transcript_to_genomic_coordinates.
@@ -509,7 +509,7 @@ async def test_braf(test_egc_mapper, mane_braf):
     genomic_data_assertion_checks(t_to_g_resp, mane_braf)
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_wee1(test_egc_mapper, wee1_exon2_exon11, mane_wee1_exon2_exon11):
     """Test WEE1 genomic_to_transcript_exon_coordinates and
     transcript_to_genomic_coordinates.
@@ -571,7 +571,7 @@ async def test_wee1(test_egc_mapper, wee1_exon2_exon11, mane_wee1_exon2_exon11):
     genomic_data_assertion_checks(t_to_g_resp, mane_wee1_exon2_exon11)
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_transcript_to_genomic(
     test_egc_mapper,
     tpm3_exon1_g,
@@ -682,7 +682,7 @@ async def test_transcript_to_genomic(
     genomic_data_assertion_checks(resp, expected)
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_valid_inputs(test_egc_mapper):
     """Test that valid inputs don"t return any errors"""
     inputs = {"gene": "TPM3", "alt_ac": "NC_000001.11", "start": 154171413}
@@ -724,7 +724,7 @@ async def test_valid_inputs(test_egc_mapper):
     assert resp.genomic_data
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_invalid(test_egc_mapper):
     """Test that invalid queries return `None`."""
     resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(

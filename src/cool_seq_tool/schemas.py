@@ -1,6 +1,6 @@
 """Defines attribute constants, useful object structures, and API response schemas."""
+import datetime
 import re
-from datetime import datetime
 from enum import Enum, IntEnum
 from typing import List, Literal, Optional, Tuple, Union
 
@@ -14,6 +14,8 @@ from pydantic import (
 )
 
 from cool_seq_tool.version import __version__
+
+_now = str(datetime.datetime.now(tz=datetime.timezone.utc))
 
 
 class AnnotationLayer(str, Enum):
@@ -79,9 +81,10 @@ class GenomicRequestBody(BaseModelForbidExtra):
     @model_validator(mode="after")
     def check_start_and_end(cls, values):
         """Check that at least one of {``start``, ``end``} is set"""
-        msg = "Must provide either `start` or `end`"
         start, end = values.start, values.end
-        assert start or end, msg
+        if not start or end:
+            msg = "Must provide either `start` or `end`"
+            raise ValueError(msg)
         return values
 
     model_config = ConfigDict(
@@ -112,9 +115,10 @@ class TranscriptRequestBody(BaseModelForbidExtra):
     @model_validator(mode="after")
     def check_exon_start_and_exon_end(cls, values):
         """Check that at least one of {``exon_start``, ``exon_end``} is set"""
-        msg = "Must provide either `exon_start` or `exon_end`"
         exon_start, exon_end = values.exon_start, values.exon_end
-        assert exon_start or exon_end, msg
+        if not exon_start or exon_end:
+            msg = "Must provide either `exon_start` or `exon_end`"
+            raise ValueError(msg)
         return values
 
     model_config = ConfigDict(
@@ -177,20 +181,23 @@ class GenomicData(BaseModelForbidExtra):
         Check that at least one of {``exon_start``, ``exon_end``} is set.
         If not set, set corresponding offset to ``None``
         """
-        msg = "Missing values for `start` or `end`"
         start = values.start
         end = values.end
-        assert start or end, msg
+        if not start and not end:
+            msg = "Missing values for `start` or `end`"
+            raise ValueError(msg)
 
         if start:
-            msg = "Missing value `exon_start`"
-            assert values.exon_start, msg
+            if not values.exon_start:
+                msg = "Missing value `exon_start`"
+                raise ValueError(msg)
         else:
             values.exon_start_offset = None
 
         if end:
-            msg = "Missing value `exon_end`"
-            assert values.exon_end, msg
+            if not values.exon_end:
+                msg = "Missing value `exon_end`"
+                raise ValueError(msg)
         else:
             values.exon_end_offset = None
         return values
@@ -218,7 +225,7 @@ class ServiceMeta(BaseModelForbidExtra):
 
     name: Literal["cool_seq_tool"] = "cool_seq_tool"
     version: StrictStr
-    response_datetime: datetime
+    response_datetime: datetime.datetime
     url: Literal[
         "https://github.com/GenomicMedLab/cool-seq-tool"
     ] = "https://github.com/GenomicMedLab/cool-seq-tool"
@@ -228,8 +235,10 @@ class ServiceMeta(BaseModelForbidExtra):
         """Check version matches semantic versioning regex pattern.
         https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
         """
-        version_regex = r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$"  # noqa: E501
-        assert bool(re.match(version_regex, v))
+        version_regex = r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$"
+        if not re.match(version_regex, v):
+            msg = f"Invalid version {v}"
+            raise ValueError(msg)
         return v
 
     model_config = ConfigDict(
@@ -237,7 +246,7 @@ class ServiceMeta(BaseModelForbidExtra):
             "example": {
                 "name": "cool_seq_tool",
                 "version": __version__,
-                "response_datetime": datetime.now(),
+                "response_datetime": _now,
                 "url": "https://github.com/GenomicMedLab/cool-seq-tool",
             }
         }
@@ -267,7 +276,7 @@ class TranscriptExonDataResponse(BaseModelForbidExtra):
                 "service_meta": {
                     "name": "cool_seq_tool",
                     "version": __version__,
-                    "response_datetime": datetime.now(),
+                    "response_datetime": _now,
                     "url": "https://github.com/GenomicMedLab/cool-seq-tool",
                 },
             }
@@ -301,7 +310,7 @@ class GenomicDataResponse(BaseModelForbidExtra):
                 "service_meta": {
                     "name": "cool_seq_tool",
                     "version": __version__,
-                    "response_datetime": datetime.now(),
+                    "response_datetime": _now,
                     "url": "https://github.com/GenomicMedLab/cool-seq-tool",
                 },
             }
@@ -358,7 +367,7 @@ class MappedManeDataService(BaseModelForbidExtra):
                 "service_meta": {
                     "name": "cool_seq_tool",
                     "version": __version__,
-                    "response_datetime": datetime.now(),
+                    "response_datetime": _now,
                     "url": "https://github.com/GenomicMedLab/cool-seq-tool",
                 },
             }
@@ -412,7 +421,7 @@ class ManeDataService(BaseModelForbidExtra):
                 "service_meta": {
                     "name": "cool_seq_tool",
                     "version": __version__,
-                    "response_datetime": datetime.now(),
+                    "response_datetime": _now,
                     "url": "https://github.com/GenomicMedLab/cool-seq-tool",
                 },
             }
@@ -466,7 +475,7 @@ class ToCdnaService(BaseModelForbidExtra):
                 "service_meta": {
                     "name": "cool_seq_tool",
                     "version": __version__,
-                    "response_datetime": datetime.now(),
+                    "response_datetime": _now,
                     "url": "https://github.com/GenomicMedLab/cool-seq-tool",
                 },
             }
@@ -514,7 +523,7 @@ class ToGenomicService(BaseModelForbidExtra):
                 "service_meta": {
                     "name": "cool_seq_tool",
                     "version": __version__,
-                    "response_datetime": datetime.now(),
+                    "response_datetime": _now,
                     "url": "https://github.com/GenomicMedLab/cool-seq-tool",
                 },
             }

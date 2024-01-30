@@ -102,24 +102,23 @@ class UtaDatabase:
             environ[
                 "UTA_DB_URL"
             ] = f"postgresql://{username}@{host}:{port}/{database}/{schema}"
-            return dict(
-                host=host,
-                port=int(port),
-                database=database,
-                user=username,
-                password=password,
-            )
-        else:
-            url = ParseResult(urlparse(self.db_url))
-            self.schema = url.schema
-            password = unquote(url.password) if url.password else ""
-            return dict(
-                host=url.hostname,
-                port=url.port,
-                database=url.database,
-                user=url.username,
-                password=password,
-            )
+            return {
+                "host": host,
+                "port": int(port),
+                "database": database,
+                "user": username,
+                "password": password,
+            }
+        url = ParseResult(urlparse(self.db_url))
+        self.schema = url.schema
+        password = unquote(url.password) if url.password else ""
+        return {
+            "host": url.hostname,
+            "port": url.port,
+            "database": url.database,
+            "user": url.username,
+            "password": password,
+        }
 
     async def create_pool(self) -> None:
         """Create connection pool if not already created."""
@@ -139,9 +138,10 @@ class UtaDatabase:
                 )
             except InterfaceError as e:
                 logger.error(
-                    f"While creating connection pool, " f"encountered exception {e}"
+                    "While creating connection pool, encountered exception %s", e
                 )
-                raise Exception("Could not create connection pool")
+                msg = "Could not create connection pool"
+                raise Exception(msg) from e
 
     @classmethod
     async def create(
@@ -173,21 +173,17 @@ class UtaDatabase:
         """
 
         async def _execute_query(q: str) -> Any:  # noqa: ANN401
-            async with self._connection_pool.acquire() as connection:
-                async with connection.transaction():
-                    r = await connection.fetch(q)
-                    return r
+            async with self._connection_pool.acquire() as connection, connection.transaction():
+                return await connection.fetch(q)
 
         if not self._connection_pool:
             await self.create_pool()
         try:
-            result = await _execute_query(query)
-            return result
+            return await _execute_query(query)
         except InvalidAuthorizationSpecificationError:
             self._connection_pool = None
             await self.create_pool()
-            result = await _execute_query(query)
-            return result
+            return await _execute_query(query)
 
     async def _create_genomic_table(self) -> None:
         """Create table containing genomic accession information."""
@@ -197,7 +193,7 @@ class UtaDatabase:
                WHERE table_schema = '{self.schema}'
                AND table_name = 'genomic'
             );
-            """
+            """  # noqa: S608
         genomic_table_exists = await self.execute_query(check_table_exists)
         genomic_table_exists = genomic_table_exists[0].get("exists")
         if genomic_table_exists is None:
@@ -205,7 +201,8 @@ class UtaDatabase:
                 "SELECT EXISTS query in UtaDatabase._create_genomic_table "
                 "returned invalid response"
             )
-            raise ValueError("SELECT EXISTS query returned invalid response")
+            msg = "SELECT EXISTS query returned invalid response"
+            raise ValueError(msg)
         if not genomic_table_exists:
             create_genomic_table = f"""
                 CREATE TABLE {self.schema}.genomic AS
@@ -225,7 +222,7 @@ class UtaDatabase:
                         LEFT JOIN {self.schema}.exon_aln ea ON
                             (((te.exon_id = ea.tx_exon_id) AND
                             (ae.exon_id = ea.alt_exon_id))));
-                """
+                """  # noqa: S608
             await self.execute_query(create_genomic_table)
 
             indexes = [
@@ -243,9 +240,9 @@ class UtaDatabase:
         :param li: List of asyncpg.Record objects
         :return: List of list of objects
         """
-        results = list()
+        results = []
         for item in li:
-            results.append([field for field in item])
+            results.append(list(item))
         return results
 
     async def get_genes_and_alt_acs(
@@ -285,7 +282,7 @@ class UtaDatabase:
             AND {pos} BETWEEN alt_start_i AND alt_end_i
             {strand_cond}
             {gene_cond};
-            """
+            """  # noqa: S608
 
         results = await self.execute_query(query)
         if not results:
@@ -309,7 +306,7 @@ class UtaDatabase:
         for r in results:
             genes.add(r[0])
             alt_acs.add(r[1])
-        return dict(genes=genes, alt_acs=alt_acs), None
+        return {"genes": genes, "alt_acs": alt_acs}, None
 
     async def get_tx_exons(
         self, tx_ac: str, alt_ac: Optional[str] = None
@@ -329,7 +326,7 @@ class UtaDatabase:
                 WHERE tx_ac = '{tx_ac}'
                 AND alt_aln_method = 'splign'
                 AND alt_ac = '{alt_ac}'
-                """
+                """  # noqa: S608
         else:
             # Use GRCh38 by default if no genomic accession is provided
             query = f"""
@@ -341,16 +338,15 @@ class UtaDatabase:
                 AND t.tx_ac = '{tx_ac}'
                 AND t.alt_aln_method = 'splign'
                 AND t.alt_ac like 'NC_000%'
-                """
+                """  # noqa: S608
         result = await self.execute_query(query)
 
         if not result:
             msg = f"Unable to get exons for {tx_ac}"
             logger.warning(msg)
             return None, msg
-        else:
-            tx_exons = [(r["tx_start_i"], r["tx_end_i"]) for r in result]
-            return tx_exons, None
+        tx_exons = [(r["tx_start_i"], r["tx_end_i"]) for r in result]
+        return tx_exons, None
 
     async def get_alt_ac_start_or_end(
         self, tx_ac: str, tx_exon_start: int, tx_exon_end: int, gene: Optional[str]
@@ -365,10 +361,7 @@ class UtaDatabase:
             aligned genomic start coordinate, aligned genomic end coordinate, strand],
             and warnings if found
         """
-        if gene:
-            gene_query = f"AND T.hgnc = '{gene}'"
-        else:
-            gene_query = ""
+        gene_query = f"AND T.hgnc = '{gene}'" if gene else ""
 
         query = f"""
             SELECT T.hgnc, T.alt_ac, T.alt_start_i, T.alt_end_i, T.alt_strand
@@ -382,7 +375,7 @@ class UtaDatabase:
             AND T.alt_ac LIKE 'NC_00%'
             ORDER BY CAST(SUBSTR(T.alt_ac, position('.' in T.alt_ac) + 1,
                 LENGTH(T.alt_ac)) AS INT) DESC;
-            """
+            """  # noqa: S608
         result = await self.execute_query(query)
         if not result:
             msg = (
@@ -394,8 +387,7 @@ class UtaDatabase:
                 msg += f" on gene {gene}"
             logger.warning(msg)
             return None, msg
-        else:
-            result = result[0]
+        result = result[0]
         return (result[0], result[1], result[2], result[3], result[4]), None
 
     async def get_cds_start_end(self, tx_ac: str) -> Optional[Tuple[int, int]]:
@@ -410,15 +402,15 @@ class UtaDatabase:
             SELECT cds_start_i, cds_end_i
             FROM {self.schema}.transcript
             WHERE ac='{tx_ac}';
-            """
+            """  # noqa: S608
         cds_start_end = await self.execute_query(query)
         if cds_start_end:
             cds_start_end = cds_start_end[0]
-            if cds_start_end[0] is not None and cds_start_end[1] is not None:
+            if cds_start_end[0] is not None and cds_start_end[1] is not None:  # noqa: RET503
                 return cds_start_end[0], cds_start_end[1]
         else:
             logger.warning(
-                f"Unable to get coding start/end site for " f"accession: {tx_ac}"
+                "Unable to get coding start/end site for accession: %s", tx_ac
             )
             return None
 
@@ -444,7 +436,7 @@ class UtaDatabase:
             WHERE ac LIKE '{ac.split('.')[0]}%'
             AND ((descr IS NULL) OR (descr = ''))
             {order_by_cond}
-            """
+            """  # noqa: S608
         results = await self.execute_query(query)
         if not results:
             return []
@@ -463,7 +455,7 @@ class UtaDatabase:
                 FROM {self.schema}._seq_anno_most_recent
                 WHERE ac = '{ac}'
             );
-            """
+            """  # noqa: S608
         result = await self.execute_query(query)
         return result[0][0]
 
@@ -487,16 +479,15 @@ class UtaDatabase:
             SELECT descr
             FROM {self.schema}._seq_anno_most_recent
             WHERE ac = '{ac}';
-            """
+            """  # noqa: S608
         result = await self.execute_query(query)
         if not result:
-            logger.warning(f"Accession {ac} does not have a description")
+            logger.warning("Accession %s does not have a description", ac)
             return None
-        else:
-            result = result[0][0]
-            if result == "":
-                result = None
-            return result
+        result = result[0][0]
+        if result == "":
+            result = None
+        return result
 
     async def get_tx_exon_aln_v_data(
         self,
@@ -533,11 +524,11 @@ class UtaDatabase:
             aln_method = f"AND alt_aln_method='splign'"  # noqa: F541
 
         if like_tx_ac:
-            tx_q = f"WHERE tx_ac LIKE '{temp_ac}%'"  # noqa: F541
+            tx_q = f"WHERE tx_ac LIKE '{temp_ac}%'"
         else:
-            tx_q = f"WHERE tx_ac='{temp_ac}'"  # noqa: F541
+            tx_q = f"WHERE tx_ac='{temp_ac}'"
 
-        order_by_cond = "ORDER BY CAST(SUBSTR(alt_ac, position('.' in alt_ac) + 1, LENGTH(alt_ac)) AS INT)"  # noqa: E501
+        order_by_cond = "ORDER BY CAST(SUBSTR(alt_ac, position('.' in alt_ac) + 1, LENGTH(alt_ac)) AS INT)"
         if alt_ac:
             alt_ac_q = f"AND alt_ac = '{alt_ac}'"
             if alt_ac.startswith("EN"):
@@ -560,22 +551,20 @@ class UtaDatabase:
             AND {start_pos} BETWEEN {pos_q}
             AND {end_pos} BETWEEN {pos_q}
             {order_by_cond}
-            """
+            """  # noqa: S608
         result = await self.execute_query(query)
         if not result:
-            logger.warning(
-                f"Unable to find transcript alignment for query: " f"{query}"
-            )
+            logger.warning("Unable to find transcript alignment for query: %s", query)
             return []
-        if alt_ac and not use_tx_pos:
-            if len(result) > 1:
-                logger.debug(
-                    f"Found more than one match for tx_ac {temp_ac} "
-                    f"and alt_ac = {alt_ac}"
-                )
-        results = list()
+        if alt_ac and not use_tx_pos and len(result) > 1:
+            logger.debug(
+                "Found more than one match for tx_ac %s and alt_ac = %s",
+                temp_ac,
+                alt_ac,
+            )
+        results = []
         for r in result:
-            results.append([field for field in r])
+            results.append(list(r))
         return results
 
     @staticmethod
@@ -595,21 +584,21 @@ class UtaDatabase:
 
         if (tx_pos_range[1] - tx_pos_range[0]) != (alt_pos_range[1] - alt_pos_range[0]):
             logger.warning(
-                f"tx_pos_range {tx_pos_range} "
-                f"is not the same length as alt_pos_range "
-                f"{alt_pos_range}."
+                "tx_pos_range %s is not the same length as alt_pos_range %s.",
+                tx_pos_range,
+                alt_pos_range,
             )
             return None
 
-        return dict(
-            gene=gene,
-            strand=strand,
-            tx_pos_range=tx_pos_range,
-            alt_pos_range=alt_pos_range,
-            alt_aln_method=alt_aln_method,
-            tx_exon_id=tx_exon_id,
-            alt_exon_id=alt_exon_id,
-        )
+        return {
+            "gene": gene,
+            "strand": strand,
+            "tx_pos_range": tx_pos_range,
+            "alt_pos_range": alt_pos_range,
+            "alt_aln_method": alt_aln_method,
+            "tx_exon_id": tx_exon_id,
+            "alt_exon_id": alt_exon_id,
+        }
 
     async def get_mane_c_genomic_data(
         self, ac: str, alt_ac: Optional[str], start_pos: int, end_pos: int
@@ -652,7 +641,7 @@ class UtaDatabase:
 
         coding_start_site = await self.get_cds_start_end(ac)
         if coding_start_site is None:
-            logger.warning(f"Accession {ac} not found in UTA")
+            logger.warning("Accession %s not found in UTA", ac)
             return None
 
         data["tx_ac"] = result[1]
@@ -753,7 +742,7 @@ class UtaDatabase:
             WHERE hgnc = '{gene}'
             AND alt_ac LIKE 'NC_00%'
             ORDER BY alt_ac;
-            """
+            """  # noqa: S608
 
         records = await self.execute_query(query)
         if not records:
@@ -790,19 +779,20 @@ class UtaDatabase:
             WHERE alt_ac = '{ac}'
             AND {start_pos} BETWEEN alt_start_i AND alt_end_i
             AND {end_pos} BETWEEN alt_start_i AND alt_end_i;
-            """
+            """  # noqa: S608
         results = await self.execute_query(query)
         if not results:
             logger.warning(
-                f"Unable to find gene between {start_pos} and" f" {end_pos} on {ac}"
+                "Unable to find gene between %s and %s on %s", start_pos, end_pos, ac
             )
             return None
-        else:
-            if len(results) > 1:
-                logger.info(
-                    f"Found more than one gene between "
-                    f"{start_pos} and {end_pos} on {ac}"
-                )
+        if len(results) > 1:
+            logger.info(
+                "Found more than one gene between %s and %s on %s",
+                start_pos,
+                end_pos,
+                ac,
+            )
 
         return [r[0] for r in results]
 
@@ -876,7 +866,7 @@ class UtaDatabase:
             {alt_ac_cond}
             {pos_cond}
             {order_by_cond}
-            """
+            """  # noqa: S608
         results = await self.execute_query(query)
         results = [
             (r["pro_ac"], r["tx_ac"], r["alt_ac"], r["cds_start_i"]) for r in results
@@ -902,8 +892,8 @@ class UtaDatabase:
 
         if assembly not in ["GRCh37", "GRCh38"]:
             logger.warning(
-                f"Assembly not supported: {assembly}. "
-                f"Only GRCh37 and GRCh38 are supported."
+                "Assembly not supported: %s. Only GRCh37 and GRCh38 are supported.",
+                assembly,
             )
             return None
 
@@ -918,22 +908,22 @@ class UtaDatabase:
         descr = await self.get_chr_assembly(genomic_tx_data["alt_ac"])
         if descr is None:
             # already grch38
-            return None
+            return
         chromosome, _ = descr
 
         query = f"""
             SELECT DISTINCT alt_ac
             FROM {self.schema}.tx_exon_aln_v
             WHERE tx_ac = '{genomic_tx_data['tx_ac']}';
-            """
+            """  # noqa: S608
         nc_acs = await self.execute_query(query)
         nc_acs = [nc_ac[0] for nc_ac in nc_acs]
         if nc_acs == [genomic_tx_data["alt_ac"]]:
             logger.warning(
-                f"UTA does not have GRCh38 assembly for "
-                f"{genomic_tx_data['alt_ac'].split('.')[0]}"
+                "UTA does not have GRCh38 assembly for %s",
+                genomic_tx_data["alt_ac"].split(".")[0],
             )
-            return None
+            return
 
         # Get most recent assembly version position
         # Liftover range
@@ -959,7 +949,7 @@ class UtaDatabase:
             FROM {self.schema}.genomic
             WHERE alt_ac LIKE '{genomic_tx_data['alt_ac'].split('.')[0]}%'
             {order_by_cond}
-            """
+            """  # noqa: S608
         nc_acs = await self.execute_query(query)
         genomic_tx_data["alt_ac"] = nc_acs[0][0]
 
@@ -983,14 +973,13 @@ class UtaDatabase:
         elif liftover_to_assembly == Assembly.GRCH37:
             liftover = self.liftover_38_to_37.convert_coordinate(chromosome, pos)
         else:
-            logger.warning(f"{liftover_to_assembly} assembly not supported")
+            logger.warning("%s assembly not supported", liftover_to_assembly)
             liftover = None
 
         if liftover is None or len(liftover) == 0:
-            logger.warning(f"{pos} does not exist on {chromosome}")
+            logger.warning("%s does not exist on %s", pos, chromosome)
             return None
-        else:
-            return liftover[0]
+        return liftover[0]
 
     def _set_liftover(
         self,
@@ -1012,20 +1001,22 @@ class UtaDatabase:
         )
         if liftover_start_i is None:
             logger.warning(
-                f"Unable to liftover position "
-                f"{genomic_tx_data[key][0]} on {chromosome}"
+                "Unable to liftover position %s on %s",
+                genomic_tx_data[key][0],
+                chromosome,
             )
-            return None
+            return
 
         liftover_end_i = self.get_liftover(
             chromosome, genomic_tx_data[key][1], liftover_to_assembly
         )
         if liftover_end_i is None:
             logger.warning(
-                f"Unable to liftover position "
-                f"{genomic_tx_data[key][1]} on {chromosome}"
+                "Unable to liftover position %s on %s",
+                genomic_tx_data[key][1],
+                chromosome,
             )
-            return None
+            return
 
         genomic_tx_data[key] = liftover_start_i[1], liftover_end_i[1]
 
@@ -1051,7 +1042,7 @@ class UtaDatabase:
             FROM {self.schema}.associated_accessions
             WHERE pro_ac = '{p_ac}'
             {order_by_cond}
-            """
+            """  # noqa: S608
         result = await self.execute_query(query)
         if result:
             result = [r["tx_ac"] for r in result]
@@ -1072,7 +1063,7 @@ class UtaDatabase:
                WHERE alt_ac = '{alt_ac}'
                AND {g_pos} BETWEEN alt_start_i AND alt_end_i
                AND tx_ac LIKE 'NM_%';
-               """
+               """  # noqa: S608
         results = await self.execute_query(query)
         if not results:
             return []
@@ -1092,35 +1083,26 @@ class UtaDatabase:
             get_secret_value_response = client.get_secret_value(SecretId=secret_name)
         except ClientError as e:
             logger.warning(e)
-            if e.response["Error"]["Code"] == "DecryptionFailureException":
-                # Secrets Manager can"t decrypt the protected
-                # secret text using the provided KMS key.
-                raise e
-            elif e.response["Error"]["Code"] == "InternalServiceErrorException":
+            if e.response["Error"]["Code"] in {
+                # Secrets Manager can"t decrypt the protected secret text using the provided KMS key.
+                "DecryptionFailureException",
                 # An error occurred on the server side.
-                raise e
-            elif e.response["Error"]["Code"] == "InvalidParameterException":
+                "InternalServiceErrorException",
                 # You provided an invalid value for a parameter.
-                raise e
-            elif e.response["Error"]["Code"] == "InvalidRequestException":
-                # You provided a parameter value that is not valid for
-                # the current state of the resource.
-                raise e
-            elif e.response["Error"]["Code"] == "ResourceNotFoundException":
+                "InvalidParameterException",
+                # You provided a parameter value that is not valid for the current state of the resource.
+                "InvalidRequestException",
                 # We can"t find the resource that you asked for.
+                "ResourceNotFoundException",
+            }:
                 raise e
         else:
             # Decrypts secret using the associated KMS CMK.
             # Depending on whether the secret is a string or binary,
             # one of these fields will be populated.
             if "SecretString" in get_secret_value_response:
-                secret = get_secret_value_response["SecretString"]
-                return secret
-            else:
-                decoded_binary_secret = base64.b64decode(
-                    get_secret_value_response["SecretBinary"]
-                )
-                return decoded_binary_secret
+                return get_secret_value_response["SecretString"]
+        return base64.b64decode(get_secret_value_response["SecretBinary"])
 
 
 class ParseResult(UrlLibParseResult):
@@ -1129,9 +1111,9 @@ class ParseResult(UrlLibParseResult):
     Source: https://github.com/biocommons/hgvs
     """
 
-    def __new__(cls, pr):  # noqa
+    def __new__(cls, pr):  # noqa: ANN001, ANN204
         """Create new instance."""
-        return super(ParseResult, cls).__new__(cls, *pr)
+        return super(ParseResult, cls).__new__(cls, *pr)  # noqa: UP008
 
     @property
     def database(self) -> Optional[str]:

@@ -1,6 +1,6 @@
 """Provide a small set of general helper functions."""
+import datetime
 import logging
-from datetime import datetime
 from typing import Tuple
 
 from cool_seq_tool.schemas import ResidueMode, ServiceMeta
@@ -43,4 +43,7 @@ def service_meta() -> ServiceMeta:
 
     :return: ServiceMeta object
     """
-    return ServiceMeta(version=__version__, response_datetime=datetime.now())
+    return ServiceMeta(
+        version=__version__,
+        response_datetime=datetime.datetime.now(tz=datetime.timezone.utc),
+    )

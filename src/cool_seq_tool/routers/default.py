@@ -45,7 +45,7 @@ async def genomic_to_transcript_exon_coordinates(
     request_body = request_body.model_dump()
 
     response = GenomicDataResponse(
-        genomic_data=None, warnings=list(), service_meta=service_meta()
+        genomic_data=None, warnings=[], service_meta=service_meta()
     )
 
     try:
@@ -53,9 +53,7 @@ async def genomic_to_transcript_exon_coordinates(
             **request_body
         )
     except Exception as e:
-        logger.error(
-            f"genomic_to_transcript_exon_coordinates unhandled exception {str(e)}"
-        )
+        logger.error("genomic_to_transcript_exon_coordinates unhandled exception %s", e)
         response.warnings.append(UNHANDLED_EXCEPTION_MSG)
 
     return response
@@ -80,7 +78,7 @@ async def transcript_to_genomic_coordinates(
     request_body = request_body.model_dump()
 
     response = GenomicDataResponse(
-        genomic_data=None, warnings=list(), service_meta=service_meta()
+        genomic_data=None, warnings=[], service_meta=service_meta()
     )
 
     try:
@@ -90,7 +88,7 @@ async def transcript_to_genomic_coordinates(
             )
         )
     except Exception as e:
-        logger.error(f"transcript_to_genomic_coordinates unhandled exception {str(e)}")
+        logger.error("transcript_to_genomic_coordinates unhandled exception %s", e)
         response.warnings.append(UNHANDLED_EXCEPTION_MSG)
 
     return response
@@ -119,9 +117,9 @@ async def get_sequence(
     _, path = tempfile.mkstemp(suffix=".fasta")
     try:
         cool_seq_tool.seqrepo_access.get_fasta_file(sequence_id, Path(path))
-    except KeyError:
+    except KeyError as e:
         raise HTTPException(
             status_code=404, detail="No sequence available for requested identifier"
-        )
-    background_tasks.add_task(lambda p: os.unlink(p), path)
+        ) from e
+    background_tasks.add_task(lambda p: os.unlink(p), path)  # noqa: PTH108
     return FileResponse(path)

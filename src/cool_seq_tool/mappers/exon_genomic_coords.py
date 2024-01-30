@@ -112,8 +112,7 @@ class ExonGenomicCoordsMapper:
         # Ensure valid inputs
         if not transcript:
             return self._return_warnings(resp, "Must provide `transcript`")
-        else:
-            transcript = transcript.strip()
+        transcript = transcript.strip()
 
         exon_start_exists, exon_end_exists = False, False
         if exon_start is not None:
@@ -130,12 +129,11 @@ class ExonGenomicCoordsMapper:
             return self._return_warnings(
                 resp, "Must provide either `exon_start` or `exon_end`"
             )
-        elif exon_start_exists and exon_end_exists:
-            if exon_start > exon_end:
-                return self._return_warnings(
-                    resp,
-                    f"Start exon {exon_start} is greater than end exon {exon_end}",
-                )
+        if exon_start_exists and exon_end_exists and (exon_start > exon_end):
+            return self._return_warnings(
+                resp,
+                f"Start exon {exon_start} is greater than end exon {exon_end}",
+            )
 
         # Get all exons and associated start/end coordinates for transcript
         tx_exons, warning = await self.uta_db.get_tx_exons(transcript)
@@ -266,7 +264,7 @@ class ExonGenomicCoordsMapper:
         if start is None and end is None:
             return self._return_warnings(resp, "Must provide either `start` or `end`")
 
-        params = {key: None for key in GenomicData.model_fields.keys()}
+        params = {key: None for key in GenomicData.model_fields}
         if gene is not None:
             gene = gene.upper().strip()
 
@@ -312,13 +310,12 @@ class ExonGenomicCoordsMapper:
 
         for field in ["transcript", "gene", "chr", "strand"]:
             if start_data:
-                if end_data:
-                    if start_data[field] != end_data[field]:
-                        msg = (
-                            f"Start `{field}`, {start_data[field]}, does "
-                            f"not match End `{field}`, {end_data[field]}"
-                        )
-                        return self._return_warnings(resp, msg)
+                if end_data and (start_data[field] != end_data[field]):
+                    msg = (
+                        f"Start `{field}`, {start_data[field]}, does "
+                        f"not match End `{field}`, {end_data[field]}"
+                    )
+                    return self._return_warnings(resp, msg)
                 params[field] = start_data[field]
             else:
                 params[field] = end_data[field]
@@ -440,7 +437,10 @@ class ExonGenomicCoordsMapper:
                     else:
                         error = "Strand does not match"
                     logger.warning(
-                        f"{error}: {alt_ac_data['start'][i]} != {alt_ac_data['end'][i]}"
+                        "%s: %s != %s",
+                        error,
+                        alt_ac_data["start"][i],
+                        alt_ac_data["end"][i],
                     )
                     return None, error
         return tuple(alt_ac_data_values), None
@@ -482,7 +482,7 @@ class ExonGenomicCoordsMapper:
                 resp, "Must provide either `gene` or `transcript`"
             )
 
-        params = {key: None for key in TranscriptExonData.model_fields.keys()}
+        params = {key: None for key in TranscriptExonData.model_fields}
 
         if alt_ac:
             # Check if valid accession is given
@@ -550,7 +550,7 @@ class ExonGenomicCoordsMapper:
         len_alt_acs = len(alt_acs)
         if len_alt_acs > 1:
             return None, f"Found more than one accessions: {alt_acs}"
-        elif len_alt_acs == 0:
+        if len_alt_acs == 0:
             return None, "No genomic accessions found"
         alt_ac = next(iter(alt_acs))
 
@@ -565,13 +565,12 @@ class ExonGenomicCoordsMapper:
         elif len_genes == 0:
             return None, "No genes found"
 
-        if input_gene is not None:
-            if output_gene != input_gene.upper():
-                return (
-                    None,
-                    f"Input gene, {input_gene}, does not match "
-                    f"expected output gene, {output_gene}",
-                )
+        if input_gene is not None and output_gene != input_gene.upper():
+            return (
+                None,
+                f"Input gene, {input_gene}, does not match "
+                f"expected output gene, {output_gene}",
+            )
 
         gene = output_gene if output_gene else input_gene
         return (gene, alt_ac), None
