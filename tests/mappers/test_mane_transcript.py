@@ -1,8 +1,9 @@
 """Module for testing MANE Transcript class."""
 
+from unittest.mock import patch
+
 import polars as pl
 import pytest
-from mock import patch
 
 from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
 from cool_seq_tool.mappers.mane_transcript import (
@@ -218,7 +219,7 @@ def test_p_to_c_pos(test_mane_transcript):
     assert c_pos == (2241, 2252)
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_p_to_c(test_mane_transcript):
     """Test that _p_to_c method works correctly."""
     # Amino Acid Substitution
@@ -257,7 +258,7 @@ async def test_p_to_c(test_mane_transcript):
     assert pos == expected_pos
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_c_to_g(test_mane_transcript, nm_004333v6_g):
     """Test that _c_to_g method works correctly."""
     tx_ac = "NM_004333.6"
@@ -265,7 +266,7 @@ async def test_c_to_g(test_mane_transcript, nm_004333v6_g):
     assert g == nm_004333v6_g
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_g_to_c(
     test_mane_transcript, braf_mane_data, nm_004333v6_g, braf_v600e_mane_c
 ):
@@ -288,7 +289,7 @@ def test_get_mane_p(test_mane_transcript, braf_mane_data, braf_v600e_mane_p):
     assert mane_p == braf_v600e_mane_p
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_p_to_mane_p(test_mane_transcript, braf_v600e_mane_p, egfr_l858r_mane_p):
     """Test that p_to_mane_p method works correctly."""
     # BRAF V600E RefSeq Accessions
@@ -338,14 +339,12 @@ async def test_p_to_mane_p(test_mane_transcript, braf_v600e_mane_p, egfr_l858r_m
         "NP_004439.2", 755, 759, AnnotationLayer.PROTEIN
     )
     assert resp == DataRepresentation(
-        **{
-            "gene": "ERBB2",
-            "refseq": "NP_004439.2",
-            "ensembl": "ENSP00000269571.4",
-            "pos": (754, 759),
-            "strand": Strand.POSITIVE,
-            "status": TranscriptPriority.MANE_SELECT,
-        }
+        gene="ERBB2",
+        refseq="NP_004439.2",
+        ensembl="ENSP00000269571.4",
+        pos=(754, 759),
+        strand=Strand.POSITIVE,
+        status=TranscriptPriority.MANE_SELECT,
     )
 
     # CA388294838
@@ -359,18 +358,16 @@ async def test_p_to_mane_p(test_mane_transcript, braf_v600e_mane_p, egfr_l858r_m
         try_longest_compatible=True,
     )
     assert mane_p == DataRepresentation(
-        **{
-            "gene": "DIS3",
-            "refseq": "NP_055768.3",
-            "ensembl": "ENSP00000366997.4",
-            "pos": (62, 63),
-            "strand": Strand.NEGATIVE,
-            "status": TranscriptPriority.MANE_SELECT,
-        }
+        gene="DIS3",
+        refseq="NP_055768.3",
+        ensembl="ENSP00000366997.4",
+        pos=(62, 63),
+        strand=Strand.NEGATIVE,
+        status=TranscriptPriority.MANE_SELECT,
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_c_to_mane_c(test_mane_transcript, braf_v600e_mane_c, egfr_l858r_mane_c):
     """Test that c_to_mane_p method works correctly."""
     # BRAF V600E RefSeq Accessions
@@ -420,23 +417,21 @@ async def test_c_to_mane_c(test_mane_transcript, braf_v600e_mane_c, egfr_l858r_m
         "NM_004448.3", 2264, 2278, AnnotationLayer.CDNA, ref="TGAGGGAAAACACAT"
     )
     assert mane_c == CdnaRepresentation(
-        **{
-            "alt_ac": "NC_000017.11",
-            "refseq": "NM_004448.4",
-            "ensembl": "ENST00000269571.10",
-            "pos": (2263, 2278),
-            "status": TranscriptPriority.MANE_SELECT,
-            "strand": Strand.POSITIVE,
-            "coding_start_site": 175,
-            "coding_end_site": 3943,
-            "gene": "ERBB2",
-        }
+        alt_ac="NC_000017.11",
+        refseq="NM_004448.4",
+        ensembl="ENST00000269571.10",
+        pos=(2263, 2278),
+        status=TranscriptPriority.MANE_SELECT,
+        strand=Strand.POSITIVE,
+        coding_start_site=175,
+        coding_end_site=3943,
+        gene="ERBB2",
     )
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 @patch.object(SeqRepoAccess, "get_reference_sequence")
-def test_get_prioritized_transcripts_from_gene(test_get_seqrepo, test_mane_transcript):
+def _test_get_prioritized_transcripts_from_gene(test_get_seqrepo, test_mane_transcript):
     """Test that _get_prioritized_transcripts_from_gene works as expected"""
 
     def get_reference_sequence(ac):
@@ -468,7 +463,7 @@ def test_get_prioritized_transcripts_from_gene(test_get_seqrepo, test_mane_trans
     assert resp == ["NM_004333.6", "NM_001374258.2", "NM_001378472.1"]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_longest_compatible_transcript(test_mane_transcript):
     """Test that get_longest_compatible_transcript method works as expected"""
     mane_transcripts = {
@@ -479,14 +474,12 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
     }
 
     p_expected = DataRepresentation(
-        **{
-            "refseq": "NP_001365396.1",
-            "ensembl": None,
-            "pos": (599, 600),
-            "strand": Strand.NEGATIVE,
-            "gene": "BRAF",
-            "status": TranscriptPriority.LONGEST_COMPATIBLE_REMAINING,
-        }
+        refseq="NP_001365396.1",
+        ensembl=None,
+        pos=(599, 600),
+        strand=Strand.NEGATIVE,
+        gene="BRAF",
+        status=TranscriptPriority.LONGEST_COMPATIBLE_REMAINING,
     )
     resp = await test_mane_transcript.get_longest_compatible_transcript(
         599,
@@ -509,16 +502,14 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
     assert resp == p_expected
 
     c_expected = CdnaRepresentation(
-        **{
-            "refseq": "NM_001378467.1",
-            "ensembl": None,
-            "pos": (1798, 1799),
-            "strand": Strand.NEGATIVE,
-            "gene": "BRAF",
-            "coding_start_site": 226,
-            "coding_end_site": 2539,
-            "status": TranscriptPriority.LONGEST_COMPATIBLE_REMAINING,
-        }
+        refseq="NM_001378467.1",
+        ensembl=None,
+        pos=(1798, 1799),
+        strand=Strand.NEGATIVE,
+        gene="BRAF",
+        coding_start_site=226,
+        coding_end_site=2539,
+        status=TranscriptPriority.LONGEST_COMPATIBLE_REMAINING,
     )
     resp = await test_mane_transcript.get_longest_compatible_transcript(
         1799,
@@ -560,16 +551,14 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         alt_ac="NC_000007.13",
     )
     assert resp == CdnaRepresentation(
-        **{
-            "refseq": "NM_001378467.1",
-            "ensembl": None,
-            "pos": (1807, 1808),
-            "strand": Strand.NEGATIVE,
-            "gene": "BRAF",
-            "coding_start_site": 226,
-            "coding_end_site": 2539,
-            "status": TranscriptPriority.LONGEST_COMPATIBLE_REMAINING,
-        }
+        refseq="NM_001378467.1",
+        ensembl=None,
+        pos=(1807, 1808),
+        strand=Strand.NEGATIVE,
+        gene="BRAF",
+        coding_start_site=226,
+        coding_end_site=2539,
+        status=TranscriptPriority.LONGEST_COMPATIBLE_REMAINING,
     )
 
     # CA1139661942 has no other RefSeq accessions
@@ -593,16 +582,14 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         alt_ac="NC_000007.14",
     )
     assert resp == CdnaRepresentation(
-        **{
-            "refseq": "NM_001346899.2",
-            "ensembl": None,
-            "pos": (2103, 2121),
-            "strand": Strand.POSITIVE,
-            "gene": "EGFR",
-            "coding_start_site": 261,
-            "coding_end_site": 3759,
-            "status": TranscriptPriority.LONGEST_COMPATIBLE_REMAINING,
-        }
+        refseq="NM_001346899.2",
+        ensembl=None,
+        pos=(2103, 2121),
+        strand=Strand.POSITIVE,
+        gene="EGFR",
+        coding_start_site=261,
+        coding_end_site=3759,
+        status=TranscriptPriority.LONGEST_COMPATIBLE_REMAINING,
     )
 
     # protein (CA645561524, NP_001333828.1:p.Leu702_Ser707delinsGln)
@@ -615,14 +602,12 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         end_annotation_layer=EndAnnotationLayer.PROTEIN,
     )
     assert resp == DataRepresentation(
-        **{
-            "refseq": "NP_001333828.1",
-            "ensembl": None,
-            "pos": (701, 707),
-            "strand": Strand.POSITIVE,
-            "gene": None,
-            "status": TranscriptPriority.LONGEST_COMPATIBLE_REMAINING,
-        }
+        refseq="NP_001333828.1",
+        ensembl=None,
+        pos=(701, 707),
+        strand=Strand.POSITIVE,
+        gene=None,
+        status=TranscriptPriority.LONGEST_COMPATIBLE_REMAINING,
     )
 
     # CA2499226460 (NP_000416.1:p.Pro240_Pro259delinsThrLeuTh...)
@@ -635,18 +620,16 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         end_annotation_layer=EndAnnotationLayer.PROTEIN,
     )
     assert resp == DataRepresentation(
-        **{
-            "refseq": "NP_000416.1",
-            "ensembl": None,
-            "pos": (239, 259),
-            "strand": Strand.NEGATIVE,
-            "gene": None,
-            "status": TranscriptPriority.LONGEST_COMPATIBLE_REMAINING,
-        }
+        refseq="NP_000416.1",
+        ensembl=None,
+        pos=(239, 259),
+        strand=Strand.NEGATIVE,
+        gene=None,
+        status=TranscriptPriority.LONGEST_COMPATIBLE_REMAINING,
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_g_to_mane_c(
     test_mane_transcript, egfr_l858r_mane_c, braf_v600e_mane_c, grch38
 ):
@@ -734,17 +717,15 @@ async def test_g_to_mane_c(
         "NC_000012.11", 25398284, 25398284, gene="KRAS"
     )
     assert mane_c == CdnaRepresentation(
-        **{
-            "alt_ac": "NC_000012.12",
-            "refseq": "NM_004985.5",
-            "ensembl": "ENST00000311936.8",
-            "pos": (34, 35),
-            "status": TranscriptPriority.MANE_SELECT,
-            "strand": Strand.NEGATIVE,
-            "coding_start_site": 190,
-            "coding_end_site": 757,
-            "gene": "KRAS",
-        }
+        alt_ac="NC_000012.12",
+        refseq="NM_004985.5",
+        ensembl="ENST00000311936.8",
+        pos=(34, 35),
+        status=TranscriptPriority.MANE_SELECT,
+        strand=Strand.NEGATIVE,
+        coding_start_site=190,
+        coding_end_site=757,
+        gene="KRAS",
     )
 
     # CA090928
@@ -752,21 +733,19 @@ async def test_g_to_mane_c(
         "NC_000007.13", 55249071, 55249071, AnnotationLayer.GENOMIC, gene="EGFR"
     )
     assert mane_c == CdnaRepresentation(
-        **{
-            "alt_ac": "NC_000007.14",
-            "refseq": "NM_005228.5",
-            "ensembl": "ENST00000275493.7",
-            "pos": (2368, 2369),
-            "status": TranscriptPriority.MANE_SELECT,
-            "strand": Strand.POSITIVE,
-            "coding_start_site": 261,
-            "coding_end_site": 3894,
-            "gene": "EGFR",
-        }
+        alt_ac="NC_000007.14",
+        refseq="NM_005228.5",
+        ensembl="ENST00000275493.7",
+        pos=(2368, 2369),
+        status=TranscriptPriority.MANE_SELECT,
+        strand=Strand.POSITIVE,
+        coding_start_site=261,
+        coding_end_site=3894,
+        gene="EGFR",
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_grch38_to_mane_c_p(
     test_mane_transcript,
     braf_v600e_mane_p,
@@ -807,29 +786,25 @@ async def test_grch38_to_mane_c_p(
     resp = await test_mane_transcript.grch38_to_mane_c_p(
         "NC_000007.14", 55174776, 55174793
     )
-    resp == ProteinAndCdnaRepresentation(
+    assert resp == ProteinAndCdnaRepresentation(
         protein=DataRepresentation(
-            **{
-                "refseq": "NP_005219.2",
-                "ensembl": "ENSP00000275493.2",
-                "pos": (746, 752),
-                "status": TranscriptPriority.MANE_SELECT,
-                "strand": Strand.POSITIVE,
-                "gene": " EGFR",
-            }
+            refseq="NP_005219.2",
+            ensembl="ENSP00000275493.2",
+            pos=(746, 752),
+            status=TranscriptPriority.MANE_SELECT,
+            strand=Strand.POSITIVE,
+            gene="EGFR",
         ),
         cdna=CdnaRepresentation(
-            **{
-                "alt_ac": "NC_000007.14",
-                "refseq": "NM_005228.5",
-                "ensembl": "ENST00000275493.7",
-                "pos": (2238, 2256),
-                "status": TranscriptPriority.MANE_SELECT,
-                "strand": Strand.POSITIVE,
-                "coding_start_site": 261,
-                "coding_end_site": 3894,
-                "gene": "EGFR",
-            }
+            alt_ac="NC_000007.14",
+            refseq="NM_005228.5",
+            ensembl="ENST00000275493.7",
+            pos=(2238, 2256),
+            status=TranscriptPriority.MANE_SELECT,
+            strand=Strand.POSITIVE,
+            coding_start_site=261,
+            coding_end_site=3894,
+            gene="EGFR",
         ),
     )
 
@@ -839,27 +814,23 @@ async def test_grch38_to_mane_c_p(
     )
     assert resp == ProteinAndCdnaRepresentation(
         protein=DataRepresentation(
-            **{
-                "refseq": "NP_001265045.1",
-                "ensembl": "ENSP00000359077.1",
-                "pos": (239, 259),
-                "status": TranscriptPriority.MANE_SELECT,
-                "strand": Strand.NEGATIVE,
-                "gene": "L1CAM",
-            }
+            refseq="NP_001265045.1",
+            ensembl="ENSP00000359077.1",
+            pos=(239, 259),
+            status=TranscriptPriority.MANE_SELECT,
+            strand=Strand.NEGATIVE,
+            gene="L1CAM",
         ),
         cdna=CdnaRepresentation(
-            **{
-                "alt_ac": "NC_000023.11",
-                "refseq": "NM_001278116.2",
-                "ensembl": "ENST00000370060.7",
-                "pos": (717, 775),
-                "status": TranscriptPriority.MANE_SELECT,
-                "strand": Strand.NEGATIVE,
-                "coding_start_site": 217,
-                "coding_end_site": 3991,
-                "gene": "L1CAM",
-            }
+            alt_ac="NC_000023.11",
+            refseq="NM_001278116.2",
+            ensembl="ENST00000370060.7",
+            pos=(717, 775),
+            status=TranscriptPriority.MANE_SELECT,
+            strand=Strand.NEGATIVE,
+            coding_start_site=217,
+            coding_end_site=3991,
+            gene="L1CAM",
         ),
     )
 
@@ -871,27 +842,23 @@ async def test_grch38_to_mane_c_p(
     )
     assert resp == ProteinAndCdnaRepresentation(
         protein=DataRepresentation(
-            **{
-                "refseq": "NP_037379.1",
-                "ensembl": "ENSP00000258080.3",
-                "pos": (242, 244),
-                "status": TranscriptPriority.MANE_SELECT,
-                "strand": Strand.POSITIVE,
-                "gene": "HTRA2",
-            }
+            refseq="NP_037379.1",
+            ensembl="ENSP00000258080.3",
+            pos=(242, 244),
+            status=TranscriptPriority.MANE_SELECT,
+            strand=Strand.POSITIVE,
+            gene="HTRA2",
         ),
         cdna=CdnaRepresentation(
-            **{
-                "alt_ac": "NC_000002.12",
-                "refseq": "NM_013247.5",
-                "ensembl": "ENST00000258080.8",
-                "pos": (727, 730),
-                "status": TranscriptPriority.MANE_SELECT,
-                "strand": Strand.POSITIVE,
-                "coding_start_site": 74,
-                "coding_end_site": 1451,
-                "gene": "HTRA2",
-            }
+            alt_ac="NC_000002.12",
+            refseq="NM_013247.5",
+            ensembl="ENST00000258080.8",
+            pos=(727, 730),
+            status=TranscriptPriority.MANE_SELECT,
+            strand=Strand.POSITIVE,
+            coding_start_site=74,
+            coding_end_site=1451,
+            gene="HTRA2",
         ),
     )
 
@@ -902,7 +869,7 @@ async def test_grch38_to_mane_c_p(
     assert resp is None
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_valid(test_mane_transcript):
     """Test that valid queries do not raise any exceptions"""
     resp = await test_mane_transcript.get_mane_transcript(
@@ -916,7 +883,7 @@ async def test_valid(test_mane_transcript):
     assert resp
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_no_matches(test_mane_transcript):
     """Test that invalid queries return None."""
     # Invalid ENST version
