@@ -24,7 +24,7 @@ CoolSeqTool is available on [PyPI](https://pypi.org/project/cool-seq-tool)
 python3 -m pip install cool-seq-tool
 ```
 
-See the [installation instructions](https://coolseqtool.readthedocs.io/en/latest/install.html) in the documentation for a description of dependency setup requirements.
+See the [installation instructions](https://coolseqtool.readthedocs.io/latest/install.html) in the documentation for a description of dependency setup requirements.
 
 ---
 
@@ -49,4 +49,4 @@ All CoolSeqTool resources can be initialized by way of a top-level class instanc
 
 ## Feedback and contributing
 
-We welcome bug reports, feature requests, and code contributions from users and interested collaborators. The [documentation](https://coolseqtool.readthedocs.io/en/latest/contributing.html) contains guidance for submitting feedback and contributing new code.
+We welcome bug reports, feature requests, and code contributions from users and interested collaborators. The [documentation](https://coolseqtool.readthedocs.io/latest/contributing.html) contains guidance for submitting feedback and contributing new code.
