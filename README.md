@@ -2,7 +2,7 @@
 CoolSeqTool
 </h1>
 
-**[Documentation](https://coolseqtool.readthedocs.io/en/latest/)** · [Installation](https://coolseqtool.readthedocs.io/latest/install.html) · [Usage](https://coolseqtool.readthedocs.io/latest/usage.html) · [API reference](https://coolseqtool.readthedocs.io/latest/reference/index.html)
+**[Documentation](https://coolseqtool.readthedocs.io/latest/)** · [Installation](https://coolseqtool.readthedocs.io/latest/install.html) · [Usage](https://coolseqtool.readthedocs.io/latest/usage.html) · [API reference](https://coolseqtool.readthedocs.io/latest/reference/index.html)
 
 ## Overview
 
