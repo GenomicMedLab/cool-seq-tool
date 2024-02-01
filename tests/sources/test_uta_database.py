@@ -2,6 +2,7 @@
 import copy
 
 import pytest
+from agct.converter import Strand as AgctStrand
 
 from cool_seq_tool.schemas import Strand
 
@@ -313,7 +314,7 @@ async def test_liftover_to_38(test_db, genomic_tx_data):
 def test_get_liftover(test_db):
     """Test that get_liftover works correctly."""
     resp = test_db.get_liftover("chr7", 140453136, "GRCh38")
-    assert resp == ("chr7", 140753336, "+", 14633688187)
+    assert resp == ("chr7", 140753336, AgctStrand.POSITIVE)
 
     resp = test_db.get_liftover("chr17", 140453136, "GRCh38")
     assert resp is None

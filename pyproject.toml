@@ -29,7 +29,7 @@ dependencies = [
     "asyncpg",
     "aiofiles",
     "boto3",
-    "pyliftover",
+    "agct",
     "polars",
     "hgvs",
     "biocommons.seqrepo",
