@@ -11,7 +11,6 @@ import asyncpg
 import boto3
 import polars as pl
 from agct import Converter
-from agct import Strand as AgctStrand
 from asyncpg.exceptions import InterfaceError, InvalidAuthorizationSpecificationError
 from botocore.exceptions import ClientError
 
@@ -956,14 +955,13 @@ class UtaDatabase:
 
     def get_liftover(
         self, chromosome: str, pos: int, liftover_to_assembly: Assembly
-    ) -> Optional[Tuple[str, int, AgctStrand]]:
+    ) -> Optional[Tuple[str, int]]:
         """Get new genome assembly data for a position on a chromosome.
 
         :param chromosome: The chromosome number. Must be prefixed with ``chr``
         :param pos: Position on the chromosome
         :param liftover_to_assembly: Assembly to liftover to
-        :return: [Target chromosome, target position, target strand,
-            conversion_chain_score] for assembly
+        :return: Target chromosome and target position for assembly
         """
         if not chromosome.startswith("chr"):
             logger.warning("`chromosome` must be prefixed with chr")
@@ -980,7 +978,7 @@ class UtaDatabase:
         if not liftover:
             logger.warning("%s does not exist on %s", pos, chromosome)
             return None
-        return liftover[0]
+        return liftover[0][:2]
 
     def _set_liftover(
         self,
