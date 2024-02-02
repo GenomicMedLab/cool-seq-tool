@@ -10,7 +10,7 @@ from urllib.parse import quote, unquote, urlparse
 import asyncpg
 import boto3
 import polars as pl
-from agct import Converter
+from agct import Converter, Genome
 from asyncpg.exceptions import InterfaceError, InvalidAuthorizationSpecificationError
 from botocore.exceptions import ClientError
 
@@ -71,15 +71,15 @@ class UtaDatabase:
 
         chain_file_37_to_38 = chain_file_37_to_38 or LIFTOVER_CHAIN_37_TO_38
         if chain_file_37_to_38:
-            self.liftover_37_to_38 = Converter(chain_file_37_to_38)
+            self.liftover_37_to_38 = Converter(chainfile=chain_file_37_to_38)
         else:
-            self.liftover_37_to_38 = Converter("hg19", "hg38")
+            self.liftover_37_to_38 = Converter(from_db=Genome.HG19, to_db=Genome.HG38)
 
         chain_file_38_to_37 = chain_file_38_to_37 or LIFTOVER_CHAIN_38_TO_37
         if chain_file_38_to_37:
-            self.liftover_38_to_37 = Converter(chain_file_38_to_37)
+            self.liftover_38_to_37 = Converter(chainfile=chain_file_38_to_37)
         else:
-            self.liftover_38_to_37 = Converter("hg38", "hg19")
+            self.liftover_38_to_37 = Converter(from_db=Genome.HG38, to_db=Genome.HG19)
 
     def _get_conn_args(self) -> Dict:
         """Return connection arguments.
