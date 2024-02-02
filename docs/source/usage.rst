@@ -103,9 +103,9 @@ Individual classes will accept arguments upon initialization to set parameters r
    * - ``UTA_DB_URL``
      - A `libpq connection string <https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING>`_, i.e. of the form ``postgresql://<user>:<password>@<host>:<port>/<database>/<schema>``, used by the :py:class:`cool_seq_tool.sources.uta_database.UtaDatabase` class. By default, it is set to ``postgresql://uta_admin:uta@localhost:5433/uta/uta_20210129b``.
    * - ``LIFTOVER_CHAIN_37_TO_38``
-     - A path to a `chainfile <https://genome.ucsc.edu/goldenPath/help/chain.html>`_ for lifting from GRCh37 to GRCh38. Used by :py:class:`cool_seq_tool.sources.uta_database.UtaDatabase` as input to `pyliftover <https://pypi.org/project/pyliftover/>`_. If not provided, pyliftover will fetch it automatically from UCSC.
+     - A path to a `chainfile <https://genome.ucsc.edu/goldenPath/help/chain.html>`_ for lifting from GRCh37 to GRCh38. Used by :py:class:`cool_seq_tool.sources.uta_database.UtaDatabase` as input to `agct <https://pypi.org/project/agct/>`_. If not provided, agct will fetch it automatically from UCSC.
    * - ``LIFTOVER_CHAIN_38_TO_37``
-     - A path to a `chainfile <https://genome.ucsc.edu/goldenPath/help/chain.html>`_ for lifting from GRCh38 to GRCh37. Used by :py:class:`cool_seq_tool.sources.uta_database.UtaDatabase` as input to `pyliftover <https://pypi.org/project/pyliftover/>`_. If not provided, pyliftover will fetch it automatically from UCSC.
+     - A path to a `chainfile <https://genome.ucsc.edu/goldenPath/help/chain.html>`_ for lifting from GRCh38 to GRCh37. Used by :py:class:`cool_seq_tool.sources.uta_database.UtaDatabase` as input to `agct <https://pypi.org/project/agct/>`_. If not provided, agct will fetch it automatically from UCSC.
 
 Schema support
 --------------

@@ -10,16 +10,16 @@ from urllib.parse import quote, unquote, urlparse
 import asyncpg
 import boto3
 import polars as pl
+from agct import Converter, Genome
 from asyncpg.exceptions import InterfaceError, InvalidAuthorizationSpecificationError
 from botocore.exceptions import ClientError
-from pyliftover import LiftOver
 
 from cool_seq_tool.schemas import AnnotationLayer, Assembly, Strand
 
 # use `bound` to upper-bound UtaDatabase or child classes
 UTADatabaseType = TypeVar("UTADatabaseType", bound="UtaDatabase")
 
-# Environment variables for paths to chain files for pyliftover
+# Environment variables for paths to chain files for agct
 LIFTOVER_CHAIN_37_TO_38 = environ.get("LIFTOVER_CHAIN_37_TO_38")
 LIFTOVER_CHAIN_38_TO_37 = environ.get("LIFTOVER_CHAIN_38_TO_37")
 
@@ -55,13 +55,13 @@ class UtaDatabase:
         :param db_url: PostgreSQL connection URL
             Format: ``driver://user:password@host/database/schema``
         :param chain_file_37_to_38: Optional path to chain file for 37 to 38 assembly.
-            This is used for ``pyliftover``. If this is not provided, will check to see
+            This is used for ``agct``. If this is not provided, will check to see
             if ``LIFTOVER_CHAIN_37_TO_38`` env var is set. If neither is provided, will
-            allow ``pyliftover`` to download a chain file from UCSC
+            allow ``agct`` to download a chain file from UCSC
         :param chain_file_38_to_37: Optional path to chain file for 38 to 37 assembly.
-            This is used for ``pyliftover``. If this is not provided, will check to see
+            This is used for ``agct``. If this is not provided, will check to see
             if ``LIFTOVER_CHAIN_38_TO_37`` env var is set. If neither is provided, will
-            allow ``pyliftover`` to download a chain file from UCSC
+            allow ``agct`` to download a chain file from UCSC
         """
         self.schema = None
         self._connection_pool = None
@@ -71,15 +71,15 @@ class UtaDatabase:
 
         chain_file_37_to_38 = chain_file_37_to_38 or LIFTOVER_CHAIN_37_TO_38
         if chain_file_37_to_38:
-            self.liftover_37_to_38 = LiftOver(chain_file_37_to_38)
+            self.liftover_37_to_38 = Converter(chainfile=chain_file_37_to_38)
         else:
-            self.liftover_37_to_38 = LiftOver("hg19", "hg38")
+            self.liftover_37_to_38 = Converter(from_db=Genome.HG19, to_db=Genome.HG38)
 
         chain_file_38_to_37 = chain_file_38_to_37 or LIFTOVER_CHAIN_38_TO_37
         if chain_file_38_to_37:
-            self.liftover_38_to_37 = LiftOver(chain_file_38_to_37)
+            self.liftover_38_to_37 = Converter(chainfile=chain_file_38_to_37)
         else:
-            self.liftover_38_to_37 = LiftOver("hg38", "hg19")
+            self.liftover_38_to_37 = Converter(from_db=Genome.HG38, to_db=Genome.HG19)
 
     def _get_conn_args(self) -> Dict:
         """Return connection arguments.
@@ -955,14 +955,13 @@ class UtaDatabase:
 
     def get_liftover(
         self, chromosome: str, pos: int, liftover_to_assembly: Assembly
-    ) -> Optional[Tuple]:
+    ) -> Optional[Tuple[str, int]]:
         """Get new genome assembly data for a position on a chromosome.
 
         :param chromosome: The chromosome number. Must be prefixed with ``chr``
         :param pos: Position on the chromosome
         :param liftover_to_assembly: Assembly to liftover to
-        :return: [Target chromosome, target position, target strand,
-            conversion_chain_score] for assembly
+        :return: Target chromosome and target position for assembly
         """
         if not chromosome.startswith("chr"):
             logger.warning("`chromosome` must be prefixed with chr")
@@ -976,10 +975,10 @@ class UtaDatabase:
             logger.warning("%s assembly not supported", liftover_to_assembly)
             liftover = None
 
-        if liftover is None or len(liftover) == 0:
+        if not liftover:
             logger.warning("%s does not exist on %s", pos, chromosome)
             return None
-        return liftover[0]
+        return liftover[0][:2]
 
     def _set_liftover(
         self,
