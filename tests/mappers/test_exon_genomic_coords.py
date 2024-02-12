@@ -188,6 +188,78 @@ def ntrk1_exon10_exon17():
     return GenomicData(**params)
 
 
+@pytest.fixture(scope="module")
+def zbtb10_exon3_end():
+    """Create test fixture for ZBTB10, end of exon 3"""
+    params = {
+        "gene": "ZBTB10",
+        "chr": "NC_000008.11",
+        "start": None,
+        "end": 80514008,
+        "exon_start": None,
+        "exon_end": 3,
+        "exon_end_offset": 0,
+        "exon_start_offset": None,
+        "transcript": "NM_001105539.3",
+        "strand": Strand.POSITIVE,
+    }
+    return GenomicData(**params)
+
+
+@pytest.fixture(scope="module")
+def zbtb10_exon5_start():
+    """Create test fixture for ZBTB10, start of exon 5"""
+    params = {
+        "gene": "ZBTB10",
+        "chr": "NC_000008.11",
+        "start": 80518781,
+        "end": None,
+        "exon_start": 5,
+        "exon_start_offset": 0,
+        "exon_end": None,
+        "exon_end_offset": None,
+        "transcript": "NM_001105539.3",
+        "strand": Strand.POSITIVE,
+    }
+    return GenomicData(**params)
+
+
+@pytest.fixture(scope="module")
+def tpm3_exon6_end():
+    """Create test fixture for ZBTB10, end of exon 6"""
+    params = {
+        "gene": "TPM3",
+        "chr": "NC_000001.11",
+        "start": None,
+        "end": 154171488,
+        "exon_start": None,
+        "exon_start_offset": None,
+        "exon_end": 6,
+        "exon_end_offset": 0,
+        "transcript": "NM_152263.4",
+        "strand": Strand.NEGATIVE,
+    }
+    return GenomicData(**params)
+
+
+@pytest.fixture(scope="module")
+def tpm3_exon5_start():
+    """Create test fixture for ZBTB10, start of exon 5"""
+    params = {
+        "gene": "TPM3",
+        "chr": "NC_000001.11",
+        "start": 154172907,
+        "end": None,
+        "exon_start": 5,
+        "exon_start_offset": 0,
+        "exon_end": None,
+        "exon_end_offset": None,
+        "transcript": "NM_152263.4",
+        "strand": Strand.NEGATIVE,
+    }
+    return GenomicData(**params)
+
+
 def check_service_meta(actual):
     """Check that service metadata matches expected
 
@@ -246,6 +318,106 @@ async def test_get_tx_exon_coords(test_egc_mapper, nm_152263_exons):
     resp = test_egc_mapper.get_tx_exon_coords("NM_152263.3", nm_152263_exons, 1, 11)
     assert resp[0] is None
     assert resp[1] == "Exon 11 does not exist on NM_152263.3"
+
+
+@pytest.mark.asyncio()
+async def test_get_adjacent_exon(
+    test_egc_mapper, nm_152263_exons_genomic_coords, nm_001105539_exons_genomic_coords
+):
+    """Test that get_adjacent_exon works properly"""
+    resp = test_egc_mapper._get_adjacent_exon(
+        tx_exons_genomic_coords=nm_152263_exons_genomic_coords,
+        end=154191901,
+        strand=Strand.NEGATIVE,
+    )
+    assert resp == 1
+    resp = test_egc_mapper._get_adjacent_exon(
+        tx_exons_genomic_coords=nm_152263_exons_genomic_coords,
+        end=154191184,
+        strand=Strand.NEGATIVE,
+    )
+    assert resp == 2
+    resp = test_egc_mapper._get_adjacent_exon(
+        tx_exons_genomic_coords=nm_152263_exons_genomic_coords,
+        start=154191184,
+        strand=Strand.NEGATIVE,
+    )
+    assert resp == 3
+    resp = test_egc_mapper._get_adjacent_exon(
+        tx_exons_genomic_coords=nm_001105539_exons_genomic_coords,
+        end=80500385,
+        strand=Strand.POSITIVE,
+    )
+    assert resp == 2
+    resp = test_egc_mapper._get_adjacent_exon(
+        tx_exons_genomic_coords=nm_001105539_exons_genomic_coords,
+        start=80518580,
+        strand=Strand.POSITIVE,
+    )
+    assert resp == 5
+
+
+def test_is_exonic_breakpoint(test_egc_mapper, nm_023929_exons_genomic_coords):
+    """Test is breakpoint occurs on exon"""
+    resp = test_egc_mapper._is_exonic_breakpoint(
+        80514010, nm_023929_exons_genomic_coords
+    )
+    assert resp is False
+
+    resp = test_egc_mapper._is_exonic_breakpoint(
+        80499495, nm_023929_exons_genomic_coords
+    )
+    assert resp is True
+
+
+@pytest.mark.asyncio()
+async def test_genomic_to_transcript_fusion_context(
+    test_egc_mapper,
+    zbtb10_exon3_end,
+    zbtb10_exon5_start,
+    tpm3_exon6_end,
+    tpm3_exon5_start,
+):
+    """Test that genomic to transcript works correctly for intronic breakpoints"""
+    inputs = {
+        "chromosome": "8",
+        "end": 80514010,
+        "strand": Strand.POSITIVE,
+        "gene": "ZBTB10",
+        "is_fusion_transcript_segment": True,
+    }
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
+    genomic_data_assertion_checks(resp, zbtb10_exon3_end)
+
+    inputs = {
+        "chromosome": "8",
+        "start": 80518581,
+        "strand": Strand.POSITIVE,
+        "gene": "ZBTB10",
+        "is_fusion_transcript_segment": True,
+    }
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
+    genomic_data_assertion_checks(resp, zbtb10_exon5_start)
+
+    inputs = {
+        "chromosome": "1",
+        "end": 154171410,
+        "strand": Strand.NEGATIVE,
+        "gene": "TPM3",
+        "is_fusion_transcript_segment": True,
+    }
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
+    genomic_data_assertion_checks(resp, tpm3_exon6_end)
+
+    inputs = {
+        "chromosome": "1",
+        "start": 154173081,
+        "strand": Strand.NEGATIVE,
+        "gene": "TPM3",
+        "is_fusion_transcript_segment": True,
+    }
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
+    genomic_data_assertion_checks(resp, tpm3_exon5_start)
 
 
 @pytest.mark.asyncio()
