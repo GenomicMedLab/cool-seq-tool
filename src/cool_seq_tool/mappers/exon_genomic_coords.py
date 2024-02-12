@@ -285,7 +285,7 @@ class ExonGenomicCoordsMapper:
                 # zero-based for UTA
                 start -= 1
             residue_mode = ResidueMode.ZERO
-            if is_fusion_transcript_segment is True:
+            if is_fusion_transcript_segment:
                 start_data = await self._genomic_to_transcript_exon_coordinate(
                     start,
                     chromosome=chromosome,
@@ -316,7 +316,7 @@ class ExonGenomicCoordsMapper:
         if end:
             end -= 1
             residue_mode = ResidueMode.ZERO
-            if is_fusion_transcript_segment is True:
+            if is_fusion_transcript_segment:
                 end_data = await self._genomic_to_transcript_exon_coordinate(
                     end,
                     chromosome=chromosome,
@@ -922,7 +922,7 @@ class ExonGenomicCoordsMapper:
     def _is_exonic_breakpoint(pos: int, tx_genomic_coords: List) -> bool:
         """Check if a breakpoint occurs on an exon
         :param pos: Genomic breakpoint
-        :param tx_genomic_coords: A list of genomic breakpoints for a transcript
-        :return: True is the breakpoint occurs on an exon
+        :param tx_genomic_coords: A list of genomic coordinates for a transcript
+        :return: True if the breakpoint occurs on an exon
         """
         return any(pos >= exon[3] and pos <= exon[4] for exon in tx_genomic_coords[0])

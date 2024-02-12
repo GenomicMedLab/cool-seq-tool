@@ -378,7 +378,7 @@ async def test_genomic_to_transcript_fusion_context(
     tpm3_exon6_end,
     tpm3_exon5_start,
 ):
-    """Test that genomic to transcript works correctly for intronic breakpoints"""
+    """Test that genomic to transcript works correctly for non-exonic breakpoints"""
     inputs = {
         "chromosome": "8",
         "end": 80514010,
