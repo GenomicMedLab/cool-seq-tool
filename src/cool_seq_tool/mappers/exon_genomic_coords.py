@@ -32,7 +32,7 @@ class ExonGenomicCoordsMapper:
 
     def __init__(
         self,
-        sr: SeqRepoAccess,
+        seqrepo_access: SeqRepoAccess,
         uta_db: UtaDatabase,
         mane_transcript: ManeTranscript,
         mane_transcript_mappings: ManeTranscriptMappings,
@@ -58,10 +58,12 @@ class ExonGenomicCoordsMapper:
         >>> result.genomic_data.start, result.genomic_data.end
         (156864428, 156881456)
 
+        :param: seqrepo_access: SeqRepo instance to give access to query SeqRepo database
         :param uta_db: UtaDatabase instance to give access to query UTA database
         :param mane_transcript: Instance to align to MANE or compatible representation
+        :param mane_transcript_mappings: Instance to provide access to ManeTranscriptMappings class
         """
-        self.sr = sr
+        self.sr = seqrepo_access
         self.uta_db = uta_db
         self.mane_transcript = mane_transcript
         self.mane_transcript_mappings = mane_transcript_mappings
@@ -285,27 +287,16 @@ class ExonGenomicCoordsMapper:
                 # zero-based for UTA
                 start -= 1
             residue_mode = ResidueMode.ZERO
-            if is_fusion_transcript_segment:
-                start_data = await self._genomic_to_transcript_exon_coordinate(
-                    start,
-                    chromosome=chromosome,
-                    alt_ac=alt_ac,
-                    strand=strand,
-                    transcript=transcript,
-                    gene=gene,
-                    is_fusion_transcript_segment=True,
-                    is_start=True,
-                )
-            else:
-                start_data = await self._genomic_to_transcript_exon_coordinate(
-                    start,
-                    chromosome=chromosome,
-                    alt_ac=alt_ac,
-                    strand=strand,
-                    transcript=transcript,
-                    gene=gene,
-                    is_start=True,
-                )
+            start_data = await self._genomic_to_transcript_exon_coordinate(
+                start,
+                chromosome=chromosome,
+                alt_ac=alt_ac,
+                strand=strand,
+                transcript=transcript,
+                gene=gene,
+                is_fusion_transcript_segment=is_fusion_transcript_segment,
+                is_start=True,
+            )
             if start_data.transcript_exon_data:
                 start_data = start_data.transcript_exon_data.model_dump()
             else:
@@ -316,27 +307,16 @@ class ExonGenomicCoordsMapper:
         if end:
             end -= 1
             residue_mode = ResidueMode.ZERO
-            if is_fusion_transcript_segment:
-                end_data = await self._genomic_to_transcript_exon_coordinate(
-                    end,
-                    chromosome=chromosome,
-                    alt_ac=alt_ac,
-                    strand=strand,
-                    transcript=transcript,
-                    gene=gene,
-                    is_fusion_transcript_segment=True,
-                    is_start=False,
-                )
-            else:
-                end_data = await self._genomic_to_transcript_exon_coordinate(
-                    end,
-                    chromosome=chromosome,
-                    alt_ac=alt_ac,
-                    strand=strand,
-                    transcript=transcript,
-                    gene=gene,
-                    is_start=False,
-                )
+            end_data = await self._genomic_to_transcript_exon_coordinate(
+                end,
+                chromosome=chromosome,
+                alt_ac=alt_ac,
+                strand=strand,
+                transcript=transcript,
+                gene=gene,
+                is_fusion_transcript_segment=is_fusion_transcript_segment,
+                is_start=False,
+            )
             if end_data.transcript_exon_data:
                 end_data = end_data.transcript_exon_data.model_dump()
             else:
@@ -524,9 +504,30 @@ class ExonGenomicCoordsMapper:
 
         if is_fusion_transcript_segment:
             # Check if is_fusion_transcript_segment is given
-            mane_transcripts = self.mane_transcript_mappings.get_gene_mane_data(gene)
-            transcript = mane_transcripts[0]["RefSeq_nuc"]
             alt_ac = self.sr.chromosome_to_acs(chromosome)[0][0]
+            if alt_ac is None:
+                return self._return_warnings(
+                    resp, "Chromosome could not be converted to an accession"
+                )
+            mane_transcripts = self.mane_transcript_mappings.get_gene_mane_data(gene)
+            if mane_transcripts:
+                transcript = mane_transcripts[0]["RefSeq_nuc"]
+
+            else:
+                result = await self.uta_db.get_transcripts(gene=gene, alt_ac=alt_ac)
+                if len(result) > 0:
+                    transcript = result[0]["tx_ac"][0]
+                else:
+                    # Run if gene is for a noncoding transcript
+                    query = f"""
+                        SELECT DISTINCT tx_ac
+                        FROM {self.uta_db.schema}.tx_exon_aln_v
+                        WHERE hgnc = '{gene}'
+                        AND alt_ac = '{alt_ac}'
+                        """  # noqa: S608
+                    result = await self.uta_db.execute_query(query)
+                    transcript = result[0]["tx_ac"]
+
             tx_genomic_coords = await self.uta_db.get_tx_exons_genomic_coords(
                 tx_ac=transcript, gene=gene, alt_ac=alt_ac, strand=strand
             )
@@ -877,32 +878,36 @@ class ExonGenomicCoordsMapper:
 
     @staticmethod
     def _get_adjacent_exon(
-        tx_exons_genomic_coords: List,
+        tx_exons_genomic_coords: List[Tuple[int, int, int, int, int]],
         strand: Strand,
         start: Optional[int] = None,
         end: Optional[int] = None,
     ) -> int:
-        """Return the adjacent exon given a non-exonic breakpoint
+        """Return the adjacent exon given a non-exonic breakpoint. For the positive strand, adjacent is defined
+        as the exon preceeding the breakpoint for the 5' end and the exon following the breakpoint for the 3' end.
+        For the negative strand, adjacent is defined as the exon following the breakpoint for the 5' end and the exon
+        preceeding the breakpoint for the 3' end.
+
         :param: tx_exons_genomic_coords: List of exons and genomic coords for a transcript
         :param: start: Genomic coordinate of brekapoint
         :param: end: Genomic coordinate of breakpoint
         :return: Exon number corresponding to adjacent exon. Will be 1-based
         """
-        if end and strand.value == 1:
+        if end and strand.value == strand.POSITIVE:
             for i in range(len(tx_exons_genomic_coords) - 1):
                 exon = tx_exons_genomic_coords[i]
                 next_exon = tx_exons_genomic_coords[i + 1]
                 if end >= exon[4] and end <= next_exon[3]:
                     exon_to_return = exon[0] + 1
                     break
-        elif end and strand.value == -1:
+        elif end and strand.value == strand.NEGATIVE:
             for i in range(len(tx_exons_genomic_coords) - 1):
                 exon = tx_exons_genomic_coords[i]
                 next_exon = tx_exons_genomic_coords[i + 1]
                 if end >= next_exon[4] and end <= exon[3]:
                     exon_to_return = exon[0] + 1
                     break
-        elif start and strand.value == 1:
+        elif start and strand.value == strand.POSITIVE:
             for i in range(len(tx_exons_genomic_coords) - 1):
                 exon = tx_exons_genomic_coords[i]
                 next_exon = tx_exons_genomic_coords[i + 1]
@@ -921,6 +926,7 @@ class ExonGenomicCoordsMapper:
     @staticmethod
     def _is_exonic_breakpoint(pos: int, tx_genomic_coords: List) -> bool:
         """Check if a breakpoint occurs on an exon
+
         :param pos: Genomic breakpoint
         :param tx_genomic_coords: A list of genomic coordinates for a transcript
         :return: True if the breakpoint occurs on an exon

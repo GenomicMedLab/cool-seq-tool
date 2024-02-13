@@ -63,7 +63,7 @@ class CoolSeqTool:
         :param mane_data_path: Path to RefSeq MANE summary data
         :param db_url: PostgreSQL connection URL
             Format: ``driver://user:password@host/database/schema``
-        :param sr: SeqRepo instance. If this is not provided, will create a new instance
+        :param seqrepo_access: SeqRepo instance. If this is not provided, will create a new instance
         """
         if not sr:
             sr = SeqRepo(root_dir=SEQREPO_ROOT_DIR)

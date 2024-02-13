@@ -260,6 +260,42 @@ def tpm3_exon5_start():
     return GenomicData(**params)
 
 
+@pytest.fixture(scope="module")
+def gusbp3_exon2_end():
+    """Create test fixture for GUSBP3, end of exon 2"""
+    params = {
+        "gene": "GUSBP3",
+        "chr": "NC_000005.10",
+        "start": None,
+        "end": 69680799,
+        "exon_start": None,
+        "exon_start_offset": None,
+        "exon_end": 2,
+        "exon_end_offset": 0,
+        "transcript": "NR_027386.2",
+        "strand": Strand.NEGATIVE,
+    }
+    return GenomicData(**params)
+
+
+@pytest.fixture(scope="module")
+def gusbp3_exon5_start():
+    """Create test fixture for GUSBP3, start of exon 5"""
+    params = {
+        "gene": "GUSBP3",
+        "chr": "NC_000005.10",
+        "start": 69642204,
+        "end": None,
+        "exon_start": 5,
+        "exon_start_offset": 0,
+        "exon_end": None,
+        "exon_end_offset": None,
+        "transcript": "NR_027386.2",
+        "strand": Strand.NEGATIVE,
+    }
+    return GenomicData(**params)
+
+
 def check_service_meta(actual):
     """Check that service metadata matches expected
 
@@ -377,6 +413,8 @@ async def test_genomic_to_transcript_fusion_context(
     zbtb10_exon5_start,
     tpm3_exon6_end,
     tpm3_exon5_start,
+    gusbp3_exon2_end,
+    gusbp3_exon5_start,
 ):
     """Test that genomic to transcript works correctly for non-exonic breakpoints"""
     inputs = {
@@ -418,6 +456,26 @@ async def test_genomic_to_transcript_fusion_context(
     }
     resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(resp, tpm3_exon5_start)
+
+    inputs = {
+        "chromosome": "5",
+        "end": 69680764,
+        "strand": Strand.NEGATIVE,
+        "gene": "GUSBP3",
+        "is_fusion_transcript_segment": True,
+    }
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
+    genomic_data_assertion_checks(resp, gusbp3_exon2_end)
+
+    inputs = {
+        "chromosome": "5",
+        "start": 69645879,
+        "strand": Strand.NEGATIVE,
+        "gene": "GUSBP3",
+        "is_fusion_transcript_segment": True,
+    }
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
+    genomic_data_assertion_checks(resp, gusbp3_exon5_start)
 
 
 @pytest.mark.asyncio()
