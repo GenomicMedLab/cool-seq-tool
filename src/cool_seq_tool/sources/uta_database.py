@@ -350,14 +350,14 @@ class UtaDatabase:
 
     async def get_tx_exons_genomic_coords(
         self, tx_ac: str, gene: str, alt_ac: str, strand: Strand
-    ) -> Tuple[int, int, int, int, int]:
+    ) -> Optional[Tuple[int, int, int, int, int]]:
         """Get exon number, transcript coordinates, and genomic coordinates
 
         :param tx_ac: Transcript accession
         :param gene: Gene symbol
         :param alt_ac: Genomic accession
         :param strand: Strand orientation
-        :return: List of a transcript's accessions and warnings if found
+        :return: Tuple of a transcript's accessions and warnings if found
         """
         query = f"""
             SELECT DISTINCT ord, tx_start_i, tx_end_i, alt_start_i, alt_end_i
