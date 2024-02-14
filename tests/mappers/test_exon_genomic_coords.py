@@ -226,7 +226,7 @@ def zbtb10_exon5_start():
 
 @pytest.fixture(scope="module")
 def tpm3_exon6_end():
-    """Create test fixture for ZBTB10, end of exon 6"""
+    """Create test fixture for TPM3, end of exon 6"""
     params = {
         "gene": "TPM3",
         "chr": "NC_000001.11",
@@ -244,7 +244,7 @@ def tpm3_exon6_end():
 
 @pytest.fixture(scope="module")
 def tpm3_exon5_start():
-    """Create test fixture for ZBTB10, start of exon 5"""
+    """Create test fixture for TPM3, start of exon 5"""
     params = {
         "gene": "TPM3",
         "chr": "NC_000001.11",
