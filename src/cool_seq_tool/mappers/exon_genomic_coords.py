@@ -517,7 +517,7 @@ class ExonGenomicCoordsMapper:
                 transcript = mane_transcripts[0]["RefSeq_nuc"]
             else:
                 results = await self.uta_db.get_transcripts(gene=gene, alt_ac=alt_ac)
-                if len(results):
+                if not results.is_empty():
                     transcript = results[0]["tx_ac"][0]
                 else:
                     # Run if gene is for a noncoding transcript
