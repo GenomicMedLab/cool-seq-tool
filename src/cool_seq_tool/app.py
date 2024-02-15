@@ -54,7 +54,7 @@ class CoolSeqTool:
         lrg_refseqgene_path: Path = LRG_REFSEQGENE_PATH,
         mane_data_path: Path = MANE_SUMMARY_PATH,
         db_url: str = UTA_DB_URL,
-        seqrepo_access: Optional[SeqRepo] = None,
+        sr: Optional[SeqRepo] = None,
     ) -> None:
         """Initialize CoolSeqTool class
 
@@ -65,7 +65,7 @@ class CoolSeqTool:
             Format: ``driver://user:password@host/database/schema``
         :param seqrepo_access: SeqRepo instance. If this is not provided, will create a new instance
         """
-        if not seqrepo_access:
+        if not sr:
             sr = SeqRepo(root_dir=SEQREPO_ROOT_DIR)
         self.seqrepo_access = SeqRepoAccess(sr)
         self.transcript_mappings = TranscriptMappings(

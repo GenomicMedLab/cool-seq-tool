@@ -354,8 +354,8 @@ class UtaDatabase:
         """Get exon number, transcript coordinates, and genomic coordinates
 
         :param tx_ac: Transcript accession
-        :param gene: Gene symbol
-        :param alt_ac: Genomic accession
+        :param gene: HGNC gene symbol
+        :param alt_ac: RefSeq genomic accession
         :param strand: Strand orientation
         :return: Tuple of a transcript's accessions and warnings if found
         """

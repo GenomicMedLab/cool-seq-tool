@@ -507,15 +507,14 @@ class ExonGenomicCoordsMapper:
         if is_fusion_transcript_segment:
             # Check if is_fusion_transcript_segment is given
             alt_acs = self.seqrepo_access.chromosome_to_acs(chromosome)
-            if not alt_acs:
-                return self._return_warnings(
-                    resp, f"{chromosome} could not be converted to an accession"
-                )
+            if not alt_acs[0]:
+                return self._return_warnings(resp, alt_acs[1])
             alt_ac = alt_acs[0][0]
             mane_transcripts = self.mane_transcript_mappings.get_gene_mane_data(gene)
             if mane_transcripts:
                 transcript = mane_transcripts[0]["RefSeq_nuc"]
             else:
+                # Attempt to find a coding transcript if a MANE transcript cannot be found
                 results = await self.uta_db.get_transcripts(gene=gene, alt_ac=alt_ac)
                 if not results.is_empty():
                     transcript = results[0]["tx_ac"][0]
@@ -538,6 +537,7 @@ class ExonGenomicCoordsMapper:
             tx_genomic_coords = await self.uta_db.get_tx_exons_genomic_coords(
                 tx_ac=transcript, gene=gene, alt_ac=alt_ac, strand=strand
             )
+            # Check if breakpoint occurs on an exon. If not, determine the adjacent exon given the selected transcript
             if not self._is_exonic_breakpoint(pos, tx_genomic_coords):
                 exon = self._get_adjacent_exon(
                     tx_exons_genomic_coords=tx_genomic_coords[0],
@@ -895,7 +895,9 @@ class ExonGenomicCoordsMapper:
         For the negative strand, adjacent is defined as the exon following the breakpoint for the 5' end and the exon
         preceeding the breakpoint for the 3' end.
 
-        :param: tx_exons_genomic_coords: List of exons and genomic coords for a transcript
+        :param: tx_exons_genomic_coords: List of tuples describing exons and genomic coordinates for a transcript. Each
+        tuple contains the transcript number (0-indexed), the transcript coordinates for the exon, and the genomic coordinates
+        for the exon.
         :param: start: Genomic coordinate of brekapoint
         :param: end: Genomic coordinate of breakpoint
         :return: Exon number corresponding to adjacent exon. Will be 1-based
@@ -903,23 +905,14 @@ class ExonGenomicCoordsMapper:
         for i in range(len(tx_exons_genomic_coords) - 1):
             exon = tx_exons_genomic_coords[i]
             next_exon = tx_exons_genomic_coords[i + 1]
-            if end and strand == strand.POSITIVE:
-                if end >= exon[4] and end <= next_exon[3]:
-                    exon_to_return = exon[0] + 1
-                    break
-            elif end and strand == strand.NEGATIVE:
-                if end >= next_exon[4] and end <= exon[3]:
-                    exon_to_return = exon[0] + 1
-                    break
-            elif start and strand == strand.POSITIVE:
-                if start >= exon[4] and start <= next_exon[3]:
-                    exon_to_return = exon[0] + 2
+            bp = start if start else end
+            if strand == strand.POSITIVE:
+                if bool(bp >= exon[4] and bp <= next_exon[3]):
                     break
             else:
-                if start >= next_exon[4] and start <= exon[3]:
-                    exon_to_return = exon[0] + 2
+                if bool(bp >= next_exon[4] and bp <= exon[3]):
                     break
-        return exon_to_return
+        return exon[0] + 1 if end else exon[0] + 2
 
     @staticmethod
     def _is_exonic_breakpoint(pos: int, tx_genomic_coords: List) -> bool:
