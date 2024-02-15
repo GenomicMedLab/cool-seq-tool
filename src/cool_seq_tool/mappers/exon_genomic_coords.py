@@ -229,7 +229,7 @@ class ExonGenomicCoordsMapper:
         end: Optional[int] = None,
         strand: Optional[Strand] = None,
         transcript: Optional[str] = None,
-        is_fusion_transcript_segment: Optional[bool] = None,
+        get_nearest_transcript_junction: bool = False,
         gene: Optional[str] = None,
         residue_mode: Union[
             ResidueMode.INTER_RESIDUE, ResidueMode.RESIDUE
@@ -267,7 +267,7 @@ class ExonGenomicCoordsMapper:
             following transcripts: MANE Select, MANE Clinical Plus, Longest Remaining
             Compatible Transcript. See the :ref:`Transcript Selection policy <transcript_selection_policy>`
             page.
-        :param is_fusion_transcript: If the breakpoint refers to a fusion breakpoint. If ``True``, this will report
+        :param get_nearest_transcript_jundction: If exon closest to a breakpoint should be returned. If ``True``, this will report
             the adjacent exon if ``start`` or ``end`` does not occur on an exon.
         :param gene: HGNC gene symbol
         :param residue_mode: Residue mode for ``start`` and ``end``
@@ -295,7 +295,7 @@ class ExonGenomicCoordsMapper:
                 strand=strand,
                 transcript=transcript,
                 gene=gene,
-                is_fusion_transcript_segment=is_fusion_transcript_segment,
+                get_nearest_transcript_junction=get_nearest_transcript_junction,
                 is_start=True,
             )
             if start_data.transcript_exon_data:
@@ -315,7 +315,7 @@ class ExonGenomicCoordsMapper:
                 strand=strand,
                 transcript=transcript,
                 gene=gene,
-                is_fusion_transcript_segment=is_fusion_transcript_segment,
+                get_nearest_transcript_junction=get_nearest_transcript_junction,
                 is_start=False,
             )
             if end_data.transcript_exon_data:
@@ -470,7 +470,7 @@ class ExonGenomicCoordsMapper:
         strand: Optional[Strand] = None,
         transcript: Optional[str] = None,
         gene: Optional[str] = None,
-        is_fusion_transcript_segment: Optional[bool] = None,
+        get_nearest_transcript_junction: bool = False,
         is_start: bool = True,
     ) -> TranscriptExonDataResponse:
         """Convert individual genomic data to transcript data
@@ -487,8 +487,8 @@ class ExonGenomicCoordsMapper:
             following transcripts: MANE Select, MANE Clinical Plus, Longest Remaining
             Compatible Transcript
         :param gene: HGNC gene symbol
-        :param is_fusion_transcript_segment: ``True`` is part of fusion, ``False`` if not. If ``True``,
-            this will report the adjacent exon if ``start`` or ``end`` does not occur on an exon.
+        :param get_nearest_transcript_junction. If exon closest to a breakpoint should be returned. If ``True``, this will report
+            the adjacent exon if ``start`` or ``end`` does not occur on an exon.
         :param is_start: ``True`` if ``pos`` is start position. ``False`` if ``pos`` is
             end position.
         :return: Transcript data (inter-residue coordinates)
@@ -504,12 +504,12 @@ class ExonGenomicCoordsMapper:
 
         params = {key: None for key in TranscriptExonData.model_fields}
 
-        if is_fusion_transcript_segment:
+        if get_nearest_transcript_junction:
             # Check if is_fusion_transcript_segment is given
-            alt_acs = self.seqrepo_access.chromosome_to_acs(chromosome)
-            if not alt_acs[0]:
-                return self._return_warnings(resp, alt_acs[1])
-            alt_ac = alt_acs[0][0]
+            alt_acs, w = self.seqrepo_access.chromosome_to_acs(chromosome)
+            if not alt_acs:
+                return self._return_warnings(resp, w)
+            alt_ac = alt_acs[0]
             mane_transcripts = self.mane_transcript_mappings.get_gene_mane_data(gene)
             if mane_transcripts:
                 transcript = mane_transcripts[0]["RefSeq_nuc"]
@@ -538,7 +538,7 @@ class ExonGenomicCoordsMapper:
                 tx_ac=transcript, gene=gene, alt_ac=alt_ac, strand=strand
             )
             # Check if breakpoint occurs on an exon. If not, determine the adjacent exon given the selected transcript
-            if not self._is_exonic_breakpoint(pos, tx_genomic_coords):
+            if not self._is_exonic_breakpoint(pos, tx_genomic_coords[0]):
                 exon = self._get_adjacent_exon(
                     tx_exons_genomic_coords=tx_genomic_coords[0],
                     strand=strand,
@@ -922,4 +922,4 @@ class ExonGenomicCoordsMapper:
         :param tx_genomic_coords: A list of genomic coordinates for a transcript
         :return: True if the breakpoint occurs on an exon
         """
-        return any(pos >= exon[3] and pos <= exon[4] for exon in tx_genomic_coords[0])
+        return any(pos >= exon[3] and pos <= exon[4] for exon in tx_genomic_coords)

@@ -393,15 +393,15 @@ async def test_get_adjacent_exon(
     assert resp == 5
 
 
-def test_is_exonic_breakpoint(test_egc_mapper, nm_023929_exons_genomic_coords):
+def test_is_exonic_breakpoint(test_egc_mapper, nm_001105539_exons_genomic_coords):
     """Test is breakpoint occurs on exon"""
     resp = test_egc_mapper._is_exonic_breakpoint(
-        80514010, nm_023929_exons_genomic_coords
+        80514010, nm_001105539_exons_genomic_coords
     )
     assert resp is False
 
     resp = test_egc_mapper._is_exonic_breakpoint(
-        80499495, nm_023929_exons_genomic_coords
+        80499495, nm_001105539_exons_genomic_coords
     )
     assert resp is True
 
@@ -422,7 +422,7 @@ async def test_genomic_to_transcript_fusion_context(
         "end": 80514010,
         "strand": Strand.POSITIVE,
         "gene": "ZBTB10",
-        "is_fusion_transcript_segment": True,
+        "get_nearest_transcript_junction": True,
     }
     resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(resp, zbtb10_exon3_end)
@@ -432,7 +432,7 @@ async def test_genomic_to_transcript_fusion_context(
         "start": 80518581,
         "strand": Strand.POSITIVE,
         "gene": "ZBTB10",
-        "is_fusion_transcript_segment": True,
+        "get_nearest_transcript_junction": True,
     }
     resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(resp, zbtb10_exon5_start)
@@ -442,7 +442,7 @@ async def test_genomic_to_transcript_fusion_context(
         "end": 154171410,
         "strand": Strand.NEGATIVE,
         "gene": "TPM3",
-        "is_fusion_transcript_segment": True,
+        "get_nearest_transcript_junction": True,
     }
     resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(resp, tpm3_exon6_end)
@@ -452,7 +452,7 @@ async def test_genomic_to_transcript_fusion_context(
         "start": 154173081,
         "strand": Strand.NEGATIVE,
         "gene": "TPM3",
-        "is_fusion_transcript_segment": True,
+        "get_nearest_transcript_junction": True,
     }
     resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(resp, tpm3_exon5_start)
@@ -462,7 +462,7 @@ async def test_genomic_to_transcript_fusion_context(
         "end": 69680764,
         "strand": Strand.NEGATIVE,
         "gene": "GUSBP3",
-        "is_fusion_transcript_segment": True,
+        "get_nearest_transcript_junction": True,
     }
     resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(resp, gusbp3_exon2_end)
@@ -472,7 +472,7 @@ async def test_genomic_to_transcript_fusion_context(
         "start": 69645879,
         "strand": Strand.NEGATIVE,
         "gene": "GUSBP3",
-        "is_fusion_transcript_segment": True,
+        "get_nearest_transcript_junction": True,
     }
     resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(resp, gusbp3_exon5_start)
