@@ -267,8 +267,10 @@ class ExonGenomicCoordsMapper:
             following transcripts: MANE Select, MANE Clinical Plus, Longest Remaining
             Compatible Transcript. See the :ref:`Transcript Selection policy <transcript_selection_policy>`
             page.
-        :param get_nearest_transcript_jundction: If exon closest to a breakpoint should be returned. If ``True``, this will report
-            the adjacent exon if ``start`` or ``end`` does not occur on an exon.
+        :param get_nearest_transcript_junction: If the exon that is adjacent to a breakpoint should be returned. For the positive strand, adjacent is defined
+        as the exon preceeding the breakpoint for the 5' end and the exon following the breakpoint for the 3' end.
+        For the negative strand, adjacent is defined as the exon following the breakpoint for the 5' end and the exon
+        preceeding the breakpoint for the 3' end. If ``True``, this will report the adjacent exon if the position specified by``start`` or ``end`` does not occur on an exon.
         :param gene: HGNC gene symbol
         :param residue_mode: Residue mode for ``start`` and ``end``
         :return: Genomic data (inter-residue coordinates)
@@ -487,8 +489,10 @@ class ExonGenomicCoordsMapper:
             following transcripts: MANE Select, MANE Clinical Plus, Longest Remaining
             Compatible Transcript
         :param gene: HGNC gene symbol
-        :param get_nearest_transcript_junction. If exon closest to a breakpoint should be returned. If ``True``, this will report
-            the adjacent exon if ``start`` or ``end`` does not occur on an exon.
+        :param get_nearest_transcript_junction: If the exon that is adjacent to a breakpoint should be returned. For the positive strand, adjacent is defined
+        as the exon preceeding the breakpoint for the 5' end and the exon following the breakpoint for the 3' end.
+        For the negative strand, adjacent is defined as the exon following the breakpoint for the 5' end and the exon
+        preceeding the breakpoint for the 3' end. If ``True``, this will report the adjacent exon if the position specified by``start`` or ``end`` does not occur on an exon.
         :param is_start: ``True`` if ``pos`` is start position. ``False`` if ``pos`` is
             end position.
         :return: Transcript data (inter-residue coordinates)
@@ -557,7 +561,7 @@ class ExonGenomicCoordsMapper:
                 params["exon_offset"] = 0
                 params["strand"] = strand.value
                 resp.transcript_exon_data = TranscriptExonData(**params)
-                return resp
+            return resp
 
         if alt_ac:
             # Check if valid accession is given
@@ -605,8 +609,8 @@ class ExonGenomicCoordsMapper:
             params["pos"] = pos
             params["chr"] = alt_ac
             warning = await self._set_genomic_data(params, strand, is_start)
-            if warning:
-                return self._return_warnings(resp, warning)
+        if warning:
+            return self._return_warnings(resp, warning)
 
         resp.transcript_exon_data = TranscriptExonData(**params)
         return resp
@@ -898,7 +902,8 @@ class ExonGenomicCoordsMapper:
         :param: tx_exons_genomic_coords: List of tuples describing exons and genomic coordinates for a transcript. Each
         tuple contains the transcript number (0-indexed), the transcript coordinates for the exon, and the genomic coordinates
         for the exon.
-        :param: start: Genomic coordinate of brekapoint
+        :param strand: Strand
+        :param: start: Genomic coordinate of breakpoint
         :param: end: Genomic coordinate of breakpoint
         :return: Exon number corresponding to adjacent exon. Will be 1-based
         """
@@ -907,12 +912,16 @@ class ExonGenomicCoordsMapper:
             next_exon = tx_exons_genomic_coords[i + 1]
             bp = start if start else end
             if strand == strand.POSITIVE:
-                if bool(bp >= exon[4] and bp <= next_exon[3]):
-                    break
+                lte_exon = exon
+                gte_exon = next_exon
             else:
-                if bool(bp >= next_exon[4] and bp <= exon[3]):
-                    break
-        return exon[0] + 1 if end else exon[0] + 2
+                lte_exon = next_exon
+                gte_exon = exon
+            if bp >= lte_exon[4] and bp <= gte_exon[3]:
+                break
+        return (
+            exon[0] + 1 if end else exon[0] + 2
+        )  # Return current exon if end position is provided, next exon if start position is provided. exon[0] needs to be incremented by 1 in both cases as exons are 0-based in UTA
 
     @staticmethod
     def _is_exonic_breakpoint(pos: int, tx_genomic_coords: List) -> bool:
