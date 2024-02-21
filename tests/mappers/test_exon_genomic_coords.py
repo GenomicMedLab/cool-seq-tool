@@ -486,7 +486,7 @@ async def test_genomic_to_transcript_fusion_context(
     resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     assert (
         resp.warnings[0]
-        == "Gene or strand must be provided to select the nearest transcript junction"
+        == "Gene or strand must be provided to select the adjacent transcript junction"
     )
 
     inputs = {  # Test when transcript is provided
@@ -499,7 +499,7 @@ async def test_genomic_to_transcript_fusion_context(
     resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     assert (
         resp.warnings[0]
-        == "Gene or strand must be provided to select the nearest transcript junction"
+        == "Gene or strand must be provided to select the adjacent transcript junction"
     )
 
 
