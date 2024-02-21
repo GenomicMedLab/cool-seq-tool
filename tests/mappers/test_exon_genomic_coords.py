@@ -398,12 +398,12 @@ def test_is_exonic_breakpoint(test_egc_mapper, nm_001105539_exons_genomic_coords
     resp = test_egc_mapper._is_exonic_breakpoint(
         80514010, nm_001105539_exons_genomic_coords
     )
-    assert resp is False
+    assert resp is False  # Breakpoint does not occur on an exon
 
     resp = test_egc_mapper._is_exonic_breakpoint(
         80499495, nm_001105539_exons_genomic_coords
     )
-    assert resp is True
+    assert resp is True  # Breakpoint does occur on an exon
 
 
 @pytest.mark.asyncio()
@@ -476,6 +476,31 @@ async def test_genomic_to_transcript_fusion_context(
     }
     resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(resp, gusbp3_exon5_start)
+
+    inputs = {  # Test when strand is not provided
+        "chromosome": "5",
+        "start": 69645879,
+        "gene": "GUSBP3",
+        "get_nearest_transcript_junction": True,
+    }
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
+    assert (
+        resp.warnings[0]
+        == "Gene or strand must be provided to select the nearest transcript junction"
+    )
+
+    inputs = {  # Test when transcript is provided
+        "chromosome": "5",
+        "start": 69645879,
+        "transcript": "NR_027386.2",
+        "strand": Strand.NEGATIVE,
+        "get_nearest_transcript_junction": True,
+    }
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
+    assert (
+        resp.warnings[0]
+        == "Gene or strand must be provided to select the nearest transcript junction"
+    )
 
 
 @pytest.mark.asyncio()
