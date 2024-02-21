@@ -489,11 +489,10 @@ async def test_genomic_to_transcript_fusion_context(
         == "Gene or strand must be provided to select the adjacent transcript junction"
     )
 
-    inputs = {  # Test when transcript is provided
+    inputs = {  # Test when gene and strand are not provided
         "chromosome": "5",
         "start": 69645879,
         "transcript": "NR_027386.2",
-        "strand": Strand.NEGATIVE,
         "get_nearest_transcript_junction": True,
     }
     resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
@@ -501,6 +500,17 @@ async def test_genomic_to_transcript_fusion_context(
         resp.warnings[0]
         == "Gene or strand must be provided to select the adjacent transcript junction"
     )
+
+    inputs = {  # Test when transcript is provided
+        "chromosome": "5",
+        "start": 69645879,
+        "gene": "GUSBP3",
+        "transcript": "NR_027386.2",
+        "strand": Strand.NEGATIVE,
+        "get_nearest_transcript_junction": True,
+    }
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
+    genomic_data_assertion_checks(resp, gusbp3_exon5_start)
 
 
 @pytest.mark.asyncio()
