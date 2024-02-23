@@ -555,7 +555,7 @@ class ExonGenomicCoordsMapper:
                                 f"Could not find a transcript for {gene} on {alt_ac}",
                             )
             tx_genomic_coords = await self.uta_db.get_tx_exons_genomic_coords(
-                tx_ac=transcript, gene=gene, alt_ac=alt_ac, strand=strand
+                tx_ac=transcript, alt_ac=alt_ac
             )
             tx_genomic_coords = tx_genomic_coords[0]
             if not tx_genomic_coords:

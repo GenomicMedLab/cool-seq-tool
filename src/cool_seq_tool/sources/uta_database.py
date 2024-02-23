@@ -349,28 +349,27 @@ class UtaDatabase:
         return tx_exons, None
 
     async def get_tx_exons_genomic_coords(
-        self, tx_ac: str, gene: str, alt_ac: str, strand: Strand
+        self,
+        tx_ac: str,
+        alt_ac: str,
     ) -> Optional[Tuple[int, int, int, int, int]]:
         """Get exon number, transcript coordinates, and genomic coordinates
 
         :param tx_ac: Transcript accession
-        :param gene: HGNC gene symbol
         :param alt_ac: RefSeq genomic accession
-        :param strand: Strand orientation
-        :return: Tuple of a transcript's accessions and warnings if found
+        :return: Tuple of exon numbers, transcript and genomic coordinates,
+            and warnings if found
         """
         query = f"""
             SELECT DISTINCT ord, tx_start_i, tx_end_i, alt_start_i, alt_end_i
             FROM {self.schema}.tx_exon_aln_v
             WHERE tx_ac = '{tx_ac}'
-            AND hgnc = '{gene}'
             AND alt_ac = '{alt_ac}'
-            AND alt_strand = '{strand.value}'
             """  # noqa: S608
         result = await self.execute_query(query)
 
         if not result:
-            msg = f"Unable to get exons and genomic coordinates for {tx_ac} associated with {gene}"
+            msg = f"Unable to get exons and genomic coordinates for {tx_ac} on {alt_ac}"
             logger.warning(msg)
             return None, msg
         tx_exons_genomic_coords = [
