@@ -352,7 +352,7 @@ class UtaDatabase:
         self,
         tx_ac: str,
         alt_ac: str,
-    ) -> Optional[Tuple[int, int, int, int, int]]:
+    ) -> Tuple[Optional[Tuple[int, int, int, int, int]], Optional[str]]:
         """Get exon number, transcript coordinates, and genomic coordinates
 
         :param tx_ac: Transcript accession

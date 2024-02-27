@@ -554,12 +554,11 @@ class ExonGenomicCoordsMapper:
                                 resp,
                                 f"Could not find a transcript for {gene} on {alt_ac}",
                             )
-            tx_genomic_coords = await self.uta_db.get_tx_exons_genomic_coords(
+            tx_genomic_coords, w = await self.uta_db.get_tx_exons_genomic_coords(
                 tx_ac=transcript, alt_ac=alt_ac
             )
-            tx_genomic_coords = tx_genomic_coords[0]
             if not tx_genomic_coords:
-                return self._return_warnings(resp, tx_genomic_coords[1])
+                return self._return_warnings(resp, w)
             # Check if breakpoint occurs on an exon.
             # If not, determine the adjacent exon given the selected transcript
             if not self._is_exonic_breakpoint(pos, tx_genomic_coords):
@@ -629,8 +628,8 @@ class ExonGenomicCoordsMapper:
             params["pos"] = pos
             params["chr"] = alt_ac
             warning = await self._set_genomic_data(params, strand, is_start)
-        if warning:
-            return self._return_warnings(resp, warning)
+            if warning:
+                return self._return_warnings(resp, warning)
 
         resp.transcript_exon_data = TranscriptExonData(**params)
         return resp
@@ -922,7 +921,10 @@ class ExonGenomicCoordsMapper:
         :param: tx_exons_genomic_coords: List of tuples describing exons and genomic
             coordinates for a transcript. Each tuple contains the transcript number
             (0-indexed), the transcript coordinates for the exon, and the genomic
-            coordinates for the exon.
+            coordinates for the exon. Pos 0 in the tuple corresponds to the exon
+            number, pos 1 and pos 2 refer to the start and end transcript coordinates,
+            respectively, and pos 3 and 4 refer to the start and end genomic
+            coordinates, respectively.
         :param strand: Strand
         :param: start: Genomic coordinate of breakpoint
         :param: end: Genomic coordinate of breakpoint
