@@ -571,13 +571,16 @@ class ExonGenomicCoordsMapper:
                 params["exon"] = exon
                 params["transcript"] = transcript
                 params["gene"] = gene
-                params["pos"] = (
-                    tx_genomic_coords[exon - 1][3]  # Start genomic coordinate
-                    if is_start
-                    else tx_genomic_coords[exon - 1][4]  # End genomic coordinate
-                )
+                params["pos"] = pos
                 params["chr"] = alt_ac
-                params["exon_offset"] = 0
+                self._set_exon_offset(
+                    params=params,
+                    start=tx_genomic_coords[exon - 1][3],  # Start exon coordinate
+                    end=tx_genomic_coords[exon - 1][4],  # End exon coordinate
+                    pos=pos,
+                    is_start=is_start,
+                    strand=strand,
+                )
                 params["strand"] = strand.value
                 resp.transcript_exon_data = TranscriptExonData(**params)
             return resp
