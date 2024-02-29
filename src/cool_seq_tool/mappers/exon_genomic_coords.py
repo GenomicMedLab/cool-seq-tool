@@ -520,14 +520,17 @@ class ExonGenomicCoordsMapper:
                     "Gene or strand must be provided to select the adjacent transcript junction",
                 )
             alt_acs, w = self.seqrepo_access.chromosome_to_acs(chromosome)
+
             if not alt_acs:
                 return self._return_warnings(resp, w)
             alt_ac = alt_acs[0]
+
             if not transcript:
                 # Select a transcript if not provided
                 mane_transcripts = self.mane_transcript_mappings.get_gene_mane_data(
                     gene
                 )
+
                 if mane_transcripts:
                     transcript = mane_transcripts[0]["RefSeq_nuc"]
                 else:
@@ -536,6 +539,7 @@ class ExonGenomicCoordsMapper:
                     results = await self.uta_db.get_transcripts(
                         gene=gene, alt_ac=alt_ac
                     )
+
                     if not results.is_empty():
                         transcript = results[0]["tx_ac"][0]
                     else:
@@ -547,6 +551,7 @@ class ExonGenomicCoordsMapper:
                             AND alt_ac = '{alt_ac}'
                             """  # noqa: S608
                         result = await self.uta_db.execute_query(query)
+
                         if result:
                             transcript = result[0]["tx_ac"]
                         else:
@@ -554,11 +559,13 @@ class ExonGenomicCoordsMapper:
                                 resp,
                                 f"Could not find a transcript for {gene} on {alt_ac}",
                             )
+
             tx_genomic_coords, w = await self.uta_db.get_tx_exons_genomic_coords(
                 tx_ac=transcript, alt_ac=alt_ac
             )
             if not tx_genomic_coords:
                 return self._return_warnings(resp, w)
+
             # Check if breakpoint occurs on an exon.
             # If not, determine the adjacent exon given the selected transcript
             if not self._is_exonic_breakpoint(pos, tx_genomic_coords):
@@ -568,11 +575,13 @@ class ExonGenomicCoordsMapper:
                     start=pos if is_start else None,
                     end=pos if not is_start else None,
                 )
+
                 params["exon"] = exon
                 params["transcript"] = transcript
                 params["gene"] = gene
                 params["pos"] = pos
                 params["chr"] = alt_ac
+
                 self._set_exon_offset(
                     params=params,
                     start=tx_genomic_coords[exon - 1][3],  # Start exon coordinate
@@ -921,6 +930,7 @@ class ExonGenomicCoordsMapper:
         and the exon following the breakpoint for the 3' end. For the negative strand,
         adjacent is defined as the exon following the breakpoint for the 5' end and the
         exon preceding the breakpoint for the 3' end.
+
         :param: tx_exons_genomic_coords: List of tuples describing exons and genomic
             coordinates for a transcript. Each tuple contains the transcript number
             (0-indexed), the transcript coordinates for the exon, and the genomic
