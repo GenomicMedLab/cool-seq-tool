@@ -41,7 +41,7 @@ dependencies = [
 dynamic = ["version"]
 
 [project.optional-dependencies]
-dev = ["pre-commit", "ipython", "ipykernel", "psycopg2-binary", "ruff>=0.1.14"]
+dev = ["pre-commit", "ipython", "ipykernel", "psycopg2-binary", "ruff==0.2.0"]
 tests = ["pytest", "pytest-cov", "pytest-asyncio==0.18.3", "mock"]
 docs = [
     "sphinx==6.1.3",
@@ -87,7 +87,7 @@ branch = true
 [tool.ruff]
 src = ["src"]
 exclude = ["docs/source/conf.py"]
-select = [
+lint.select = [
     "F",  # https://docs.astral.sh/ruff/rules/#pyflakes-f
     "E", "W",  # https://docs.astral.sh/ruff/rules/#pycodestyle-e-w
     "I",  # https://docs.astral.sh/ruff/rules/#isort-i
@@ -115,7 +115,7 @@ select = [
     "PGH",  # https://docs.astral.sh/ruff/rules/#pygrep-hooks-pgh
     "RUF",  # https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
 ]
-fixable = [
+lint.fixable = [
     "I",
     "F401",
     "D",
@@ -147,7 +147,7 @@ fixable = [
 # W191 - tab-indentation*
 # S321 - suspicious-ftp-lib-usage
 # *ignored for compatibility with formatter
-ignore = [
+lint.ignore = [
     "ANN101", "ANN003",
     "D203", "D205", "D206", "D213", "D300", "D400", "D415",
     "E111", "E114", "E117", "E501",
@@ -155,7 +155,7 @@ ignore = [
     "S321",
 ]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 # ANN001 - missing-type-function-argument
 # ANN2 - missing-return-type
 # ANN102 - missing-type-cls
