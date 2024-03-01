@@ -188,6 +188,114 @@ def ntrk1_exon10_exon17():
     return GenomicData(**params)
 
 
+@pytest.fixture(scope="module")
+def zbtb10_exon3_end():
+    """Create test fixture for ZBTB10, end of exon 3"""
+    params = {
+        "gene": "ZBTB10",
+        "chr": "NC_000008.11",
+        "start": None,
+        "end": 80514009,
+        "exon_start": None,
+        "exon_end": 3,
+        "exon_end_offset": 100,
+        "exon_start_offset": None,
+        "transcript": "NM_001105539.3",
+        "strand": Strand.POSITIVE,
+    }
+    return GenomicData(**params)
+
+
+@pytest.fixture(scope="module")
+def zbtb10_exon5_start():
+    """Create test fixture for ZBTB10, start of exon 5"""
+    params = {
+        "gene": "ZBTB10",
+        "chr": "NC_000008.11",
+        "start": 80518580,
+        "end": None,
+        "exon_start": 5,
+        "exon_start_offset": -374,
+        "exon_end": None,
+        "exon_end_offset": None,
+        "transcript": "NM_001105539.3",
+        "strand": Strand.POSITIVE,
+    }
+    return GenomicData(**params)
+
+
+@pytest.fixture(scope="module")
+def tpm3_exon6_end():
+    """Create test fixture for TPM3, end of exon 6"""
+    params = {
+        "gene": "TPM3",
+        "chr": "NC_000001.11",
+        "start": None,
+        "end": 154171409,
+        "exon_start": None,
+        "exon_start_offset": None,
+        "exon_end": 6,
+        "exon_end_offset": 3,
+        "transcript": "NM_152263.4",
+        "strand": Strand.NEGATIVE,
+    }
+    return GenomicData(**params)
+
+
+@pytest.fixture(scope="module")
+def tpm3_exon5_start():
+    """Create test fixture for TPM3, start of exon 5"""
+    params = {
+        "gene": "TPM3",
+        "chr": "NC_000001.11",
+        "start": 154173080,
+        "end": None,
+        "exon_start": 5,
+        "exon_start_offset": -102,
+        "exon_end": None,
+        "exon_end_offset": None,
+        "transcript": "NM_152263.4",
+        "strand": Strand.NEGATIVE,
+    }
+    return GenomicData(**params)
+
+
+@pytest.fixture(scope="module")
+def gusbp3_exon2_end():
+    """Create test fixture for GUSBP3, end of exon 2"""
+    params = {
+        "gene": "GUSBP3",
+        "chr": "NC_000005.10",
+        "start": None,
+        "end": 69680763,
+        "exon_start": None,
+        "exon_start_offset": None,
+        "exon_end": 2,
+        "exon_end_offset": 2,
+        "transcript": "NR_027386.2",
+        "strand": Strand.NEGATIVE,
+    }
+    return GenomicData(**params)
+
+
+@pytest.fixture(scope="module")
+def gusbp3_exon5_start():
+    """Create test fixture for GUSBP3, start of exon 5"""
+    params = {
+        "gene": "GUSBP3",
+        "chr": "NC_000005.10",
+        "start": 69645878,
+        "end": None,
+        "exon_start": 5,
+        "exon_start_offset": -3589,
+        "exon_end": None,
+        "exon_end_offset": None,
+        "transcript": "NR_027386.2",
+        "strand": Strand.NEGATIVE,
+    }
+    return GenomicData(**params)
+
+
 def check_service_meta(actual):
     """Check that service metadata matches expected
 
@@ -246,6 +354,163 @@ async def test_get_tx_exon_coords(test_egc_mapper, nm_152263_exons):
     resp = test_egc_mapper.get_tx_exon_coords("NM_152263.3", nm_152263_exons, 1, 11)
     assert resp[0] is None
     assert resp[1] == "Exon 11 does not exist on NM_152263.3"
+
+
+@pytest.mark.asyncio()
+async def test_get_adjacent_exon(
+    test_egc_mapper, nm_152263_exons_genomic_coords, nm_001105539_exons_genomic_coords
+):
+    """Test that get_adjacent_exon works properly"""
+    resp = test_egc_mapper._get_adjacent_exon(
+        tx_exons_genomic_coords=nm_152263_exons_genomic_coords,
+        end=154191901,
+        strand=Strand.NEGATIVE,
+    )
+    assert resp == 1
+    resp = test_egc_mapper._get_adjacent_exon(
+        tx_exons_genomic_coords=nm_152263_exons_genomic_coords,
+        end=154191184,
+        strand=Strand.NEGATIVE,
+    )
+    assert resp == 2
+    resp = test_egc_mapper._get_adjacent_exon(
+        tx_exons_genomic_coords=nm_152263_exons_genomic_coords,
+        start=154191184,
+        strand=Strand.NEGATIVE,
+    )
+    assert resp == 3
+    resp = test_egc_mapper._get_adjacent_exon(
+        tx_exons_genomic_coords=nm_001105539_exons_genomic_coords,
+        end=80500385,
+        strand=Strand.POSITIVE,
+    )
+    assert resp == 2
+    resp = test_egc_mapper._get_adjacent_exon(
+        tx_exons_genomic_coords=nm_001105539_exons_genomic_coords,
+        start=80518580,
+        strand=Strand.POSITIVE,
+    )
+    assert resp == 5
+
+
+def test_is_exonic_breakpoint(test_egc_mapper, nm_001105539_exons_genomic_coords):
+    """Test is breakpoint occurs on exon"""
+    resp = test_egc_mapper._is_exonic_breakpoint(
+        80514010, nm_001105539_exons_genomic_coords
+    )
+    assert resp is False  # Breakpoint does not occur on an exon
+
+    resp = test_egc_mapper._is_exonic_breakpoint(
+        80499495, nm_001105539_exons_genomic_coords
+    )
+    assert resp is True  # Breakpoint does occur on an exon
+
+
+@pytest.mark.asyncio()
+async def test_genomic_to_transcript_fusion_context(
+    test_egc_mapper,
+    zbtb10_exon3_end,
+    zbtb10_exon5_start,
+    tpm3_exon6_end,
+    tpm3_exon5_start,
+    gusbp3_exon2_end,
+    gusbp3_exon5_start,
+):
+    """Test that genomic to transcript works correctly for non-exonic breakpoints"""
+    inputs = {
+        "chromosome": "8",
+        "end": 80514010,
+        "strand": Strand.POSITIVE,
+        "gene": "ZBTB10",
+        "get_nearest_transcript_junction": True,
+    }
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
+    genomic_data_assertion_checks(resp, zbtb10_exon3_end)
+
+    inputs = {
+        "chromosome": "8",
+        "start": 80518581,
+        "strand": Strand.POSITIVE,
+        "gene": "ZBTB10",
+        "get_nearest_transcript_junction": True,
+    }
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
+    genomic_data_assertion_checks(resp, zbtb10_exon5_start)
+
+    inputs = {
+        "chromosome": "1",
+        "end": 154171410,
+        "strand": Strand.NEGATIVE,
+        "gene": "TPM3",
+        "get_nearest_transcript_junction": True,
+    }
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
+    genomic_data_assertion_checks(resp, tpm3_exon6_end)
+
+    inputs = {
+        "chromosome": "1",
+        "start": 154173081,
+        "strand": Strand.NEGATIVE,
+        "gene": "TPM3",
+        "get_nearest_transcript_junction": True,
+    }
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
+    genomic_data_assertion_checks(resp, tpm3_exon5_start)
+
+    inputs = {
+        "chromosome": "5",
+        "end": 69680764,
+        "strand": Strand.NEGATIVE,
+        "gene": "GUSBP3",
+        "get_nearest_transcript_junction": True,
+    }
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
+    genomic_data_assertion_checks(resp, gusbp3_exon2_end)
+
+    inputs = {
+        "chromosome": "5",
+        "start": 69645879,
+        "strand": Strand.NEGATIVE,
+        "gene": "GUSBP3",
+        "get_nearest_transcript_junction": True,
+    }
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
+    genomic_data_assertion_checks(resp, gusbp3_exon5_start)
+
+    inputs = {  # Test when strand is not provided
+        "chromosome": "5",
+        "start": 69645879,
+        "gene": "GUSBP3",
+        "get_nearest_transcript_junction": True,
+    }
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
+    assert (
+        resp.warnings[0]
+        == "Gene or strand must be provided to select the adjacent transcript junction"
+    )
+
+    inputs = {  # Test when gene and strand are not provided
+        "chromosome": "5",
+        "start": 69645879,
+        "transcript": "NR_027386.2",
+        "get_nearest_transcript_junction": True,
+    }
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
+    assert (
+        resp.warnings[0]
+        == "Gene or strand must be provided to select the adjacent transcript junction"
+    )
+
+    inputs = {  # Test when transcript is provided
+        "chromosome": "5",
+        "start": 69645879,
+        "gene": "GUSBP3",
+        "transcript": "NR_027386.2",
+        "strand": Strand.NEGATIVE,
+        "get_nearest_transcript_junction": True,
+    }
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
+    genomic_data_assertion_checks(resp, gusbp3_exon5_start)
 
 
 @pytest.mark.asyncio()

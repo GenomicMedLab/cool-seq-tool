@@ -70,6 +70,22 @@ async def test_get_tx_exons(test_db, nm_152263_exons):
 
 
 @pytest.mark.asyncio()
+async def test_get_tx_exons_genomic_coords(test_db, nm_152263_exons_genomic_coords):
+    """Test that get_tx_exons_genomic_coords works correctly."""
+    resp = await test_db.get_tx_exons_genomic_coords("NM_152263.4", "NC_000001.11")
+    assert resp[0] == nm_152263_exons_genomic_coords
+    assert resp[1] is None
+
+    # Invalid transcript accession given chromosome accession
+    resp = await test_db.get_tx_exons_genomic_coords("NM_001105539.3", "NC_000001.11")
+    assert resp[0] is None
+    assert (
+        resp[1]
+        == "Unable to get exons and genomic coordinates for NM_001105539.3 on NC_000001.11"
+    )
+
+
+@pytest.mark.asyncio()
 async def test_get_cds_start_end(test_db):
     """Test that get_cds_start_end works correctly."""
     expected = (61, 2362)

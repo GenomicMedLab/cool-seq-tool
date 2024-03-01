@@ -2,6 +2,7 @@
 import logging
 from typing import Dict, List, Optional, Tuple, TypeVar, Union
 
+from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
 from cool_seq_tool.mappers.mane_transcript import CdnaRepresentation, ManeTranscript
 from cool_seq_tool.schemas import (
     AnnotationLayer,
@@ -13,6 +14,7 @@ from cool_seq_tool.schemas import (
     TranscriptExonData,
     TranscriptExonDataResponse,
 )
+from cool_seq_tool.sources.mane_transcript_mappings import ManeTranscriptMappings
 from cool_seq_tool.sources.uta_database import UtaDatabase
 from cool_seq_tool.utils import get_inter_residue_pos, service_meta
 
@@ -28,7 +30,13 @@ class ExonGenomicCoordsMapper:
     coordinate representation.
     """
 
-    def __init__(self, uta_db: UtaDatabase, mane_transcript: ManeTranscript) -> None:
+    def __init__(
+        self,
+        seqrepo_access: SeqRepoAccess,
+        uta_db: UtaDatabase,
+        mane_transcript: ManeTranscript,
+        mane_transcript_mappings: ManeTranscriptMappings,
+    ) -> None:
         """Initialize ExonGenomicCoordsMapper class.
 
         A lot of resources are required for initialization, so when defaults are enough,
@@ -50,11 +58,15 @@ class ExonGenomicCoordsMapper:
         >>> result.genomic_data.start, result.genomic_data.end
         (156864428, 156881456)
 
+        :param: seqrepo_access: SeqRepo instance to give access to query SeqRepo database
         :param uta_db: UtaDatabase instance to give access to query UTA database
         :param mane_transcript: Instance to align to MANE or compatible representation
+        :param mane_transcript_mappings: Instance to provide access to ManeTranscriptMappings class
         """
+        self.seqrepo_access = seqrepo_access
         self.uta_db = uta_db
         self.mane_transcript = mane_transcript
+        self.mane_transcript_mappings = mane_transcript_mappings
 
     @staticmethod
     def _return_warnings(
@@ -217,6 +229,7 @@ class ExonGenomicCoordsMapper:
         end: Optional[int] = None,
         strand: Optional[Strand] = None,
         transcript: Optional[str] = None,
+        get_nearest_transcript_junction: bool = False,
         gene: Optional[str] = None,
         residue_mode: Union[
             ResidueMode.INTER_RESIDUE, ResidueMode.RESIDUE
@@ -254,7 +267,13 @@ class ExonGenomicCoordsMapper:
             following transcripts: MANE Select, MANE Clinical Plus, Longest Remaining
             Compatible Transcript. See the :ref:`Transcript Selection policy <transcript_selection_policy>`
             page.
-        :param gene: HGNC gene symbol
+        param get_nearest_transcript_junction: If ``True``, this will return the
+            adjacent exon if the position specified by``start`` or ``end`` does not
+            occur on an exon. For the positive strand, adjacent is defined as the exon
+            preceding the breakpoint for the 5' end and the exon following the
+            breakpoint for the 3' end. For the negative strand, adjacent is defined as
+            the exon following the breakpoint for the 5' end and the exon preceding the
+            breakpoint for the 3' end.
         :param residue_mode: Residue mode for ``start`` and ``end``
         :return: Genomic data (inter-residue coordinates)
         """
@@ -280,6 +299,7 @@ class ExonGenomicCoordsMapper:
                 strand=strand,
                 transcript=transcript,
                 gene=gene,
+                get_nearest_transcript_junction=get_nearest_transcript_junction,
                 is_start=True,
             )
             if start_data.transcript_exon_data:
@@ -299,6 +319,7 @@ class ExonGenomicCoordsMapper:
                 strand=strand,
                 transcript=transcript,
                 gene=gene,
+                get_nearest_transcript_junction=get_nearest_transcript_junction,
                 is_start=False,
             )
             if end_data.transcript_exon_data:
@@ -453,6 +474,7 @@ class ExonGenomicCoordsMapper:
         strand: Optional[Strand] = None,
         transcript: Optional[str] = None,
         gene: Optional[str] = None,
+        get_nearest_transcript_junction: bool = False,
         is_start: bool = True,
     ) -> TranscriptExonDataResponse:
         """Convert individual genomic data to transcript data
@@ -469,6 +491,13 @@ class ExonGenomicCoordsMapper:
             following transcripts: MANE Select, MANE Clinical Plus, Longest Remaining
             Compatible Transcript
         :param gene: HGNC gene symbol
+        :param get_nearest_transcript_junction: If ``True``, this will return the
+            adjacent exon if the position specified by``start`` or ``end`` does not
+            occur on an exon. For the positive strand, adjacent is defined as the exon
+            preceding the breakpoint for the 5' end and the exon following the
+            breakpoint for the 3' end. For the negative strand, adjacent is defined as
+            the exon following the breakpoint for the 5' end and the exon preceding the
+            breakpoint for the 3' end.
         :param is_start: ``True`` if ``pos`` is start position. ``False`` if ``pos`` is
             end position.
         :return: Transcript data (inter-residue coordinates)
@@ -483,6 +512,87 @@ class ExonGenomicCoordsMapper:
             )
 
         params = {key: None for key in TranscriptExonData.model_fields}
+
+        if get_nearest_transcript_junction:
+            if not gene or not strand:
+                return self._return_warnings(
+                    resp,
+                    "Gene or strand must be provided to select the adjacent transcript junction",
+                )
+            alt_acs, w = self.seqrepo_access.chromosome_to_acs(chromosome)
+
+            if not alt_acs:
+                return self._return_warnings(resp, w)
+            alt_ac = alt_acs[0]
+
+            if not transcript:
+                # Select a transcript if not provided
+                mane_transcripts = self.mane_transcript_mappings.get_gene_mane_data(
+                    gene
+                )
+
+                if mane_transcripts:
+                    transcript = mane_transcripts[0]["RefSeq_nuc"]
+                else:
+                    # Attempt to find a coding transcript if a MANE transcript
+                    # cannot be found
+                    results = await self.uta_db.get_transcripts(
+                        gene=gene, alt_ac=alt_ac
+                    )
+
+                    if not results.is_empty():
+                        transcript = results[0]["tx_ac"][0]
+                    else:
+                        # Run if gene is for a noncoding transcript
+                        query = f"""
+                            SELECT DISTINCT tx_ac
+                            FROM {self.uta_db.schema}.tx_exon_aln_v
+                            WHERE hgnc = '{gene}'
+                            AND alt_ac = '{alt_ac}'
+                            """  # noqa: S608
+                        result = await self.uta_db.execute_query(query)
+
+                        if result:
+                            transcript = result[0]["tx_ac"]
+                        else:
+                            return self._return_warnings(
+                                resp,
+                                f"Could not find a transcript for {gene} on {alt_ac}",
+                            )
+
+            tx_genomic_coords, w = await self.uta_db.get_tx_exons_genomic_coords(
+                tx_ac=transcript, alt_ac=alt_ac
+            )
+            if not tx_genomic_coords:
+                return self._return_warnings(resp, w)
+
+            # Check if breakpoint occurs on an exon.
+            # If not, determine the adjacent exon given the selected transcript
+            if not self._is_exonic_breakpoint(pos, tx_genomic_coords):
+                exon = self._get_adjacent_exon(
+                    tx_exons_genomic_coords=tx_genomic_coords,
+                    strand=strand,
+                    start=pos if is_start else None,
+                    end=pos if not is_start else None,
+                )
+
+                params["exon"] = exon
+                params["transcript"] = transcript
+                params["gene"] = gene
+                params["pos"] = pos
+                params["chr"] = alt_ac
+
+                self._set_exon_offset(
+                    params=params,
+                    start=tx_genomic_coords[exon - 1][3],  # Start exon coordinate
+                    end=tx_genomic_coords[exon - 1][4],  # End exon coordinate
+                    pos=pos,
+                    is_start=is_start,
+                    strand=strand,
+                )
+                params["strand"] = strand.value
+                resp.transcript_exon_data = TranscriptExonData(**params)
+            return resp
 
         if alt_ac:
             # Check if valid accession is given
@@ -807,3 +917,55 @@ class ExonGenomicCoordsMapper:
                 break
             i += 1
         return i
+
+    @staticmethod
+    def _get_adjacent_exon(
+        tx_exons_genomic_coords: List[Tuple[int, int, int, int, int]],
+        strand: Strand,
+        start: Optional[int] = None,
+        end: Optional[int] = None,
+    ) -> int:
+        """Return the adjacent exon given a non-exonic breakpoint. For the positive
+        strand, adjacent is defined as the exon preceding the breakpoint for the 5' end
+        and the exon following the breakpoint for the 3' end. For the negative strand,
+        adjacent is defined as the exon following the breakpoint for the 5' end and the
+        exon preceding the breakpoint for the 3' end.
+
+        :param: tx_exons_genomic_coords: List of tuples describing exons and genomic
+            coordinates for a transcript. Each tuple contains the transcript number
+            (0-indexed), the transcript coordinates for the exon, and the genomic
+            coordinates for the exon. Pos 0 in the tuple corresponds to the exon
+            number, pos 1 and pos 2 refer to the start and end transcript coordinates,
+            respectively, and pos 3 and 4 refer to the start and end genomic
+            coordinates, respectively.
+        :param strand: Strand
+        :param: start: Genomic coordinate of breakpoint
+        :param: end: Genomic coordinate of breakpoint
+        :return: Exon number corresponding to adjacent exon. Will be 1-based
+        """
+        for i in range(len(tx_exons_genomic_coords) - 1):
+            exon = tx_exons_genomic_coords[i]
+            next_exon = tx_exons_genomic_coords[i + 1]
+            bp = start if start else end
+            if strand == strand.POSITIVE:
+                lte_exon = exon
+                gte_exon = next_exon
+            else:
+                lte_exon = next_exon
+                gte_exon = exon
+            if bp >= lte_exon[4] and bp <= gte_exon[3]:
+                break
+        # Return current exon if end position is provided, next exon if start position
+        # is provided. exon[0] needs to be incremented by 1 in both cases as exons are
+        # 0-based in UTA
+        return exon[0] + 1 if end else exon[0] + 2
+
+    @staticmethod
+    def _is_exonic_breakpoint(pos: int, tx_genomic_coords: List) -> bool:
+        """Check if a breakpoint occurs on an exon
+
+        :param pos: Genomic breakpoint
+        :param tx_genomic_coords: A list of genomic coordinates for a transcript
+        :return: True if the breakpoint occurs on an exon
+        """
+        return any(pos >= exon[3] and pos <= exon[4] for exon in tx_genomic_coords)
