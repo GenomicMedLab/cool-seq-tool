@@ -592,7 +592,7 @@ class ExonGenomicCoordsMapper:
                 )
                 params["strand"] = strand.value
                 resp.transcript_exon_data = TranscriptExonData(**params)
-            return resp
+                return resp
 
         if alt_ac:
             # Check if valid accession is given
