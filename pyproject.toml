@@ -21,6 +21,7 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 requires-python = ">=3.8"
 description = "Common Operation on Lots of Sequences Tool"
@@ -55,13 +56,13 @@ docs = [
 
 [project.urls]
 Homepage = "https://github.com/genomicmedlab/cool-seq-tool"
-Documentation = "https://coolseqtool.readthedocs.io/en/latest/index.html"
+Documentation = "https://coolseqtool.readthedocs.io/"
 Changelog = "https://github.com/genomicmedlab/cool-seq-tool/releases"
 Source = "https://github.com/genomicmedlab/cool-seq-tool"
 "Bug Tracker" = "https://github.com/genomicmedlab/cool-seq-tool/issues"
 
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=64"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.dynamic]
