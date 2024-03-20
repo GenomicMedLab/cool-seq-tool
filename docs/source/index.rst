@@ -1,6 +1,21 @@
 Cool-Seq-Tool |version|
 =======================
 
+.. image:: https://img.shields.io/pypi/v/cool-seq-tool.svg
+   :alt: PyPI version
+   :target: https://pypi.python.org/pypi/cool-seq-tool
+
+.. image:: https://img.shields.io/pypi/l/cool-seq-tool.svg
+   :alt: License
+   :target: https://github.com/genomicmedlab/cool-seq-tool/blob/main/LICENSE
+
+.. image:: https://img.shields.io/pypi/pyversions/cool-seq-tool?color=gr
+   :alt: PyPI - supported Python versions
+
+.. image:: https://github.com/genomicmedlab/cool-seq-tool/actions/workflows/checks.yaml/badge.svg
+   :alt: tests status
+   :target: https://github.com/genomicmedlab/cool-seq-tool/actions/workflows/checks.yaml
+
 The **CoolSeqTool** provides:
 
 * A Pythonic API on top of sequence data of interest to tertiary analysis tools, including mappings between gene names and transcripts, `MANE transcript <https://www.ncbi.nlm.nih.gov/refseq/MANE/>`_ descriptions, and the `Universal Transcript Archive <https://github.com/biocommons/uta>`_
