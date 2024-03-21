@@ -79,3 +79,25 @@ def linkcode_resolve(domain, info):
 # -- code block style --------------------------------------------------------
 pygments_style = "default"
 pygements_dark_style = "monokai"
+
+# -- preprocess docstrings ---------------------------------------------------
+from typing import List
+from types import ModuleType
+from sphinx.application import Sphinx
+from sphinx.ext.autodoc import Options
+
+
+def _clip_rst_tables(app: Sphinx, what: str, name: str, obj: ModuleType, options: Options, lines: List[str]):
+    """The ResidueMode docstring contains an RST table and an ASCII table because
+    the former gets omitted in IDEs like VSCode and the latter won't render properly in
+    Sphinx docs. This chops out the ASCII table when rendering autodocs.
+    """
+    if what == "class" and name == "cool_seq_tool.schemas.ResidueMode":
+        for i in range(len(lines) -1, -1, -1):
+            line = lines[i]
+            if line.count("|") >= 8:
+                del lines[i]
+        print("Running preprocessing on ResidueMode docstring...")
+
+def setup(app: Sphinx):
+    app.connect("autodoc-process-docstring", _clip_rst_tables)

@@ -56,6 +56,11 @@ class ResidueMode(str, Enum):
     careful to define the coordinate mode of their data when calling ``cool-seq-tool``
     functions.
 
+                      |   | C |   | T |   | G |   |
+    ZERO              |   | 0 |   | 1 |   | 2 |   |
+    RESIDUE           |   | 1 |   | 2 |   | 3 |   |
+    INTER_RESIDUE     | 0 |   | 1 |   | 2 |   | 3 |
+
     .. tabularcolumns:: |L|C|C|C|C|C|C|C|
     .. list-table::
        :header-rows: 1
