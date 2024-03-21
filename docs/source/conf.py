@@ -7,7 +7,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "Cool-Seq-Tool"
-copyright = "2023, Wagner Lab"
+copyright = "2021-2024, Wagner Lab"
 author = "Wagner Lab"
 html_title = "Cool-Seq-Tool"
 
