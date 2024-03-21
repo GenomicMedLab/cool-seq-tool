@@ -52,10 +52,55 @@ class TranscriptPriority(str, Enum):
 class ResidueMode(str, Enum):
     """Create Enum for residue modes.
 
+    We typically prefer to operate in inter-residue coordinates, but users should be
+    careful to define the coordinate mode of their data when calling ``cool-seq-tool``
+    functions.
+
                       |   | C |   | T |   | G |   |
     ZERO              |   | 0 |   | 1 |   | 2 |   |
     RESIDUE           |   | 1 |   | 2 |   | 3 |   |
     INTER_RESIDUE     | 0 |   | 1 |   | 2 |   | 3 |
+
+    .. tabularcolumns:: |L|C|C|C|C|C|C|C|
+    .. list-table::
+       :header-rows: 1
+
+       * -
+         -
+         - C
+         -
+         - T
+         -
+         - G
+         -
+       * - ``ZERO``
+         -
+         - 0
+         -
+         - 1
+         -
+         - 2
+         -
+       * - ``RESIDUE``
+         -
+         - 1
+         -
+         - 2
+         -
+         - 3
+         -
+       * - ``INTER_RESIDUE``
+         - 0
+         -
+         - 1
+         -
+         - 2
+         -
+         - 3
+
+
+    See "Conventions that promote reliable data sharing" and figure 3 within the
+    `Variation Representation Schema (VRS) paper <https://www.ncbi.nlm.nih.gov/pmc/articles/pmid/35311178/>`_ for further discussion.
     """
 
     ZERO = "zero"
