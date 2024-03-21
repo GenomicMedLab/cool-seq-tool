@@ -2,9 +2,13 @@
 CoolSeqTool
 </h1>
 
+[![image](https://img.shields.io/pypi/v/cool-seq-tool.svg)](https://pypi.python.org/pypi/cool-seq-tool) [![image](https://img.shields.io/pypi/l/cool-seq-tool.svg)](https://pypi.python.org/pypi/cool-seq-tool) [![image](https://img.shields.io/pypi/pyversions/cool-seq-tool.svg)](https://pypi.python.org/pypi/cool-seq-tool) [![Actions status](https://github.com/genomicmedlab/cool-seq-tool/actions/workflows/checks.yaml/badge.svg)](https://github.com/genomicmedlab/cool-seq-tool/actions/checks.yaml)
+
+---
+
 **[Documentation](https://coolseqtool.readthedocs.io/latest/)** · [Installation](https://coolseqtool.readthedocs.io/latest/install.html) · [Usage](https://coolseqtool.readthedocs.io/latest/usage.html) · [API reference](https://coolseqtool.readthedocs.io/latest/reference/index.html)
 
---- 
+---
 
 ## Overview
 
