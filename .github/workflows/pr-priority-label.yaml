@@ -9,7 +9,7 @@ jobs:
       issues: write
       pull-requests: write
     outputs:
-      status: {{ "${{ steps.check-labels.outputs.status }}" }}
+      status: ${{ steps.check-labels.outputs.status }}
     steps:
       - id: check-labels
         uses: mheap/github-action-required-labels@v5
