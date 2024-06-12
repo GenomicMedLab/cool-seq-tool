@@ -13,7 +13,9 @@ if _configured_transcript_mappings_path:
         msg = f'No transcript mappings file exists at path {_configured_transcript_mappings_path} defined under env var TRANSCRIPT_MAPPINGS_PATH. Either unset to use default file bundled with cool-seq-tool, or ensure that is available at this location. See the "Environment configuration" section under the Usage page within the documentation for more.'
         raise FileNotFoundError(msg)
 else:
-    TRANSCRIPT_MAPPINGS_PATH = resources.files(__package__) / "transcript_mapping.tsv"
+    TRANSCRIPT_MAPPINGS_PATH: Path = (
+        resources.files(__package__) / "transcript_mapping.tsv"
+    )  # type: ignore[reportAssignmentType]
 
 
 def get_mane_summary() -> Path:
