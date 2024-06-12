@@ -7,7 +7,7 @@ from typing import Dict, List
 
 import polars as pl
 
-from cool_seq_tool.paths import MANE_SUMMARY_PATH
+from cool_seq_tool.resources import get_mane_summary
 
 logger = logging.getLogger(__name__)
 
@@ -22,11 +22,13 @@ class ManeTranscriptMappings:
     See the `NCBI MANE page <https://www.ncbi.nlm.nih.gov/refseq/MANE/>`_ for more information.
     """
 
-    def __init__(self, mane_data_path: Path = MANE_SUMMARY_PATH) -> None:
+    def __init__(self, mane_data_path: Path | None = None) -> None:
         """Initialize the MANE Transcript mappings class.
 
         :param Path mane_data_path: Path to RefSeq MANE summary data
         """
+        if not mane_data_path:
+            mane_data_path = get_mane_summary()
         self.mane_data_path = mane_data_path
         self.df = self._load_mane_transcript_data()
 

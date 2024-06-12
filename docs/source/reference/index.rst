@@ -16,7 +16,7 @@ Core Modules
    cool_seq_tool.app
    cool_seq_tool.schemas
    cool_seq_tool.utils
-   cool_seq_tool.data.data_downloads
+   cool_seq_tool.resources.resources
 
 .. _sources_modules_api_index:
 

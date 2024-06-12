@@ -3,13 +3,13 @@ import csv
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from cool_seq_tool.paths import LRG_REFSEQGENE_PATH, TRANSCRIPT_MAPPINGS_PATH
+from cool_seq_tool.resources import TRANSCRIPT_MAPPINGS_PATH, get_lrg_refseqgene
 
 
 class TranscriptMappings:
     """Provide mappings between gene symbols and RefSeq + Ensembl transcript accessions.
 
-    Uses ``LRG_RefSeqGene`` and ``transcript_mappings.csv``, which will automatically
+    Uses ``LRG_RefSeqGene`` and ``transcript_mappings.tsv``, which will automatically
     be acquired if they aren't already available. See the
     :ref:`configuration <configuration>` section in the documentation for information
     about manual acquisition of data.
@@ -22,7 +22,7 @@ class TranscriptMappings:
     def __init__(
         self,
         transcript_file_path: Path = TRANSCRIPT_MAPPINGS_PATH,
-        lrg_refseqgene_path: Path = LRG_REFSEQGENE_PATH,
+        lrg_refseqgene_path: Path | None = None,
     ) -> None:
         """Initialize the transcript mappings class.
 
@@ -58,6 +58,8 @@ class TranscriptMappings:
         self.ensp_to_enst: Dict[str, str] = {}
 
         self._load_transcript_mappings_data(transcript_file_path)
+        if not lrg_refseqgene_path:
+            lrg_refseqgene_path = get_lrg_refseqgene()
         self._load_refseq_gene_symbol_data(lrg_refseqgene_path)
 
     def _load_transcript_mappings_data(self, transcript_file_path: Path) -> None:

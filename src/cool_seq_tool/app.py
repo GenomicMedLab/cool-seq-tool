@@ -13,9 +13,7 @@ from cool_seq_tool.mappers import (
     ExonGenomicCoordsMapper,
     ManeTranscript,
 )
-from cool_seq_tool.paths import (
-    LRG_REFSEQGENE_PATH,
-    MANE_SUMMARY_PATH,
+from cool_seq_tool.resources import (
     SEQREPO_ROOT_DIR,
     TRANSCRIPT_MAPPINGS_PATH,
 )
@@ -51,8 +49,8 @@ class CoolSeqTool:
     def __init__(
         self,
         transcript_file_path: Path = TRANSCRIPT_MAPPINGS_PATH,
-        lrg_refseqgene_path: Path = LRG_REFSEQGENE_PATH,
-        mane_data_path: Path = MANE_SUMMARY_PATH,
+        lrg_refseqgene_path: Path | None = None,
+        mane_data_path: Path | None = None,
         db_url: str = UTA_DB_URL,
         sr: Optional[SeqRepo] = None,
     ) -> None:
