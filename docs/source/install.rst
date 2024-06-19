@@ -56,16 +56,20 @@ Cool-Seq-Tool requires access to `SeqRepo <https://github.com/biocommons/biocomm
 .. code-block::
 
    pip install seqrepo
-   export SEQREPO_VERSION=2021-01-29  # or newer if available -- check `seqrepo list-remote-instances`
+   export SEQREPO_VERSION=2024-02-20
    sudo mkdir /usr/local/share/seqrepo
    sudo chown $USER /usr/local/share/seqrepo
    seqrepo pull -i $SEQREPO_VERSION
 
-If you encounter a permission error similar to the one below:
+.. note::
+
+   Our lab typically uses the latest SeqRepo release, which is ``2024-02-20`` as of this commit. To check for the presence of newer snapshots, use the ``seqrepo list-remote-instances`` CLI command.
+
+While this should no longer occur with the latest SeqRepo release, some users in the past have reported experiencing the following error:
 
 .. code-block::
 
-   PermissionError: [Error 13] Permission denied: '/usr/local/share/seqrepo/2021-01-29._fkuefgd' -> '/usr/local/share/seqrepo/2021-01-29'
+   PermissionError: [Error 13] Permission denied: '/usr/local/share/seqrepo/2024-02-20._fkuefgd' -> '/usr/local/share/seqrepo/2021-01-29'
 
 Try moving data manually with ``sudo``:
 
