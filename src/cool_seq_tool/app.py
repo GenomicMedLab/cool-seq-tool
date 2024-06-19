@@ -1,6 +1,7 @@
 """Provides core CoolSeqTool class, which non-redundantly initializes all Cool-Seq-Tool
 data handler and mapping resources for straightforward access.
 """
+import logging
 from pathlib import Path
 from typing import Optional
 
@@ -15,6 +16,8 @@ from cool_seq_tool.mappers import (
 from cool_seq_tool.sources.mane_transcript_mappings import ManeTranscriptMappings
 from cool_seq_tool.sources.transcript_mappings import TranscriptMappings
 from cool_seq_tool.sources.uta_database import UTA_DB_URL, UtaDatabase
+
+logger = logging.getLogger(__name__)
 
 
 class CoolSeqTool:

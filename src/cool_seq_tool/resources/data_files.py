@@ -4,10 +4,8 @@ from enum import Enum
 from importlib import resources
 from os import environ
 from pathlib import Path
-from typing import Callable
 
-from wags_tails.ncbi_lrg_refseqgene import NcbiLrgRefSeqGeneData
-from wags_tails.ncbi_mane_summary import NcbiManeSummaryData
+from wags_tails import NcbiLrgRefSeqGeneData, NcbiManeSummaryData
 
 _logger = logging.getLogger(__name__)
 
@@ -27,7 +25,7 @@ class DataFile(str, Enum):
         return self.value.lower()
 
 
-_resource_acquisition_params: dict[DataFile, tuple[str, Callable]] = {
+_resource_acquisition_params = {
     DataFile.TRANSCRIPT_MAPPINGS: (
         "TRANSCRIPT_MAPPINGS_PATH",
         lambda: resources.files(__package__) / "transcript_mapping.tsv",

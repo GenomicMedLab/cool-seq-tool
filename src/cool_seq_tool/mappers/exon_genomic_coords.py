@@ -58,7 +58,6 @@ class ExonGenomicCoordsMapper:
         >>> result.genomic_data.start, result.genomic_data.end
         (156864428, 156881456)
 
-
         :param seqrepo_access: SeqRepo instance to give access to query SeqRepo database
         :param uta_db: UtaDatabase instance to give access to query UTA database
         :param mane_transcript: Instance to align to MANE or compatible representation
