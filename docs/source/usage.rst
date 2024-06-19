@@ -93,19 +93,19 @@ Individual classes will accept arguments upon initialization to set parameters r
    * - Variable
      - Description
    * - ``LRG_REFSEQGENE_PATH``
-     - Path to LRG_RefSeqGene file. Used in :py:class:`TranscriptMappings <cool_seq_tool.sources.transcript_mappings.TranscriptMappings>` to provide mappings between gene symbols and RefSeq/Ensembl transcript accessions. If not defined, defaults to the most recent version (formatted as ``data/LRG_RefSeqGene_YYYYMMDD``) within the Cool-Seq-Tool library directory. Cool-Seq-Tool will acquire this data manually if no configuration is provided.
+     - Path to LRG_RefSeqGene file. Used in :py:class:`TranscriptMappings <cool_seq_tool.sources.transcript_mappings.TranscriptMappings>` to provide mappings between gene symbols and RefSeq/Ensembl transcript accessions. If not defined, uses `wags-tails <https://wags-tails.readthedocs.io/stable/>`_ to fetch the latest version, downloading it from the NCBI server if necessary.
    * - ``TRANSCRIPT_MAPPINGS_PATH``
-     - Path to transcript mapping file generated from `Ensembl BioMart <http://www.ensembl.org/biomart/martview>`_. Used in :py:class:`TranscriptMappings <cool_seq_tool.sources.transcript_mappings.TranscriptMappings>`. If not defined, uses a copy of the file that is bundled within the Cool-Seq-Tool installation. See the :ref:`contributor instructions <build_transcript_mappings_tsv>` for information on manually rebuilding it. Cool-Seq-Tool will acquire this data manually if no configuration is provided.
+     - Path to transcript mapping file generated from `Ensembl BioMart <http://www.ensembl.org/biomart/martview>`_. Used in :py:class:`TranscriptMappings <cool_seq_tool.sources.transcript_mappings.TranscriptMappings>`. If not defined, uses a copy of the file that is bundled within the Cool-Seq-Tool installation. See the :ref:`contributor instructions <build_transcript_mappings_tsv>` for information on manually rebuilding it.
    * - ``MANE_SUMMARY_PATH``
-     - Path to MANE Summary file. Used in :py:class:`ManeTranscriptMappings <cool_seq_tool.sources.mane_transcript_mappings.ManeTranscriptMappings>` to provide MANE transcript annotations. If not defined, defaults to the most recent version (formatted as ``data/MANE.GRCh38vX.X.summary.txt``) within the Cool-Seq-Tool library directory.
+     - Path to MANE Summary file. Used in :py:class:`ManeTranscriptMappings <cool_seq_tool.sources.mane_transcript_mappings.ManeTranscriptMappings>` to provide MANE transcript annotations. If not defined, uses `wags-tails <https://wags-tails.readthedocs.io/stable/>`_ to fetch the latest version, downloading it from the NCBI server if necessary.
    * - ``SEQREPO_ROOT_DIR``
-     - Path to SeqRepo directory (i.e. contains ``aliases.sqlite3`` database file, and ``sequences`` directory). Used by :py:class:`SeqRepoAccess <cool_seq_tool.handlers.seqrepo_access.SeqRepoAccess`. If not defined, defaults to ``/usr/local/share/seqrepo/latest``.
+     - Path to SeqRepo directory (i.e. contains ``aliases.sqlite3`` database file, and ``sequences`` directory). Used by :py:class:`SeqRepoAccess <cool_seq_tool.handlers.seqrepo_access.SeqRepoAccess>`. If not defined, defaults to ``/usr/local/share/seqrepo/latest``.
    * - ``UTA_DB_URL``
-     - A `libpq connection string <https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING>`_, i.e. of the form ``postgresql://<user>:<password>@<host>:<port>/<database>/<schema>``, used by the :py:class:`cool_seq_tool.sources.uta_database.UtaDatabase` class. By default, it is set to ``postgresql://uta_admin:uta@localhost:5433/uta/uta_20210129b``.
+     - A `libpq connection string <https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING>`_, i.e. of the form ``postgresql://<user>:<password>@<host>:<port>/<database>/<schema>``, used by the :py:class:`UtaDatabase <cool_seq_tool.sources.uta_database.UtaDatabase>` class. By default, it is set to ``postgresql://uta_admin:uta@localhost:5433/uta/uta_20210129b``.
    * - ``LIFTOVER_CHAIN_37_TO_38``
-     - A path to a `chainfile <https://genome.ucsc.edu/goldenPath/help/chain.html>`_ for lifting from GRCh37 to GRCh38. Used by :py:class:`cool_seq_tool.sources.uta_database.UtaDatabase` as input to `agct <https://pypi.org/project/agct/>`_. If not provided, agct will fetch it automatically from UCSC.
+     - A path to a `chainfile <https://genome.ucsc.edu/goldenPath/help/chain.html>`_ for lifting from GRCh37 to GRCh38. Used by the :py:class:`UtaDatabase <cool_seq_tool.sources.uta_database.UtaDatabase>` class as input to `agct <https://pypi.org/project/agct/>`_. If not provided, agct will fetch it automatically from UCSC.
    * - ``LIFTOVER_CHAIN_38_TO_37``
-     - A path to a `chainfile <https://genome.ucsc.edu/goldenPath/help/chain.html>`_ for lifting from GRCh38 to GRCh37. Used by :py:class:`cool_seq_tool.sources.uta_database.UtaDatabase` as input to `agct <https://pypi.org/project/agct/>`_. If not provided, agct will fetch it automatically from UCSC.
+     - A path to a `chainfile <https://genome.ucsc.edu/goldenPath/help/chain.html>`_ for lifting from GRCh38 to GRCh37. Used by the :py:class:`UtaDatabase <cool_seq_tool.sources.uta_database.UtaDatabase>` class as input to `agct <https://pypi.org/project/agct/>`_. If not provided, agct will fetch it automatically from UCSC.
 
 Schema support
 --------------

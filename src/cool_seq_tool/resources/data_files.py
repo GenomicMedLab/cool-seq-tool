@@ -1,4 +1,4 @@
-"""Provide paths to shared files, and trigger data acquisition if unavailable."""
+"""Fetch data files regarding transcript mapping and annotation."""
 import logging
 from enum import Enum
 from importlib import resources
@@ -13,7 +13,7 @@ _logger = logging.getLogger(__name__)
 
 
 class DataFile(str, Enum):
-    """Constrain legal values for file resource fetching in ``get_resource()``."""
+    """Constrain legal values for file resource fetching in :py:meth:`get_data_file() <cool_seq_tool.resources.data_files.get_data_file>`."""
 
     TRANSCRIPT_MAPPINGS = "transcript_mappings"
     MANE_SUMMARY = "mane_summary"
@@ -46,12 +46,11 @@ def get_data_file(resource: DataFile) -> Path:
     * ``Resource.LRG_REFSEQGENE`` -> ``LRG_REFSEQGENE_PATH``
 
     Otherwise, this function falls back on default expected locations:
-    * ``transcript_mappings.tsv`` is bundled with this library.
-    * LRG RefseqGene and MANE summary files are acquired from NCBI using the
-    `wags-tails <https://wags-tails.readthedocs.io/stable/>`_ if unavailable locally, or
-    out of date.
 
-    :param: resource to fetch
+    * ``transcript_mappings.tsv`` is bundled with this library.
+    * LRG RefseqGene and MANE summary files are acquired from NCBI using the `wags-tails <https://wags-tails.readthedocs.io/stable/>`_ if unavailable locally, or out of date.
+
+    :param resource: resource to fetch
     :return: path to file. Consuming functions can assume that it exists and is a file.
     :raise FileNotFoundError: if file location configured by env var doesn't exist
     :raise ValueError: if file location configured by env var isn't a file

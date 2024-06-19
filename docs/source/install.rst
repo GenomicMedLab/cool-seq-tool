@@ -74,3 +74,15 @@ Try moving data manually with ``sudo``:
    sudo mv /usr/local/share/seqrepo/$SEQREPO_VERSION.* /usr/local/share/seqrepo/$SEQREPO_VERSION
 
 See `mirroring documentation <https://github.com/biocommons/biocommons.seqrepo/blob/main/docs/mirror.rst>`_ on the SeqRepo GitHub repo for instructions and additional troubleshooting.
+
+Check data availability
+-----------------------
+
+The :py:meth:`check_status <cool_seq_tool.resources.status.check_status>` method is provided to check that data dependencies like SeqRepo and UTA are available and configured correctly:
+
+.. code-block:: pycon
+
+   >>> from cool_seq_tool.resources.status import check_status
+   >>> import asyncio
+   >>> asyncio.run(check_status())
+   ResourceStatus(uta=True, seqrepo=True, transcript_mappings=True, mane_summary=True, lrg_refseqgene=True, liftover=True)

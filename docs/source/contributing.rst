@@ -76,3 +76,12 @@ Cool-Seq-Tool uses a static copy of transcript mapping data acquired from `Ensem
 
 .. image:: _static/img/biomart.png
    :alt: BioMart screenshot
+
+
+Alternatively, use `wags-tails <https://wags-tails.readthedocs.io/stable>`_:
+
+.. code-block:: pycon
+
+   >>> from wags_tails import EnsemblTranscriptMappingData
+   >>> data_fetcher = EnsemblTranscriptMappingData()
+   >>> data, version = data_fetcher.get_latest()

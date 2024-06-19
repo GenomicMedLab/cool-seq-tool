@@ -27,7 +27,7 @@ ResourceStatus = namedtuple(
 )
 
 
-async def get_resource_status(
+async def check_status(
     transcript_file_path: Path | None = None,
     lrg_refseqgene_path: Path | None = None,
     mane_data_path: Path | None = None,
@@ -38,15 +38,15 @@ async def get_resource_status(
 ) -> ResourceStatus:
     """Perform basic status checks on availability of required data resources.
 
-    Arguments are intended to mirror arguments to :py:meth:`cool_seq_tool.app.Cool_Seq_Tool.__init__`.
+    Arguments are intended to mirror arguments to :py:meth:`cool_seq_tool.app.CoolSeqTool.__init__`.
 
     Additional arguments are available for testing paths to specific chainfiles (same
     signature as :py:meth:`cool_seq_tool.sources.uta_database.UtaDatabase.__init__`).
     Note that chainfile failures will also make UTA initialization fail; this status is
     reported separately to enable more precise debugging.
 
-    >>> from cool_seq_tool.resources.status import get_resource_status
-    >>> await get_resource_status()
+    >>> from cool_seq_tool.resources.status import check_status
+    >>> await check_status()
     ResourceStatus(uta=True, seqrepo=True, transcript_mappings=True, mane_summary=True, lrg_refseqgene=True, liftover=True)
 
     :param transcript_file_path: The path to ``transcript_mapping.tsv``
