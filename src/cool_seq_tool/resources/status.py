@@ -96,14 +96,18 @@ async def check_status(
                 "%s configured at %s is not a valid file.", name_lower, declared_path
             )
         except Exception as e:
-            _logger.error("Encounted unexpected error fetching %s: %s", name_lower, e)
+            _logger.critical(
+                "Encounted unexpected error fetching %s: %s", name_lower, e
+            )
         else:
             status[name_lower] = True
 
     try:
         get_liftover(chain_file_37_to_38, chain_file_38_to_37)
-    except ChainfileError:
-        pass
+    except (FileNotFoundError, ChainfileError) as e:
+        _logger.error("agct converter setup failed: %s", e)
+    except Exception as e:
+        _logger.critical("Encountered unexpected error setting up agct: %s", e)
     else:
         status["liftover"] = True
 
@@ -111,6 +115,8 @@ async def check_status(
         await UtaDatabase.create(db_url)
     except (OSError, InvalidCatalogNameError, UndefinedTableError) as e:
         _logger.error("Encountered error instantiating UTA: %s", e)
+    except Exception as e:
+        _logger.critical("Encountered unexpected error instantiating UTA: %s", e)
     else:
         status["uta"] = True
 
@@ -123,6 +129,8 @@ async def check_status(
         _logger.error("Encountered error while instantiating SeqRepo: %s", e)
     except KeyError:
         _logger.error("SeqRepo data fetch test failed -- is it populated?")
+    except Exception as e:
+        _logger.critical("Encountered unexpected error setting up SeqRepo: %s", e)
     else:
         status["seqrepo"] = True
 
