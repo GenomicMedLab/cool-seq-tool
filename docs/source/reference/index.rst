@@ -16,7 +16,6 @@ Core Modules
    cool_seq_tool.app
    cool_seq_tool.schemas
    cool_seq_tool.utils
-   cool_seq_tool.resources.resources
 
 .. _sources_modules_api_index:
 
@@ -57,3 +56,14 @@ Data Mappers
    cool_seq_tool.mappers.alignment
    cool_seq_tool.mappers.exon_genomic_coords
    cool_seq_tool.mappers.mane_transcript
+
+Resources
+---------
+
+.. autosummary::
+   :nosignatures:
+   :toctree: api/resources/
+   :template: module_summary.rst
+
+   cool_seq_tool.resources.data_files
+   cool_seq_tool.resources.status

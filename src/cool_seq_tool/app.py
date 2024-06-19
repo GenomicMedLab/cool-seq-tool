@@ -1,27 +1,20 @@
 """Provides core CoolSeqTool class, which non-redundantly initializes all Cool-Seq-Tool
 data handler and mapping resources for straightforward access.
 """
-import logging
 from pathlib import Path
 from typing import Optional
 
 from biocommons.seqrepo import SeqRepo
 
-from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
+from cool_seq_tool.handlers.seqrepo_access import SEQREPO_ROOT_DIR, SeqRepoAccess
 from cool_seq_tool.mappers import (
     AlignmentMapper,
     ExonGenomicCoordsMapper,
     ManeTranscript,
 )
-from cool_seq_tool.resources import (
-    SEQREPO_ROOT_DIR,
-    TRANSCRIPT_MAPPINGS_PATH,
-)
 from cool_seq_tool.sources.mane_transcript_mappings import ManeTranscriptMappings
 from cool_seq_tool.sources.transcript_mappings import TranscriptMappings
 from cool_seq_tool.sources.uta_database import UTA_DB_URL, UtaDatabase
-
-logger = logging.getLogger(__name__)
 
 
 class CoolSeqTool:
@@ -48,7 +41,7 @@ class CoolSeqTool:
 
     def __init__(
         self,
-        transcript_file_path: Path = TRANSCRIPT_MAPPINGS_PATH,
+        transcript_file_path: Path | None = None,
         lrg_refseqgene_path: Path | None = None,
         mane_data_path: Path | None = None,
         db_url: str = UTA_DB_URL,

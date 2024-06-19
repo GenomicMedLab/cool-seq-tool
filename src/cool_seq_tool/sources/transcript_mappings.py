@@ -3,7 +3,7 @@ import csv
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from cool_seq_tool.resources import TRANSCRIPT_MAPPINGS_PATH, get_lrg_refseqgene
+from cool_seq_tool.resources.data_files import DataFile, get_data_file
 
 
 class TranscriptMappings:
@@ -21,7 +21,7 @@ class TranscriptMappings:
 
     def __init__(
         self,
-        transcript_file_path: Path = TRANSCRIPT_MAPPINGS_PATH,
+        transcript_file_path: Path | None = None,
         lrg_refseqgene_path: Path | None = None,
     ) -> None:
         """Initialize the transcript mappings class.
@@ -57,10 +57,12 @@ class TranscriptMappings:
         # ENSP -> ENST
         self.ensp_to_enst: Dict[str, str] = {}
 
-        self._load_transcript_mappings_data(transcript_file_path)
-        if not lrg_refseqgene_path:
-            lrg_refseqgene_path = get_lrg_refseqgene()
-        self._load_refseq_gene_symbol_data(lrg_refseqgene_path)
+        self._load_transcript_mappings_data(
+            transcript_file_path or get_data_file(DataFile.TRANSCRIPT_MAPPINGS)
+        )
+        self._load_refseq_gene_symbol_data(
+            lrg_refseqgene_path or get_data_file(DataFile.LRG_REFSEQGENE)
+        )
 
     def _load_transcript_mappings_data(self, transcript_file_path: Path) -> None:
         """Load transcript mappings file to dictionaries.

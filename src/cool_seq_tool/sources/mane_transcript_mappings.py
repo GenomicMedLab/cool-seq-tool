@@ -7,7 +7,7 @@ from typing import Dict, List
 
 import polars as pl
 
-from cool_seq_tool.resources import get_mane_summary
+from cool_seq_tool.resources.data_files import DataFile, get_data_file
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ class ManeTranscriptMappings:
         :param Path mane_data_path: Path to RefSeq MANE summary data
         """
         if not mane_data_path:
-            mane_data_path = get_mane_summary()
+            mane_data_path = get_data_file(DataFile.MANE_SUMMARY)
         self.mane_data_path = mane_data_path
         self.df = self._load_mane_transcript_data()
 
