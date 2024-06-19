@@ -19,6 +19,13 @@ class DataFile(str, Enum):
     MANE_SUMMARY = "mane_summary"
     LRG_REFSEQGENE = "lrg_refseqgene"
 
+    def lower(self) -> str:
+        """Return lower-cased value
+
+        :return: lower case string
+        """
+        return self.value.lower()
+
 
 _resource_acquisition_params: dict[DataFile, tuple[str, Callable]] = {
     DataFile.TRANSCRIPT_MAPPINGS: (

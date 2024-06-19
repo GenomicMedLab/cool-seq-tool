@@ -19,9 +19,9 @@ ResourceStatus = namedtuple(
     (
         "uta",
         "seqrepo",
-        DataFile.TRANSCRIPT_MAPPINGS.value.lower(),
-        DataFile.MANE_SUMMARY.value.lower(),
-        DataFile.LRG_REFSEQGENE.value.lower(),
+        DataFile.TRANSCRIPT_MAPPINGS.lower(),
+        DataFile.MANE_SUMMARY.lower(),
+        DataFile.LRG_REFSEQGENE.lower(),
         "liftover",
     ),
 )
@@ -42,7 +42,7 @@ async def check_status(
 
     Additional arguments are available for testing paths to specific chainfiles (same
     signature as :py:meth:`cool_seq_tool.sources.uta_database.UtaDatabase.__init__`).
-    Note that chainfile failures will also make UTA initialization fail; this status is
+    Note that chainfile failures also entail UTA initialization failure; this status is
     reported separately to enable more precise debugging.
 
     >>> from cool_seq_tool.resources.status import check_status
@@ -66,14 +66,21 @@ async def check_status(
         environment configurations
     """
     file_path_params = {
-        "transcript_mappings": transcript_file_path,
-        "lrg_refseqgene": lrg_refseqgene_path,
-        "mane_summary": mane_data_path,
+        DataFile.TRANSCRIPT_MAPPINGS.lower(): transcript_file_path,
+        DataFile.LRG_REFSEQGENE.lower(): lrg_refseqgene_path,
+        DataFile.MANE_SUMMARY.lower(): mane_data_path,
     }
 
-    status = {}
+    status = {
+        DataFile.TRANSCRIPT_MAPPINGS.lower(): False,
+        DataFile.LRG_REFSEQGENE.lower(): False,
+        DataFile.MANE_SUMMARY.lower(): False,
+        "liftover": False,
+        "uta": False,
+        "seqrepo": False,
+    }
     for r in list(DataFile):
-        name_lower = r.value.lower()
+        name_lower = r.lower()
         declared_path = file_path_params[name_lower]
         if declared_path and declared_path.exists() and declared_path.is_file():
             status[name_lower] = True
@@ -84,19 +91,19 @@ async def check_status(
             _logger.error(
                 "%s does not exist at configured location %s", name_lower, declared_path
             )
-            status[name_lower] = False
         except ValueError:
             _logger.error(
                 "%s configured at %s is not a valid file.", name_lower, declared_path
             )
-            status[name_lower] = False
+        except Exception as e:
+            _logger.error("Encounted unexpected error fetching %s: %s", name_lower, e)
         else:
             status[name_lower] = True
 
     try:
         get_liftover(chain_file_37_to_38, chain_file_38_to_37)
     except ChainfileError:
-        status["liftover"] = False
+        pass
     else:
         status["liftover"] = True
 
@@ -104,7 +111,6 @@ async def check_status(
         await UtaDatabase.create(db_url)
     except (OSError, InvalidCatalogNameError, UndefinedTableError) as e:
         _logger.error("Encountered error instantiating UTA: %s", e)
-        status["uta"] = False
     else:
         status["uta"] = True
 
@@ -115,10 +121,8 @@ async def check_status(
         sra.sr["NC_000001.11"][1000:1001]
     except OSError as e:
         _logger.error("Encountered error while instantiating SeqRepo: %s", e)
-        status["seqrepo"] = False
     except KeyError:
         _logger.error("SeqRepo data fetch test failed -- is it populated?")
-        status["seqrepo"] = False
     else:
         status["seqrepo"] = True
 
