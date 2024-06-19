@@ -550,7 +550,7 @@ class ManeTranscript:
             most recent version of a transcript associated with an assembly will be kept
         """
         copy_df = df.clone()
-        copy_df = copy_df.drop(columns="alt_ac").unique()
+        copy_df = copy_df.drop("alt_ac").unique()
         copy_df = copy_df.with_columns(
             [
                 pl.col("tx_ac")

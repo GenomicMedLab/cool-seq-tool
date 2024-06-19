@@ -42,9 +42,9 @@ Cool-Seq-Tool requires an available instance of the Universal Transcript Archive
 
    export UTA_VERSION=uta_20210129b.pgd.gz  # most recent as of 2023/12/05
    curl -O https://dl.biocommons.org/uta/$UTA_VERSION
-   gzip -cdq ${UTA_VERSION} | psql -h localhost -U uta_admin --echo-errors --single-transaction -v ON_ERROR_STOP=1 -d uta -p 5433
+   gzip -cdq ${UTA_VERSION} | psql -h localhost -U uta_admin --echo-errors --single-transaction -v ON_ERROR_STOP=1 -d uta -p 5432
 
-By default, Cool-Seq-Tool expects to connect to the UTA database via a PostgreSQL connection served local on port 5433, under the PostgreSQL username ``uta_admin`` and the schema ``uta_20210129b``.
+By default, Cool-Seq-Tool expects to connect to the UTA database via a PostgreSQL connection served local on port 5432, under the PostgreSQL username ``uta_admin`` and the schema ``uta_20210129b``.
 
 Set up SeqRepo
 --------------

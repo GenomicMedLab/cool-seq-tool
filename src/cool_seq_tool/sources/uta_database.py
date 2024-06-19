@@ -24,7 +24,7 @@ LIFTOVER_CHAIN_37_TO_38 = environ.get("LIFTOVER_CHAIN_37_TO_38")
 LIFTOVER_CHAIN_38_TO_37 = environ.get("LIFTOVER_CHAIN_38_TO_37")
 
 UTA_DB_URL = environ.get(
-    "UTA_DB_URL", "postgresql://uta_admin:uta@localhost:5433/uta/uta_20210129b"
+    "UTA_DB_URL", "postgresql://uta_admin:uta@localhost:5432/uta/uta_20210129b"
 )
 
 logger = logging.getLogger(__name__)
