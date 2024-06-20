@@ -1,6 +1,6 @@
 """Provide mapping capabilities between transcript exon and genomic coordinates."""
 import logging
-from typing import TypeVar
+from typing import Literal, TypeVar
 
 from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
 from cool_seq_tool.mappers.mane_transcript import CdnaRepresentation, ManeTranscript
@@ -231,8 +231,8 @@ class ExonGenomicCoordsMapper:
         transcript: str | None = None,
         get_nearest_transcript_junction: bool = False,
         gene: str | None = None,
-        residue_mode: ResidueMode.INTER_RESIDUE
-        | ResidueMode.RESIDUE = ResidueMode.RESIDUE,
+        residue_mode: Literal[ResidueMode.INTER_RESIDUE]
+        | Literal[ResidueMode.RESIDUE] = ResidueMode.RESIDUE,
     ) -> GenomicDataResponse:
         """Get transcript data for genomic data, lifted over to GRCh38.
 

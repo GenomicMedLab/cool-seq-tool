@@ -14,6 +14,7 @@ constraints and data models for coordinate representation.
 import logging
 import math
 from enum import Enum
+from typing import Literal
 
 import polars as pl
 from pydantic import BaseModel
@@ -217,8 +218,8 @@ class ManeTranscript:
         self,
         tx_ac: str,
         pos: tuple[int, int],
-        annotation_layer: AnnotationLayer.CDNA
-        | AnnotationLayer.GENOMIC = AnnotationLayer.CDNA,
+        annotation_layer: Literal[AnnotationLayer.CDNA]
+        | Literal[AnnotationLayer.GENOMIC] = AnnotationLayer.CDNA,
         coding_start_site: int | None = None,
         alt_ac: str | None = None,
     ) -> dict | None:
@@ -858,8 +859,8 @@ class ManeTranscript:
         gene: str | None = None,
         ref: str | None = None,
         try_longest_compatible: bool = False,
-        residue_mode: ResidueMode.RESIDUE
-        | ResidueMode.INTER_RESIDUE = ResidueMode.RESIDUE,
+        residue_mode: Literal[ResidueMode.RESIDUE]
+        | Literal[ResidueMode.INTER_RESIDUE] = ResidueMode.RESIDUE,
     ) -> DataRepresentation | CdnaRepresentation | None:
         """Return MANE transcript.
 

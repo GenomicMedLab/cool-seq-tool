@@ -3,7 +3,7 @@ import ast
 import base64
 import logging
 from os import environ
-from typing import Any, TypeVar
+from typing import Any, Literal, TypeVar
 from urllib.parse import ParseResult as UrlLibParseResult
 from urllib.parse import quote, unquote, urlparse
 
@@ -698,8 +698,8 @@ class UtaDatabase:
         self,
         tx_ac: str,
         pos: tuple[int, int],
-        annotation_layer: AnnotationLayer.CDNA
-        | AnnotationLayer.GENOMIC = AnnotationLayer.CDNA,
+        annotation_layer: Literal[AnnotationLayer.CDNA]
+        | Literal[AnnotationLayer.GENOMIC] = AnnotationLayer.CDNA,
         alt_ac: str | None = None,
         target_genome_assembly: Assembly = Assembly.GRCH38,
     ) -> dict | None:
