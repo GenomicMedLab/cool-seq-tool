@@ -1,5 +1,4 @@
 """Main application for FastAPI"""
-from typing import Dict
 
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
@@ -19,7 +18,7 @@ app.include_router(mane.router)
 app.include_router(mappings.router)
 
 
-def custom_openapi() -> Dict:
+def custom_openapi() -> dict:
     """Generate custom fields for OpenAPI response."""
     if app.openapi_schema:
         return app.openapi_schema

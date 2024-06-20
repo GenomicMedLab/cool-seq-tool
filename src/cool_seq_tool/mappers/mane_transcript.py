@@ -14,7 +14,6 @@ constraints and data models for coordinate representation.
 import logging
 import math
 from enum import Enum
-from typing import Dict, List, Optional, Set, Tuple, Union
 
 import polars as pl
 from pydantic import BaseModel
@@ -50,10 +49,10 @@ class EndAnnotationLayer(str, Enum):
 class DataRepresentation(BaseModel):
     """Define object model for final output representation"""
 
-    gene: Optional[str] = None
+    gene: str | None = None
     refseq: str
-    ensembl: Optional[str] = None
-    pos: Tuple[int, int]
+    ensembl: str | None = None
+    pos: tuple[int, int]
     strand: Strand
     status: TranscriptPriority
 
@@ -63,14 +62,14 @@ class CdnaRepresentation(DataRepresentation):
 
     coding_start_site: int
     coding_end_site: int
-    alt_ac: Optional[str] = None
+    alt_ac: str | None = None
 
 
 class GenomicRepresentation(BaseModel):
     """Define object model for genomic representation"""
 
     refseq: str
-    pos: Tuple[int, int]
+    pos: tuple[int, int]
     status: TranscriptPriority
     alt_ac: str
 
@@ -135,7 +134,7 @@ class ManeTranscript:
         return pos_mod_3
 
     @staticmethod
-    def _p_to_c_pos(start: int, end: int) -> Tuple[int, int]:
+    def _p_to_c_pos(start: int, end: int) -> tuple[int, int]:
         """Return cDNA position given a protein position.
 
         :param start: Start protein position. Inter-residue coordinates
@@ -148,7 +147,7 @@ class ManeTranscript:
 
     async def _p_to_c(
         self, ac: str, start_pos: int, end_pos: int
-    ) -> Optional[Tuple[str, Tuple[int, int]]]:
+    ) -> tuple[str, tuple[int, int]] | None:
         """Convert protein (p.) annotation to cDNA (c.) annotation.
 
         :param ac: Protein accession
@@ -176,7 +175,7 @@ class ManeTranscript:
         pos = self._p_to_c_pos(start_pos, end_pos)
         return ac, pos
 
-    async def _c_to_g(self, ac: str, pos: Tuple[int, int]) -> Optional[Dict]:
+    async def _c_to_g(self, ac: str, pos: tuple[int, int]) -> dict | None:
         """Get g. annotation from c. annotation.
 
         :param ac: cDNA accession
@@ -217,13 +216,12 @@ class ManeTranscript:
     async def _get_and_validate_genomic_tx_data(
         self,
         tx_ac: str,
-        pos: Tuple[int, int],
-        annotation_layer: Union[
-            AnnotationLayer.CDNA, AnnotationLayer.GENOMIC
-        ] = AnnotationLayer.CDNA,
-        coding_start_site: Optional[int] = None,
-        alt_ac: Optional[str] = None,
-    ) -> Optional[Dict]:
+        pos: tuple[int, int],
+        annotation_layer: AnnotationLayer.CDNA
+        | AnnotationLayer.GENOMIC = AnnotationLayer.CDNA,
+        coding_start_site: int | None = None,
+        alt_ac: str | None = None,
+    ) -> dict | None:
         """Get and validate genomic_tx_data
 
         :param tx_ac: Accession on c. coordinate
@@ -266,14 +264,14 @@ class ManeTranscript:
 
     @staticmethod
     def _get_c_data(
-        cds_start_end: Tuple[int, int],
-        c_pos_change: Tuple[int, int],
+        cds_start_end: tuple[int, int],
+        c_pos_change: tuple[int, int],
         strand: Strand,
         status: TranscriptPriority,
         refseq_c_ac: str,
-        gene: Optional[str] = None,
-        ensembl_c_ac: Optional[str] = None,
-        alt_ac: Optional[str] = None,
+        gene: str | None = None,
+        ensembl_c_ac: str | None = None,
+        alt_ac: str | None = None,
     ) -> CdnaRepresentation:
         """Return transcript data on c. coordinate.
 
@@ -311,7 +309,7 @@ class ManeTranscript:
             alt_ac=alt_ac,
         )
 
-    def _c_to_p_pos(self, c_pos: Tuple[int, int]) -> Tuple[int, int]:
+    def _c_to_p_pos(self, c_pos: tuple[int, int]) -> tuple[int, int]:
         """Get protein position from cdna position
 
         :param c_pos: cdna position. inter-residue coordinates
@@ -325,7 +323,7 @@ class ManeTranscript:
         return start, end
 
     def _get_mane_p(
-        self, mane_data: Dict, mane_c_pos_range: Tuple[int, int]
+        self, mane_data: dict, mane_c_pos_range: tuple[int, int]
     ) -> DataRepresentation:
         """Translate MANE Transcript c. annotation to p. annotation
 
@@ -349,13 +347,13 @@ class ManeTranscript:
 
     async def _g_to_c(
         self,
-        g: Dict,
+        g: dict,
         refseq_c_ac: str,
         status: TranscriptPriority,
-        ensembl_c_ac: Optional[str] = None,
-        alt_ac: Optional[str] = None,
+        ensembl_c_ac: str | None = None,
+        alt_ac: str | None = None,
         found_result: bool = False,
-    ) -> Optional[CdnaRepresentation]:
+    ) -> CdnaRepresentation | None:
         """Get transcript c. annotation data from g. annotation.
 
         :param g: Genomic data
@@ -459,9 +457,9 @@ class ManeTranscript:
         coding_start_site: int,
         start_pos: int,
         end_pos: int,
-        mane_transcript: Union[
-            DataRepresentation, CdnaRepresentation, GenomicRepresentation
-        ],
+        mane_transcript: DataRepresentation
+        | CdnaRepresentation
+        | GenomicRepresentation,
         expected_ref: str,
         anno: AnnotationLayer,
         residue_mode: ResidueMode,
@@ -522,7 +520,7 @@ class ManeTranscript:
         return True
 
     def _validate_index(
-        self, ac: str, pos: Tuple[int, int], coding_start_site: int
+        self, ac: str, pos: tuple[int, int], coding_start_site: int
     ) -> bool:
         """Validate that positions actually exist on accession
 
@@ -539,7 +537,7 @@ class ManeTranscript:
             return True
         return False
 
-    def _get_prioritized_transcripts_from_gene(self, df: pl.DataFrame) -> List:
+    def _get_prioritized_transcripts_from_gene(self, df: pl.DataFrame) -> list:
         """Sort and filter transcripts from gene to get priority list
 
         :param df: Data frame containing transcripts from gene
@@ -590,15 +588,13 @@ class ManeTranscript:
         start_pos: int,
         end_pos: int,
         start_annotation_layer: AnnotationLayer,
-        gene: Optional[str] = None,
-        ref: Optional[str] = None,
+        gene: str | None = None,
+        ref: str | None = None,
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
-        mane_transcripts: Optional[Set] = None,
-        alt_ac: Optional[str] = None,
-        end_annotation_layer: Optional[EndAnnotationLayer] = None,
-    ) -> Optional[
-        Union[DataRepresentation, CdnaRepresentation, ProteinAndCdnaRepresentation]
-    ]:
+        mane_transcripts: set | None = None,
+        alt_ac: str | None = None,
+        end_annotation_layer: EndAnnotationLayer | None = None,
+    ) -> DataRepresentation | CdnaRepresentation | ProteinAndCdnaRepresentation | None:
         """Get longest compatible transcript from a gene. See the documentation for
         the :ref:`transcript compatibility policy <transcript_compatibility>` for more
         information.
@@ -645,9 +641,9 @@ class ManeTranscript:
         """
 
         def _get_protein_rep(
-            gene: Optional[str],
+            gene: str | None,
             pro_ac: str,
-            lcr_c_data_pos: Tuple[int, int],
+            lcr_c_data_pos: tuple[int, int],
             strand: Strand,
             status: TranscriptPriority,
         ) -> DataRepresentation:
@@ -731,7 +727,7 @@ class ManeTranscript:
 
             # Get prioritized transcript data for gene
             # grch38 -> c
-            lcr_c_data: Optional[CdnaRepresentation] = await self._g_to_c(
+            lcr_c_data: CdnaRepresentation | None = await self._g_to_c(
                 g=g,
                 refseq_c_ac=tx_ac,
                 status=TranscriptPriority.LONGEST_COMPATIBLE_REMAINING,
@@ -859,13 +855,12 @@ class ManeTranscript:
         start_pos: int,
         end_pos: int,
         start_annotation_layer: AnnotationLayer,
-        gene: Optional[str] = None,
-        ref: Optional[str] = None,
+        gene: str | None = None,
+        ref: str | None = None,
         try_longest_compatible: bool = False,
-        residue_mode: Union[
-            ResidueMode.RESIDUE, ResidueMode.INTER_RESIDUE
-        ] = ResidueMode.RESIDUE,
-    ) -> Optional[Union[DataRepresentation, CdnaRepresentation]]:
+        residue_mode: ResidueMode.RESIDUE
+        | ResidueMode.INTER_RESIDUE = ResidueMode.RESIDUE,
+    ) -> DataRepresentation | CdnaRepresentation | None:
         """Return MANE transcript.
 
         >>> from cool_seq_tool.app import CoolSeqTool
@@ -930,7 +925,7 @@ class ManeTranscript:
                     current_mane_data["RefSeq_nuc"],
                     current_mane_data["Ensembl_nuc"],
                 }
-                mane: Optional[CdnaRepresentation] = await self._g_to_c(
+                mane: CdnaRepresentation | None = await self._g_to_c(
                     g=g,
                     refseq_c_ac=current_mane_data["RefSeq_nuc"],
                     status=TranscriptPriority(
@@ -1001,9 +996,7 @@ class ManeTranscript:
         logger.warning("Annotation layer not supported: %s", start_annotation_layer)
         return None
 
-    async def g_to_grch38(
-        self, ac: str, start_pos: int, end_pos: int
-    ) -> Optional[Dict]:
+    async def g_to_grch38(self, ac: str, start_pos: int, end_pos: int) -> dict | None:
         """Return genomic coordinate on GRCh38 when not given gene context.
 
         :param ac: Genomic accession
@@ -1055,8 +1048,8 @@ class ManeTranscript:
 
     @staticmethod
     def get_mane_c_pos_change(
-        mane_tx_genomic_data: Dict, coding_start_site: int
-    ) -> Tuple[int, int]:
+        mane_tx_genomic_data: dict, coding_start_site: int
+    ) -> tuple[int, int]:
         """Get mane c position change
 
         :param mane_tx_genomic_data: MANE transcript and genomic data
@@ -1080,9 +1073,9 @@ class ManeTranscript:
         ac: str,
         start_pos: int,
         end_pos: int,
-        gene: Optional[str] = None,
+        gene: str | None = None,
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
-    ) -> Optional[Union[GenomicRepresentation, CdnaRepresentation]]:
+    ) -> GenomicRepresentation | CdnaRepresentation | None:
         """Return MANE Transcript on the c. coordinate.
 
         If an arg for ``gene`` is provided, lifts to GRCh38, then gets MANE cDNA
@@ -1198,10 +1191,10 @@ class ManeTranscript:
         alt_ac: str,
         start_pos: int,
         end_pos: int,
-        gene: Optional[str] = None,
+        gene: str | None = None,
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
         try_longest_compatible: bool = False,
-    ) -> Optional[Dict]:
+    ) -> dict | None:
         """Given GRCh38 genomic representation, return protein representation.
 
         Will try MANE Select and then MANE Plus Clinical. If neither is found and
