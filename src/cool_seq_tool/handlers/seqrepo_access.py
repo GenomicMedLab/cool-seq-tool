@@ -4,7 +4,6 @@ dereferencing functions.
 import logging
 from os import environ
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
 
 from ga4gh.vrs.dataproxy import SeqRepoDataProxy
 
@@ -24,10 +23,10 @@ class SeqRepoAccess(SeqRepoDataProxy):
     def get_reference_sequence(
         self,
         ac: str,
-        start: Optional[int] = None,
-        end: Optional[int] = None,
+        start: int | None = None,
+        end: int | None = None,
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
-    ) -> Tuple[str, Optional[str]]:
+    ) -> tuple[str, str | None]:
         """Get reference sequence for an accession given a start and end position. If
         ``start`` and ``end`` are not given, returns the entire reference sequence.
 
@@ -93,8 +92,8 @@ class SeqRepoAccess(SeqRepoDataProxy):
             return sequence, None
 
     def translate_identifier(
-        self, ac: str, target_namespaces: Optional[Union[str, List[str]]] = None
-    ) -> Tuple[List[str], Optional[str]]:
+        self, ac: str, target_namespaces: str | list[str] | None = None
+    ) -> tuple[list[str], str | None]:
         """Return list of identifiers for accession.
 
         >>> from cool_seq_tool.handlers import SeqRepoAccess
@@ -120,9 +119,7 @@ class SeqRepoAccess(SeqRepoDataProxy):
         else:
             return ga4gh_identifiers, None
 
-    def translate_alias(
-        self, input_str: str
-    ) -> Tuple[List[Optional[str]], Optional[str]]:
+    def translate_alias(self, input_str: str) -> tuple[list[str | None], str | None]:
         """Get aliases for a given input.
 
         :param str input_str: Input to get aliases for
@@ -135,9 +132,7 @@ class SeqRepoAccess(SeqRepoDataProxy):
             logger.warning(msg)
             return [], msg
 
-    def chromosome_to_acs(
-        self, chromosome: str
-    ) -> Tuple[Optional[List[str]], Optional[str]]:
+    def chromosome_to_acs(self, chromosome: str) -> tuple[list[str] | None, str | None]:
         """Get accessions for a chromosome
 
         :param chromosome: Chromosome number. Must be either 1-22, X, or Y
@@ -154,7 +149,7 @@ class SeqRepoAccess(SeqRepoDataProxy):
             return acs, None
         return None, f"{chromosome} is not a valid chromosome"
 
-    def ac_to_chromosome(self, ac: str) -> Tuple[Optional[str], Optional[str]]:
+    def ac_to_chromosome(self, ac: str) -> tuple[str | None, str | None]:
         """Get chromosome for accession.
 
         :param str ac: Accession

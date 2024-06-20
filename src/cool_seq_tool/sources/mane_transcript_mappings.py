@@ -3,7 +3,6 @@ MANE transcripts for gene symbols, genomic positions, or transcript accessions.
 """
 import logging
 from pathlib import Path
-from typing import Dict, List
 
 import polars as pl
 
@@ -37,7 +36,7 @@ class ManeTranscriptMappings:
         """
         return pl.read_csv(self.mane_data_path, separator="\t")
 
-    def get_gene_mane_data(self, gene_symbol: str) -> List[Dict]:
+    def get_gene_mane_data(self, gene_symbol: str) -> list[dict]:
         """Return MANE Transcript data for a gene.
 
         >>> from cool_seq_tool.sources import ManeTranscriptMappings
@@ -64,7 +63,7 @@ class ManeTranscriptMappings:
         data = data.sort(by="MANE_status", descending=True)
         return data.to_dicts()
 
-    def get_mane_from_transcripts(self, transcripts: List[str]) -> List[Dict]:
+    def get_mane_from_transcripts(self, transcripts: list[str]) -> list[dict]:
         """Get mane transcripts from a list of transcripts
 
         :param List[str] transcripts: RefSeq transcripts on c. coordinate
@@ -77,7 +76,7 @@ class ManeTranscriptMappings:
 
     def get_mane_data_from_chr_pos(
         self, alt_ac: str, start: int, end: int
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """Get MANE data given a GRCh38 genomic position.
 
         :param str alt_ac: NC Accession

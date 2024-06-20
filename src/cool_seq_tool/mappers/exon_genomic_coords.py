@@ -1,6 +1,6 @@
 """Provide mapping capabilities between transcript exon and genomic coordinates."""
 import logging
-from typing import Dict, List, Optional, Tuple, TypeVar, Union
+from typing import Literal, TypeVar
 
 from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
 from cool_seq_tool.mappers.mane_transcript import CdnaRepresentation, ManeTranscript
@@ -86,10 +86,10 @@ class ExonGenomicCoordsMapper:
     async def transcript_to_genomic_coordinates(
         self,
         transcript: str,
-        gene: Optional[str] = None,
-        exon_start: Optional[int] = None,
+        gene: str | None = None,
+        exon_start: int | None = None,
         exon_start_offset: int = 0,
-        exon_end: Optional[int] = None,
+        exon_end: int | None = None,
         exon_end_offset: int = 0,
     ) -> GenomicDataResponse:
         """Get genomic data given transcript data.
@@ -223,17 +223,16 @@ class ExonGenomicCoordsMapper:
 
     async def genomic_to_transcript_exon_coordinates(
         self,
-        chromosome: Optional[str] = None,
-        alt_ac: Optional[str] = None,
-        start: Optional[int] = None,
-        end: Optional[int] = None,
-        strand: Optional[Strand] = None,
-        transcript: Optional[str] = None,
+        chromosome: str | None = None,
+        alt_ac: str | None = None,
+        start: int | None = None,
+        end: int | None = None,
+        strand: Strand | None = None,
+        transcript: str | None = None,
         get_nearest_transcript_junction: bool = False,
-        gene: Optional[str] = None,
-        residue_mode: Union[
-            ResidueMode.INTER_RESIDUE, ResidueMode.RESIDUE
-        ] = ResidueMode.RESIDUE,
+        gene: str | None = None,
+        residue_mode: Literal[ResidueMode.INTER_RESIDUE]
+        | Literal[ResidueMode.RESIDUE] = ResidueMode.RESIDUE,
     ) -> GenomicDataResponse:
         """Get transcript data for genomic data, lifted over to GRCh38.
 
@@ -358,8 +357,8 @@ class ExonGenomicCoordsMapper:
 
     @staticmethod
     def _validate_exon(
-        transcript: str, tx_exons: List[Tuple[int, int]], exon_number: int
-    ) -> Tuple[Optional[Tuple[int, int]], Optional[str]]:
+        transcript: str, tx_exons: list[tuple[int, int]], exon_number: int
+    ) -> tuple[tuple[int, int] | None, str | None]:
         """Validate that exon number exists on a given transcript
 
         :param transcript: Transcript accession
@@ -379,12 +378,12 @@ class ExonGenomicCoordsMapper:
     def get_tx_exon_coords(
         self,
         transcript: str,
-        tx_exons: List[Tuple[int, int]],
-        exon_start: Optional[int] = None,
-        exon_end: Optional[int] = None,
-    ) -> Tuple[
-        Optional[Tuple[Optional[Tuple[int, int]], Optional[Tuple[int, int]]]],
-        Optional[str],
+        tx_exons: list[tuple[int, int]],
+        exon_start: int | None = None,
+        exon_end: int | None = None,
+    ) -> tuple[
+        tuple[tuple[int, int] | None, tuple[int, int] | None] | None,
+        str | None,
     ]:
         """Get exon coordinates for ``exon_start`` and ``exon_end``
 
@@ -415,10 +414,10 @@ class ExonGenomicCoordsMapper:
     async def _get_alt_ac_start_and_end(
         self,
         tx_ac: str,
-        tx_exon_start: Optional[Tuple[int, int]] = None,
-        tx_exon_end: Optional[Tuple[int, int]] = None,
-        gene: Optional[str] = None,
-    ) -> Tuple[Optional[Tuple[Tuple[int, int], Tuple[int, int]]], Optional[str]]:
+        tx_exon_start: tuple[int, int] | None = None,
+        tx_exon_end: tuple[int, int] | None = None,
+        gene: str | None = None,
+    ) -> tuple[tuple[tuple[int, int], tuple[int, int]] | None, str | None]:
         """Get aligned genomic coordinates for transcript exon start and end.
 
         :param tx_ac: Transcript accession
@@ -469,11 +468,11 @@ class ExonGenomicCoordsMapper:
     async def _genomic_to_transcript_exon_coordinate(
         self,
         pos: int,
-        chromosome: Optional[str] = None,
-        alt_ac: Optional[str] = None,
-        strand: Optional[Strand] = None,
-        transcript: Optional[str] = None,
-        gene: Optional[str] = None,
+        chromosome: str | None = None,
+        alt_ac: str | None = None,
+        strand: Strand | None = None,
+        transcript: str | None = None,
+        gene: str | None = None,
         get_nearest_transcript_junction: bool = False,
         is_start: bool = True,
     ) -> TranscriptExonDataResponse:
@@ -648,8 +647,8 @@ class ExonGenomicCoordsMapper:
 
     @staticmethod
     def _get_gene_and_alt_ac(
-        genes_alt_acs: Dict, gene: Optional[str]
-    ) -> Tuple[Optional[Tuple[str, str]], Optional[str]]:
+        genes_alt_acs: dict, gene: str | None
+    ) -> tuple[tuple[str, str] | None, str | None]:
         """Return gene genomic accession
 
         :param genes_alt_acs: Dictionary containing genes and genomic accessions
@@ -687,13 +686,13 @@ class ExonGenomicCoordsMapper:
 
     async def _set_mane_genomic_data(
         self,
-        params: Dict,
+        params: dict,
         gene: str,
         alt_ac: str,
         pos: int,
         strand: Strand,
         is_start: bool,
-    ) -> Optional[str]:
+    ) -> str | None:
         """Set genomic data in `params` found from MANE.
 
         :param params: Parameters for response
@@ -706,16 +705,16 @@ class ExonGenomicCoordsMapper:
         :return: Warnings if found
         """
         start, end = get_inter_residue_pos(pos, pos, residue_mode=ResidueMode.ZERO)
-        mane_data: Optional[
-            CdnaRepresentation
-        ] = await self.mane_transcript.get_mane_transcript(
-            alt_ac,
-            start,
-            end,
-            AnnotationLayer.GENOMIC,
-            gene=gene,
-            try_longest_compatible=True,
-            residue_mode=ResidueMode.INTER_RESIDUE,
+        mane_data: CdnaRepresentation | None = (
+            await self.mane_transcript.get_mane_transcript(
+                alt_ac,
+                start,
+                end,
+                AnnotationLayer.GENOMIC,
+                gene=gene,
+                try_longest_compatible=True,
+                residue_mode=ResidueMode.INTER_RESIDUE,
+            )
         )
         if not mane_data:
             msg = f"Unable to find mane data for {alt_ac} with position {pos}"
@@ -777,8 +776,8 @@ class ExonGenomicCoordsMapper:
         return None
 
     async def _set_genomic_data(
-        self, params: Dict, strand: Strand, is_start: bool
-    ) -> Optional[str]:
+        self, params: dict, strand: Strand, is_start: bool
+    ) -> str | None:
         """Set genomic data in ``params``
 
         :param params: Parameters for response
@@ -861,7 +860,7 @@ class ExonGenomicCoordsMapper:
 
     @staticmethod
     def _set_exon_offset(
-        params: Dict, start: int, end: int, pos: int, is_start: bool, strand: Strand
+        params: dict, start: int, end: int, pos: int, is_start: bool, strand: Strand
     ) -> None:
         """Set value for ``exon_offset`` in ``params``.
 
@@ -885,8 +884,8 @@ class ExonGenomicCoordsMapper:
                 params["exon_offset"] = pos - start
 
     async def _structure_exons(
-        self, transcript: str, alt_ac: Optional[str] = None
-    ) -> List[Tuple[int, int]]:
+        self, transcript: str, alt_ac: str | None = None
+    ) -> list[tuple[int, int]]:
         """Structure exons as list of tuples.
 
         :param transcript: Transcript accession
@@ -904,7 +903,7 @@ class ExonGenomicCoordsMapper:
         return result
 
     @staticmethod
-    def _get_exon_number(tx_exons: List, tx_pos: int) -> int:
+    def _get_exon_number(tx_exons: list, tx_pos: int) -> int:
         """Find related exon number for a position
 
         :param tx_exons: List of exon coordinates for a transcript
@@ -920,10 +919,10 @@ class ExonGenomicCoordsMapper:
 
     @staticmethod
     def _get_adjacent_exon(
-        tx_exons_genomic_coords: List[Tuple[int, int, int, int, int]],
+        tx_exons_genomic_coords: list[tuple[int, int, int, int, int]],
         strand: Strand,
-        start: Optional[int] = None,
-        end: Optional[int] = None,
+        start: int | None = None,
+        end: int | None = None,
     ) -> int:
         """Return the adjacent exon given a non-exonic breakpoint. For the positive
         strand, adjacent is defined as the exon preceding the breakpoint for the 5' end
@@ -961,7 +960,7 @@ class ExonGenomicCoordsMapper:
         return exon[0] + 1 if end else exon[0] + 2
 
     @staticmethod
-    def _is_exonic_breakpoint(pos: int, tx_genomic_coords: List) -> bool:
+    def _is_exonic_breakpoint(pos: int, tx_genomic_coords: list) -> bool:
         """Check if a breakpoint occurs on an exon
 
         :param pos: Genomic breakpoint

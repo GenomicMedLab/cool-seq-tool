@@ -1,7 +1,6 @@
 """Provide a small set of general helper functions."""
 import datetime
 import logging
-from typing import Tuple
 
 from cool_seq_tool.schemas import ResidueMode, ServiceMeta
 from cool_seq_tool.version import __version__
@@ -11,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 def get_inter_residue_pos(
     start_pos: int, end_pos: int, residue_mode: ResidueMode
-) -> Tuple[int, int]:
+) -> tuple[int, int]:
     """Return equivalent inter-residue position.
 
     Generally, we prefer to work with inter-residue coordinates where possible. Our

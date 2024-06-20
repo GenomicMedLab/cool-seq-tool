@@ -3,7 +3,6 @@ data handler and mapping resources for straightforward access.
 """
 import logging
 from pathlib import Path
-from typing import Optional
 
 from biocommons.seqrepo import SeqRepo
 
@@ -54,7 +53,7 @@ class CoolSeqTool:
         lrg_refseqgene_path: Path = LRG_REFSEQGENE_PATH,
         mane_data_path: Path = MANE_SUMMARY_PATH,
         db_url: str = UTA_DB_URL,
-        sr: Optional[SeqRepo] = None,
+        sr: SeqRepo | None = None,
     ) -> None:
         """Initialize CoolSeqTool class
 

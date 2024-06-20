@@ -6,7 +6,7 @@ Installation
 Prerequisites
 -------------
 
-* Python 3.8+
+* Python 3.10+
 * A UNIX-like environment (e.g. MacOS, WSL, Ubuntu)
 * A recent version of PostgreSQL (ideally at least 11+)
 

@@ -1,7 +1,6 @@
 """Module containing alignment methods for translating to and from different
 reference sequences.
 """
-from typing import Dict, Optional, Tuple
 
 from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
 from cool_seq_tool.schemas import AnnotationLayer, Assembly, ResidueMode
@@ -34,7 +33,7 @@ class AlignmentMapper:
         p_start_pos: int,
         p_end_pos: int,
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
-    ) -> Tuple[Optional[Dict], Optional[str]]:
+    ) -> tuple[dict | None, str | None]:
         """Translate protein representation to cDNA representation.
 
         :param p_ac: Protein RefSeq accession
@@ -83,7 +82,7 @@ class AlignmentMapper:
             "residue_mode": ResidueMode.INTER_RESIDUE.value,
         }, None
 
-    async def _get_cds_start(self, c_ac: str) -> Tuple[Optional[int], Optional[str]]:
+    async def _get_cds_start(self, c_ac: str) -> tuple[int | None, str | None]:
         """Get CDS start for a given cDNA RefSeq accession
 
         :param c_ac: cDNA RefSeq accession
@@ -105,10 +104,10 @@ class AlignmentMapper:
         c_ac: str,
         c_start_pos: int,
         c_end_pos: int,
-        cds_start: Optional[int] = None,
+        cds_start: int | None = None,
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
         target_genome_assembly: bool = Assembly.GRCH38,
-    ) -> Tuple[Optional[Dict], Optional[str]]:
+    ) -> tuple[dict | None, str | None]:
         """Translate cDNA representation to genomic representation
 
         :param c_ac: cDNA RefSeq accession
@@ -212,7 +211,7 @@ class AlignmentMapper:
         p_end_pos: int,
         residue_mode: ResidueMode = ResidueMode.INTER_RESIDUE,
         target_genome_assembly: Assembly = Assembly.GRCH38,
-    ) -> Tuple[Optional[Dict], Optional[str]]:
+    ) -> tuple[dict | None, str | None]:
         """Translate protein representation to genomic representation, by way of
         intermediary conversion into cDNA coordinates.
 
