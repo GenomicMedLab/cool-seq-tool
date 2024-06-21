@@ -244,7 +244,7 @@ class ExonGenomicCoordsMapper:
         >>> from cool_seq_tool.schemas import Strand
         >>> egc = CoolSeqTool().ex_g_coords_mapper
         >>> result = asyncio.run(egc.genomic_to_transcript_exon_coordinates(
-        ...     chromosome="NC_000001.11",
+        ...     alt_ac="NC_000001.11",
         ...     start=154192136,
         ...     end=154170400,
         ...     strand=Strand.NEGATIVE,
