@@ -28,20 +28,24 @@ class DataFile(str, Enum):
 _resource_acquisition_params = {
     DataFile.TRANSCRIPT_MAPPINGS: (
         "TRANSCRIPT_MAPPINGS_PATH",
-        lambda: resources.files(__package__) / "transcript_mapping.tsv",
+        lambda _: resources.files(__package__) / "transcript_mapping.tsv",
     ),
     DataFile.MANE_SUMMARY: (
         "MANE_SUMMARY_PATH",
-        lambda: NcbiManeSummaryData(silent=True).get_latest()[0],
+        lambda from_local: NcbiManeSummaryData(silent=True).get_latest(
+            from_local=from_local
+        )[0],
     ),
     DataFile.LRG_REFSEQGENE: (
         "LRG_REFSEQGENE_PATH",
-        lambda: NcbiLrgRefSeqGeneData(silent=True).get_latest()[0],
+        lambda from_local: NcbiLrgRefSeqGeneData(silent=True).get_latest(
+            from_local=from_local
+        )[0],
     ),
 }
 
 
-def get_data_file(resource: DataFile) -> Path:
+def get_data_file(resource: DataFile, from_local: bool = False) -> Path:
     """Acquire Cool-Seq-Tool file dependency.
 
     Each resource can be defined using an environment variable:
@@ -56,6 +60,8 @@ def get_data_file(resource: DataFile) -> Path:
     * LRG RefseqGene and MANE summary files are acquired from NCBI using the `wags-tails <https://wags-tails.readthedocs.io/stable/>`_ if unavailable locally, or out of date.
 
     :param resource: resource to fetch
+    :param from_local: if ``True``, don't check for or acquire latest version -- just
+        provide most recent locally available file and raise FileNotFoundError otherwise
     :return: path to file. Consuming functions can assume that it exists and is a file.
     :raise FileNotFoundError: if file location configured by env var doesn't exist
     :raise ValueError: if file location configured by env var isn't a file
@@ -79,6 +85,8 @@ def get_data_file(resource: DataFile) -> Path:
             raise ValueError(msg)
     else:
         _logger.debug("Acquiring %s from default location/method.", resource)
-        path = params[1]()
+        # param[1] is the resource fetcher function -- use `from_local` param to
+        # optionally avoid unnecessary fetches
+        path = params[1](from_local)
     _logger.debug("Acquired %s at %s", resource, path)
     return path

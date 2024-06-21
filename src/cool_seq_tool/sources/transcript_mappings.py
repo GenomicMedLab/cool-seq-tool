@@ -23,11 +23,15 @@ class TranscriptMappings:
         self,
         transcript_file_path: Path | None = None,
         lrg_refseqgene_path: Path | None = None,
+        from_local: bool = False,
     ) -> None:
         """Initialize the transcript mappings class.
 
         :param transcript_file_path: Path to transcript mappings file
         :param lrg_refseqgene_path: Path to LRG RefSeqGene file
+        :param from_local: if ``True``, don't check for or acquire latest version --
+            just provide most recent locally available file, if possible, and raise
+            error otherwise
         """
         # ENSP <-> Gene Symbol
         self.ensembl_protein_version_for_gene_symbol: Dict[str, List[str]] = {}
@@ -58,10 +62,11 @@ class TranscriptMappings:
         self.ensp_to_enst: Dict[str, str] = {}
 
         self._load_transcript_mappings_data(
-            transcript_file_path or get_data_file(DataFile.TRANSCRIPT_MAPPINGS)
+            transcript_file_path
+            or get_data_file(DataFile.TRANSCRIPT_MAPPINGS, from_local)
         )
         self._load_refseq_gene_symbol_data(
-            lrg_refseqgene_path or get_data_file(DataFile.LRG_REFSEQGENE)
+            lrg_refseqgene_path or get_data_file(DataFile.LRG_REFSEQGENE, from_local)
         )
 
     def _load_transcript_mappings_data(self, transcript_file_path: Path) -> None:
