@@ -97,7 +97,7 @@ async def check_status(
             )
         except Exception as e:
             _logger.critical(
-                "Encounted unexpected error fetching %s: %s", name_lower, e
+                "Encountered unexpected error fetching %s: %s", name_lower, e
             )
         else:
             status[name_lower] = True
