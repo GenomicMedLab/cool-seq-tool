@@ -93,11 +93,11 @@ Individual classes will accept arguments upon initialization to set parameters r
    * - Variable
      - Description
    * - ``LRG_REFSEQGENE_PATH``
-     - Path to LRG_RefSeqGene file. Used in :py:class:`TranscriptMappings <cool_seq_tool.sources.transcript_mappings.TranscriptMappings>` to provide mappings between gene symbols and RefSeq/Ensembl transcript accessions. If not defined, uses `wags-tails <https://wags-tails.readthedocs.io/stable/>`_ to fetch the latest version, downloading it from the NCBI server if necessary.
+     - Path to LRG_RefSeqGene file. Used in :py:class:`TranscriptMappings <cool_seq_tool.sources.transcript_mappings.TranscriptMappings>` to provide mappings between gene symbols and RefSeq/Ensembl transcript accessions. If not defined, uses `wags-tails <https://wags-tails.readthedocs.io/stable/usage.html#configuration>`_ to fetch the latest version, downloading it from the NCBI server if necessary.
    * - ``TRANSCRIPT_MAPPINGS_PATH``
      - Path to transcript mapping file generated from `Ensembl BioMart <http://www.ensembl.org/biomart/martview>`_. Used in :py:class:`TranscriptMappings <cool_seq_tool.sources.transcript_mappings.TranscriptMappings>`. If not defined, uses a copy of the file that is bundled within the Cool-Seq-Tool installation. See the :ref:`contributor instructions <build_transcript_mappings_tsv>` for information on manually rebuilding it.
    * - ``MANE_SUMMARY_PATH``
-     - Path to MANE Summary file. Used in :py:class:`ManeTranscriptMappings <cool_seq_tool.sources.mane_transcript_mappings.ManeTranscriptMappings>` to provide MANE transcript annotations. If not defined, uses `wags-tails <https://wags-tails.readthedocs.io/stable/>`_ to fetch the latest version, downloading it from the NCBI server if necessary.
+     - Path to MANE Summary file. Used in :py:class:`ManeTranscriptMappings <cool_seq_tool.sources.mane_transcript_mappings.ManeTranscriptMappings>` to provide MANE transcript annotations. If not defined, uses `wags-tails <https://wags-tails.readthedocs.io/stable/usage.html#configuration>`_ to fetch the latest version, downloading it from the NCBI server if necessary.
    * - ``SEQREPO_ROOT_DIR``
      - Path to SeqRepo directory (i.e. contains ``aliases.sqlite3`` database file, and ``sequences`` directory). Used by :py:class:`SeqRepoAccess <cool_seq_tool.handlers.seqrepo_access.SeqRepoAccess>`. If not defined, defaults to ``/usr/local/share/seqrepo/latest``.
    * - ``UTA_DB_URL``
