@@ -49,6 +49,7 @@ class CoolSeqTool:
         mane_data_path: Path | None = None,
         db_url: str = UTA_DB_URL,
         sr: Optional[SeqRepo] = None,
+        force_local_files: bool = False,
     ) -> None:
         """Initialize CoolSeqTool class
 
@@ -58,6 +59,8 @@ class CoolSeqTool:
         :param db_url: PostgreSQL connection URL
             Format: ``driver://user:password@host/database/schema``
         :param sr: SeqRepo instance. If this is not provided, will create a new instance
+        :param force_local_files: if ``True``, don't check for or try to acquire latest
+            versions of static data files -- just use most recently available, if any
         """
         if not sr:
             sr = SeqRepo(root_dir=SEQREPO_ROOT_DIR)
@@ -65,9 +68,10 @@ class CoolSeqTool:
         self.transcript_mappings = TranscriptMappings(
             transcript_file_path=transcript_file_path,
             lrg_refseqgene_path=lrg_refseqgene_path,
+            from_local=force_local_files,
         )
         self.mane_transcript_mappings = ManeTranscriptMappings(
-            mane_data_path=mane_data_path
+            mane_data_path=mane_data_path, from_local=force_local_files
         )
         self.uta_db = UtaDatabase(db_url=db_url)
         self.alignment_mapper = AlignmentMapper(
