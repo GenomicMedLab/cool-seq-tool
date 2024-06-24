@@ -28,7 +28,6 @@ class ManeTranscriptMappings:
         """Initialize the MANE Transcript mappings class.
 
         :param mane_data_path: Path to RefSeq MANE summary data
-        :param use_local_data: if `True`,
         :param from_local: if ``True``, don't check for or acquire latest version --
             just provide most recent locally available file, if possible, and raise
             error otherwise
