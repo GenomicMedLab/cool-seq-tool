@@ -114,9 +114,15 @@ async def check_status(
     try:
         await UtaDatabase.create(db_url)
     except (OSError, InvalidCatalogNameError, UndefinedTableError) as e:
-        _logger.error("Encountered error instantiating UTA: %s", e)
+        _logger.error(
+            "Encountered error instantiating UTA at URI %s: %s", UTA_DB_URL, e
+        )
     except Exception as e:
-        _logger.critical("Encountered unexpected error instantiating UTA: %s", e)
+        _logger.critical(
+            "Encountered unexpected error instantiating UTA from URI %s: %s",
+            UTA_DB_URL,
+            e,
+        )
     else:
         status["uta"] = True
 
