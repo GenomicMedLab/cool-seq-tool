@@ -58,7 +58,7 @@ class ExonGenomicCoordsMapper:
         >>> result.genomic_data.start, result.genomic_data.end
         (156864428, 156881456)
 
-        :param: seqrepo_access: SeqRepo instance to give access to query SeqRepo database
+        :param seqrepo_access: SeqRepo instance to give access to query SeqRepo database
         :param uta_db: UtaDatabase instance to give access to query UTA database
         :param mane_transcript: Instance to align to MANE or compatible representation
         :param mane_transcript_mappings: Instance to provide access to ManeTranscriptMappings class
@@ -100,9 +100,10 @@ class ExonGenomicCoordsMapper:
         >>> from cool_seq_tool.app import CoolSeqTool
         >>> egc = CoolSeqTool().ex_g_coords_mapper
         >>> tpm3 = asyncio.run(egc.transcript_to_genomic_coordinates(
-        ...     "NM_152263.3"
-        ...     gene="TPM3", chr="NC_000001.11",
-        ...     exon_start=1, exon_end=8,
+        ...     "NM_152263.3",
+        ...     gene="TPM3",
+        ...     exon_start=1,
+        ...     exon_end=8,
         ... ))
         >>> tpm3.genomic_data.chr, tpm3.genomic_data.start, tpm3.genomic_data.end
         ('NC_000001.11', 154192135, 154170399)
@@ -266,7 +267,7 @@ class ExonGenomicCoordsMapper:
             following transcripts: MANE Select, MANE Clinical Plus, Longest Remaining
             Compatible Transcript. See the :ref:`Transcript Selection policy <transcript_selection_policy>`
             page.
-        param get_nearest_transcript_junction: If ``True``, this will return the
+        :param get_nearest_transcript_junction: If ``True``, this will return the
             adjacent exon if the position specified by``start`` or ``end`` does not
             occur on an exon. For the positive strand, adjacent is defined as the exon
             preceding the breakpoint for the 5' end and the exon following the

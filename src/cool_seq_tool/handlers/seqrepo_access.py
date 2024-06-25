@@ -13,6 +13,9 @@ from cool_seq_tool.utils import get_inter_residue_pos
 logger = logging.getLogger(__name__)
 
 
+SEQREPO_ROOT_DIR = environ.get("SEQREPO_ROOT_DIR", "/usr/local/share/seqrepo/latest")
+
+
 class SeqRepoAccess(SeqRepoDataProxy):
     """Provide a wrapper around the base SeqRepoDataProxy class from ``VRS-Python`` to
     provide additional lookup and identification methods.

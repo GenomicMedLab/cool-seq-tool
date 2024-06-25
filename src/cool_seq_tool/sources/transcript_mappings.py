@@ -2,13 +2,13 @@
 import csv
 from pathlib import Path
 
-from cool_seq_tool.paths import LRG_REFSEQGENE_PATH, TRANSCRIPT_MAPPINGS_PATH
+from cool_seq_tool.resources.data_files import DataFile, get_data_file
 
 
 class TranscriptMappings:
     """Provide mappings between gene symbols and RefSeq + Ensembl transcript accessions.
 
-    Uses ``LRG_RefSeqGene`` and ``transcript_mappings.csv``, which will automatically
+    Uses ``LRG_RefSeqGene`` and ``transcript_mappings.tsv``, which will automatically
     be acquired if they aren't already available. See the
     :ref:`configuration <configuration>` section in the documentation for information
     about manual acquisition of data.
@@ -20,13 +20,17 @@ class TranscriptMappings:
 
     def __init__(
         self,
-        transcript_file_path: Path = TRANSCRIPT_MAPPINGS_PATH,
-        lrg_refseqgene_path: Path = LRG_REFSEQGENE_PATH,
+        transcript_file_path: Path | None = None,
+        lrg_refseqgene_path: Path | None = None,
+        from_local: bool = False,
     ) -> None:
         """Initialize the transcript mappings class.
 
         :param transcript_file_path: Path to transcript mappings file
         :param lrg_refseqgene_path: Path to LRG RefSeqGene file
+        :param from_local: if ``True``, don't check for or acquire latest version --
+            just provide most recent locally available file, if possible, and raise
+            error otherwise
         """
         # ENSP <-> Gene Symbol
         self.ensembl_protein_version_for_gene_symbol: dict[str, list[str]] = {}
@@ -56,8 +60,13 @@ class TranscriptMappings:
         # ENSP -> ENST
         self.ensp_to_enst: dict[str, str] = {}
 
-        self._load_transcript_mappings_data(transcript_file_path)
-        self._load_refseq_gene_symbol_data(lrg_refseqgene_path)
+        self._load_transcript_mappings_data(
+            transcript_file_path
+            or get_data_file(DataFile.TRANSCRIPT_MAPPINGS, from_local)
+        )
+        self._load_refseq_gene_symbol_data(
+            lrg_refseqgene_path or get_data_file(DataFile.LRG_REFSEQGENE, from_local)
+        )
 
     def _load_transcript_mappings_data(self, transcript_file_path: Path) -> None:
         """Load transcript mappings file to dictionaries.

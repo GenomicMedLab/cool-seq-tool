@@ -30,6 +30,37 @@ UTA_DB_URL = environ.get(
 logger = logging.getLogger(__name__)
 
 
+def get_liftover(
+    chain_file_37_to_38: str | None = None, chain_file_38_to_37: str | None = None
+) -> tuple[Converter, Converter]:
+    """Fetch Converter instances between GRCh37 and 38.
+
+    Factored out of the UTA Database initialization method to support less expensive
+    status check-type operations.
+
+    :param chain_file_37_to_38: Optional path to chain file for 37 to 38 assembly.
+        This is used for ``agct``. If this is not provided, will check to see
+        if ``LIFTOVER_CHAIN_37_TO_38`` env var is set. If neither is provided, will
+        allow ``agct`` to download a chain file from UCSC
+    :param chain_file_38_to_37: Optional path to chain file for 38 to 37 assembly.
+        This is used for ``agct``. If this is not provided, will check to see
+        if ``LIFTOVER_CHAIN_38_TO_37`` env var is set. If neither is provided, will
+        allow ``agct`` to download a chain file from UCSC
+    :return: converters (37->38, 38->37)
+    """
+    chain_file_37_to_38 = chain_file_37_to_38 or LIFTOVER_CHAIN_37_TO_38
+    if chain_file_37_to_38:
+        converter_37_to_38 = Converter(chainfile=chain_file_37_to_38)
+    else:
+        converter_37_to_38 = Converter(from_db=Genome.HG19, to_db=Genome.HG38)
+    chain_file_38_to_37 = chain_file_38_to_37 or LIFTOVER_CHAIN_38_TO_37
+    if chain_file_38_to_37:
+        converter_38_to_37 = Converter(chainfile=chain_file_38_to_37)
+    else:
+        converter_38_to_37 = Converter(from_db=Genome.HG38, to_db=Genome.HG19)
+    return (converter_37_to_38, converter_38_to_37)
+
+
 class UtaDatabase:
     """Provide transcript lookup and metadata tools via the Universal Transcript Archive
     (UTA) database.
@@ -68,18 +99,9 @@ class UtaDatabase:
         original_pwd = db_url.split("//")[-1].split("@")[0].split(":")[-1]
         self.db_url = db_url.replace(original_pwd, quote(original_pwd))
         self.args = self._get_conn_args()
-
-        chain_file_37_to_38 = chain_file_37_to_38 or LIFTOVER_CHAIN_37_TO_38
-        if chain_file_37_to_38:
-            self.liftover_37_to_38 = Converter(chainfile=chain_file_37_to_38)
-        else:
-            self.liftover_37_to_38 = Converter(from_db=Genome.HG19, to_db=Genome.HG38)
-
-        chain_file_38_to_37 = chain_file_38_to_37 or LIFTOVER_CHAIN_38_TO_37
-        if chain_file_38_to_37:
-            self.liftover_38_to_37 = Converter(chainfile=chain_file_38_to_37)
-        else:
-            self.liftover_38_to_37 = Converter(from_db=Genome.HG38, to_db=Genome.HG19)
+        self.liftover_37_to_38, self.liftover_38_to_37 = get_liftover(
+            chain_file_37_to_38, chain_file_38_to_37
+        )
 
     def _get_conn_args(self) -> dict:
         """Return connection arguments.

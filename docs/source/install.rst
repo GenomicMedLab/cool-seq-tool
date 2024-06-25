@@ -56,16 +56,20 @@ Cool-Seq-Tool requires access to `SeqRepo <https://github.com/biocommons/biocomm
 .. code-block::
 
    pip install seqrepo
-   export SEQREPO_VERSION=2021-01-29  # or newer if available -- check `seqrepo list-remote-instances`
+   export SEQREPO_VERSION=2024-02-20
    sudo mkdir /usr/local/share/seqrepo
    sudo chown $USER /usr/local/share/seqrepo
    seqrepo pull -i $SEQREPO_VERSION
 
-If you encounter a permission error similar to the one below:
+.. note::
+
+   Our lab typically uses the latest SeqRepo release, which is ``2024-02-20`` as of this commit. To check for the presence of newer snapshots, use the ``seqrepo list-remote-instances`` CLI command.
+
+While this should no longer occur with the latest SeqRepo release, some users in the past have reported experiencing the following error:
 
 .. code-block::
 
-   PermissionError: [Error 13] Permission denied: '/usr/local/share/seqrepo/2021-01-29._fkuefgd' -> '/usr/local/share/seqrepo/2021-01-29'
+   PermissionError: [Error 13] Permission denied: '/usr/local/share/seqrepo/2024-02-20._fkuefgd' -> '/usr/local/share/seqrepo/2021-01-29'
 
 Try moving data manually with ``sudo``:
 
@@ -74,3 +78,15 @@ Try moving data manually with ``sudo``:
    sudo mv /usr/local/share/seqrepo/$SEQREPO_VERSION.* /usr/local/share/seqrepo/$SEQREPO_VERSION
 
 See `mirroring documentation <https://github.com/biocommons/biocommons.seqrepo/blob/main/docs/mirror.rst>`_ on the SeqRepo GitHub repo for instructions and additional troubleshooting.
+
+Check data availability
+-----------------------
+
+The :py:meth:`check_status <cool_seq_tool.resources.status.check_status>` method is provided to check that data dependencies like SeqRepo and UTA are available and configured correctly:
+
+.. code-block:: pycon
+
+   >>> from cool_seq_tool.resources.status import check_status
+   >>> import asyncio
+   >>> asyncio.run(check_status())
+   ResourceStatus(uta=True, seqrepo=True, transcript_mappings=True, mane_summary=True, lrg_refseqgene=True, liftover=True)
