@@ -1,6 +1,5 @@
 """Module containing routes related to MANE data"""
 import logging
-from typing import Optional
 
 from fastapi import APIRouter, Query
 
@@ -45,11 +44,11 @@ async def get_mane_data(
     start_annotation_layer: AnnotationLayer = Query(
         ..., description="Starting annotation layer for query"
     ),
-    end_pos: Optional[int] = Query(
+    end_pos: int | None = Query(
         None, description="End position. If not set, will set to `start_pos`."
     ),
-    gene: Optional[str] = Query(None, description="HGNC gene symbol"),
-    ref: Optional[str] = Query(None, description=ref_descr),
+    gene: str | None = Query(None, description="HGNC gene symbol"),
+    ref: str | None = Query(None, description=ref_descr),
     try_longest_compatible: bool = Query(
         True, description=try_longest_compatible_descr
     ),

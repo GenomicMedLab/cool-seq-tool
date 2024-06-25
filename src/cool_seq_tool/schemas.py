@@ -2,7 +2,7 @@
 import datetime
 import re
 from enum import Enum, IntEnum
-from typing import List, Literal, Optional, Tuple, Union
+from typing import Literal
 
 from pydantic import (
     BaseModel,
@@ -115,12 +115,12 @@ class BaseModelForbidExtra(BaseModel, extra="forbid"):
 class GenomicRequestBody(BaseModelForbidExtra):
     """Define constraints for genomic to transcript exon coordinates request body"""
 
-    chromosome: Union[StrictStr, StrictInt]
-    start: Optional[StrictInt] = None
-    end: Optional[StrictInt] = None
-    strand: Optional[Strand] = None
-    transcript: Optional[StrictStr] = None
-    gene: Optional[StrictStr] = None
+    chromosome: StrictStr | StrictInt
+    start: StrictInt | None = None
+    end: StrictInt | None = None
+    strand: Strand | None = None
+    transcript: StrictStr | None = None
+    gene: StrictStr | None = None
     residue_mode: ResidueMode = ResidueMode.RESIDUE
 
     @model_validator(mode="after")
@@ -151,11 +151,11 @@ class TranscriptRequestBody(BaseModelForbidExtra):
     """Define constraints for transcript exon to genomic coordinates request body"""
 
     transcript: StrictStr
-    gene: Optional[StrictStr] = None
-    exon_start: Optional[StrictInt] = None
-    exon_start_offset: Optional[StrictInt] = 0
-    exon_end: Optional[StrictInt] = None
-    exon_end_offset: Optional[StrictInt] = 0
+    gene: StrictStr | None = None
+    exon_start: StrictInt | None = None
+    exon_start_offset: StrictInt | None = 0
+    exon_end: StrictInt | None = None
+    exon_end_offset: StrictInt | None = 0
 
     @model_validator(mode="after")
     def check_exon_start_and_exon_end(cls, values):
@@ -211,12 +211,12 @@ class GenomicData(BaseModelForbidExtra):
 
     gene: StrictStr
     chr: StrictStr
-    start: Optional[StrictInt] = None  # Genomic start position
-    end: Optional[StrictInt] = None  # Genomic end position
-    exon_start: Optional[StrictInt] = None
-    exon_start_offset: Optional[StrictInt] = 0
-    exon_end: Optional[StrictInt] = None
-    exon_end_offset: Optional[StrictInt] = 0
+    start: StrictInt | None = None  # Genomic start position
+    end: StrictInt | None = None  # Genomic end position
+    exon_start: StrictInt | None = None
+    exon_start_offset: StrictInt | None = 0
+    exon_end: StrictInt | None = None
+    exon_end_offset: StrictInt | None = 0
     transcript: StrictStr
     strand: Strand
 
@@ -301,8 +301,8 @@ class ServiceMeta(BaseModelForbidExtra):
 class TranscriptExonDataResponse(BaseModelForbidExtra):
     """Response model for Transcript Exon Data"""
 
-    transcript_exon_data: Optional[TranscriptExonData] = None
-    warnings: List[StrictStr] = []
+    transcript_exon_data: TranscriptExonData | None = None
+    warnings: list[StrictStr] = []
     service_meta: ServiceMeta
 
     model_config = ConfigDict(
@@ -332,8 +332,8 @@ class TranscriptExonDataResponse(BaseModelForbidExtra):
 class GenomicDataResponse(BaseModelForbidExtra):
     """Response model for Genomic Data"""
 
-    genomic_data: Optional[GenomicData] = None
-    warnings: List[StrictStr] = []
+    genomic_data: GenomicData | None = None
+    warnings: list[StrictStr] = []
     service_meta: ServiceMeta
 
     model_config = ConfigDict(
@@ -368,7 +368,7 @@ class MappedManeData(BaseModel):
 
     gene: StrictStr
     refseq: StrictStr
-    ensembl: Optional[StrictStr] = None
+    ensembl: StrictStr | None = None
     strand: Strand
     status: TranscriptPriority
     alt_ac: StrictStr
@@ -392,8 +392,8 @@ class MappedManeData(BaseModel):
 class MappedManeDataService(BaseModelForbidExtra):
     """Service model response for mapped mane data"""
 
-    mapped_mane_data: Optional[MappedManeData] = None
-    warnings: List[StrictStr] = []
+    mapped_mane_data: MappedManeData | None = None
+    warnings: list[StrictStr] = []
     service_meta: ServiceMeta
 
     model_config = ConfigDict(
@@ -423,10 +423,10 @@ class MappedManeDataService(BaseModelForbidExtra):
 class ManeData(BaseModel):
     """Define mane data fields"""
 
-    gene: Optional[StrictStr] = None
-    refseq: Optional[StrictStr] = None
-    ensembl: Optional[StrictStr] = None
-    pos: Tuple[int, int]
+    gene: StrictStr | None = None
+    refseq: StrictStr | None = None
+    ensembl: StrictStr | None = None
+    pos: tuple[int, int]
     strand: Strand
     status: TranscriptPriority
 
@@ -447,8 +447,8 @@ class ManeData(BaseModel):
 class ManeDataService(BaseModelForbidExtra):
     """Service model response for getting mane data"""
 
-    mane_data: Optional[ManeData] = None
-    warnings: List[StrictStr] = []
+    mane_data: ManeData | None = None
+    warnings: list[StrictStr] = []
     service_meta: ServiceMeta
 
     model_config = ConfigDict(
@@ -502,8 +502,8 @@ class CdnaRepresentation(BaseModelForbidExtra):
 class ToCdnaService(BaseModelForbidExtra):
     """Service model response for protein -> cDNA"""
 
-    c_data: Optional[CdnaRepresentation] = None
-    warnings: List[StrictStr] = []
+    c_data: CdnaRepresentation | None = None
+    warnings: list[StrictStr] = []
     service_meta: ServiceMeta
 
     model_config = ConfigDict(
@@ -551,8 +551,8 @@ class GenomicRepresentation(BaseModelForbidExtra):
 class ToGenomicService(BaseModelForbidExtra):
     """Service model response for cDNA -> genomic"""
 
-    g_data: Optional[GenomicRepresentation] = None
-    warnings: List[StrictStr] = []
+    g_data: GenomicRepresentation | None = None
+    warnings: list[StrictStr] = []
     service_meta: ServiceMeta
 
     model_config = ConfigDict(

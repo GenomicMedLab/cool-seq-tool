@@ -3,7 +3,7 @@ import ast
 import base64
 import logging
 from os import environ
-from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar, Union
+from typing import Any, Literal, TypeVar
 from urllib.parse import ParseResult as UrlLibParseResult
 from urllib.parse import quote, unquote, urlparse
 
@@ -77,8 +77,8 @@ class UtaDatabase:
     def __init__(
         self,
         db_url: str = UTA_DB_URL,
-        chain_file_37_to_38: Optional[str] = None,
-        chain_file_38_to_37: Optional[str] = None,
+        chain_file_37_to_38: str | None = None,
+        chain_file_38_to_37: str | None = None,
     ) -> None:
         """Initialize DB class. Should only be used by ``create()`` method, and not
         be called directly by a user.
@@ -103,7 +103,7 @@ class UtaDatabase:
             chain_file_37_to_38, chain_file_38_to_37
         )
 
-    def _get_conn_args(self) -> Dict:
+    def _get_conn_args(self) -> dict:
         """Return connection arguments.
 
         :param db_url: raw connection URL
@@ -167,7 +167,7 @@ class UtaDatabase:
 
     @classmethod
     async def create(
-        cls: Type[UTADatabaseType], db_url: str = UTA_DB_URL
+        cls: type[UTADatabaseType], db_url: str = UTA_DB_URL
     ) -> UTADatabaseType:
         """Manufacture a fully-initialized class instance (a la factory pattern). This
         method should be used instead of calling the class directly to create a new
@@ -256,7 +256,7 @@ class UtaDatabase:
                 await self.execute_query(create_index)
 
     @staticmethod
-    def _transform_list(li: List) -> List[List[Any]]:
+    def _transform_list(li: list) -> list[list[Any]]:
         """Transform list to only contain field values
 
         :param li: List of asyncpg.Record objects
@@ -270,11 +270,11 @@ class UtaDatabase:
     async def get_genes_and_alt_acs(
         self,
         pos: int,
-        strand: Optional[Strand] = None,
-        chromosome: Optional[int] = None,
-        alt_ac: Optional[str] = None,
-        gene: Optional[str] = None,
-    ) -> Tuple[Optional[Dict], Optional[str]]:
+        strand: Strand | None = None,
+        chromosome: int | None = None,
+        alt_ac: str | None = None,
+        gene: str | None = None,
+    ) -> tuple[dict | None, str | None]:
         """Return genes and genomic accessions for a position on a chromosome or alt_ac
 
         :param pos: Genomic position
@@ -331,8 +331,8 @@ class UtaDatabase:
         return {"genes": genes, "alt_acs": alt_acs}, None
 
     async def get_tx_exons(
-        self, tx_ac: str, alt_ac: Optional[str] = None
-    ) -> Tuple[Optional[List[Tuple[int, int]]], Optional[str]]:
+        self, tx_ac: str, alt_ac: str | None = None
+    ) -> tuple[list[tuple[int, int]] | None, str | None]:
         """Get list of transcript exons start/end coordinates.
 
         :param tx_ac: Transcript accession
@@ -374,7 +374,7 @@ class UtaDatabase:
         self,
         tx_ac: str,
         alt_ac: str,
-    ) -> Tuple[Optional[Tuple[int, int, int, int, int]], Optional[str]]:
+    ) -> tuple[tuple[int, int, int, int, int] | None, str | None]:
         """Get exon number, transcript coordinates, and genomic coordinates
 
         :param tx_ac: Transcript accession
@@ -401,8 +401,8 @@ class UtaDatabase:
         return tx_exons_genomic_coords, None
 
     async def get_alt_ac_start_or_end(
-        self, tx_ac: str, tx_exon_start: int, tx_exon_end: int, gene: Optional[str]
-    ) -> Tuple[Optional[Tuple[str, str, int, int, int]], Optional[str]]:
+        self, tx_ac: str, tx_exon_start: int, tx_exon_end: int, gene: str | None
+    ) -> tuple[tuple[str, str, int, int, int] | None, str | None]:
         """Get genomic data for related transcript exon start or end.
 
         :param tx_ac: Transcript accession
@@ -442,7 +442,7 @@ class UtaDatabase:
         result = result[0]
         return (result[0], result[1], result[2], result[3], result[4]), None
 
-    async def get_cds_start_end(self, tx_ac: str) -> Optional[Tuple[int, int]]:
+    async def get_cds_start_end(self, tx_ac: str) -> tuple[int, int] | None:
         """Get coding start and end site
 
         :param tx_ac: Transcript accession
@@ -466,7 +466,7 @@ class UtaDatabase:
             )
             return None
 
-    async def get_newest_assembly_ac(self, ac: str) -> List[str]:
+    async def get_newest_assembly_ac(self, ac: str) -> list[str]:
         """Find accession associated to latest genomic assembly
 
         :param ac: Accession
@@ -511,7 +511,7 @@ class UtaDatabase:
         result = await self.execute_query(query)
         return result[0][0]
 
-    async def get_ac_descr(self, ac: str) -> Optional[str]:
+    async def get_ac_descr(self, ac: str) -> str | None:
         """Return accession description. This is typically available only for accessions
         from older (pre-GRCh38) builds.
 
@@ -546,10 +546,10 @@ class UtaDatabase:
         tx_ac: str,
         start_pos: int,
         end_pos: int,
-        alt_ac: Optional[str] = None,
+        alt_ac: str | None = None,
         use_tx_pos: bool = True,
         like_tx_ac: bool = False,
-    ) -> List:
+    ) -> list:
         """Return queried data from tx_exon_aln_v table.
 
         :param tx_ac: accession on c. coordinate
@@ -620,7 +620,7 @@ class UtaDatabase:
         return results
 
     @staticmethod
-    def data_from_result(result: List) -> Optional[Dict]:
+    def data_from_result(result: list) -> dict | None:
         """Return data found from result.
 
         :param result: Data from tx_exon_aln_v table
@@ -653,8 +653,8 @@ class UtaDatabase:
         }
 
     async def get_mane_c_genomic_data(
-        self, ac: str, alt_ac: Optional[str], start_pos: int, end_pos: int
-    ) -> Optional[Dict]:
+        self, ac: str, alt_ac: str | None, start_pos: int, end_pos: int
+    ) -> dict | None:
         """Get MANE transcript and genomic data. Used when going from g. to MANE c.
         representation.
 
@@ -719,13 +719,12 @@ class UtaDatabase:
     async def get_genomic_tx_data(
         self,
         tx_ac: str,
-        pos: Tuple[int, int],
-        annotation_layer: Union[
-            AnnotationLayer.CDNA, AnnotationLayer.GENOMIC
-        ] = AnnotationLayer.CDNA,
-        alt_ac: Optional[str] = None,
+        pos: tuple[int, int],
+        annotation_layer: Literal[AnnotationLayer.CDNA]
+        | Literal[AnnotationLayer.GENOMIC] = AnnotationLayer.CDNA,
+        alt_ac: str | None = None,
         target_genome_assembly: Assembly = Assembly.GRCH38,
-    ) -> Optional[Dict]:
+    ) -> dict | None:
         """Get transcript mapping to genomic data.
 
         :param tx_ac: Accession on c. coordinate
@@ -782,7 +781,7 @@ class UtaDatabase:
 
         return data
 
-    async def get_ac_from_gene(self, gene: str) -> List[str]:
+    async def get_ac_from_gene(self, gene: str) -> list[str]:
         """Return genomic accession(s) associated to a gene.
 
         :param gene: Gene symbol
@@ -806,7 +805,7 @@ class UtaDatabase:
 
     async def get_gene_from_ac(
         self, ac: str, start_pos: int, end_pos: int
-    ) -> Optional[List[str]]:
+    ) -> list[str] | None:
         """Get gene(s) within the provided coordinate range
 
         >>> import asyncio
@@ -850,11 +849,11 @@ class UtaDatabase:
 
     async def get_transcripts(
         self,
-        start_pos: Optional[int] = None,
-        end_pos: Optional[int] = None,
-        gene: Optional[str] = None,
+        start_pos: int | None = None,
+        end_pos: int | None = None,
+        gene: str | None = None,
         use_tx_pos: bool = True,
-        alt_ac: Optional[str] = None,
+        alt_ac: str | None = None,
     ) -> pl.DataFrame:
         """Get transcripts for a given ``gene`` or ``alt_ac`` related to optional positions.
 
@@ -928,7 +927,7 @@ class UtaDatabase:
             results_df = results_df.unique()
         return results_df
 
-    async def get_chr_assembly(self, ac: str) -> Optional[Tuple[str, str]]:
+    async def get_chr_assembly(self, ac: str) -> tuple[str, str] | None:
         """Get chromosome and assembly for NC accession if not in GRCh38.
 
         :param ac: NC accession
@@ -951,7 +950,7 @@ class UtaDatabase:
 
         return chromosome, assembly
 
-    async def liftover_to_38(self, genomic_tx_data: Dict) -> None:
+    async def liftover_to_38(self, genomic_tx_data: dict) -> None:
         """Liftover genomic_tx_data to hg38 assembly.
 
         :param genomic_tx_data: Dictionary containing gene, nc_accession, alt_pos, and
@@ -1007,7 +1006,7 @@ class UtaDatabase:
 
     def get_liftover(
         self, chromosome: str, pos: int, liftover_to_assembly: Assembly
-    ) -> Optional[Tuple[str, int]]:
+    ) -> tuple[str, int] | None:
         """Get new genome assembly data for a position on a chromosome.
 
         :param chromosome: The chromosome number. Must be prefixed with ``chr``
@@ -1034,7 +1033,7 @@ class UtaDatabase:
 
     def _set_liftover(
         self,
-        genomic_tx_data: Dict,
+        genomic_tx_data: dict,
         key: str,
         chromosome: str,
         liftover_to_assembly: Assembly,
@@ -1071,7 +1070,7 @@ class UtaDatabase:
 
         genomic_tx_data[key] = liftover_start_i[1], liftover_end_i[1]
 
-    async def p_to_c_ac(self, p_ac: str) -> List[str]:
+    async def p_to_c_ac(self, p_ac: str) -> list[str]:
         """Return cDNA reference sequence accession from protein reference sequence
         accession (i.e. ``p.`` to ``c.`` in HGVS syntax)
 
@@ -1101,7 +1100,7 @@ class UtaDatabase:
 
     async def get_transcripts_from_genomic_pos(
         self, alt_ac: str, g_pos: int
-    ) -> List[str]:
+    ) -> list[str]:
         """Get transcripts associated to a genomic ac and position.
 
         :param alt_ac: Genomic accession
@@ -1167,13 +1166,13 @@ class ParseResult(UrlLibParseResult):
         return super(ParseResult, cls).__new__(cls, *pr)  # noqa: UP008
 
     @property
-    def database(self) -> Optional[str]:
+    def database(self) -> str | None:
         """Create database property."""
         path_elems = self.path.split("/")
         return path_elems[1] if len(path_elems) > 1 else None
 
     @property
-    def schema(self) -> Optional[str]:
+    def schema(self) -> str | None:
         """Create schema property."""
         path_elems = self.path.split("/")
         return path_elems[2] if len(path_elems) > 2 else None

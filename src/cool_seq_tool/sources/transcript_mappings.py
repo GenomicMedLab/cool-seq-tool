@@ -1,7 +1,6 @@
 """Provide mappings between gene symbols and RefSeq + Ensembl transcript accessions."""
 import csv
 from pathlib import Path
-from typing import Dict, List, Optional
 
 from cool_seq_tool.resources.data_files import DataFile, get_data_file
 
@@ -34,32 +33,32 @@ class TranscriptMappings:
             error otherwise
         """
         # ENSP <-> Gene Symbol
-        self.ensembl_protein_version_for_gene_symbol: Dict[str, List[str]] = {}
-        self.ensembl_protein_version_to_gene_symbol: Dict[str, str] = {}
-        self.ensembl_protein_for_gene_symbol: Dict[str, List[str]] = {}
-        self.ensembl_protein_to_gene_symbol: Dict[str, str] = {}
+        self.ensembl_protein_version_for_gene_symbol: dict[str, list[str]] = {}
+        self.ensembl_protein_version_to_gene_symbol: dict[str, str] = {}
+        self.ensembl_protein_for_gene_symbol: dict[str, list[str]] = {}
+        self.ensembl_protein_to_gene_symbol: dict[str, str] = {}
 
         # Gene Symbol <-> ENST
-        self.ensembl_transcript_version_for_gene_symbol: Dict[str, List[str]] = {}
-        self.ensembl_transcript_version_to_gene_symbol: Dict[str, str] = {}
-        self.ensembl_transcript_for_gene_symbol: Dict[str, List[str]] = {}
-        self.ensembl_transcript_to_gene_symbol: Dict[str, str] = {}
+        self.ensembl_transcript_version_for_gene_symbol: dict[str, list[str]] = {}
+        self.ensembl_transcript_version_to_gene_symbol: dict[str, str] = {}
+        self.ensembl_transcript_for_gene_symbol: dict[str, list[str]] = {}
+        self.ensembl_transcript_to_gene_symbol: dict[str, str] = {}
 
         # NP_ <-> Gene Symbol
-        self.refseq_protein_for_gene_symbol: Dict[str, List[str]] = {}
-        self.refseq_protein_to_gene_symbol: Dict[str, str] = {}
+        self.refseq_protein_for_gene_symbol: dict[str, list[str]] = {}
+        self.refseq_protein_to_gene_symbol: dict[str, str] = {}
 
         # NM_ <-> Gene Symbol
-        self.refseq_rna_version_for_gene_symbol: Dict[str, List[str]] = {}
-        self.refseq_rna_version_to_gene_symbol: Dict[str, str] = {}
-        self.refseq_rna_for_gene_symbol: Dict[str, List[str]] = {}
-        self.refseq_rna_to_gene_symbol: Dict[str, str] = {}
+        self.refseq_rna_version_for_gene_symbol: dict[str, list[str]] = {}
+        self.refseq_rna_version_to_gene_symbol: dict[str, str] = {}
+        self.refseq_rna_for_gene_symbol: dict[str, list[str]] = {}
+        self.refseq_rna_to_gene_symbol: dict[str, str] = {}
 
         # NP -> NM
-        self.np_to_nm: Dict[str, str] = {}
+        self.np_to_nm: dict[str, str] = {}
 
         # ENSP -> ENST
-        self.ensp_to_enst: Dict[str, str] = {}
+        self.ensp_to_enst: dict[str, str] = {}
 
         self._load_transcript_mappings_data(
             transcript_file_path
@@ -143,7 +142,7 @@ class TranscriptMappings:
                     if refseq_transcript and rna_transcript:
                         self.np_to_nm[refseq_transcript] = rna_transcript
 
-    def protein_transcripts(self, identifier: str) -> List[str]:
+    def protein_transcripts(self, identifier: str) -> list[str]:
         """Return a list of protein transcripts for a gene symbol.
 
         >>> from cool_seq_tool.sources import TranscriptMappings
@@ -163,7 +162,7 @@ class TranscriptMappings:
         protein_transcripts += self.refseq_protein_for_gene_symbol.get(identifier, "")
         return list(set(protein_transcripts))
 
-    def coding_dna_transcripts(self, identifier: str) -> List[str]:
+    def coding_dna_transcripts(self, identifier: str) -> list[str]:
         """Return transcripts from a coding dna refseq for a gene symbol.
 
         :param identifier: Gene identifier to find transcripts for
@@ -181,7 +180,7 @@ class TranscriptMappings:
         )
         return list(set(genomic_transcripts))
 
-    def get_gene_symbol_from_ensembl_protein(self, q: str) -> Optional[str]:
+    def get_gene_symbol_from_ensembl_protein(self, q: str) -> str | None:
         """Return the gene symbol for a Ensembl Protein.
 
         :param q: ensembl protein accession
@@ -193,7 +192,7 @@ class TranscriptMappings:
             gene_symbol = self.ensembl_protein_to_gene_symbol.get(q)
         return gene_symbol
 
-    def get_gene_symbol_from_refeq_protein(self, q: str) -> Optional[str]:
+    def get_gene_symbol_from_refeq_protein(self, q: str) -> str | None:
         """Return the gene symbol for a Refseq Protein.
 
         :param q: RefSeq protein accession
@@ -201,7 +200,7 @@ class TranscriptMappings:
         """
         return self.refseq_protein_to_gene_symbol.get(q)
 
-    def get_gene_symbol_from_refseq_rna(self, q: str) -> Optional[str]:
+    def get_gene_symbol_from_refseq_rna(self, q: str) -> str | None:
         """Return gene symbol for a Refseq RNA Transcript.
 
         :param q: RefSeq RNA transcript accession
@@ -213,7 +212,7 @@ class TranscriptMappings:
             gene_symbol = self.refseq_rna_to_gene_symbol.get(q)
         return gene_symbol
 
-    def get_gene_symbol_from_ensembl_transcript(self, q: str) -> Optional[str]:
+    def get_gene_symbol_from_ensembl_transcript(self, q: str) -> str | None:
         """Return gene symbol for an Ensembl Transcript.
 
         :param q: Ensembl transcript accession

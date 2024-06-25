@@ -1,6 +1,5 @@
 """Module containing routes related to alignment mapping"""
 import logging
-from typing import Optional
 
 from fastapi import APIRouter, Query
 
@@ -66,7 +65,7 @@ async def c_to_g(
     c_ac: str = Query(..., description="cDNA RefSeq accession"),
     c_start_pos: int = Query(..., description="cDNA start position for codon"),
     c_end_pos: int = Query(..., description="cDNA end position for codon"),
-    cds_start: Optional[int] = Query(
+    cds_start: int | None = Query(
         None, description="CDS start site. If not provided, this will be computed."
     ),
     residue_mode: ResidueMode = Query(
