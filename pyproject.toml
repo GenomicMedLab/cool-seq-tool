@@ -31,7 +31,7 @@ dependencies = [
     "aiofiles",
     "boto3",
     "agct >= 0.1.0-dev1",
-    "polars >= 1.0.0b1, <= 2.0",
+    "polars ~= 1.0",
     "hgvs",
     "biocommons.seqrepo",
     "pydantic == 2.*",
