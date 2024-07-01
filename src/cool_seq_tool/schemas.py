@@ -1,6 +1,5 @@
 """Defines attribute constants, useful object structures, and API response schemas."""
 import datetime
-import re
 from enum import Enum, IntEnum
 from typing import Literal
 
@@ -9,11 +8,10 @@ from pydantic import (
     ConfigDict,
     StrictInt,
     StrictStr,
-    field_validator,
     model_validator,
 )
 
-from cool_seq_tool.version import __version__
+from cool_seq_tool import __version__
 
 _now = str(datetime.datetime.now(tz=datetime.timezone.utc))
 
@@ -274,17 +272,6 @@ class ServiceMeta(BaseModelForbidExtra):
     url: Literal[
         "https://github.com/GenomicMedLab/cool-seq-tool"
     ] = "https://github.com/GenomicMedLab/cool-seq-tool"
-
-    @field_validator("version")
-    def validate_version(cls, v):
-        """Check version matches semantic versioning regex pattern.
-        https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
-        """
-        version_regex = r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$"
-        if not re.match(version_regex, v):
-            msg = f"Invalid version {v}"
-            raise ValueError(msg)
-        return v
 
     model_config = ConfigDict(
         json_schema_extra={

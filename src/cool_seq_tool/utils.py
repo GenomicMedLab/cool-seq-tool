@@ -2,8 +2,8 @@
 import datetime
 import logging
 
+from cool_seq_tool import __version__
 from cool_seq_tool.schemas import ResidueMode, ServiceMeta
-from cool_seq_tool.version import __version__
 
 logger = logging.getLogger(__name__)
 
