@@ -1,6 +1,7 @@
 """Provides core CoolSeqTool class, which non-redundantly initializes all Cool-Seq-Tool
 data handler and mapping resources for straightforward access.
 """
+
 import logging
 from pathlib import Path
 
@@ -62,7 +63,7 @@ class CoolSeqTool:
         >>> from pathlib import Path
         >>> cst = CoolSeqTool(
         ...     lrg_refseqgene_path=Path("lrg_refseqgene_20240625.tsv"),
-        ...     mane_data_path=Path("ncbi_mane_summary_1.3.txt")
+        ...     mane_data_path=Path("ncbi_mane_summary_1.3.txt"),
         ... )
 
         If not passed explicit arguments, these locations can also be set via

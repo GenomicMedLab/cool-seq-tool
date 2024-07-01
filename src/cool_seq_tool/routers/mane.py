@@ -1,4 +1,5 @@
 """Module containing routes related to MANE data"""
+
 import logging
 
 from fastapi import APIRouter, Query

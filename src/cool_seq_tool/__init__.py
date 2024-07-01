@@ -1,4 +1,5 @@
 """The cool_seq_tool package"""
+
 import logging
 
 logging.basicConfig(

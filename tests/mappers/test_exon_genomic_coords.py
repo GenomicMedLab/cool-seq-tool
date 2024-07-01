@@ -1,4 +1,5 @@
 """Module for testing that Cool Seq Tool works correctly."""
+
 import copy
 import re
 from datetime import datetime

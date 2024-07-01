@@ -1,4 +1,5 @@
 """Module for testing utility functions"""
+
 from cool_seq_tool.schemas import ResidueMode
 from cool_seq_tool.utils import get_inter_residue_pos
 

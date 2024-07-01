@@ -1,4 +1,5 @@
 """Defines attribute constants, useful object structures, and API response schemas."""
+
 import datetime
 import re
 from enum import Enum, IntEnum
@@ -271,9 +272,9 @@ class ServiceMeta(BaseModelForbidExtra):
     name: Literal["cool_seq_tool"] = "cool_seq_tool"
     version: StrictStr
     response_datetime: datetime.datetime
-    url: Literal[
+    url: Literal["https://github.com/GenomicMedLab/cool-seq-tool"] = (
         "https://github.com/GenomicMedLab/cool-seq-tool"
-    ] = "https://github.com/GenomicMedLab/cool-seq-tool"
+    )
 
     @field_validator("version")
     def validate_version(cls, v):

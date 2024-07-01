@@ -41,7 +41,7 @@ dependencies = [
 dynamic = ["version"]
 
 [project.optional-dependencies]
-dev = ["pre-commit", "ipython", "ipykernel", "psycopg2-binary", "ruff==0.2.0"]
+dev = ["pre-commit", "ipython", "ipykernel", "psycopg2-binary", "ruff==0.5.0"]
 tests = ["pytest", "pytest-cov", "pytest-asyncio==0.18.3", "mock"]
 docs = [
     "sphinx==6.1.3",
@@ -103,16 +103,22 @@ lint.select = [
     "DTZ",  # https://docs.astral.sh/ruff/rules/#flake8-datetimez-dtz
     "T10",  # https://docs.astral.sh/ruff/rules/#flake8-datetimez-dtz
     "EM",  # https://docs.astral.sh/ruff/rules/#flake8-errmsg-em
+    "LOG",  # https://docs.astral.sh/ruff/rules/#flake8-logging-log
     "G",  # https://docs.astral.sh/ruff/rules/#flake8-logging-format-g
+    "INP",  # https://docs.astral.sh/ruff/rules/#flake8-no-pep420-inp
     "PIE",  # https://docs.astral.sh/ruff/rules/#flake8-pie-pie
     "T20",  # https://docs.astral.sh/ruff/rules/#flake8-print-t20
     "PT",  # https://docs.astral.sh/ruff/rules/#flake8-pytest-style-pt
     "Q",  # https://docs.astral.sh/ruff/rules/#flake8-quotes-q
     "RSE",  # https://docs.astral.sh/ruff/rules/#flake8-raise-rse
     "RET",  # https://docs.astral.sh/ruff/rules/#flake8-return-ret
+    "SLF",  # https://docs.astral.sh/ruff/rules/#flake8-self-slf
     "SIM",  # https://docs.astral.sh/ruff/rules/#flake8-simplify-sim
+    "ARG",  # https://docs.astral.sh/ruff/rules/#flake8-unused-arguments-arg
     "PTH",  # https://docs.astral.sh/ruff/rules/#flake8-use-pathlib-pth
     "PGH",  # https://docs.astral.sh/ruff/rules/#pygrep-hooks-pgh
+    "PERF",  # https://docs.astral.sh/ruff/rules/#perflint-perf
+    "FURB",  # https://docs.astral.sh/ruff/rules/#refurb-furb
     "RUF",  # https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
 ]
 lint.fixable = [
@@ -123,16 +129,20 @@ lint.fixable = [
     "ANN",
     "B",
     "C4",
+    "LOG",
     "G",
     "PIE",
     "PT",
     "RSE",
     "SIM",
+    "PERF",
+    "FURB",
     "RUF"
 ]
 
-# ANN101 - missing-type-self
 # ANN003 - missing-type-kwargs
+# ANN101 - missing-type-self
+# ANN102 - missing-type-cls
 # D203 - one-blank-line-before-class
 # D205 - blank-line-after-summary
 # D206 - indent-with-spaces*
@@ -148,7 +158,7 @@ lint.fixable = [
 # S321 - suspicious-ftp-lib-usage
 # *ignored for compatibility with formatter
 lint.ignore = [
-    "ANN101", "ANN003",
+    "ANN003", "ANN101", "ANN102",
     "D203", "D205", "D206", "D213", "D300", "D400", "D415",
     "E111", "E114", "E117", "E501",
     "W191",
@@ -162,9 +172,15 @@ lint.ignore = [
 # N805 - invalid-first-argument-name-for-method
 # F821 - undefined-name
 # F401 - unused-import
-"tests/*" = ["ANN001", "ANN2", "ANN102", "S101"]
+# INP001 - implicit-namespace-package
+# SLF001 - private-member-access
+# ARG001 - unused-function-argument
+"tests/*" = ["ANN001", "ANN2", "ANN102", "S101", "INP001", "SLF001", "ARG001"]
 "*__init__.py" = ["F401"]
 "src/cool_seq_tool/schemas.py" = ["ANN201", "N805", "ANN001"]
 
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = ["fastapi.Query"]
+
+[tool.ruff.format]
+docstring-code-format = true

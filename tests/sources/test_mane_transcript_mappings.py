@@ -1,4 +1,5 @@
 """Module for testing MANE Transcript Mapping class."""
+
 import pytest
 
 

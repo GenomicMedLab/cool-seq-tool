@@ -1,4 +1,5 @@
 """Fetch data files regarding transcript mapping and annotation."""
+
 import logging
 from enum import Enum
 from importlib import resources
