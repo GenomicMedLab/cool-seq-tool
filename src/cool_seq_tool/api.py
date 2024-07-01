@@ -3,8 +3,8 @@
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 
+from cool_seq_tool import __version__
 from cool_seq_tool.routers import SERVICE_NAME, default, mane, mappings
-from cool_seq_tool.version import __version__
 
 app = FastAPI(
     docs_url=f"/{SERVICE_NAME}",

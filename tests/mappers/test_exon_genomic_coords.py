@@ -1,6 +1,5 @@
 """Module for testing that Cool Seq Tool works correctly."""
 import copy
-import re
 from datetime import datetime
 
 import pytest
@@ -302,8 +301,7 @@ def check_service_meta(actual):
     :param ServiceMeta actual: Actual service metadata
     """
     assert actual.name == "cool_seq_tool"
-    version_regex = r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$"
-    assert bool(re.match(version_regex, actual.version))
+    # pydantic checks that version is a string
     assert isinstance(actual.response_datetime, datetime)
     assert actual.url == "https://github.com/GenomicMedLab/cool-seq-tool"
 

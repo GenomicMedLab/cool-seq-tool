@@ -61,11 +61,10 @@ Source = "https://github.com/genomicmedlab/cool-seq-tool"
 "Bug Tracker" = "https://github.com/genomicmedlab/cool-seq-tool/issues"
 
 [build-system]
-requires = ["setuptools>=64"]
+requires = ["setuptools>=64", "setuptools_scm>=8"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools.dynamic]
-version = {attr = "cool_seq_tool.version.__version__"}
+[tool.setuptools_scm]
 
 # Scanning for namespace packages in the ``src`` directory is true by
 # default in pyproject.toml, so you do NOT need to include the

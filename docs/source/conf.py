@@ -60,10 +60,9 @@ sys.path.insert(0, os.path.abspath("../../cool_seq_tool"))
 autodoc_preserve_defaults = True
 
 # -- get version -------------------------------------------------------------
-from cool_seq_tool.version import __version__
+from cool_seq_tool import __version__
 
-version = __version__
-release = version
+version = release = __version__
 
 
 # -- linkcode ----------------------------------------------------------------
