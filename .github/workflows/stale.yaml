@@ -1,0 +1,28 @@
+name: "Stalebot for issues and PRs"
+
+on:
+  schedule:
+    - cron: "30 13 * * *"
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/stale@v9
+        with:
+          remove-stale-when-updated: true
+          days-before-close: 14
+
+          days-before-issue-stale: 60
+          stale-issue-label: stale
+          stale-issue-message: "This issue is stale because it has been open 45 days with no activity. Please make a comment for triaging or closing the issue."
+          close-issue-label: closed-by-stale
+          close-issue-message: "This issue was closed because it has been stalled for 14 days with no activity."
+
+          days-before-pr-stale: 7
+          stale-pr-label: stale
+          stale-pr-message: "This PR is stale because it has been open 7 days with no activity. Please review this PR."
+          days-before-pr-close: -1
