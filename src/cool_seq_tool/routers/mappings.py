@@ -8,7 +8,7 @@ from cool_seq_tool.routers import RESP_DESCR, SERVICE_NAME, Tags, cool_seq_tool
 from cool_seq_tool.schemas import Assembly, ResidueMode, ToCdnaService, ToGenomicService
 from cool_seq_tool.utils import service_meta
 
-logger = logging.getLogger("cool_seq_tool")
+_logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix=f"/{SERVICE_NAME}/alignment_mapper")
 
@@ -45,7 +45,7 @@ async def p_to_c(
             p_ac, p_start_pos, p_end_pos, residue_mode
         )
     except Exception as e:
-        logger.error("Unhandled exception: %s", str(e))
+        _logger.error("Unhandled exception: %s", str(e))
         w = "Unhandled exception. See logs for more information."
         c_data = None
     return ToCdnaService(
@@ -99,7 +99,7 @@ async def c_to_g(
             target_genome_assembly=target_genome_assembly,
         )
     except Exception as e:
-        logger.error("Unhandled exception: %s", str(e))
+        _logger.error("Unhandled exception: %s", str(e))
         w = "Unhandled exception. See logs for more information."
         g_data = None
     return ToGenomicService(
@@ -147,7 +147,7 @@ async def p_to_g(
             target_genome_assembly=target_genome_assembly,
         )
     except Exception as e:
-        logger.error("Unhandled exception: %s", str(e))
+        _logger.error("Unhandled exception: %s", str(e))
         w = "Unhandled exception. See logs for more information."
         g_data = None
     return ToGenomicService(

@@ -9,7 +9,7 @@ import polars as pl
 
 from cool_seq_tool.resources.data_files import DataFile, get_data_file
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 class ManeTranscriptMappings:
@@ -63,7 +63,7 @@ class ManeTranscriptMappings:
         data = self.df.filter(pl.col("symbol") == gene_symbol.upper())
 
         if len(data) == 0:
-            logger.warning(
+            _logger.warning(
                 "Unable to get MANE Transcript data for gene: %s", gene_symbol
             )
             return []

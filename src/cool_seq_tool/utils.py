@@ -6,7 +6,7 @@ import logging
 from cool_seq_tool.schemas import ResidueMode, ServiceMeta
 from cool_seq_tool.version import __version__
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 def get_inter_residue_pos(
