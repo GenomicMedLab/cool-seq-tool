@@ -1,4 +1,5 @@
 """Provide mapping capabilities between transcript exon and genomic coordinates."""
+
 import logging
 from typing import Literal, TypeVar
 
@@ -50,11 +51,11 @@ class ExonGenomicCoordsMapper:
         event loop. See the :ref:`Usage section <async_note>` for more information.
 
         >>> import asyncio
-        >>> result = asyncio.run(egc.transcript_to_genomic_coordinates(
-        ...     "NM_002529.3",
-        ...     exon_start=2,
-        ...     exon_end=17
-        ... ))
+        >>> result = asyncio.run(
+        ...     egc.transcript_to_genomic_coordinates(
+        ...         "NM_002529.3", exon_start=2, exon_end=17
+        ...     )
+        ... )
         >>> result.genomic_data.start, result.genomic_data.end
         (156864428, 156881456)
 
@@ -99,12 +100,14 @@ class ExonGenomicCoordsMapper:
         >>> import asyncio
         >>> from cool_seq_tool.app import CoolSeqTool
         >>> egc = CoolSeqTool().ex_g_coords_mapper
-        >>> tpm3 = asyncio.run(egc.transcript_to_genomic_coordinates(
-        ...     "NM_152263.3",
-        ...     gene="TPM3",
-        ...     exon_start=1,
-        ...     exon_end=8,
-        ... ))
+        >>> tpm3 = asyncio.run(
+        ...     egc.transcript_to_genomic_coordinates(
+        ...         "NM_152263.3",
+        ...         gene="TPM3",
+        ...         exon_start=1,
+        ...         exon_end=8,
+        ...     )
+        ... )
         >>> tpm3.genomic_data.chr, tpm3.genomic_data.start, tpm3.genomic_data.end
         ('NC_000001.11', 154192135, 154170399)
 
@@ -244,13 +247,15 @@ class ExonGenomicCoordsMapper:
         >>> from cool_seq_tool.app import CoolSeqTool
         >>> from cool_seq_tool.schemas import Strand
         >>> egc = CoolSeqTool().ex_g_coords_mapper
-        >>> result = asyncio.run(egc.genomic_to_transcript_exon_coordinates(
-        ...     alt_ac="NC_000001.11",
-        ...     start=154192136,
-        ...     end=154170400,
-        ...     strand=Strand.NEGATIVE,
-        ...     transcript="NM_152263.3"
-        ... ))
+        >>> result = asyncio.run(
+        ...     egc.genomic_to_transcript_exon_coordinates(
+        ...         alt_ac="NC_000001.11",
+        ...         start=154192136,
+        ...         end=154170400,
+        ...         strand=Strand.NEGATIVE,
+        ...         transcript="NM_152263.3",
+        ...     )
+        ... )
         >>> result.genomic_data.exon_start, result.genomic_data.exon_end
         (1, 8)
 
@@ -706,16 +711,16 @@ class ExonGenomicCoordsMapper:
         :return: Warnings if found
         """
         start, end = get_inter_residue_pos(pos, pos, residue_mode=ResidueMode.ZERO)
-        mane_data: CdnaRepresentation | None = (
-            await self.mane_transcript.get_mane_transcript(
-                alt_ac,
-                start,
-                end,
-                AnnotationLayer.GENOMIC,
-                gene=gene,
-                try_longest_compatible=True,
-                residue_mode=ResidueMode.INTER_RESIDUE,
-            )
+        mane_data: (
+            CdnaRepresentation | None
+        ) = await self.mane_transcript.get_mane_transcript(
+            alt_ac,
+            start,
+            end,
+            AnnotationLayer.GENOMIC,
+            gene=gene,
+            try_longest_compatible=True,
+            residue_mode=ResidueMode.INTER_RESIDUE,
         )
         if not mane_data:
             msg = f"Unable to find mane data for {alt_ac} with position {pos}"
@@ -893,15 +898,12 @@ class ExonGenomicCoordsMapper:
         :param alt_ac: Genomic accession
         :return: List of tuples containing transcript exon coordinates
         """
-        result = []
         tx_exons, _ = await self.uta_db.get_tx_exons(transcript, alt_ac=alt_ac)
 
         if not tx_exons:
-            return result
+            return []
 
-        for coords in tx_exons:
-            result.append((coords[0], coords[1]))
-        return result
+        return [(coords[0], coords[1]) for coords in tx_exons]
 
     @staticmethod
     def _get_exon_number(tx_exons: list, tx_pos: int) -> int:

@@ -1,6 +1,7 @@
 """Provide fast tabular access to MANE summary file. Enables retrieval of associated
 MANE transcripts for gene symbols, genomic positions, or transcript accessions.
 """
+
 import logging
 from pathlib import Path
 

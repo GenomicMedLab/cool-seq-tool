@@ -1,4 +1,5 @@
 """Module containing default routes"""
+
 import logging
 import os
 import tempfile

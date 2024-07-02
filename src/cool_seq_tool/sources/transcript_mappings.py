@@ -1,4 +1,5 @@
 """Provide mappings between gene symbols and RefSeq + Ensembl transcript accessions."""
+
 import csv
 from pathlib import Path
 
@@ -107,9 +108,9 @@ class TranscriptMappings:
                         ).append(transcript)
                         self.ensembl_transcript_to_gene_symbol[transcript] = gene
                     if versioned_transcript and versioned_protein_transcript:
-                        self.ensp_to_enst[
-                            versioned_protein_transcript
-                        ] = versioned_transcript
+                        self.ensp_to_enst[versioned_protein_transcript] = (
+                            versioned_transcript
+                        )
 
     def _load_refseq_gene_symbol_data(self, lrg_refseqgene_path: Path) -> None:
         """Load data from RefSeq Gene Symbol file to dictionaries.

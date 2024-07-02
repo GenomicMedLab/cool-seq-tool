@@ -1,6 +1,7 @@
 """Wrap SeqRepo to provide additional lookup and identification methods on top of basic
 dereferencing functions.
 """
+
 import logging
 from os import environ
 from pathlib import Path
@@ -146,8 +147,7 @@ class SeqRepoAccess(SeqRepoDataProxy):
             tmp_acs, _ = self.translate_identifier(
                 f"{assembly}:chr{chromosome}", target_namespaces="refseq"
             )
-            for ac in tmp_acs:
-                acs.append(ac.split("refseq:")[-1])
+            acs += [ac.split("refseq:")[-1] for ac in tmp_acs]
         if acs:
             return acs, None
         return None, f"{chromosome} is not a valid chromosome"

@@ -1,4 +1,5 @@
 """Module for testing the Alignment Mapper class"""
+
 import pytest
 
 from cool_seq_tool.schemas import Assembly, ResidueMode

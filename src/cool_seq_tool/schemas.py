@@ -1,4 +1,5 @@
 """Defines attribute constants, useful object structures, and API response schemas."""
+
 import datetime
 from enum import Enum, IntEnum
 from typing import Literal
@@ -269,9 +270,9 @@ class ServiceMeta(BaseModelForbidExtra):
     name: Literal["cool_seq_tool"] = "cool_seq_tool"
     version: StrictStr
     response_datetime: datetime.datetime
-    url: Literal[
+    url: Literal["https://github.com/GenomicMedLab/cool-seq-tool"] = (
         "https://github.com/GenomicMedLab/cool-seq-tool"
-    ] = "https://github.com/GenomicMedLab/cool-seq-tool"
+    )
 
     model_config = ConfigDict(
         json_schema_extra={

@@ -1,4 +1,5 @@
 """Test UTA data source."""
+
 import copy
 
 import pytest

@@ -11,6 +11,7 @@ Steps:
 In addition to a mapper utility class, this module also defines several vocabulary
 constraints and data models for coordinate representation.
 """
+
 import logging
 import math
 from enum import Enum
@@ -105,7 +106,7 @@ class ManeTranscript:
 
         >>> import asyncio
         >>> result = asyncio.run(mane_mapper.g_to_grch38("NC_000001.11", 100, 200))
-        >>> result['ac']
+        >>> result["ac"]
         'NC_000001.11'
 
         See the :ref:`Usage section <async_note>` for more information.
@@ -532,11 +533,11 @@ class ManeTranscript:
         """
         start_pos = pos[0] + coding_start_site
         end_pos = pos[1] + coding_start_site
-        if self.seqrepo_access.get_reference_sequence(
-            ac, start=start_pos, end=end_pos, residue_mode=ResidueMode.INTER_RESIDUE
-        )[0]:
-            return True
-        return False
+        return bool(
+            self.seqrepo_access.get_reference_sequence(
+                ac, start=start_pos, end=end_pos, residue_mode=ResidueMode.INTER_RESIDUE
+            )[0]
+        )
 
     def _get_prioritized_transcripts_from_gene(self, df: pl.DataFrame) -> list:
         """Sort and filter transcripts from gene to get priority list
@@ -610,14 +611,16 @@ class ManeTranscript:
         ...     "NM_004333.6",
         ...     "ENST00000644969.2",
         ... }
-        >>> result = asyncio.run(mane_mapper.get_longest_compatible_transcript(
-        ...     599,
-        ...     599,
-        ...     gene="BRAF",
-        ...     start_annotation_layer=AnnotationLayer.PROTEIN,
-        ...     residue_mode=ResidueMode.INTER_RESIDUE,
-        ...     mane_transcripts=mane_transcripts,
-        ... ))
+        >>> result = asyncio.run(
+        ...     mane_mapper.get_longest_compatible_transcript(
+        ...         599,
+        ...         599,
+        ...         gene="BRAF",
+        ...         start_annotation_layer=AnnotationLayer.PROTEIN,
+        ...         residue_mode=ResidueMode.INTER_RESIDUE,
+        ...         mane_transcripts=mane_transcripts,
+        ...     )
+        ... )
         >>> result.refseq
         'NP_001365396.1'
 
@@ -868,12 +871,14 @@ class ManeTranscript:
         >>> from cool_seq_tool.schemas import AnnotationLayer, ResidueMode
         >>> import asyncio
         >>> mane_mapper = CoolSeqTool().mane_transcript
-        >>> result = asyncio.run(mane_mapper.get_mane_transcript(
-        ...     "NP_004324.2",
-        ...     599,
-        ...     AnnotationLayer.PROTEIN,
-        ...     residue_mode=ResidueMode.INTER_RESIDUE,
-        ... ))
+        >>> result = asyncio.run(
+        ...     mane_mapper.get_mane_transcript(
+        ...         "NP_004324.2",
+        ...         599,
+        ...         AnnotationLayer.PROTEIN,
+        ...         residue_mode=ResidueMode.INTER_RESIDUE,
+        ...     )
+        ... )
         >>> result.gene, result.refseq, result.status
         ('BRAF', 'NP_004324.2', <TranscriptPriority.MANE_SELECT: 'mane_select'>)
 
@@ -1085,12 +1090,11 @@ class ManeTranscript:
         >>> import asyncio
         >>> from cool_seq_tool.app import CoolSeqTool
         >>> cst = CoolSeqTool()
-        >>> result = asyncio.run(cst.mane_transcript.g_to_mane_c(
-        ...     "NC_000007.13",
-        ...     55259515,
-        ...     None,
-        ...     gene="EGFR"
-        ... ))
+        >>> result = asyncio.run(
+        ...     cst.mane_transcript.g_to_mane_c(
+        ...         "NC_000007.13", 55259515, None, gene="EGFR"
+        ...     )
+        ... )
         >>> type(result)
         <class 'cool_seq_tool.mappers.mane_transcript.CdnaRepresentation'>
         >>> result.status
