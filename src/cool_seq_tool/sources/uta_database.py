@@ -1,4 +1,5 @@
 """Provide transcript lookup and metadata tools via the UTA database."""
+
 import ast
 import base64
 import logging
@@ -121,9 +122,9 @@ class UtaDatabase:
             self.schema = schema
 
             environ["PGPASSWORD"] = password
-            environ[
-                "UTA_DB_URL"
-            ] = f"postgresql://{username}@{host}:{port}/{database}/{schema}"
+            environ["UTA_DB_URL"] = (
+                f"postgresql://{username}@{host}:{port}/{database}/{schema}"
+            )
             return {
                 "host": host,
                 "port": int(port),
@@ -195,7 +196,10 @@ class UtaDatabase:
         """
 
         async def _execute_query(q: str) -> Any:  # noqa: ANN401
-            async with self._connection_pool.acquire() as connection, connection.transaction():
+            async with (
+                self._connection_pool.acquire() as connection,
+                connection.transaction(),
+            ):
                 return await connection.fetch(q)
 
         if not self._connection_pool:
@@ -262,10 +266,7 @@ class UtaDatabase:
         :param li: List of asyncpg.Record objects
         :return: List of list of objects
         """
-        results = []
-        for item in li:
-            results.append(list(item))
-        return results
+        return [list(i) for i in li]
 
     async def get_genes_and_alt_acs(
         self,
@@ -614,10 +615,7 @@ class UtaDatabase:
                 temp_ac,
                 alt_ac,
             )
-        results = []
-        for r in result:
-            results.append(list(r))
-        return results
+        return [list(r) for r in result]
 
     @staticmethod
     def data_from_result(result: list) -> dict | None:
@@ -812,7 +810,9 @@ class UtaDatabase:
         >>> from cool_seq_tool.sources import UtaDatabase
         >>> async def get_gene():
         ...     uta_db = await UtaDatabase.create()
-        ...     result = await uta_db.get_gene_from_ac("NC_000017.11", 43044296, 43045802)
+        ...     result = await uta_db.get_gene_from_ac(
+        ...         "NC_000017.11", 43044296, 43045802
+        ...     )
         ...     return result
         >>> asyncio.run(get_gene())
         ['BRCA1']

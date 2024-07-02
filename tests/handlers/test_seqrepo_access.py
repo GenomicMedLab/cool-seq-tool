@@ -1,4 +1,5 @@
 """Module for testing seqrepo access class"""
+
 import pytest
 
 from cool_seq_tool.schemas import ResidueMode

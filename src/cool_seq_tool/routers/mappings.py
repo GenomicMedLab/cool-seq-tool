@@ -1,4 +1,5 @@
 """Module containing routes related to alignment mapping"""
+
 import logging
 
 from fastapi import APIRouter, Query

@@ -1,4 +1,5 @@
 """Enable quick status check of Cool-Seq-Tool resources."""
+
 import logging
 from collections import namedtuple
 from pathlib import Path
