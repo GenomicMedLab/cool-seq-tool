@@ -43,6 +43,7 @@ class Assembly(str, Enum):
         """Return list of values in enum (ascending assembly order)"""
         return [item.value for item in cls]
 
+
 class TranscriptPriority(str, Enum):
     """Create Enum for Transcript Priority labels"""
 
