@@ -58,6 +58,8 @@ Descriptions and examples of functions can be found in the :ref:`API Reference <
 
    See the `asyncio module documentation <https://docs.python.org/3/library/asyncio.html>`_ for more information.
 
+.. _configuration:
+
 Environment configuration
 -------------------------
 
