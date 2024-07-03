@@ -28,7 +28,7 @@ UTA_DB_URL = environ.get(
     "UTA_DB_URL", "postgresql://uta_admin:uta@localhost:5432/uta/uta_20210129b"
 )
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 def get_liftover(
@@ -160,7 +160,7 @@ class UtaDatabase:
                     database=self.args["database"],
                 )
             except InterfaceError as e:
-                logger.error(
+                _logger.error(
                     "While creating connection pool, encountered exception %s", e
                 )
                 msg = "Could not create connection pool"
@@ -223,7 +223,7 @@ class UtaDatabase:
         genomic_table_exists = await self.execute_query(check_table_exists)
         genomic_table_exists = genomic_table_exists[0].get("exists")
         if genomic_table_exists is None:
-            logger.critical(
+            _logger.critical(
                 "SELECT EXISTS query in UtaDatabase._create_genomic_table "
                 "returned invalid response"
             )
@@ -366,7 +366,7 @@ class UtaDatabase:
 
         if not result:
             msg = f"Unable to get exons for {tx_ac}"
-            logger.warning(msg)
+            _logger.warning(msg)
             return None, msg
         tx_exons = [(r["tx_start_i"], r["tx_end_i"]) for r in result]
         return tx_exons, None
@@ -393,7 +393,7 @@ class UtaDatabase:
 
         if not result:
             msg = f"Unable to get exons and genomic coordinates for {tx_ac} on {alt_ac}"
-            logger.warning(msg)
+            _logger.warning(msg)
             return None, msg
         tx_exons_genomic_coords = [
             (r["ord"], r["tx_start_i"], r["tx_end_i"], r["alt_start_i"], r["alt_end_i"])
@@ -438,7 +438,7 @@ class UtaDatabase:
             )
             if gene_query:
                 msg += f" on gene {gene}"
-            logger.warning(msg)
+            _logger.warning(msg)
             return None, msg
         result = result[0]
         return (result[0], result[1], result[2], result[3], result[4]), None
@@ -462,7 +462,7 @@ class UtaDatabase:
             if cds_start_end[0] is not None and cds_start_end[1] is not None:  # noqa: RET503
                 return cds_start_end[0], cds_start_end[1]
         else:
-            logger.warning(
+            _logger.warning(
                 "Unable to get coding start/end site for accession: %s", tx_ac
             )
             return None
@@ -535,7 +535,7 @@ class UtaDatabase:
             """  # noqa: S608
         result = await self.execute_query(query)
         if not result:
-            logger.warning("Accession %s does not have a description", ac)
+            _logger.warning("Accession %s does not have a description", ac)
             return None
         result = result[0][0]
         if result == "":
@@ -607,10 +607,10 @@ class UtaDatabase:
             """  # noqa: S608
         result = await self.execute_query(query)
         if not result:
-            logger.warning("Unable to find transcript alignment for query: %s", query)
+            _logger.warning("Unable to find transcript alignment for query: %s", query)
             return []
         if alt_ac and not use_tx_pos and len(result) > 1:
-            logger.debug(
+            _logger.debug(
                 "Found more than one match for tx_ac %s and alt_ac = %s",
                 temp_ac,
                 alt_ac,
@@ -633,7 +633,7 @@ class UtaDatabase:
         alt_exon_id = result[10]
 
         if (tx_pos_range[1] - tx_pos_range[0]) != (alt_pos_range[1] - alt_pos_range[0]):
-            logger.warning(
+            _logger.warning(
                 "tx_pos_range %s is not the same length as alt_pos_range %s.",
                 tx_pos_range,
                 alt_pos_range,
@@ -691,7 +691,7 @@ class UtaDatabase:
 
         coding_start_site = await self.get_cds_start_end(ac)
         if coding_start_site is None:
-            logger.warning("Accession %s not found in UTA", ac)
+            _logger.warning("Accession %s not found in UTA", ac)
             return None
 
         data["tx_ac"] = result[1]
@@ -833,12 +833,12 @@ class UtaDatabase:
             """  # noqa: S608
         results = await self.execute_query(query)
         if not results:
-            logger.warning(
+            _logger.warning(
                 "Unable to find gene between %s and %s on %s", start_pos, end_pos, ac
             )
             return None
         if len(results) > 1:
-            logger.info(
+            _logger.info(
                 "Found more than one gene between %s and %s on %s",
                 start_pos,
                 end_pos,
@@ -942,7 +942,7 @@ class UtaDatabase:
         assembly = f"GRCh{descr[1].split('.')[0].split('GRCh')[-1]}"
 
         if assembly not in ["GRCh37", "GRCh38"]:
-            logger.warning(
+            _logger.warning(
                 "Assembly not supported: %s. Only GRCh37 and GRCh38 are supported.",
                 assembly,
             )
@@ -970,7 +970,7 @@ class UtaDatabase:
         nc_acs = await self.execute_query(query)
         nc_acs = [nc_ac[0] for nc_ac in nc_acs]
         if nc_acs == [genomic_tx_data["alt_ac"]]:
-            logger.warning(
+            _logger.warning(
                 "UTA does not have GRCh38 assembly for %s",
                 genomic_tx_data["alt_ac"].split(".")[0],
             )
@@ -1015,7 +1015,7 @@ class UtaDatabase:
         :return: Target chromosome and target position for assembly
         """
         if not chromosome.startswith("chr"):
-            logger.warning("`chromosome` must be prefixed with chr")
+            _logger.warning("`chromosome` must be prefixed with chr")
             return None
 
         if liftover_to_assembly == Assembly.GRCH38:
@@ -1023,11 +1023,11 @@ class UtaDatabase:
         elif liftover_to_assembly == Assembly.GRCH37:
             liftover = self.liftover_38_to_37.convert_coordinate(chromosome, pos)
         else:
-            logger.warning("%s assembly not supported", liftover_to_assembly)
+            _logger.warning("%s assembly not supported", liftover_to_assembly)
             liftover = None
 
         if not liftover:
-            logger.warning("%s does not exist on %s", pos, chromosome)
+            _logger.warning("%s does not exist on %s", pos, chromosome)
             return None
         return liftover[0][:2]
 
@@ -1050,7 +1050,7 @@ class UtaDatabase:
             chromosome, genomic_tx_data[key][0], liftover_to_assembly
         )
         if liftover_start_i is None:
-            logger.warning(
+            _logger.warning(
                 "Unable to liftover position %s on %s",
                 genomic_tx_data[key][0],
                 chromosome,
@@ -1061,7 +1061,7 @@ class UtaDatabase:
             chromosome, genomic_tx_data[key][1], liftover_to_assembly
         )
         if liftover_end_i is None:
-            logger.warning(
+            _logger.warning(
                 "Unable to liftover position %s on %s",
                 genomic_tx_data[key][1],
                 chromosome,
@@ -1132,7 +1132,7 @@ class UtaDatabase:
         try:
             get_secret_value_response = client.get_secret_value(SecretId=secret_name)
         except ClientError as e:
-            logger.warning(e)
+            _logger.warning(e)
             if e.response["Error"]["Code"] in {
                 # Secrets Manager can"t decrypt the protected secret text using the provided KMS key.
                 "DecryptionFailureException",

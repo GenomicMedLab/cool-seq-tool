@@ -14,7 +14,7 @@ from cool_seq_tool.routers import (
 from cool_seq_tool.schemas import AnnotationLayer, ManeDataService, ResidueMode
 from cool_seq_tool.utils import service_meta
 
-logger = logging.getLogger("cool_seq_tool")
+_logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix=f"/{SERVICE_NAME}/mane")
 
@@ -90,7 +90,7 @@ async def get_mane_data(
         if not mane_data:
             warnings.append("Unable to retrieve MANE data")
     except Exception as e:
-        logger.exception("get_mane_data unhandled exception %s", e)
+        _logger.exception("get_mane_data unhandled exception %s", e)
         warnings.append(UNHANDLED_EXCEPTION_MSG)
 
     return ManeDataService(

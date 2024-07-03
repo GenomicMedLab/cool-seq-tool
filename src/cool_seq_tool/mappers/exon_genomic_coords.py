@@ -23,7 +23,7 @@ CoordinatesResponseType = TypeVar(
     "CoordinatesResponseType", GenomicDataResponse, TranscriptExonDataResponse
 )
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 class ExonGenomicCoordsMapper:
@@ -80,7 +80,7 @@ class ExonGenomicCoordsMapper:
             ``genomic_data`` field is ``None``
         :return: Response object with warning message
         """
-        logger.warning(warning_msg)
+        _logger.warning(warning_msg)
         resp.warnings.append(warning_msg)
         return resp
 
@@ -436,7 +436,7 @@ class ExonGenomicCoordsMapper:
         """
         if tx_exon_start is None and tx_exon_end is None:
             msg = "Must provide either `tx_exon_start` or `tx_exon_end` or both"
-            logger.warning(msg)
+            _logger.warning(msg)
             return None, msg
 
         alt_ac_data = {"start": None, "end": None}
@@ -462,7 +462,7 @@ class ExonGenomicCoordsMapper:
                         error = "Genomic accession does not match"
                     else:
                         error = "Strand does not match"
-                    logger.warning(
+                    _logger.warning(
                         "%s: %s != %s",
                         error,
                         alt_ac_data["start"][i],
@@ -726,7 +726,7 @@ class ExonGenomicCoordsMapper:
             msg = f"Unable to find mane data for {alt_ac} with position {pos}"
             if gene:
                 msg += f" on gene {gene}"
-            logger.warning(msg)
+            _logger.warning(msg)
             return msg
 
         params["gene"] = mane_data.gene
@@ -750,7 +750,7 @@ class ExonGenomicCoordsMapper:
                 f"{params['transcript']} with position {tx_pos} "
                 f"does not exist on exons: {tx_exons}"
             )
-            logger.warning(msg)
+            _logger.warning(msg)
             return msg
 
         strand_to_use = strand if strand is not None else mane_data.strand

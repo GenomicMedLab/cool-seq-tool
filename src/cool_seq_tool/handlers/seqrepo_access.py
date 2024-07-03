@@ -11,7 +11,7 @@ from ga4gh.vrs.dataproxy import SeqRepoDataProxy
 from cool_seq_tool.schemas import ResidueMode
 from cool_seq_tool.utils import get_inter_residue_pos
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 SEQREPO_ROOT_DIR = environ.get("SEQREPO_ROOT_DIR", "/usr/local/share/seqrepo/latest")
@@ -66,7 +66,7 @@ class SeqRepoAccess(SeqRepoDataProxy):
             sequence = self.sr.fetch(ac, start=start, end=end)
         except KeyError:
             msg = f"Accession, {ac}, not found in SeqRepo"
-            logger.warning(msg)
+            _logger.warning(msg)
             return "", msg
         except ValueError as e:
             error = str(e)
@@ -80,7 +80,7 @@ class SeqRepoAccess(SeqRepoDataProxy):
                 )
             else:
                 msg = f"{e}"
-            logger.warning(msg)
+            _logger.warning(msg)
             return "", msg
         else:
             # If start is valid, but end is invalid, SeqRepo still returns
@@ -118,7 +118,7 @@ class SeqRepoAccess(SeqRepoDataProxy):
             )
         except KeyError:
             msg = f"SeqRepo unable to get translated identifiers for {ac}"
-            logger.warning(msg)
+            _logger.warning(msg)
             return [], msg
         else:
             return ga4gh_identifiers, None
@@ -133,7 +133,7 @@ class SeqRepoAccess(SeqRepoDataProxy):
             return self.sr.translate_alias(input_str), None
         except KeyError:
             msg = f"SeqRepo could not translate alias {input_str}"
-            logger.warning(msg)
+            _logger.warning(msg)
             return [], msg
 
     def chromosome_to_acs(self, chromosome: str) -> tuple[list[str] | None, str | None]:

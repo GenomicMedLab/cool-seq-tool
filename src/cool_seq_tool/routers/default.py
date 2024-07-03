@@ -22,7 +22,7 @@ from cool_seq_tool.schemas import (
 )
 from cool_seq_tool.utils import service_meta
 
-logger = logging.getLogger("cool_seq_tool")
+_logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix=f"/{SERVICE_NAME}")
 
@@ -54,7 +54,9 @@ async def genomic_to_transcript_exon_coordinates(
             **request_body
         )
     except Exception as e:
-        logger.error("genomic_to_transcript_exon_coordinates unhandled exception %s", e)
+        _logger.error(
+            "genomic_to_transcript_exon_coordinates unhandled exception %s", e
+        )
         response.warnings.append(UNHANDLED_EXCEPTION_MSG)
 
     return response
@@ -89,7 +91,7 @@ async def transcript_to_genomic_coordinates(
             )
         )
     except Exception as e:
-        logger.error("transcript_to_genomic_coordinates unhandled exception %s", e)
+        _logger.error("transcript_to_genomic_coordinates unhandled exception %s", e)
         response.warnings.append(UNHANDLED_EXCEPTION_MSG)
 
     return response

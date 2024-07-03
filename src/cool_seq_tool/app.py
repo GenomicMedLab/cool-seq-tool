@@ -17,7 +17,7 @@ from cool_seq_tool.sources.mane_transcript_mappings import ManeTranscriptMapping
 from cool_seq_tool.sources.transcript_mappings import TranscriptMappings
 from cool_seq_tool.sources.uta_database import UTA_DB_URL, UtaDatabase
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 class CoolSeqTool:

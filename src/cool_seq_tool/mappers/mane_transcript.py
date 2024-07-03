@@ -35,7 +35,7 @@ from cool_seq_tool.sources import (
 )
 from cool_seq_tool.utils import get_inter_residue_pos
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 class EndAnnotationLayer(str, Enum):
@@ -168,10 +168,10 @@ class ManeTranscript:
                 elif ac.startswith("ENSP"):
                     ac = self.transcript_mappings.ensp_to_enst[ac]
                 else:
-                    logger.warning("Unable to find accession: %s", ac)
+                    _logger.warning("Unable to find accession: %s", ac)
                     return None
             except KeyError:
-                logger.warning("%s not found in transcript_mappings", ac)
+                _logger.warning("%s not found in transcript_mappings", ac)
                 return None
 
         pos = self._p_to_c_pos(start_pos, end_pos)
@@ -196,7 +196,7 @@ class ManeTranscript:
                     0
                 ]
             ):
-                logger.warning("Ensembl transcript not found: %s", ac)
+                _logger.warning("Ensembl transcript not found: %s", ac)
                 return None
 
             temp_ac = ac.split(".")[0]
@@ -206,7 +206,7 @@ class ManeTranscript:
         # c. coordinate does not contain cds start, so we need to add it
         cds_start_end = await self.uta_db.get_cds_start_end(temp_ac)
         if not cds_start_end:
-            logger.warning("Accession %s not found in UTA", temp_ac)
+            _logger.warning("Accession %s not found in UTA", temp_ac)
             return None
         coding_start_site = cds_start_end[0]
         pos = pos[0] + coding_start_site, pos[1] + coding_start_site
@@ -237,7 +237,7 @@ class ManeTranscript:
             tx_ac, pos, annotation_layer, alt_ac=alt_ac
         )
         if not genomic_tx_data:
-            logger.warning(
+            _logger.warning(
                 "Unable to find genomic_tx_data for %s at position %s on annotation layer %s",
                 alt_ac,
                 pos,
@@ -255,7 +255,7 @@ class ManeTranscript:
 
             # Validation check: Exon structure
             if og_alt_exon_id != liftover_alt_exon_id:
-                logger.warning(
+                _logger.warning(
                     "Original alt_exon_id %s does not match liftover alt_exon_id %s",
                     og_alt_exon_id,
                     liftover_alt_exon_id,
@@ -293,7 +293,7 @@ class ManeTranscript:
         gt_cds_end = c_pos_change[1] > cds_end and c_pos_change[1] > cds_end
 
         if lt_cds_start or gt_cds_end:
-            logger.info(
+            _logger.info(
                 "%s with position %s is not within CDS start/end",
                 refseq_c_ac,
                 c_pos_change,
@@ -381,7 +381,7 @@ class ManeTranscript:
             )
 
             if not result:
-                logger.warning(
+                _logger.warning(
                     "Unable to find transcript, %s, position change", refseq_c_ac
                 )
                 return None
@@ -438,7 +438,7 @@ class ManeTranscript:
                 new_rf = self._get_reading_frame(transcript_data.pos[pos_index])
 
                 if og_rf != new_rf:
-                    logger.warning(
+                    _logger.warning(
                         "%s original reading frame (%s) does not match new %s, %s reading frame (%s)",
                         ac,
                         og_rf,
@@ -449,7 +449,7 @@ class ManeTranscript:
                     return False
             else:
                 if pos_index == 0:
-                    logger.warning("%s must having start position", ac)
+                    _logger.warning("%s must having start position", ac)
                     return False
         return True
 
@@ -503,10 +503,10 @@ class ManeTranscript:
                 residue_mode=residue_mode,
             )
             if not mane_ref:
-                logger.info("Unable to validate reference for MANE Transcript")
+                _logger.info("Unable to validate reference for MANE Transcript")
 
             if expected_ref != mane_ref:
-                logger.info(
+                _logger.info(
                     "Expected ref, %s, but got %s on MANE accession, %s",
                     expected_ref,
                     mane_ref,
@@ -514,7 +514,7 @@ class ManeTranscript:
                 )
 
         if expected_ref != ref:
-            logger.warning(
+            _logger.warning(
                 "Expected ref, %s, but got %s on accession, %s", expected_ref, ref, ac
             )
             return False
@@ -692,7 +692,7 @@ class ManeTranscript:
             )
 
         if df.is_empty():
-            logger.warning("Unable to get transcripts from gene %s", gene)
+            _logger.warning("Unable to get transcripts from gene %s", gene)
             return lcr_result
 
         prioritized_tx_acs = self._get_prioritized_transcripts_from_gene(df)
@@ -814,7 +814,7 @@ class ManeTranscript:
                 pos = lcr_result.pos
 
                 if not self._validate_index(ac, pos, coding_start_site):
-                    logger.warning(
+                    _logger.warning(
                         "%s are not valid positions on %s with coding start site %s",
                         pos,
                         ac,
@@ -841,7 +841,7 @@ class ManeTranscript:
                 pos = lcr_result_dict[k]["pos"]
                 if not self._validate_index(ac, pos, cds):
                     valid = False
-                    logger.warning(
+                    _logger.warning(
                         "%s are not valid positions on %s with coding start site %s",
                         pos,
                         ac,
@@ -999,7 +999,7 @@ class ManeTranscript:
             return await self.g_to_mane_c(
                 ac, start_pos, end_pos, gene=gene, residue_mode=residue_mode
             )
-        logger.warning("Annotation layer not supported: %s", start_annotation_layer)
+        _logger.warning("Annotation layer not supported: %s", start_annotation_layer)
         return None
 
     async def g_to_grch38(self, ac: str, start_pos: int, end_pos: int) -> dict | None:
@@ -1025,7 +1025,7 @@ class ManeTranscript:
 
         # Coordinate liftover
         if assembly < "GRCh37":
-            logger.warning("Liftover only supported for GRCh37")
+            _logger.warning("Liftover only supported for GRCh37")
             return None
 
         liftover_start_i = self.uta_db.get_liftover(
@@ -1130,7 +1130,7 @@ class ManeTranscript:
             )
 
         if not await self.uta_db.validate_genomic_ac(ac):
-            logger.warning("Genomic accession does not exist: %s", ac)
+            _logger.warning("Genomic accession does not exist: %s", ac)
             return None
 
         mane_data = self.mane_transcript_mappings.get_gene_mane_data(gene)
@@ -1156,7 +1156,7 @@ class ManeTranscript:
                 )
                 if not mane_tx_genomic_data:
                     continue
-                logger.info("Not using most recent assembly")
+                _logger.info("Not using most recent assembly")
 
             coding_start_site = mane_tx_genomic_data["coding_start_site"]
             coding_end_site = mane_tx_genomic_data["coding_end_site"]
@@ -1167,7 +1167,7 @@ class ManeTranscript:
             if not self._validate_index(
                 mane_c_ac, mane_c_pos_change, coding_start_site
             ):
-                logger.warning(
+                _logger.warning(
                     "%s are not valid positions on %s with coding start site %s",
                     mane_c_pos_change,
                     mane_c_ac,
@@ -1257,7 +1257,7 @@ class ManeTranscript:
             if not self._validate_index(
                 mane_c_ac, mane_c_pos_change, coding_start_site
             ):
-                logger.warning(
+                _logger.warning(
                     "%s are not valid positions on %s with coding start site %s",
                     mane_c_pos_change,
                     mane_c_ac,
