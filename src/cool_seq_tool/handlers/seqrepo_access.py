@@ -143,7 +143,7 @@ class SeqRepoAccess(SeqRepoDataProxy):
         :return: Accessions for chromosome (ordered by latest assembly)
         """
         acs = []
-        for assembly in ["GRCh38", "GRCh37"]:
+        for assembly in Assembly.__members__:
             tmp_acs, _ = self.translate_identifier(
                 f"{assembly}:{process_chromosome_input(chromosome)}",
                 target_namespaces="refseq",
