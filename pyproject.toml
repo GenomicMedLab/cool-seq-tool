@@ -32,7 +32,6 @@ dependencies = [
     "hgvs",
     "biocommons.seqrepo",
     "pydantic == 2.*",
-    "uvicorn",
     "ga4gh.vrs",
     "wags-tails ~= 0.1.3"
 ]
