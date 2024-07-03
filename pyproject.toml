@@ -9,7 +9,6 @@ authors = [
 readme = "README.md"
 classifiers = [
     "Development Status :: 3 - Alpha",
-    "Framework :: FastAPI",
     "Framework :: Pydantic",
     "Framework :: Pydantic :: 2",
     "Intended Audience :: Science/Research",
@@ -34,7 +33,6 @@ dependencies = [
     "biocommons.seqrepo",
     "pydantic == 2.*",
     "uvicorn",
-    "fastapi",
     "ga4gh.vrs",
     "wags-tails ~= 0.1.3"
 ]
@@ -177,9 +175,6 @@ lint.ignore = [
 "tests/*" = ["ANN001", "ANN2", "ANN102", "S101", "INP001", "SLF001", "ARG001"]
 "*__init__.py" = ["F401"]
 "src/cool_seq_tool/schemas.py" = ["ANN201", "N805", "ANN001"]
-
-[tool.ruff.lint.flake8-bugbear]
-extend-immutable-calls = ["fastapi.Query"]
 
 [tool.ruff.format]
 docstring-code-format = true
