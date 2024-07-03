@@ -1024,7 +1024,7 @@ class ManeTranscript:
         is_same_pos = start_pos == end_pos
 
         # Coordinate liftover
-        if assembly < "GRCh37":
+        if assembly < Assembly.GRCH37:
             _logger.warning("Liftover only supported for GRCh37")
             return None
 

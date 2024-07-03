@@ -928,7 +928,7 @@ class UtaDatabase:
             results_df = results_df.unique()
         return results_df
 
-    async def get_chr_assembly(self, ac: str) -> tuple[str, str] | None:
+    async def get_chr_assembly(self, ac: str) -> tuple[str, Assembly] | None:
         """Get chromosome and assembly for NC accession if not in GRCh38.
 
         >>> import asyncio
@@ -936,7 +936,7 @@ class UtaDatabase:
         >>> uta_db = asyncio.run(UtaDatabase.create())
         >>> result = asyncio.run(uta_db.get_chr_assembly("NC_000007.13"))
         >>> result
-        ('chr7', 'GRCh37')
+        ('chr7', <Assembly.GRCH37: 'GRCh37'>)
 
         Returns ``None`` if unable to find (either unrecognized/invalid, or
         a GRCh38 accession).
@@ -952,11 +952,10 @@ class UtaDatabase:
         chromosome = f"chr{descr[0].split()[-1]}"
         assembly = f"GRCh{descr[1].split('.')[0].split('GRCh')[-1]}"
 
-        if assembly not in ["GRCh37", "GRCh38"]:
-            _logger.warning(
-                "Assembly not supported: %s. Only GRCh37 and GRCh38 are supported.",
-                assembly,
-            )
+        try:
+            assembly = Assembly(assembly)
+        except ValueError as e:
+            _logger.error(e)
             return None
 
         return chromosome, assembly

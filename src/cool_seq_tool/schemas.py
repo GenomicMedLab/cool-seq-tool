@@ -33,11 +33,15 @@ class Strand(IntEnum):
 
 
 class Assembly(str, Enum):
-    """Create Enum for supported genomic assemblies"""
+    """Define supported genomic assemblies. Must be defined in ascending order"""
 
     GRCH37 = "GRCh37"
     GRCH38 = "GRCh38"
 
+    @classmethod
+    def values(cls) -> list[str]:
+        """Return list of values in enum (ascending assembly order)"""
+        return [item.value for item in cls]
 
 class TranscriptPriority(str, Enum):
     """Create Enum for Transcript Priority labels"""
@@ -371,7 +375,7 @@ class MappedManeData(BaseModel):
                 "strand": Strand.NEGATIVE,
                 "status": TranscriptPriority.MANE_PLUS_CLINICAL,
                 "alt_ac": "NC_000007.13",
-                "assembly": "GRCh37",
+                "assembly": Assembly.GRCH37,
             }
         }
     )
@@ -394,7 +398,7 @@ class MappedManeDataService(BaseModelForbidExtra):
                     "strand": Strand.NEGATIVE,
                     "status": TranscriptPriority.MANE_PLUS_CLINICAL,
                     "alt_ac": "NC_000007.13",
-                    "assembly": "GRCh37",
+                    "assembly": Assembly.GRCH37,
                 },
                 "warnings": [],
                 "service_meta": {

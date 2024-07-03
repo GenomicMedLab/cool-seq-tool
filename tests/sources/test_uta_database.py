@@ -314,6 +314,10 @@ async def test_get_chr_assembly(test_db):
     resp = await test_db.get_chr_assembly("NC_000007.14")
     assert resp is None
 
+    # Invalid ac
+    resp = await test_db.get_chr_assembly("NC_00000714")
+    assert resp is None
+
 
 @pytest.mark.asyncio()
 async def test_liftover_to_38(test_db, genomic_tx_data):
