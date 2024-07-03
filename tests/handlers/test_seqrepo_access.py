@@ -118,6 +118,9 @@ def test_chromosome_to_acs(test_seqrepo_access):
     resp = test_seqrepo_access.chromosome_to_acs("7")
     assert resp == (["NC_000007.14", "NC_000007.13"], None)
 
+    resp = test_seqrepo_access.chromosome_to_acs("chr7")
+    assert resp == (["NC_000007.14", "NC_000007.13"], None)
+
     resp = test_seqrepo_access.chromosome_to_acs("X")
     assert resp == (["NC_000023.11", "NC_000023.10"], None)
 
@@ -125,7 +128,7 @@ def test_chromosome_to_acs(test_seqrepo_access):
     assert resp == (["NC_000024.10", "NC_000024.9"], None)
 
     resp = test_seqrepo_access.chromosome_to_acs("117")
-    assert resp == (None, "117 is not a valid chromosome")
+    assert resp == (None, 'Unable to find matching accessions for "117" in SeqRepo.')
 
 
 def test_ac_to_chromosome(test_seqrepo_access):

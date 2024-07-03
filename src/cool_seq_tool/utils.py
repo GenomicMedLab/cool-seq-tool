@@ -3,6 +3,8 @@
 import datetime
 import logging
 
+from bioutils.accessions import chr22XY
+
 from cool_seq_tool import __version__
 from cool_seq_tool.schemas import ResidueMode, ServiceMeta
 
@@ -47,3 +49,41 @@ def service_meta() -> ServiceMeta:
         version=__version__,
         response_datetime=datetime.datetime.now(tz=datetime.timezone.utc),
     )
+
+
+def process_chromosome_input(chromosome: str, context: str = "") -> str:
+    """Perform processing on a chromosome arg.
+
+    E.g.
+
+    >>> from cool_seq_tool.utils import process_chromosome_input
+    >>> process_chromosome_input("7")
+    'chr7'
+    >>> process_chromosome_input("x")
+    'chrX'
+    >>> process_chromosome_input("chr7")
+    'chr7'
+
+    In the future, we could also use this method to be more opinionated about legal
+    chromosome values, or throw exceptions in the event of invalid or unrecognized
+    terms.
+
+    :param chromosome: user-provided chromosome input
+    :param context: calling context to provide in log
+    :return: processed chromosome value. Idempotent -- returns original value if no
+        changes needed.
+    """
+    original_chromosome_value = chromosome
+    if chromosome.lower().startswith("chr"):
+        chromosome = f"chr{chromosome[3:].upper()}"
+    else:
+        chromosome = chromosome.upper()
+    chromosome = chr22XY(chromosome)
+    if original_chromosome_value != chromosome:
+        _logger.warning(
+            "Transformed provided chromosome value from `%s` to `%s` in `%s`",
+            original_chromosome_value,
+            chromosome,
+            context if context else "cool_seq_tool",
+        )
+    return chromosome
