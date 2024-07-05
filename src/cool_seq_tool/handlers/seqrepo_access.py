@@ -9,7 +9,7 @@ from pathlib import Path
 from ga4gh.vrs.dataproxy import SeqRepoDataProxy
 
 from cool_seq_tool.schemas import ResidueMode
-from cool_seq_tool.utils import get_inter_residue_pos
+from cool_seq_tool.utils import get_inter_residue_pos, process_chromosome_input
 
 _logger = logging.getLogger(__name__)
 
@@ -145,12 +145,16 @@ class SeqRepoAccess(SeqRepoDataProxy):
         acs = []
         for assembly in ["GRCh38", "GRCh37"]:
             tmp_acs, _ = self.translate_identifier(
-                f"{assembly}:chr{chromosome}", target_namespaces="refseq"
+                f"{assembly}:{process_chromosome_input(chromosome)}",
+                target_namespaces="refseq",
             )
             acs += [ac.split("refseq:")[-1] for ac in tmp_acs]
         if acs:
             return acs, None
-        return None, f"{chromosome} is not a valid chromosome"
+        return (
+            None,
+            f'Unable to find matching accessions for "{chromosome}" in SeqRepo.',
+        )
 
     def ac_to_chromosome(self, ac: str) -> tuple[str | None, str | None]:
         """Get chromosome for accession.

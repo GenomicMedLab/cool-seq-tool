@@ -427,6 +427,16 @@ async def test_genomic_to_transcript_fusion_context(
     genomic_data_assertion_checks(resp, zbtb10_exon3_end)
 
     inputs = {
+        "chromosome": "chr8",
+        "end": 80514010,
+        "strand": Strand.POSITIVE,
+        "gene": "ZBTB10",
+        "get_nearest_transcript_junction": True,
+    }
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
+    genomic_data_assertion_checks(resp, zbtb10_exon3_end)
+
+    inputs = {
         "chromosome": "8",
         "start": 80518581,
         "strand": Strand.POSITIVE,

@@ -259,9 +259,8 @@ class ExonGenomicCoordsMapper:
         >>> result.genomic_data.exon_start, result.genomic_data.exon_end
         (1, 8)
 
-        :param chromosome: Chromosome. Must give chromosome without a prefix
-            (i.e. ``1`` or ``X``). If not provided, must provide ``alt_ac``.
-            If ``alt_ac`` is also provided, ``alt_ac`` will be used.
+        :param chromosome: e.g. ``"1"`` or ``"chr1"``. If not provided, must provide
+            ``alt_ac``. If ``alt_ac`` is also provided, ``alt_ac`` will be used.
         :param alt_ac: Genomic accession (i.e. ``NC_000001.11``). If not provided,
             must provide ``chromosome. If ``chromosome`` is also provided, ``alt_ac``
             will be used.

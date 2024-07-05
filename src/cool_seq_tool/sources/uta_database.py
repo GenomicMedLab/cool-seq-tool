@@ -16,6 +16,7 @@ from asyncpg.exceptions import InterfaceError, InvalidAuthorizationSpecification
 from botocore.exceptions import ClientError
 
 from cool_seq_tool.schemas import AnnotationLayer, Assembly, Strand
+from cool_seq_tool.utils import process_chromosome_input
 
 # use `bound` to upper-bound UtaDatabase or child classes
 UTADatabaseType = TypeVar("UTADatabaseType", bound="UtaDatabase")
@@ -284,7 +285,7 @@ class UtaDatabase:
             (i.e. ``1`` or ``X``). If not provided, must provide ``alt_ac``.
             If ``alt_ac`` is also provided, ``alt_ac`` will be used.
         :param alt_ac: Genomic accession (i.e. ``NC_000001.11``). If not provided,
-            must provide ``chromosome. If ``chromosome`` is also provided, ``alt_ac``
+            must provide ``chromosome``. If ``chromosome`` is also provided, ``alt_ac``
             will be used.
         :param gene: Gene symbol
         :return: Dictionary containing genes and genomic accessions and warnings if found
@@ -930,8 +931,18 @@ class UtaDatabase:
     async def get_chr_assembly(self, ac: str) -> tuple[str, str] | None:
         """Get chromosome and assembly for NC accession if not in GRCh38.
 
-        :param ac: NC accession
-        :return: Chromosome and Assembly accession is on
+        >>> import asyncio
+        >>> from cool_seq_tool.sources.uta_database import UtaDatabase
+        >>> uta_db = asyncio.run(UtaDatabase.create())
+        >>> result = asyncio.run(uta_db.get_chr_assembly("NC_000007.13"))
+        >>> result
+        ('chr7', 'GRCh37')
+
+        Returns ``None`` if unable to find (either unrecognized/invalid, or
+        a GRCh38 accession).
+
+        :param ac: RefSeq NC accession, eg ``"NC_000007.13"``
+        :return: Chromosome and assembly that accession is on, if available.
         """
         descr = await self.get_ac_descr(ac)
         if not descr:
@@ -1009,15 +1020,26 @@ class UtaDatabase:
     ) -> tuple[str, int] | None:
         """Get new genome assembly data for a position on a chromosome.
 
-        :param chromosome: The chromosome number. Must be prefixed with ``chr``
+        Use a UCSC-style chromosome name:
+
+        >>> import asyncio
+        >>> from cool_seq_tool.sources import UtaDatabase
+        >>> from cool_seq_tool.schemas import Assembly
+        >>> uta = asyncio.run(UtaDatabase.create())
+        >>> asyncio.run(uta.get_liftover("chr5", 39998, Assembly.GRCH38))
+        ('chr7', 39998)
+
+        Chromosome names can also be NCBI-style, without prefixes:
+
+        >>> asyncio.run(uta.get_liftover("5", 39998, Assembly.GRCH38))
+        ('chr7', 39998)
+
+        :param chromosome: The chromosome number, e.g. ``"chr7"``, ``"chrX"``, ``"5"``.
         :param pos: Position on the chromosome
         :param liftover_to_assembly: Assembly to liftover to
         :return: Target chromosome and target position for assembly
         """
-        if not chromosome.startswith("chr"):
-            _logger.warning("`chromosome` must be prefixed with chr")
-            return None
-
+        chromosome = process_chromosome_input(chromosome, "UtaDatabase.get_liftover()")
         if liftover_to_assembly == Assembly.GRCH38:
             liftover = self.liftover_37_to_38.convert_coordinate(chromosome, pos)
         elif liftover_to_assembly == Assembly.GRCH37:
