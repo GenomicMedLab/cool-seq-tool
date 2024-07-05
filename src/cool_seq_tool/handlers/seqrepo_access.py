@@ -8,7 +8,7 @@ from pathlib import Path
 
 from ga4gh.vrs.dataproxy import SeqRepoDataProxy
 
-from cool_seq_tool.schemas import ResidueMode
+from cool_seq_tool.schemas import Assembly, ResidueMode
 from cool_seq_tool.utils import get_inter_residue_pos, process_chromosome_input
 
 _logger = logging.getLogger(__name__)
@@ -143,7 +143,7 @@ class SeqRepoAccess(SeqRepoDataProxy):
         :return: Accessions for chromosome (ordered by latest assembly)
         """
         acs = []
-        for assembly in ["GRCh38", "GRCh37"]:
+        for assembly in reversed(Assembly.values()):
             tmp_acs, _ = self.translate_identifier(
                 f"{assembly}:{process_chromosome_input(chromosome)}",
                 target_namespaces="refseq",
