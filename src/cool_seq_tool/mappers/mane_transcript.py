@@ -21,6 +21,7 @@ import polars as pl
 from pydantic import BaseModel
 
 from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
+from cool_seq_tool.mappers.liftover import LiftOver
 from cool_seq_tool.schemas import (
     AnnotationLayer,
     Assembly,
@@ -92,6 +93,7 @@ class ManeTranscript:
         transcript_mappings: TranscriptMappings,
         mane_transcript_mappings: ManeTranscriptMappings,
         uta_db: UtaDatabase,
+        liftover: LiftOver,
     ) -> None:
         """Initialize the ManeTranscript class.
 
@@ -117,11 +119,13 @@ class ManeTranscript:
         :param mane_transcript_mappings: Access to MANE Transcript accession mapping
             data
         :param uta_db: UtaDatabase instance to give access to query UTA database
+        :param liftover: Instance to provide mapping between human genome assemblies
         """
         self.seqrepo_access = seqrepo_access
         self.transcript_mappings = transcript_mappings
         self.mane_transcript_mappings = mane_transcript_mappings
         self.uta_db = uta_db
+        self.liftover = liftover
 
     @staticmethod
     def _get_reading_frame(pos: int) -> int:
@@ -215,6 +219,99 @@ class ManeTranscript:
             ac, pos, AnnotationLayer.CDNA, coding_start_site=coding_start_site
         )
 
+    async def _liftover_to_38(self, genomic_tx_data: dict) -> None:
+        """Liftover genomic_tx_data to hg38 assembly.
+
+        :param genomic_tx_data: Dictionary containing gene, nc_accession, alt_pos, and
+            strand. This will be mutated in-place if not GRCh38 assembly.
+        """
+        descr = await self.uta_db.get_chr_assembly(genomic_tx_data["alt_ac"])
+        if descr is None:
+            # already grch38
+            return
+        chromosome, _ = descr
+
+        query = f"""
+            SELECT DISTINCT alt_ac
+            FROM {self.uta_db.schema}.tx_exon_aln_v
+            WHERE tx_ac = '{genomic_tx_data['tx_ac']}';
+            """  # noqa: S608
+        nc_acs = await self.uta_db.execute_query(query)
+        nc_acs = [nc_ac[0] for nc_ac in nc_acs]
+        if nc_acs == [genomic_tx_data["alt_ac"]]:
+            _logger.warning(
+                "UTA does not have GRCh38 assembly for %s",
+                genomic_tx_data["alt_ac"].split(".")[0],
+            )
+            return
+
+        # Get most recent assembly version position
+        # Liftover range
+        self._set_liftover(
+            genomic_tx_data, "alt_pos_range", chromosome, Assembly.GRCH38
+        )
+
+        # Liftover changes range
+        self._set_liftover(
+            genomic_tx_data, "alt_pos_change_range", chromosome, Assembly.GRCH38
+        )
+
+        # Change alt_ac to most recent
+        if genomic_tx_data["alt_ac"].startswith("EN"):
+            order_by_cond = "ORDER BY alt_ac DESC;"
+        else:
+            order_by_cond = """
+            ORDER BY CAST(SUBSTR(alt_ac, position('.' in alt_ac) + 1,
+            LENGTH(alt_ac)) AS INT) DESC;
+            """
+        query = f"""
+            SELECT alt_ac
+            FROM {self.uta_db.schema}.genomic
+            WHERE alt_ac LIKE '{genomic_tx_data['alt_ac'].split('.')[0]}%'
+            {order_by_cond}
+            """  # noqa: S608
+        nc_acs = await self.uta_db.execute_query(query)
+        genomic_tx_data["alt_ac"] = nc_acs[0][0]
+
+    def _set_liftover(
+        self,
+        genomic_tx_data: dict,
+        key: str,
+        chromosome: str,
+        liftover_to_assembly: Assembly,
+    ) -> None:
+        """Update genomic_tx_data to have coordinates for given assembly.
+
+        :param genomic_tx_data: Dictionary containing gene, nc_accession, alt_pos, and
+            strand
+        :param key: Key to access coordinate positions
+        :param chromosome: Chromosome, must be prefixed with ``chr``
+        :param liftover_to_assembly: Assembly to liftover to
+        """
+        liftover_start_i = self.liftover.get_liftover(
+            chromosome, genomic_tx_data[key][0], liftover_to_assembly
+        )
+        if liftover_start_i is None:
+            _logger.warning(
+                "Unable to liftover position %s on %s",
+                genomic_tx_data[key][0],
+                chromosome,
+            )
+            return
+
+        liftover_end_i = self.liftover.get_liftover(
+            chromosome, genomic_tx_data[key][1], liftover_to_assembly
+        )
+        if liftover_end_i is None:
+            _logger.warning(
+                "Unable to liftover position %s on %s",
+                genomic_tx_data[key][1],
+                chromosome,
+            )
+            return
+
+        genomic_tx_data[key] = liftover_start_i[1], liftover_end_i[1]
+
     async def _get_and_validate_genomic_tx_data(
         self,
         tx_ac: str,
@@ -250,7 +347,7 @@ class ManeTranscript:
             # Only want to liftover if alt_ac not provided. If alt_ac is provided,
             # it means user wants to stick with the queried assembly
             og_alt_exon_id = genomic_tx_data["alt_exon_id"]
-            await self.uta_db.liftover_to_38(genomic_tx_data)
+            await self._liftover_to_38(genomic_tx_data)
             liftover_alt_exon_id = genomic_tx_data["alt_exon_id"]
 
             # Validation check: Exon structure
@@ -1028,7 +1125,7 @@ class ManeTranscript:
             _logger.warning("Liftover only supported for GRCh37")
             return None
 
-        liftover_start_i = self.uta_db.get_liftover(
+        liftover_start_i = self.liftover.get_liftover(
             chromosome, start_pos, Assembly.GRCH38
         )
         if liftover_start_i is None:
@@ -1036,7 +1133,7 @@ class ManeTranscript:
         start_pos = liftover_start_i[1]
 
         if not is_same_pos:
-            liftover_end_i = self.uta_db.get_liftover(
+            liftover_end_i = self.liftover.get_liftover(
                 chromosome, end_pos, Assembly.GRCH38
             )
             if liftover_end_i is None:

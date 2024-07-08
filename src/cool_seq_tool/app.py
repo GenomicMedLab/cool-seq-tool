@@ -11,6 +11,7 @@ from cool_seq_tool.handlers.seqrepo_access import SEQREPO_ROOT_DIR, SeqRepoAcces
 from cool_seq_tool.mappers import (
     AlignmentMapper,
     ExonGenomicCoordsMapper,
+    LiftOver,
     ManeTranscript,
 )
 from cool_seq_tool.sources.mane_transcript_mappings import ManeTranscriptMappings
@@ -94,15 +95,18 @@ class CoolSeqTool:
         self.alignment_mapper = AlignmentMapper(
             self.seqrepo_access, self.transcript_mappings, self.uta_db
         )
+        self.liftover = LiftOver()
         self.mane_transcript = ManeTranscript(
             self.seqrepo_access,
             self.transcript_mappings,
             self.mane_transcript_mappings,
             self.uta_db,
+            self.liftover,
         )
         self.ex_g_coords_mapper = ExonGenomicCoordsMapper(
             self.seqrepo_access,
             self.uta_db,
             self.mane_transcript,
             self.mane_transcript_mappings,
+            self.liftover,
         )

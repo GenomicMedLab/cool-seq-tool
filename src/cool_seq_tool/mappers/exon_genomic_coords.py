@@ -4,6 +4,7 @@ import logging
 from typing import Literal, TypeVar
 
 from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
+from cool_seq_tool.mappers.liftover import LiftOver
 from cool_seq_tool.mappers.mane_transcript import CdnaRepresentation, ManeTranscript
 from cool_seq_tool.schemas import (
     AnnotationLayer,
@@ -37,6 +38,7 @@ class ExonGenomicCoordsMapper:
         uta_db: UtaDatabase,
         mane_transcript: ManeTranscript,
         mane_transcript_mappings: ManeTranscriptMappings,
+        liftover: LiftOver,
     ) -> None:
         """Initialize ExonGenomicCoordsMapper class.
 
@@ -63,11 +65,13 @@ class ExonGenomicCoordsMapper:
         :param uta_db: UtaDatabase instance to give access to query UTA database
         :param mane_transcript: Instance to align to MANE or compatible representation
         :param mane_transcript_mappings: Instance to provide access to ManeTranscriptMappings class
+        :param liftover: Instance to provide mapping between human genome assemblies
         """
         self.seqrepo_access = seqrepo_access
         self.uta_db = uta_db
         self.mane_transcript = mane_transcript
         self.mane_transcript_mappings = mane_transcript_mappings
+        self.liftover = liftover
 
     @staticmethod
     def _return_warnings(
@@ -804,7 +808,7 @@ class ExonGenomicCoordsMapper:
                 return f"Unable to get chromosome and assembly for " f"{params['chr']}"
 
             chromosome_number, assembly = descr
-            liftover_data = self.uta_db.get_liftover(
+            liftover_data = self.liftover.get_liftover(
                 chromosome_number, params["pos"], Assembly.GRCH38
             )
             if liftover_data is None:
