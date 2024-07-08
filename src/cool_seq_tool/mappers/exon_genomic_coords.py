@@ -286,6 +286,10 @@ class ExonGenomicCoordsMapper:
         )
         if start is None and end is None:
             return self._return_warnings(resp, "Must provide either `start` or `end`")
+        if chromosome is None and alt_ac is None:
+            return self._return_warnings(
+                resp, "Must provide either `chromosome` or `alt_ac`"
+            )
 
         params = {key: None for key in GenomicData.model_fields}
         if gene is not None:
@@ -513,10 +517,6 @@ class ExonGenomicCoordsMapper:
         if transcript is None and gene is None:
             return self._return_warnings(
                 resp, "Must provide either `gene` or `transcript`"
-            )
-        if chromosome is None and alt_ac is None:
-            return self._return_warnings(
-                resp, "Must provide either `chromosome` or `alt_ac`"
             )
 
         params = {key: None for key in TranscriptExonData.model_fields}
