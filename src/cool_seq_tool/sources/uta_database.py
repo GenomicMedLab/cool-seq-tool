@@ -922,7 +922,7 @@ class UtaDatabase:
         results = [
             (r["pro_ac"], r["tx_ac"], r["alt_ac"], r["cds_start_i"]) for r in results
         ]
-        results_df = pl.DataFrame(results, schema=schema)
+        results_df = pl.DataFrame(results, schema=schema, orient="row")
         if results:
             results_df = results_df.unique()
         return results_df
