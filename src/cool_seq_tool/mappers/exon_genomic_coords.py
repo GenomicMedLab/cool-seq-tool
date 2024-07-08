@@ -514,6 +514,10 @@ class ExonGenomicCoordsMapper:
             return self._return_warnings(
                 resp, "Must provide either `gene` or `transcript`"
             )
+        if chromosome is None and alt_ac is None:
+            return self._return_warnings(
+                resp, "Must provide either `chromosome` or `alt_ac`"
+            )
 
         params = {key: None for key in TranscriptExonData.model_fields}
 
@@ -523,11 +527,12 @@ class ExonGenomicCoordsMapper:
                     resp,
                     "Gene or strand must be provided to select the adjacent transcript junction",
                 )
-            alt_acs, w = self.seqrepo_access.chromosome_to_acs(chromosome)
+            if not alt_ac:
+                alt_acs, w = self.seqrepo_access.chromosome_to_acs(chromosome)
 
-            if not alt_acs:
-                return self._return_warnings(resp, w)
-            alt_ac = alt_acs[0]
+                if not alt_acs:
+                    return self._return_warnings(resp, w)
+                alt_ac = alt_acs[0]
 
             if not transcript:
                 # Select a transcript if not provided
