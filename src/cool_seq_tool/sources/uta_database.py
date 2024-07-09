@@ -1,7 +1,6 @@
 """Provide transcript lookup and metadata tools via the UTA database."""
 
 import ast
-import base64
 import logging
 from os import environ
 from typing import Any, Literal, TypeVar
@@ -870,7 +869,7 @@ class UtaDatabase:
         results = [
             (r["pro_ac"], r["tx_ac"], r["alt_ac"], r["cds_start_i"]) for r in results
         ]
-        results_df = pl.DataFrame(results, schema=schema)
+        results_df = pl.DataFrame(results, schema=schema, orient="row")
         if results:
             results_df = results_df.unique()
         return results_df
@@ -958,7 +957,12 @@ class UtaDatabase:
 
     @staticmethod
     def get_secret() -> str:
-        """Get secrets for UTA DB instances. Used for deployment on AWS."""
+        """Get secrets for UTA DB instances. Used for deployment on AWS.
+
+        :raises ClientError: If unable to retrieve secret value due to decryption
+            decryption failure, internal service error, invalid parameter, invalid
+            request, or resource not found.
+        """
         secret_name = environ["UTA_DB_SECRET"]
         region_name = "us-east-2"
 
@@ -969,27 +973,12 @@ class UtaDatabase:
         try:
             get_secret_value_response = client.get_secret_value(SecretId=secret_name)
         except ClientError as e:
-            _logger.warning(e)
-            if e.response["Error"]["Code"] in {
-                # Secrets Manager can"t decrypt the protected secret text using the provided KMS key.
-                "DecryptionFailureException",
-                # An error occurred on the server side.
-                "InternalServiceErrorException",
-                # You provided an invalid value for a parameter.
-                "InvalidParameterException",
-                # You provided a parameter value that is not valid for the current state of the resource.
-                "InvalidRequestException",
-                # We can"t find the resource that you asked for.
-                "ResourceNotFoundException",
-            }:
-                raise e
+            # For a list of exceptions thrown, see
+            # https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
+            _logger.error(e)
+            raise e
         else:
-            # Decrypts secret using the associated KMS CMK.
-            # Depending on whether the secret is a string or binary,
-            # one of these fields will be populated.
-            if "SecretString" in get_secret_value_response:
-                return get_secret_value_response["SecretString"]
-        return base64.b64decode(get_secret_value_response["SecretBinary"])
+            return get_secret_value_response["SecretString"]
 
 
 class ParseResult(UrlLibParseResult):
