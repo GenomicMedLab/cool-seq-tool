@@ -71,17 +71,18 @@ class ExonGenomicCoordsMapper:
 
     @staticmethod
     def _return_warnings(
-        resp: CoordinatesResponseType, warning_msg: str
+        resp: CoordinatesResponseType, warning_msg: list[str]
     ) -> CoordinatesResponseType:
         """Add warnings to response object
 
         :param resp: Response object
-        :param warning_msg: Warning message on why ``transcript_exon_data`` or
+        :param warning_msg: Warning message(s) on why ``transcript_exon_data`` or
             ``genomic_data`` field is ``None``
         :return: Response object with warning message
         """
-        _logger.warning(warning_msg)
-        resp.warnings.append(warning_msg)
+        for msg in warning_msg:
+            _logger.warning(msg)
+            resp.warnings.append(msg)
         return resp
 
     async def transcript_to_genomic_coordinates(
@@ -126,42 +127,44 @@ class ExonGenomicCoordsMapper:
         )
 
         # Ensure valid inputs
+        warnings = []
         if not transcript:
-            return self._return_warnings(resp, "Must provide `transcript`")
-        transcript = transcript.strip()
+            warnings.append("Must provide `transcript`")
+        else:
+            transcript = transcript.strip()
 
         exon_start_exists, exon_end_exists = False, False
         if exon_start is not None:
             if exon_start < 1:
-                return self._return_warnings(resp, "`exon_start` cannot be less than 1")
+                warnings.append("`exon_start` cannot be less than 1")
             exon_start_exists = True
 
         if exon_end is not None:
             if exon_end < 1:
-                return self._return_warnings(resp, "`exon_end` cannot be less than 1")
+                warnings.append("`exon_end` cannot be less than 1")
             exon_end_exists = True
 
         if not exon_start_exists and not exon_end_exists:
-            return self._return_warnings(
-                resp, "Must provide either `exon_start` or `exon_end`"
-            )
+            warnings.append("Must provide either `exon_start` or `exon_end`")
         if exon_start_exists and exon_end_exists and (exon_start > exon_end):
-            return self._return_warnings(
-                resp,
-                f"Start exon {exon_start} is greater than end exon {exon_end}",
+            warnings.append(
+                f"Start exon {exon_start} is greater than end exon {exon_end}"
             )
+
+        if warnings:
+            return self._return_warnings(resp, warnings)
 
         # Get all exons and associated start/end coordinates for transcript
         tx_exons, warning = await self.uta_db.get_tx_exons(transcript)
         if not tx_exons:
-            return self._return_warnings(resp, warning or "")
+            return self._return_warnings(resp, [warning] if warning else [""])
 
         # Get exon start and exon end coordinates
         tx_exon_coords, warning = self.get_tx_exon_coords(
             transcript, tx_exons, exon_start, exon_end
         )
         if not tx_exon_coords:
-            return self._return_warnings(resp, warning or "")
+            return self._return_warnings(resp, [warning] if warning else [""])
         tx_exon_start_coords, tx_exon_end_coords = tx_exon_coords
 
         if gene:
@@ -173,7 +176,7 @@ class ExonGenomicCoordsMapper:
             transcript, tx_exon_start_coords, tx_exon_end_coords, gene=gene
         )
         if not alt_ac_start_end:
-            return self._return_warnings(resp, warning or "")
+            return self._return_warnings(resp, [warning] if warning else [""])
         alt_ac_start_data, alt_ac_end_data = alt_ac_start_end
 
         # Get gene and chromosome data, check that at least one was retrieved
@@ -182,8 +185,9 @@ class ExonGenomicCoordsMapper:
         if gene is None or chromosome is None:
             return self._return_warnings(
                 resp,
-                "Unable to retrieve `gene` or `chromosome` from genomic start and "
-                "genomic end data",
+                [
+                    "Unable to retrieve `gene` or `chromosome` from genomic start and genomic end data"
+                ],
             )
 
         g_start = alt_ac_start_data[3] - 1 if alt_ac_start_data else None
@@ -286,16 +290,15 @@ class ExonGenomicCoordsMapper:
         resp = GenomicDataResponse(
             genomic_data=None, warnings=[], service_meta=service_meta()
         )
+        warnings = []
         if start is None and end is None:
-            return self._return_warnings(resp, "Must provide either `start` or `end`")
+            warnings.append("Must provide either `start` or `end`")
         if chromosome is None and alt_ac is None:
-            return self._return_warnings(
-                resp, "Must provide either `chromosome` or `alt_ac`"
-            )
+            warnings.append("Must provide either `chromosome` or `alt_ac`")
         if transcript is None and gene is None:
-            return self._return_warnings(
-                resp, "Must provide either `gene` or `transcript`"
-            )
+            warnings.append("Must provide either `gene` or `transcript`")
+        if warnings:
+            return self._return_warnings(resp, warnings)
 
         params = {key: None for key in GenomicData.model_fields}
         if gene is not None:
@@ -319,7 +322,7 @@ class ExonGenomicCoordsMapper:
             if start_data.transcript_exon_data:
                 start_data = start_data.transcript_exon_data.model_dump()
             else:
-                return self._return_warnings(resp, start_data.warnings[0])
+                return self._return_warnings(resp, [start_data.warnings[0]])
         else:
             start_data = None
 
@@ -339,7 +342,7 @@ class ExonGenomicCoordsMapper:
             if end_data.transcript_exon_data:
                 end_data = end_data.transcript_exon_data.model_dump()
             else:
-                return self._return_warnings(resp, end_data.warnings[0])
+                return self._return_warnings(resp, [end_data.warnings[0]])
         else:
             end_data = None
 
@@ -350,7 +353,7 @@ class ExonGenomicCoordsMapper:
                         f"Start `{field}`, {start_data[field]}, does "
                         f"not match End `{field}`, {end_data[field]}"
                     )
-                    return self._return_warnings(resp, msg)
+                    return self._return_warnings(resp, [msg])
                 params[field] = start_data[field]
             else:
                 params[field] = end_data[field]
@@ -360,7 +363,7 @@ class ExonGenomicCoordsMapper:
                 f"Input gene, {gene}, does not match expected output"
                 f"gene, {params['gene']}"
             )
-            return self._return_warnings(resp, msg)
+            return self._return_warnings(resp, [msg])
 
         for label, data in [("start", start_data), ("end", end_data)]:
             if data:
@@ -525,13 +528,15 @@ class ExonGenomicCoordsMapper:
             if not gene or not strand:
                 return self._return_warnings(
                     resp,
-                    "Gene or strand must be provided to select the adjacent transcript junction",
+                    [
+                        "Gene or strand must be provided to select the adjacent transcript junction"
+                    ],
                 )
             if not alt_ac:
                 alt_acs, w = self.seqrepo_access.chromosome_to_acs(chromosome)
 
                 if not alt_acs:
-                    return self._return_warnings(resp, w)
+                    return self._return_warnings(resp, [w])
                 alt_ac = alt_acs[0]
 
             if not transcript:
@@ -566,14 +571,14 @@ class ExonGenomicCoordsMapper:
                         else:
                             return self._return_warnings(
                                 resp,
-                                f"Could not find a transcript for {gene} on {alt_ac}",
+                                [f"Could not find a transcript for {gene} on {alt_ac}"],
                             )
 
             tx_genomic_coords, w = await self.uta_db.get_tx_exons_genomic_coords(
                 tx_ac=transcript, alt_ac=alt_ac
             )
             if not tx_genomic_coords:
-                return self._return_warnings(resp, w)
+                return self._return_warnings(resp, [w])
 
             # Check if breakpoint occurs on an exon.
             # If not, determine the adjacent exon given the selected transcript
@@ -607,7 +612,7 @@ class ExonGenomicCoordsMapper:
             # Check if valid accession is given
             if not await self.uta_db.validate_genomic_ac(alt_ac):
                 return self._return_warnings(
-                    resp, f"Invalid genomic accession: {alt_ac}"
+                    resp, [f"Invalid genomic accession: {alt_ac}"]
                 )
 
             genes_alt_acs, warning = await self.uta_db.get_genes_and_alt_acs(
@@ -630,11 +635,11 @@ class ExonGenomicCoordsMapper:
             genes_alt_acs = None
 
         if not genes_alt_acs:
-            return self._return_warnings(resp, warning)
+            return self._return_warnings(resp, [warning])
 
         gene_alt_ac, warning = self._get_gene_and_alt_ac(genes_alt_acs, gene)
         if not gene_alt_ac:
-            return self._return_warnings(resp, warning)
+            return self._return_warnings(resp, [warning])
         gene, alt_ac = gene_alt_ac
 
         if transcript is None:
@@ -642,7 +647,7 @@ class ExonGenomicCoordsMapper:
                 params, gene, alt_ac, pos, strand, is_start
             )
             if warnings:
-                return self._return_warnings(resp, warnings)
+                return self._return_warnings(resp, [warnings])
         else:
             params["transcript"] = transcript
             params["gene"] = gene
@@ -650,7 +655,7 @@ class ExonGenomicCoordsMapper:
             params["chr"] = alt_ac
             warning = await self._set_genomic_data(params, strand, is_start)
             if warning:
-                return self._return_warnings(resp, warning)
+                return self._return_warnings(resp, [warning])
 
         resp.transcript_exon_data = TranscriptExonData(**params)
         return resp
