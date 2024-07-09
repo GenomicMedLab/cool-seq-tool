@@ -278,6 +278,8 @@ class ExonGenomicCoordsMapper:
             breakpoint for the 3' end. For the negative strand, adjacent is defined as
             the exon following the breakpoint for the 5' end and the exon preceding the
             breakpoint for the 3' end.
+        :param gene: gene name. Ideally, HGNC symbol. Must be given if no ``transcript``
+            value is provided.
         :param residue_mode: Residue mode for ``start`` and ``end``
         :return: Genomic data (inter-residue coordinates)
         """
@@ -289,6 +291,10 @@ class ExonGenomicCoordsMapper:
         if chromosome is None and alt_ac is None:
             return self._return_warnings(
                 resp, "Must provide either `chromosome` or `alt_ac`"
+            )
+        if transcript is None and gene is None:
+            return self._return_warnings(
+                resp, "Must provide either `gene` or `transcript`"
             )
 
         params = {key: None for key in GenomicData.model_fields}
@@ -513,12 +519,6 @@ class ExonGenomicCoordsMapper:
         resp = TranscriptExonDataResponse(
             transcript_exon_data=None, warnings=[], service_meta=service_meta()
         )
-
-        if transcript is None and gene is None:
-            return self._return_warnings(
-                resp, "Must provide either `gene` or `transcript`"
-            )
-
         params = {key: None for key in TranscriptExonData.model_fields}
 
         if get_nearest_transcript_junction:
