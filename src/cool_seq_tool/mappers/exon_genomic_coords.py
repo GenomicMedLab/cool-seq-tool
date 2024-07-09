@@ -157,14 +157,14 @@ class ExonGenomicCoordsMapper:
         # Get all exons and associated start/end coordinates for transcript
         tx_exons, warning = await self.uta_db.get_tx_exons(transcript)
         if not tx_exons:
-            return self._return_warnings(resp, [warning] if warning else [""])
+            return self._return_warnings(resp, [warning] if warning else [])
 
         # Get exon start and exon end coordinates
         tx_exon_coords, warning = self.get_tx_exon_coords(
             transcript, tx_exons, exon_start, exon_end
         )
         if not tx_exon_coords:
-            return self._return_warnings(resp, [warning] if warning else [""])
+            return self._return_warnings(resp, [warning] if warning else [])
         tx_exon_start_coords, tx_exon_end_coords = tx_exon_coords
 
         if gene:
@@ -176,7 +176,7 @@ class ExonGenomicCoordsMapper:
             transcript, tx_exon_start_coords, tx_exon_end_coords, gene=gene
         )
         if not alt_ac_start_end:
-            return self._return_warnings(resp, [warning] if warning else [""])
+            return self._return_warnings(resp, [warning] if warning else [])
         alt_ac_start_data, alt_ac_end_data = alt_ac_start_end
 
         # Get gene and chromosome data, check that at least one was retrieved
