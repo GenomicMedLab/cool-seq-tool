@@ -55,6 +55,7 @@ Data Mappers
 
    cool_seq_tool.mappers.alignment
    cool_seq_tool.mappers.exon_genomic_coords
+   cool_seq_tool.mappers.liftover
    cool_seq_tool.mappers.mane_transcript
 
 Resources

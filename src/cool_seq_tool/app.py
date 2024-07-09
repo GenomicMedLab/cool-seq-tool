@@ -30,6 +30,7 @@ class CoolSeqTool:
     * ``self.mane_transcript_mappings``: :py:class:`ManeTranscriptMappings <cool_seq_tool.sources.mane_transcript_mappings.ManeTranscriptMappings>`
     * ``self.uta_db``: :py:class:`UtaDatabase <cool_seq_tool.sources.uta_database.UtaDatabase>`
     * ``self.alignment_mapper``: :py:class:`AlignmentMapper <cool_seq_tool.mappers.alignment.AlignmentMapper>`
+    * ``self.liftover``: :py:class:`LiftOver <cool_seq_tool.mappers.liftover.LiftOver>`
     * ``self.mane_transcript``: :py:class:`ManeTranscript <cool_seq_tool.mappers.mane_transcript.ManeTranscript>`
     * ``self.ex_g_coords_mapper``: :py:class:`ExonGenomicCoordsMapper <cool_seq_tool.mappers.exon_genomic_coords.ExonGenomicCoordsMapper>`
     """
