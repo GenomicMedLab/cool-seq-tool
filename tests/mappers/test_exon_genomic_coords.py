@@ -1089,10 +1089,10 @@ async def test_invalid(test_egc_mapper):
     ]
 
     # Must supply either gene or transcript
-    resp = await test_egc_mapper._genomic_to_transcript_exon_coordinate(
-        154192135, alt_ac="NC_000001.11", strand=Strand.POSITIVE
+    resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(
+        start=154192135, alt_ac="NC_000001.11", strand=Strand.POSITIVE
     )
-    transcript_exon_data_assertion_checks(resp, is_valid=False)
+    genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Must provide either `gene` or `transcript`"]
 
     # Exon 22 does not exist
@@ -1123,7 +1123,10 @@ async def test_invalid(test_egc_mapper):
         exon_start=-1, exon_end=0, transcript="NM_152263.3"
     )
     genomic_data_assertion_checks(resp, is_valid=False)
-    assert resp.warnings == ["`exon_start` cannot be less than 1"]
+    assert resp.warnings == [
+        "`exon_start` cannot be less than 1",
+        "`exon_end` cannot be less than 1",
+    ]
 
     # Cant supply 0 based exons
     resp = await test_egc_mapper.transcript_to_genomic_coordinates(
