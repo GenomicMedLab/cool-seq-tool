@@ -11,6 +11,7 @@ from cool_seq_tool.handlers.seqrepo_access import SEQREPO_ROOT_DIR, SeqRepoAcces
 from cool_seq_tool.mappers import (
     AlignmentMapper,
     ExonGenomicCoordsMapper,
+    LiftOver,
     ManeTranscript,
 )
 from cool_seq_tool.sources.mane_transcript_mappings import ManeTranscriptMappings
@@ -29,6 +30,7 @@ class CoolSeqTool:
     * ``self.mane_transcript_mappings``: :py:class:`ManeTranscriptMappings <cool_seq_tool.sources.mane_transcript_mappings.ManeTranscriptMappings>`
     * ``self.uta_db``: :py:class:`UtaDatabase <cool_seq_tool.sources.uta_database.UtaDatabase>`
     * ``self.alignment_mapper``: :py:class:`AlignmentMapper <cool_seq_tool.mappers.alignment.AlignmentMapper>`
+    * ``self.liftover``: :py:class:`LiftOver <cool_seq_tool.mappers.liftover.LiftOver>`
     * ``self.mane_transcript``: :py:class:`ManeTranscript <cool_seq_tool.mappers.mane_transcript.ManeTranscript>`
     * ``self.ex_g_coords_mapper``: :py:class:`ExonGenomicCoordsMapper <cool_seq_tool.mappers.exon_genomic_coords.ExonGenomicCoordsMapper>`
     """
@@ -94,15 +96,18 @@ class CoolSeqTool:
         self.alignment_mapper = AlignmentMapper(
             self.seqrepo_access, self.transcript_mappings, self.uta_db
         )
+        self.liftover = LiftOver()
         self.mane_transcript = ManeTranscript(
             self.seqrepo_access,
             self.transcript_mappings,
             self.mane_transcript_mappings,
             self.uta_db,
+            self.liftover,
         )
         self.ex_g_coords_mapper = ExonGenomicCoordsMapper(
             self.seqrepo_access,
             self.uta_db,
             self.mane_transcript,
             self.mane_transcript_mappings,
+            self.liftover,
         )

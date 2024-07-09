@@ -5,6 +5,7 @@ import asyncio
 import pytest
 
 from cool_seq_tool.app import CoolSeqTool
+from cool_seq_tool.schemas import Strand
 
 
 @pytest.fixture(scope="session")
@@ -102,3 +103,21 @@ def tpm3_1_8_start_genomic():
 def tpm3_1_8_end_genomic():
     """Create test fixture for genomic data for exon 1, 8"""
     return "TPM3", "NC_000001.11", 154170399, 154170469, -1
+
+
+@pytest.fixture(scope="session")
+def genomic_tx_data():
+    """Create test fixture for genomic_tx_data"""
+    return {
+        "gene": "BRAF",
+        "strand": Strand.NEGATIVE,
+        "tx_pos_range": (2053, 2188),
+        "alt_pos_range": (140439611, 140439746),
+        "alt_aln_method": "splign",
+        "tx_exon_id": 780496,
+        "alt_exon_id": 1927265,
+        "pos_change": (92, 43),
+        "alt_pos_change_range": (140439703, 140439703),
+        "tx_ac": "NM_004333.4",
+        "alt_ac": "NC_000007.13",
+    }

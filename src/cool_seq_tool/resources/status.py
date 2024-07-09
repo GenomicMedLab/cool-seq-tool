@@ -9,8 +9,9 @@ from asyncpg import InvalidCatalogNameError, UndefinedTableError
 from biocommons.seqrepo import SeqRepo
 
 from cool_seq_tool.handlers.seqrepo_access import SEQREPO_ROOT_DIR, SeqRepoAccess
+from cool_seq_tool.mappers.liftover import LiftOver
 from cool_seq_tool.resources.data_files import DataFile, get_data_file
-from cool_seq_tool.sources.uta_database import UTA_DB_URL, UtaDatabase, get_liftover
+from cool_seq_tool.sources.uta_database import UTA_DB_URL, UtaDatabase
 
 _logger = logging.getLogger(__name__)
 
@@ -42,9 +43,7 @@ async def check_status(
     Arguments are intended to mirror arguments to :py:meth:`cool_seq_tool.app.CoolSeqTool.__init__`.
 
     Additional arguments are available for testing paths to specific chainfiles (same
-    signature as :py:meth:`cool_seq_tool.sources.uta_database.UtaDatabase.__init__`).
-    Note that chainfile failures also entail UTA initialization failure; this status is
-    reported separately to enable more precise debugging.
+    signature as :py:meth:`cool_seq_tool.mappers.liftover.LiftOver.__init__`).
 
     >>> from cool_seq_tool.resources.status import check_status
     >>> await check_status()
@@ -104,7 +103,10 @@ async def check_status(
             status[name_lower] = True
 
     try:
-        get_liftover(chain_file_37_to_38, chain_file_38_to_37)
+        LiftOver(
+            chain_file_37_to_38=chain_file_37_to_38,
+            chain_file_38_to_37=chain_file_38_to_37,
+        )
     except (FileNotFoundError, ChainfileError) as e:
         _logger.error("agct converter setup failed: %s", e)
     except Exception as e:

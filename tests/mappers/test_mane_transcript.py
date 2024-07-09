@@ -1,5 +1,6 @@
 """Module for testing MANE Transcript class."""
 
+from copy import deepcopy
 from unittest.mock import patch
 
 import polars as pl
@@ -281,6 +282,30 @@ async def test_g_to_c(
     expected.pos = (1798, 1800)
     expected.alt_ac = None
     assert mane_c == expected
+
+
+def test_set_liftover(test_mane_transcript, genomic_tx_data):
+    """Test that _set_liftover works correctly."""
+    cpy = deepcopy(genomic_tx_data)
+    expected = deepcopy(genomic_tx_data)
+    test_mane_transcript._set_liftover(cpy, "alt_pos_range", "chr7", "GRCh38")
+    expected["alt_pos_range"] = (140739811, 140739946)
+    assert cpy == expected
+    test_mane_transcript._set_liftover(cpy, "alt_pos_change_range", "chr7", "GRCh38")
+    expected["alt_pos_change_range"] = (140739903, 140739903)
+    assert cpy == expected
+
+
+@pytest.mark.asyncio()
+async def test_liftover_to_38(test_mane_transcript, genomic_tx_data):
+    """Test that liftover_to_38 works correctly."""
+    cpy = deepcopy(genomic_tx_data)
+    expected = deepcopy(genomic_tx_data)
+    await test_mane_transcript._liftover_to_38(cpy)
+    expected["alt_ac"] = "NC_000007.14"
+    expected["alt_pos_change_range"] = (140739903, 140739903)
+    expected["alt_pos_range"] = (140739811, 140739946)
+    assert cpy == expected
 
 
 def test_get_mane_p(test_mane_transcript, braf_mane_data, braf_v600e_mane_p):

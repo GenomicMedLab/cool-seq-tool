@@ -1,10 +1,8 @@
 """Test UTA data source."""
 
-import copy
-
 import pytest
 
-from cool_seq_tool.schemas import Assembly, Strand
+from cool_seq_tool.schemas import Strand
 
 
 @pytest.fixture(scope="module")
@@ -36,24 +34,6 @@ def data_from_result():
         "alt_aln_method": "splign",
         "tx_exon_id": 780494,
         "alt_exon_id": 1927263,
-    }
-
-
-@pytest.fixture(scope="module")
-def genomic_tx_data():
-    """Create test fixture for genomic_tx_data"""
-    return {
-        "gene": "BRAF",
-        "strand": Strand.NEGATIVE,
-        "tx_pos_range": (2053, 2188),
-        "alt_pos_range": (140439611, 140439746),
-        "alt_aln_method": "splign",
-        "tx_exon_id": 780496,
-        "alt_exon_id": 1927265,
-        "pos_change": (92, 43),
-        "alt_pos_change_range": (140439703, 140439703),
-        "tx_ac": "NM_004333.4",
-        "alt_ac": "NC_000007.13",
     }
 
 
@@ -317,41 +297,6 @@ async def test_get_chr_assembly(test_db):
     # Invalid ac
     resp = await test_db.get_chr_assembly("NC_00000714")
     assert resp is None
-
-
-@pytest.mark.asyncio()
-async def test_liftover_to_38(test_db, genomic_tx_data):
-    """Test that liftover_to_38 works correctly."""
-    cpy = copy.deepcopy(genomic_tx_data)
-    expected = copy.deepcopy(genomic_tx_data)
-    await test_db.liftover_to_38(cpy)
-    expected["alt_ac"] = "NC_000007.14"
-    expected["alt_pos_change_range"] = (140739903, 140739903)
-    expected["alt_pos_range"] = (140739811, 140739946)
-    assert cpy == expected
-
-
-def test_get_liftover(test_db):
-    """Test that get_liftover works correctly."""
-    resp = test_db.get_liftover("chr7", 140453136, Assembly.GRCH38)
-    assert resp == ("chr7", 140753336)
-    resp = test_db.get_liftover("7", 140453136, Assembly.GRCH38)
-    assert resp == ("chr7", 140753336)
-
-    resp = test_db.get_liftover("chr17", 140453136, Assembly.GRCH38)
-    assert resp is None
-
-
-def test_set_liftover(test_db, genomic_tx_data):
-    """Test that _set_liftover works correctly."""
-    cpy = copy.deepcopy(genomic_tx_data)
-    expected = copy.deepcopy(genomic_tx_data)
-    test_db._set_liftover(cpy, "alt_pos_range", "chr7", "GRCh38")
-    expected["alt_pos_range"] = (140739811, 140739946)
-    assert cpy == expected
-    test_db._set_liftover(cpy, "alt_pos_change_range", "chr7", "GRCh38")
-    expected["alt_pos_change_range"] = (140739903, 140739903)
-    assert cpy == expected
 
 
 @pytest.mark.asyncio()

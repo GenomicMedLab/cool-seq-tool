@@ -10,56 +10,19 @@ from urllib.parse import quote, unquote, urlparse
 import asyncpg
 import boto3
 import polars as pl
-from agct import Converter, Genome
 from asyncpg.exceptions import InterfaceError, InvalidAuthorizationSpecificationError
 from botocore.exceptions import ClientError
 
 from cool_seq_tool.schemas import AnnotationLayer, Assembly, Strand
-from cool_seq_tool.utils import process_chromosome_input
 
 # use `bound` to upper-bound UtaDatabase or child classes
 UTADatabaseType = TypeVar("UTADatabaseType", bound="UtaDatabase")
-
-# Environment variables for paths to chain files for agct
-LIFTOVER_CHAIN_37_TO_38 = environ.get("LIFTOVER_CHAIN_37_TO_38")
-LIFTOVER_CHAIN_38_TO_37 = environ.get("LIFTOVER_CHAIN_38_TO_37")
 
 UTA_DB_URL = environ.get(
     "UTA_DB_URL", "postgresql://uta_admin:uta@localhost:5432/uta/uta_20210129b"
 )
 
 _logger = logging.getLogger(__name__)
-
-
-def get_liftover(
-    chain_file_37_to_38: str | None = None, chain_file_38_to_37: str | None = None
-) -> tuple[Converter, Converter]:
-    """Fetch Converter instances between GRCh37 and 38.
-
-    Factored out of the UTA Database initialization method to support less expensive
-    status check-type operations.
-
-    :param chain_file_37_to_38: Optional path to chain file for 37 to 38 assembly.
-        This is used for ``agct``. If this is not provided, will check to see
-        if ``LIFTOVER_CHAIN_37_TO_38`` env var is set. If neither is provided, will
-        allow ``agct`` to download a chain file from UCSC
-    :param chain_file_38_to_37: Optional path to chain file for 38 to 37 assembly.
-        This is used for ``agct``. If this is not provided, will check to see
-        if ``LIFTOVER_CHAIN_38_TO_37`` env var is set. If neither is provided, will
-        allow ``agct`` to download a chain file from UCSC
-    :return: converters (37->38, 38->37)
-    """
-    chain_file_37_to_38 = chain_file_37_to_38 or LIFTOVER_CHAIN_37_TO_38
-    if chain_file_37_to_38:
-        converter_37_to_38 = Converter(chainfile=chain_file_37_to_38)
-    else:
-        converter_37_to_38 = Converter(from_db=Genome.HG19, to_db=Genome.HG38)
-    chain_file_38_to_37 = chain_file_38_to_37 or LIFTOVER_CHAIN_38_TO_37
-    if chain_file_38_to_37:
-        converter_38_to_37 = Converter(chainfile=chain_file_38_to_37)
-    else:
-        converter_38_to_37 = Converter(from_db=Genome.HG38, to_db=Genome.HG19)
-    return (converter_37_to_38, converter_38_to_37)
 
 
 class UtaDatabase:
@@ -75,34 +38,18 @@ class UtaDatabase:
     >>> uta_db = asyncio.run(UtaDatabase.create())
     """
 
-    def __init__(
-        self,
-        db_url: str = UTA_DB_URL,
-        chain_file_37_to_38: str | None = None,
-        chain_file_38_to_37: str | None = None,
-    ) -> None:
+    def __init__(self, db_url: str = UTA_DB_URL) -> None:
         """Initialize DB class. Should only be used by ``create()`` method, and not
         be called directly by a user.
 
         :param db_url: PostgreSQL connection URL
             Format: ``driver://user:password@host/database/schema``
-        :param chain_file_37_to_38: Optional path to chain file for 37 to 38 assembly.
-            This is used for ``agct``. If this is not provided, will check to see
-            if ``LIFTOVER_CHAIN_37_TO_38`` env var is set. If neither is provided, will
-            allow ``agct`` to download a chain file from UCSC
-        :param chain_file_38_to_37: Optional path to chain file for 38 to 37 assembly.
-            This is used for ``agct``. If this is not provided, will check to see
-            if ``LIFTOVER_CHAIN_38_TO_37`` env var is set. If neither is provided, will
-            allow ``agct`` to download a chain file from UCSC
         """
         self.schema = None
         self._connection_pool = None
         original_pwd = db_url.split("//")[-1].split("@")[0].split(":")[-1]
         self.db_url = db_url.replace(original_pwd, quote(original_pwd))
         self.args = self._get_conn_args()
-        self.liftover_37_to_38, self.liftover_38_to_37 = get_liftover(
-            chain_file_37_to_38, chain_file_38_to_37
-        )
 
     def _get_conn_args(self) -> dict:
         """Return connection arguments.
@@ -958,137 +905,6 @@ class UtaDatabase:
             return None
 
         return chromosome, assembly
-
-    async def liftover_to_38(self, genomic_tx_data: dict) -> None:
-        """Liftover genomic_tx_data to hg38 assembly.
-
-        :param genomic_tx_data: Dictionary containing gene, nc_accession, alt_pos, and
-            strand
-        """
-        descr = await self.get_chr_assembly(genomic_tx_data["alt_ac"])
-        if descr is None:
-            # already grch38
-            return
-        chromosome, _ = descr
-
-        query = f"""
-            SELECT DISTINCT alt_ac
-            FROM {self.schema}.tx_exon_aln_v
-            WHERE tx_ac = '{genomic_tx_data['tx_ac']}';
-            """  # noqa: S608
-        nc_acs = await self.execute_query(query)
-        nc_acs = [nc_ac[0] for nc_ac in nc_acs]
-        if nc_acs == [genomic_tx_data["alt_ac"]]:
-            _logger.warning(
-                "UTA does not have GRCh38 assembly for %s",
-                genomic_tx_data["alt_ac"].split(".")[0],
-            )
-            return
-
-        # Get most recent assembly version position
-        # Liftover range
-        self._set_liftover(
-            genomic_tx_data, "alt_pos_range", chromosome, Assembly.GRCH38
-        )
-
-        # Liftover changes range
-        self._set_liftover(
-            genomic_tx_data, "alt_pos_change_range", chromosome, Assembly.GRCH38
-        )
-
-        # Change alt_ac to most recent
-        if genomic_tx_data["alt_ac"].startswith("EN"):
-            order_by_cond = "ORDER BY alt_ac DESC;"
-        else:
-            order_by_cond = """
-            ORDER BY CAST(SUBSTR(alt_ac, position('.' in alt_ac) + 1,
-            LENGTH(alt_ac)) AS INT) DESC;
-            """
-        query = f"""
-            SELECT alt_ac
-            FROM {self.schema}.genomic
-            WHERE alt_ac LIKE '{genomic_tx_data['alt_ac'].split('.')[0]}%'
-            {order_by_cond}
-            """  # noqa: S608
-        nc_acs = await self.execute_query(query)
-        genomic_tx_data["alt_ac"] = nc_acs[0][0]
-
-    def get_liftover(
-        self, chromosome: str, pos: int, liftover_to_assembly: Assembly
-    ) -> tuple[str, int] | None:
-        """Get new genome assembly data for a position on a chromosome.
-
-        Use a UCSC-style chromosome name:
-
-        >>> import asyncio
-        >>> from cool_seq_tool.sources import UtaDatabase
-        >>> from cool_seq_tool.schemas import Assembly
-        >>> uta = asyncio.run(UtaDatabase.create())
-        >>> asyncio.run(uta.get_liftover("chr5", 39998, Assembly.GRCH38))
-        ('chr7', 39998)
-
-        Chromosome names can also be NCBI-style, without prefixes:
-
-        >>> asyncio.run(uta.get_liftover("5", 39998, Assembly.GRCH38))
-        ('chr7', 39998)
-
-        :param chromosome: The chromosome number, e.g. ``"chr7"``, ``"chrX"``, ``"5"``.
-        :param pos: Position on the chromosome
-        :param liftover_to_assembly: Assembly to liftover to
-        :return: Target chromosome and target position for assembly
-        """
-        chromosome = process_chromosome_input(chromosome, "UtaDatabase.get_liftover()")
-        if liftover_to_assembly == Assembly.GRCH38:
-            liftover = self.liftover_37_to_38.convert_coordinate(chromosome, pos)
-        elif liftover_to_assembly == Assembly.GRCH37:
-            liftover = self.liftover_38_to_37.convert_coordinate(chromosome, pos)
-        else:
-            _logger.warning("%s assembly not supported", liftover_to_assembly)
-            liftover = None
-
-        if not liftover:
-            _logger.warning("%s does not exist on %s", pos, chromosome)
-            return None
-        return liftover[0][:2]
-
-    def _set_liftover(
-        self,
-        genomic_tx_data: dict,
-        key: str,
-        chromosome: str,
-        liftover_to_assembly: Assembly,
-    ) -> None:
-        """Update genomic_tx_data to have coordinates for given assembly.
-
-        :param genomic_tx_data: Dictionary containing gene, nc_accession, alt_pos, and
-            strand
-        :param key: Key to access coordinate positions
-        :param chromosome: Chromosome, must be prefixed with ``chr``
-        :param liftover_to_assembly: Assembly to liftover to
-        """
-        liftover_start_i = self.get_liftover(
-            chromosome, genomic_tx_data[key][0], liftover_to_assembly
-        )
-        if liftover_start_i is None:
-            _logger.warning(
-                "Unable to liftover position %s on %s",
-                genomic_tx_data[key][0],
-                chromosome,
-            )
-            return
-
-        liftover_end_i = self.get_liftover(
-            chromosome, genomic_tx_data[key][1], liftover_to_assembly
-        )
-        if liftover_end_i is None:
-            _logger.warning(
-                "Unable to liftover position %s on %s",
-                genomic_tx_data[key][1],
-                chromosome,
-            )
-            return
-
-        genomic_tx_data[key] = liftover_start_i[1], liftover_end_i[1]
 
     async def p_to_c_ac(self, p_ac: str) -> list[str]:
         """Return cDNA reference sequence accession from protein reference sequence
