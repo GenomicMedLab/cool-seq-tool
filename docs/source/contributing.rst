@@ -17,7 +17,7 @@ Create a virtual environment and install :ref:`all dependency groups<dependency-
 
     python3 -m venv venv
     source venv/bin/activate
-    python3 -m pip install -e ".[dev,tests,docs]"
+    python3 -m pip install -e ".[dev,test,docs]"
 
 We use `pre-commit <https://pre-commit.com/#usage>`_ to run conformance tests before commits. This provides checks for:
 

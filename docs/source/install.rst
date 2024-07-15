@@ -24,7 +24,7 @@ Install Cool-Seq-Tool from `PyPI <https://pypi.org/project/cool-seq-tool/>`_:
    Cool-Seq-Tool provides extra dependency groups for development and testing purposes. Most users won't need to install them.
 
    * ``dev`` includes packages for linting and performing other kinds of quality checks
-   * ``tests`` includes packages for running tests
+   * ``test`` includes packages for running tests
    * ``docs`` includes packages for writing and building documentation
 
 Set up UTA
