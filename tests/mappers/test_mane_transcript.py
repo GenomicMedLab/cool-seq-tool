@@ -177,20 +177,20 @@ def mybpc3_s236g():
 
 
 def test_get_reading_frame(test_mane_transcript):
-    """Test that _get_reading_frame works correctly."""
-    rf = test_mane_transcript._get_reading_frame(1797)
+    """Test that get_reading_frame works correctly."""
+    rf = test_mane_transcript.get_reading_frame(1797)
     assert rf == 3
 
-    rf = test_mane_transcript._get_reading_frame(1798)
+    rf = test_mane_transcript.get_reading_frame(1798)
     assert rf == 1
 
-    rf = test_mane_transcript._get_reading_frame(1799)
+    rf = test_mane_transcript.get_reading_frame(1799)
     assert rf == 2
 
-    rf = test_mane_transcript._get_reading_frame(1800)
+    rf = test_mane_transcript.get_reading_frame(1800)
     assert rf == 3
 
-    rf = test_mane_transcript._get_reading_frame(2573)
+    rf = test_mane_transcript.get_reading_frame(2573)
     assert rf == 2
 
 
