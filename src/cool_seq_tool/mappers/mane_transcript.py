@@ -127,7 +127,7 @@ class ManeTranscript:
         self.liftover = liftover
 
     @staticmethod
-    def _get_reading_frame(pos: int) -> int:
+    def get_reading_frame(pos: int) -> int:
         """Return reading frame number. Only used on c. coordinate.
 
         :param pos: cDNA position
@@ -530,8 +530,8 @@ class ManeTranscript:
         """
         for pos, pos_index in [(start_pos, 0), (end_pos, 1)]:
             if pos is not None:
-                og_rf = self._get_reading_frame(pos)
-                new_rf = self._get_reading_frame(transcript_data.pos[pos_index])
+                og_rf = self.get_reading_frame(pos)
+                new_rf = self.get_reading_frame(transcript_data.pos[pos_index])
 
                 if og_rf != new_rf:
                     _logger.warning(
@@ -617,7 +617,7 @@ class ManeTranscript:
 
         return True
 
-    def _validate_index(
+    def validate_index(
         self, ac: str, pos: tuple[int, int], coding_start_site: int
     ) -> bool:
         """Validate that positions actually exist on accession
@@ -909,7 +909,7 @@ class ManeTranscript:
                 ac = lcr_result.refseq or lcr_result.ensembl
                 pos = lcr_result.pos
 
-                if not self._validate_index(ac, pos, coding_start_site):
+                if not self.validate_index(ac, pos, coding_start_site):
                     _logger.warning(
                         "%s are not valid positions on %s with coding start site %s",
                         pos,
@@ -935,7 +935,7 @@ class ManeTranscript:
                 cds = lcr_result_dict[k].get("coding_start_site", 0)
                 ac = lcr_result_dict[k]["refseq"] or lcr_result_dict[k]["ensembl"]
                 pos = lcr_result_dict[k]["pos"]
-                if not self._validate_index(ac, pos, cds):
+                if not self.validate_index(ac, pos, cds):
                     valid = False
                     _logger.warning(
                         "%s are not valid positions on %s with coding start site %s",
@@ -1142,7 +1142,7 @@ class ManeTranscript:
         descr = await self.uta_db.get_chr_assembly(ac)
         if not descr:
             # Already GRCh38 assembly
-            if self._validate_index(ac, (start_pos, end_pos), 0):
+            if self.validate_index(ac, (start_pos, end_pos), 0):
                 return GenomicRepresentation(ac=ac, pos=(start_pos, end_pos))
             return None
         chromosome, assembly = descr
@@ -1173,7 +1173,7 @@ class ManeTranscript:
         newest_ac = await self.uta_db.get_newest_assembly_ac(ac)
         if newest_ac:
             ac = newest_ac[0]
-            if self._validate_index(ac, (start_pos, end_pos), 0):
+            if self.validate_index(ac, (start_pos, end_pos), 0):
                 return GenomicRepresentation(ac=ac, pos=(start_pos, end_pos))
         return None
 
@@ -1271,9 +1271,7 @@ class ManeTranscript:
                 mane_tx_genomic_data, coding_start_site
             )
 
-            if not self._validate_index(
-                mane_c_ac, mane_c_pos_change, coding_start_site
-            ):
+            if not self.validate_index(mane_c_ac, mane_c_pos_change, coding_start_site):
                 _logger.warning(
                     "%s are not valid positions on %s with coding start site %s",
                     mane_c_pos_change,
@@ -1361,9 +1359,7 @@ class ManeTranscript:
             )
 
             # Validate MANE C positions
-            if not self._validate_index(
-                mane_c_ac, mane_c_pos_change, coding_start_site
-            ):
+            if not self.validate_index(mane_c_ac, mane_c_pos_change, coding_start_site):
                 _logger.warning(
                     "%s are not valid positions on %s with coding start site %s",
                     mane_c_pos_change,
