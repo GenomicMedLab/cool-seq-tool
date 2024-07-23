@@ -962,7 +962,7 @@ class ExonGenomicCoordsMapper:
             exon = tx_exons_genomic_coords[i]
             next_exon = tx_exons_genomic_coords[i + 1]
             bp = start if start else end
-            if strand == strand.POSITIVE:
+            if strand == Strand.POSITIVE:
                 lte_exon = exon
                 gte_exon = next_exon
             else:
