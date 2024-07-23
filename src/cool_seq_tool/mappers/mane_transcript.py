@@ -961,7 +961,16 @@ class ManeTranscript:
         residue_mode: Literal[ResidueMode.RESIDUE]
         | Literal[ResidueMode.INTER_RESIDUE] = ResidueMode.RESIDUE,
     ) -> DataRepresentation | CdnaRepresentation | None:
-        """Return MANE transcript.
+        """Return MANE representation
+
+        If ``start_annotation_layer`` is ``AnnotationLayer.PROTEIN``, will return
+            ``AnnotationLayer.PROTEIN`` representation.
+        If ``start_annotation_layer`` is ``AnnotationLayer.CDNA``, will return
+            ``AnnotationLayer.CDNA`` representation.
+        If ``start_annotation_layer`` is ``AnnotationLayer.GENOMIC`` will return
+            ``AnnotationLayer.CDNA`` representation if ``gene`` is provided and
+            ``AnnotationLayer.GENOMIC`` GRCh38 representation if ``gene`` is NOT
+            provided.
 
         >>> from cool_seq_tool.app import CoolSeqTool
         >>> from cool_seq_tool.schemas import AnnotationLayer, ResidueMode
@@ -983,10 +992,10 @@ class ManeTranscript:
         :param end_pos: End position change
         :param start_annotation_layer: Starting annotation layer.
         :param gene: HGNC gene symbol.
-            If gene is not provided and ``start_annotation_layer`` is
+            If ``gene`` is not provided and ``start_annotation_layer`` is
             ``AnnotationLayer.GENOMIC``, will return GRCh38 representation.
-            If gene is provided and ``start_annotation_layer`` is
-            ``AnnotationLayer.GENOMIC``, will return MANE cDNA representation.
+            If ``gene`` is provided and ``start_annotation_layer`` is
+            ``AnnotationLayer.GENOMIC``, will return cDNA representation.
         :param ref: Reference at position given during input
         :param try_longest_compatible: ``True`` if should try longest compatible remaining
             if mane transcript was not compatible. ``False`` otherwise.
@@ -1096,7 +1105,6 @@ class ManeTranscript:
                 )
             return None
         if start_annotation_layer == AnnotationLayer.GENOMIC:
-            # If gene not provided, return GRCh38
             if not gene:
                 return await self.g_to_grch38(
                     ac,
