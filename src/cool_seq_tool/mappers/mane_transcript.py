@@ -30,6 +30,7 @@ from cool_seq_tool.schemas import (
     TranscriptPriority,
 )
 from cool_seq_tool.sources import (
+    ManeGeneData,
     ManeTranscriptMappings,
     TranscriptMappings,
     UtaDatabase,
@@ -75,6 +76,7 @@ class GenomicRepresentation(BaseModel):
     pos: tuple[int, int]
     status: TranscriptPriority
     alt_ac: str
+    mane_genes: list[ManeGeneData] = []
 
 
 class ProteinAndCdnaRepresentation(BaseModel):
@@ -108,7 +110,7 @@ class ManeTranscript:
 
         >>> import asyncio
         >>> result = asyncio.run(mane_mapper.g_to_grch38("NC_000001.11", 100, 200))
-        >>> result["ac"]
+        >>> result.alt_ac
         'NC_000001.11'
 
         See the :ref:`Usage section <async_note>` for more information.
@@ -1099,23 +1101,34 @@ class ManeTranscript:
         _logger.warning("Annotation layer not supported: %s", start_annotation_layer)
         return None
 
-    async def g_to_grch38(self, ac: str, start_pos: int, end_pos: int) -> dict | None:
+    async def g_to_grch38(
+        self, ac: str, start_pos: int, end_pos: int, get_mane_genes: bool = False
+    ) -> GenomicRepresentation | None:
         """Return genomic coordinate on GRCh38 when not given gene context.
 
         :param ac: Genomic accession
         :param start_pos: Genomic start position
         :param end_pos: Genomic end position
-        :return: NC accession, start and end pos on GRCh38 assembly
+        :param get_mane_genes: ``True`` if mane genes for genomic position should be
+            included in response. ``False``, otherwise.
+        :return: GRCh38 genomic representation
         """
-        if end_pos is None:
-            end_pos = start_pos
-
         # Checking to see what chromosome and assembly we're on
         descr = await self.uta_db.get_chr_assembly(ac)
         if not descr:
             # Already GRCh38 assembly
             if self._validate_index(ac, (start_pos, end_pos), 0):
-                return {"ac": ac, "pos": (start_pos, end_pos)}
+                return GenomicRepresentation(
+                    pos=(start_pos, end_pos),
+                    refseq=ac,
+                    alt_ac=ac,
+                    status=TranscriptPriority.GRCH38,
+                    mane_genes=self.mane_transcript_mappings.get_genomic_mane_genes(
+                        ac, start_pos + 1, end_pos
+                    )
+                    if get_mane_genes
+                    else [],
+                )
             return None
         chromosome, assembly = descr
         is_same_pos = start_pos == end_pos
@@ -1146,7 +1159,17 @@ class ManeTranscript:
         if newest_ac:
             ac = newest_ac[0]
             if self._validate_index(ac, (start_pos, end_pos), 0):
-                return {"ac": ac, "pos": (start_pos, end_pos)}
+                return GenomicRepresentation(
+                    pos=(start_pos, end_pos),
+                    refseq=ac,
+                    alt_ac=ac,
+                    status=TranscriptPriority.GRCH38,
+                    mane_genes=self.mane_transcript_mappings.get_genomic_mane_genes(
+                        ac, start_pos + 1, end_pos
+                    )
+                    if get_mane_genes
+                    else [],
+                )
         return None
 
     @staticmethod
@@ -1215,16 +1238,7 @@ class ManeTranscript:
 
         # If gene not provided, return GRCh38
         if not gene:
-            grch38 = await self.g_to_grch38(ac, start_pos, end_pos)
-            if not grch38:
-                return None
-
-            return GenomicRepresentation(
-                refseq=grch38["ac"],
-                pos=grch38["pos"],
-                status=TranscriptPriority.GRCH38,
-                alt_ac=grch38["ac"],
-            )
+            return await self.g_to_grch38(ac, start_pos, end_pos, get_mane_genes=True)
 
         if not await self.uta_db.validate_genomic_ac(ac):
             _logger.warning("Genomic accession does not exist: %s", ac)
@@ -1238,12 +1252,14 @@ class ManeTranscript:
             mane_c_ac = current_mane_data["RefSeq_nuc"]
 
             # Liftover to GRCh38
-            grch38 = await self.g_to_grch38(ac, start_pos, end_pos)
+            grch38 = await self.g_to_grch38(
+                ac, start_pos, end_pos, get_mane_genes=False
+            )
             mane_tx_genomic_data = None
             if grch38:
                 # GRCh38 -> MANE C
                 mane_tx_genomic_data = await self.uta_db.get_mane_c_genomic_data(
-                    mane_c_ac, grch38["ac"], grch38["pos"][0], grch38["pos"][1]
+                    mane_c_ac, grch38.alt_ac, grch38.pos[0], grch38.pos[1]
                 )
 
             if not grch38 or not mane_tx_genomic_data:
@@ -1284,7 +1300,7 @@ class ManeTranscript:
                 ),
                 refseq_c_ac=current_mane_data["RefSeq_nuc"],
                 ensembl_c_ac=current_mane_data["Ensembl_nuc"],
-                alt_ac=grch38["ac"] if grch38 else None,
+                alt_ac=grch38.alt_ac if grch38 else None,
             )
         return None
 

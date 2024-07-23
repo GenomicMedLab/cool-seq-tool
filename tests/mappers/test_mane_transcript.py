@@ -131,13 +131,27 @@ def egfr_l858r_mane_c():
 
 
 @pytest.fixture(scope="module")
-def grch38():
+def grch38_egfr(egfr_mane_gene):
     """Create a test fixture for grch38 responses (CA126713)."""
     params = {
-        "refseq": "NC_000007.14",
         "pos": (55191821, 55191822),
         "status": TranscriptPriority.GRCH38,
+        "refseq": "NC_000007.14",
         "alt_ac": "NC_000007.14",
+        "mane_genes": [egfr_mane_gene],
+    }
+    return GenomicRepresentation(**params)
+
+
+@pytest.fixture(scope="module")
+def grch38_braf(braf_mane_gene):
+    """Create a test fixture for BRAF grch38 responses."""
+    params = {
+        "pos": (140753335, 140753336),
+        "status": TranscriptPriority.GRCH38,
+        "refseq": "NC_000007.14",
+        "alt_ac": "NC_000007.14",
+        "mane_genes": [braf_mane_gene],
     }
     return GenomicRepresentation(**params)
 
@@ -656,7 +670,7 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
 
 @pytest.mark.asyncio()
 async def test_g_to_mane_c(
-    test_mane_transcript, egfr_l858r_mane_c, braf_v600e_mane_c, grch38
+    test_mane_transcript, egfr_l858r_mane_c, braf_v600e_mane_c, grch38_egfr, grch38_braf
 ):
     """Test that g_to_mane_c method works correctly."""
     mane_c = await test_mane_transcript.g_to_mane_c(
@@ -708,7 +722,7 @@ async def test_g_to_mane_c(
     assert mane_c == braf_v600e_mane_c
 
     resp = await test_mane_transcript.g_to_mane_c("NC_000007.13", 55259515, 55259515)
-    assert resp == grch38
+    assert resp == grch38_egfr
 
     resp = await test_mane_transcript.get_mane_transcript(
         "NC_000007.13",
@@ -717,25 +731,23 @@ async def test_g_to_mane_c(
         AnnotationLayer.GENOMIC,
         residue_mode=ResidueMode.INTER_RESIDUE,
     )
-    assert resp == grch38
+    assert resp == grch38_egfr
 
     resp = await test_mane_transcript.get_mane_transcript(
         "NC_000007.13", 55259515, 55259515, AnnotationLayer.GENOMIC
     )
-    assert resp == grch38
+    assert resp == grch38_egfr
 
     resp = await test_mane_transcript.g_to_mane_c("NC_000007.13", 140453136, 140453136)
-    grch38.pos = (140753335, 140753336)
-    assert resp == grch38
+    assert resp == grch38_braf
 
     resp = await test_mane_transcript.g_to_mane_c(
         "NC_000007.13", 140453135, 140453136, residue_mode=ResidueMode.INTER_RESIDUE
     )
-    assert resp == grch38
+    assert resp == grch38_braf
 
     resp = await test_mane_transcript.g_to_mane_c("NC_000007.14", 140753336, 140753336)
-    grch38.pos = (140753335, 140753336)
-    assert resp == grch38
+    assert resp == grch38_braf
 
     # CA122528
     mane_c = await test_mane_transcript.g_to_mane_c(
