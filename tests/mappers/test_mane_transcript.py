@@ -483,7 +483,7 @@ def test_get_prioritized_transcripts_from_gene(
             ["NP_001365401.1", "NM_001374258.2", "NC_000007.14", 0],
         ]
         test_df = pl.DataFrame(
-            data, schema=["pro_ac", "tx_ac", "alt_ac", "cds_start_i"]
+            data, schema=["pro_ac", "tx_ac", "alt_ac", "cds_start_i"], orient="row"
         )
 
         resp = test_mane_transcript._get_prioritized_transcripts_from_gene(test_df)
