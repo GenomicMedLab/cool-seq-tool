@@ -6,7 +6,6 @@ from unittest.mock import patch
 import polars as pl
 import pytest
 
-from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
 from cool_seq_tool.mappers.mane_transcript import (
     CdnaRepresentation,
     DataRepresentation,
@@ -454,9 +453,9 @@ async def test_c_to_mane_c(test_mane_transcript, braf_v600e_mane_c, egfr_l858r_m
     )
 
 
-@pytest.fixture()
-@patch.object(SeqRepoAccess, "get_reference_sequence")
-def _test_get_prioritized_transcripts_from_gene(test_get_seqrepo, test_mane_transcript):
+def test_get_prioritized_transcripts_from_gene(
+    test_seqrepo_access, test_mane_transcript
+):
     """Test that _get_prioritized_transcripts_from_gene works as expected"""
 
     def get_reference_sequence(ac):
@@ -469,23 +468,26 @@ def _test_get_prioritized_transcripts_from_gene(test_get_seqrepo, test_mane_tran
         }
         return dummy_tx_ref_seq[ac]
 
-    test_get_seqrepo.return_value = None
-    test_mane_transcript.seqrepo_access.get_reference_sequence = get_reference_sequence
+    with patch.object(
+        test_seqrepo_access, "get_reference_sequence", get_reference_sequence
+    ):
+        # cds_start_i does not impact this method
+        data = [
+            ["NP_004324.2", "NM_004333.6", "NC_000007.13", 0],
+            ["NP_004324.2", "NM_004333.5", "NC_000007.13", 0],
+            ["NP_001365401.1", "NM_001378472.1", "NC_000007.13", 0],
+            ["NP_001365401.1", "NM_001374258.2", "NC_000007.13", 0],
+            ["NP_004324.2", "NM_004333.6", "NC_000007.14", 0],
+            ["NP_004324.2", "NM_004333.5", "NC_000007.14", 0],
+            ["NP_001365401.1", "NM_001378472.1", "NC_000007.14", 0],
+            ["NP_001365401.1", "NM_001374258.2", "NC_000007.14", 0],
+        ]
+        test_df = pl.DataFrame(
+            data, schema=["pro_ac", "tx_ac", "alt_ac", "cds_start_i"], orient="row"
+        )
 
-    data = [
-        ["NM_004333.6", 2, "NC_000007.13"],
-        ["NM_004333.5", 4, "NC_000007.13"],
-        ["NM_001378472.1", 1, "NC_000007.13"],
-        ["NM_001374258.2", 1, "NC_000007.13"],
-        ["NM_004333.6", 2, "NC_000007.14"],
-        ["NM_004333.5", 4, "NC_000007.14"],
-        ["NM_001378472.1", 1, "NC_000007.14"],
-        ["NM_001374258.2", 1, "NC_000007.14"],
-    ]
-    test_df = pl.DataFrame(data, schema=["tx_ac", "len_of_tx", "alt_ac"])
-
-    resp = test_mane_transcript._get_prioritized_transcripts_from_gene(test_df)
-    assert resp == ["NM_004333.6", "NM_001374258.2", "NM_001378472.1"]
+        resp = test_mane_transcript._get_prioritized_transcripts_from_gene(test_df)
+        assert resp == ["NM_004333.6", "NM_001374258.2", "NM_001378472.1"]
 
 
 @pytest.mark.asyncio()
