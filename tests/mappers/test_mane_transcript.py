@@ -6,7 +6,6 @@ from unittest.mock import patch
 import polars as pl
 import pytest
 
-from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
 from cool_seq_tool.mappers.mane_transcript import (
     CdnaRepresentation,
     DataRepresentation,
@@ -135,9 +134,8 @@ def grch38_egfr(egfr_mane_gene):
     """Create a test fixture for grch38 responses (CA126713)."""
     params = {
         "pos": (55191821, 55191822),
-        "status": TranscriptPriority.GRCH38,
-        "refseq": "NC_000007.14",
-        "alt_ac": "NC_000007.14",
+        "status": TranscriptPriority.GRCH38.value,
+        "ac": "NC_000007.14",
         "mane_genes": [egfr_mane_gene],
     }
     return GenomicRepresentation(**params)
@@ -145,12 +143,11 @@ def grch38_egfr(egfr_mane_gene):
 
 @pytest.fixture(scope="module")
 def grch38_braf(braf_mane_gene):
-    """Create a test fixture for BRAF grch38 responses."""
+    """Create a test fixture for grch38 responses BRAF V600E (genomic)."""
     params = {
         "pos": (140753335, 140753336),
-        "status": TranscriptPriority.GRCH38,
-        "refseq": "NC_000007.14",
-        "alt_ac": "NC_000007.14",
+        "status": TranscriptPriority.GRCH38.value,
+        "ac": "NC_000007.14",
         "mane_genes": [braf_mane_gene],
     }
     return GenomicRepresentation(**params)
@@ -191,20 +188,20 @@ def mybpc3_s236g():
 
 
 def test_get_reading_frame(test_mane_transcript):
-    """Test that _get_reading_frame works correctly."""
-    rf = test_mane_transcript._get_reading_frame(1797)
+    """Test that get_reading_frame works correctly."""
+    rf = test_mane_transcript.get_reading_frame(1797)
     assert rf == 3
 
-    rf = test_mane_transcript._get_reading_frame(1798)
+    rf = test_mane_transcript.get_reading_frame(1798)
     assert rf == 1
 
-    rf = test_mane_transcript._get_reading_frame(1799)
+    rf = test_mane_transcript.get_reading_frame(1799)
     assert rf == 2
 
-    rf = test_mane_transcript._get_reading_frame(1800)
+    rf = test_mane_transcript.get_reading_frame(1800)
     assert rf == 3
 
-    rf = test_mane_transcript._get_reading_frame(2573)
+    rf = test_mane_transcript.get_reading_frame(2573)
     assert rf == 2
 
 
@@ -468,9 +465,9 @@ async def test_c_to_mane_c(test_mane_transcript, braf_v600e_mane_c, egfr_l858r_m
     )
 
 
-@pytest.fixture()
-@patch.object(SeqRepoAccess, "get_reference_sequence")
-def _test_get_prioritized_transcripts_from_gene(test_get_seqrepo, test_mane_transcript):
+def test_get_prioritized_transcripts_from_gene(
+    test_seqrepo_access, test_mane_transcript
+):
     """Test that _get_prioritized_transcripts_from_gene works as expected"""
 
     def get_reference_sequence(ac):
@@ -483,23 +480,26 @@ def _test_get_prioritized_transcripts_from_gene(test_get_seqrepo, test_mane_tran
         }
         return dummy_tx_ref_seq[ac]
 
-    test_get_seqrepo.return_value = None
-    test_mane_transcript.seqrepo_access.get_reference_sequence = get_reference_sequence
+    with patch.object(
+        test_seqrepo_access, "get_reference_sequence", get_reference_sequence
+    ):
+        # cds_start_i does not impact this method
+        data = [
+            ["NP_004324.2", "NM_004333.6", "NC_000007.13", 0],
+            ["NP_004324.2", "NM_004333.5", "NC_000007.13", 0],
+            ["NP_001365401.1", "NM_001378472.1", "NC_000007.13", 0],
+            ["NP_001365401.1", "NM_001374258.2", "NC_000007.13", 0],
+            ["NP_004324.2", "NM_004333.6", "NC_000007.14", 0],
+            ["NP_004324.2", "NM_004333.5", "NC_000007.14", 0],
+            ["NP_001365401.1", "NM_001378472.1", "NC_000007.14", 0],
+            ["NP_001365401.1", "NM_001374258.2", "NC_000007.14", 0],
+        ]
+        test_df = pl.DataFrame(
+            data, schema=["pro_ac", "tx_ac", "alt_ac", "cds_start_i"], orient="row"
+        )
 
-    data = [
-        ["NM_004333.6", 2, "NC_000007.13"],
-        ["NM_004333.5", 4, "NC_000007.13"],
-        ["NM_001378472.1", 1, "NC_000007.13"],
-        ["NM_001374258.2", 1, "NC_000007.13"],
-        ["NM_004333.6", 2, "NC_000007.14"],
-        ["NM_004333.5", 4, "NC_000007.14"],
-        ["NM_001378472.1", 1, "NC_000007.14"],
-        ["NM_001374258.2", 1, "NC_000007.14"],
-    ]
-    test_df = pl.DataFrame(data, schema=["tx_ac", "len_of_tx", "alt_ac"])
-
-    resp = test_mane_transcript._get_prioritized_transcripts_from_gene(test_df)
-    assert resp == ["NM_004333.6", "NM_001374258.2", "NM_001378472.1"]
+        resp = test_mane_transcript._get_prioritized_transcripts_from_gene(test_df)
+        assert resp == ["NM_004333.6", "NM_001374258.2", "NM_001378472.1"]
 
 
 @pytest.mark.asyncio()
@@ -669,9 +669,26 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
 
 
 @pytest.mark.asyncio()
-async def test_g_to_mane_c(
-    test_mane_transcript, egfr_l858r_mane_c, braf_v600e_mane_c, grch38_egfr, grch38_braf
-):
+async def test_g_to_grch38(test_mane_transcript, grch38_egfr, grch38_braf):
+    """Test that g_to_grch38 method works correctly."""
+    resp = await test_mane_transcript.g_to_grch38("NC_000007.13", 55259515, 55259515)
+    assert resp == grch38_egfr
+
+    resp = await test_mane_transcript.g_to_grch38("NC_000007.13", 140453136, 140453136)
+    assert resp == grch38_braf
+
+    resp = await test_mane_transcript.g_to_grch38(
+        "NC_000007.13", 140453135, 140453136, residue_mode=ResidueMode.INTER_RESIDUE
+    )
+    assert resp == grch38_braf
+
+    # Already on GRCh38
+    resp = await test_mane_transcript.g_to_grch38("NC_000007.14", 140753336, 140753336)
+    assert resp == grch38_braf
+
+
+@pytest.mark.asyncio()
+async def test_g_to_mane_c(test_mane_transcript, egfr_l858r_mane_c, braf_v600e_mane_c):
     """Test that g_to_mane_c method works correctly."""
     mane_c = await test_mane_transcript.g_to_mane_c(
         "NC_000007.13", 55259515, 55259515, gene="EGFR"
@@ -720,34 +737,6 @@ async def test_g_to_mane_c(
         "NC_000007.13", 140453136, 140453136, gene="BRAF"
     )
     assert mane_c == braf_v600e_mane_c
-
-    resp = await test_mane_transcript.g_to_mane_c("NC_000007.13", 55259515, 55259515)
-    assert resp == grch38_egfr
-
-    resp = await test_mane_transcript.get_mane_transcript(
-        "NC_000007.13",
-        55259514,
-        55259515,
-        AnnotationLayer.GENOMIC,
-        residue_mode=ResidueMode.INTER_RESIDUE,
-    )
-    assert resp == grch38_egfr
-
-    resp = await test_mane_transcript.get_mane_transcript(
-        "NC_000007.13", 55259515, 55259515, AnnotationLayer.GENOMIC
-    )
-    assert resp == grch38_egfr
-
-    resp = await test_mane_transcript.g_to_mane_c("NC_000007.13", 140453136, 140453136)
-    assert resp == grch38_braf
-
-    resp = await test_mane_transcript.g_to_mane_c(
-        "NC_000007.13", 140453135, 140453136, residue_mode=ResidueMode.INTER_RESIDUE
-    )
-    assert resp == grch38_braf
-
-    resp = await test_mane_transcript.g_to_mane_c("NC_000007.14", 140753336, 140753336)
-    assert resp == grch38_braf
 
     # CA122528
     mane_c = await test_mane_transcript.g_to_mane_c(

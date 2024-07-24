@@ -72,11 +72,10 @@ class CdnaRepresentation(DataRepresentation):
 class GenomicRepresentation(BaseModel):
     """Define object model for genomic representation"""
 
-    refseq: str
     pos: tuple[int, int]
-    status: TranscriptPriority
-    alt_ac: str
     mane_genes: list[ManeGeneData] = []
+    status: Literal["grch38"] = TranscriptPriority.GRCH38.value
+    ac: str
 
 
 class ProteinAndCdnaRepresentation(BaseModel):
@@ -110,7 +109,7 @@ class ManeTranscript:
 
         >>> import asyncio
         >>> result = asyncio.run(mane_mapper.g_to_grch38("NC_000001.11", 100, 200))
-        >>> result.alt_ac
+        >>> result.ac
         'NC_000001.11'
 
         See the :ref:`Usage section <async_note>` for more information.
@@ -130,7 +129,7 @@ class ManeTranscript:
         self.liftover = liftover
 
     @staticmethod
-    def _get_reading_frame(pos: int) -> int:
+    def get_reading_frame(pos: int) -> int:
         """Return reading frame number. Only used on c. coordinate.
 
         :param pos: cDNA position
@@ -533,8 +532,8 @@ class ManeTranscript:
         """
         for pos, pos_index in [(start_pos, 0), (end_pos, 1)]:
             if pos is not None:
-                og_rf = self._get_reading_frame(pos)
-                new_rf = self._get_reading_frame(transcript_data.pos[pos_index])
+                og_rf = self.get_reading_frame(pos)
+                new_rf = self.get_reading_frame(transcript_data.pos[pos_index])
 
                 if og_rf != new_rf:
                     _logger.warning(
@@ -620,7 +619,7 @@ class ManeTranscript:
 
         return True
 
-    def _validate_index(
+    def validate_index(
         self, ac: str, pos: tuple[int, int], coding_start_site: int
     ) -> bool:
         """Validate that positions actually exist on accession
@@ -912,7 +911,7 @@ class ManeTranscript:
                 ac = lcr_result.refseq or lcr_result.ensembl
                 pos = lcr_result.pos
 
-                if not self._validate_index(ac, pos, coding_start_site):
+                if not self.validate_index(ac, pos, coding_start_site):
                     _logger.warning(
                         "%s are not valid positions on %s with coding start site %s",
                         pos,
@@ -938,7 +937,7 @@ class ManeTranscript:
                 cds = lcr_result_dict[k].get("coding_start_site", 0)
                 ac = lcr_result_dict[k]["refseq"] or lcr_result_dict[k]["ensembl"]
                 pos = lcr_result_dict[k]["pos"]
-                if not self._validate_index(ac, pos, cds):
+                if not self.validate_index(ac, pos, cds):
                     valid = False
                     _logger.warning(
                         "%s are not valid positions on %s with coding start site %s",
@@ -964,7 +963,16 @@ class ManeTranscript:
         residue_mode: Literal[ResidueMode.RESIDUE]
         | Literal[ResidueMode.INTER_RESIDUE] = ResidueMode.RESIDUE,
     ) -> DataRepresentation | CdnaRepresentation | None:
-        """Return MANE transcript.
+        """Return MANE representation
+
+        If ``start_annotation_layer`` is ``AnnotationLayer.PROTEIN``, will return
+            ``AnnotationLayer.PROTEIN`` representation.
+        If ``start_annotation_layer`` is ``AnnotationLayer.CDNA``, will return
+            ``AnnotationLayer.CDNA`` representation.
+        If ``start_annotation_layer`` is ``AnnotationLayer.GENOMIC`` will return
+            ``AnnotationLayer.CDNA`` representation if ``gene`` is provided and
+            ``AnnotationLayer.GENOMIC`` GRCh38 representation if ``gene`` is NOT
+            provided.
 
         >>> from cool_seq_tool.app import CoolSeqTool
         >>> from cool_seq_tool.schemas import AnnotationLayer, ResidueMode
@@ -985,7 +993,11 @@ class ManeTranscript:
         :param start_pos: Start position change
         :param end_pos: End position change
         :param start_annotation_layer: Starting annotation layer.
-        :param gene: HGNC gene symbol
+        :param gene: HGNC gene symbol.
+            If ``gene`` is not provided and ``start_annotation_layer`` is
+            ``AnnotationLayer.GENOMIC``, will return GRCh38 representation.
+            If ``gene`` is provided and ``start_annotation_layer`` is
+            ``AnnotationLayer.GENOMIC``, will return cDNA representation.
         :param ref: Reference at position given during input
         :param try_longest_compatible: ``True`` if should try longest compatible remaining
             if mane transcript was not compatible. ``False`` otherwise.
@@ -1095,14 +1107,28 @@ class ManeTranscript:
                 )
             return None
         if start_annotation_layer == AnnotationLayer.GENOMIC:
+            if not gene:
+                return await self.g_to_grch38(
+                    ac,
+                    start_pos,
+                    end_pos,
+                    get_mane_genes=True,
+                    residue_mode=residue_mode,
+                )
+
             return await self.g_to_mane_c(
-                ac, start_pos, end_pos, gene=gene, residue_mode=residue_mode
+                ac, start_pos, end_pos, gene, residue_mode=residue_mode
             )
         _logger.warning("Annotation layer not supported: %s", start_annotation_layer)
         return None
 
     async def g_to_grch38(
-        self, ac: str, start_pos: int, end_pos: int, get_mane_genes: bool = False
+        self,
+        ac: str,
+        start_pos: int,
+        end_pos: int,
+        get_mane_genes: bool = False,
+        residue_mode: ResidueMode = ResidueMode.RESIDUE,
     ) -> GenomicRepresentation | None:
         """Return genomic coordinate on GRCh38 when not given gene context.
 
@@ -1111,18 +1137,20 @@ class ManeTranscript:
         :param end_pos: Genomic end position
         :param get_mane_genes: ``True`` if mane genes for genomic position should be
             included in response. ``False``, otherwise.
-        :return: GRCh38 genomic representation
+        :param residue_mode: Residue mode for ``start_pos`` and ``end_pos``
+        :return: GRCh38 genomic representation (accession and start/end inter-residue
+            position)
         """
+        start_pos, end_pos = get_inter_residue_pos(start_pos, end_pos, residue_mode)
+
         # Checking to see what chromosome and assembly we're on
         descr = await self.uta_db.get_chr_assembly(ac)
         if not descr:
             # Already GRCh38 assembly
-            if self._validate_index(ac, (start_pos, end_pos), 0):
+            if self.validate_index(ac, (start_pos, end_pos), 0):
                 return GenomicRepresentation(
+                    ac=ac,
                     pos=(start_pos, end_pos),
-                    refseq=ac,
-                    alt_ac=ac,
-                    status=TranscriptPriority.GRCH38,
                     mane_genes=self.mane_transcript_mappings.get_genomic_mane_genes(
                         ac, start_pos + 1, end_pos
                     )
@@ -1158,12 +1186,10 @@ class ManeTranscript:
         newest_ac = await self.uta_db.get_newest_assembly_ac(ac)
         if newest_ac:
             ac = newest_ac[0]
-            if self._validate_index(ac, (start_pos, end_pos), 0):
+            if self.validate_index(ac, (start_pos, end_pos), 0):
                 return GenomicRepresentation(
+                    ac=ac,
                     pos=(start_pos, end_pos),
-                    refseq=ac,
-                    alt_ac=ac,
-                    status=TranscriptPriority.GRCH38,
                     mane_genes=self.mane_transcript_mappings.get_genomic_mane_genes(
                         ac, start_pos + 1, end_pos
                     )
@@ -1199,13 +1225,10 @@ class ManeTranscript:
         ac: str,
         start_pos: int,
         end_pos: int,
-        gene: str | None = None,
+        gene: str,
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
-    ) -> GenomicRepresentation | CdnaRepresentation | None:
+    ) -> CdnaRepresentation | None:
         """Return MANE Transcript on the c. coordinate.
-
-        If an arg for ``gene`` is provided, lifts to GRCh38, then gets MANE cDNA
-        representation.
 
         >>> import asyncio
         >>> from cool_seq_tool.app import CoolSeqTool
@@ -1221,24 +1244,16 @@ class ManeTranscript:
         <TranscriptPriority.MANE_SELECT: 'mane_select'>
         >>> del cst
 
-        Locating a MANE transcript requires a ``gene`` symbol argument -- if none is
-        given, this method will only lift over to genomic coordinates on GRCh38.
-
         :param ac: Transcript accession on g. coordinate
         :param start_pos: genomic start position
         :param end_pos: genomic end position
         :param gene: HGNC gene symbol
         :param residue_mode: Starting residue mode for ``start_pos`` and ``end_pos``.
             Will always return coordinates in inter-residue.
-        :return: MANE Transcripts with cDNA change on c. coordinate if gene
-            is provided. Else, GRCh38 data
+        :return: MANE Transcripts with cDNA change on c. coordinate
         """
         start_pos, end_pos = get_inter_residue_pos(start_pos, end_pos, residue_mode)
         residue_mode = ResidueMode.INTER_RESIDUE
-
-        # If gene not provided, return GRCh38
-        if not gene:
-            return await self.g_to_grch38(ac, start_pos, end_pos, get_mane_genes=True)
 
         if not await self.uta_db.validate_genomic_ac(ac):
             _logger.warning("Genomic accession does not exist: %s", ac)
@@ -1253,13 +1268,13 @@ class ManeTranscript:
 
             # Liftover to GRCh38
             grch38 = await self.g_to_grch38(
-                ac, start_pos, end_pos, get_mane_genes=False
+                ac, start_pos, end_pos, get_mane_genes=False, residue_mode=residue_mode
             )
             mane_tx_genomic_data = None
             if grch38:
                 # GRCh38 -> MANE C
                 mane_tx_genomic_data = await self.uta_db.get_mane_c_genomic_data(
-                    mane_c_ac, grch38.alt_ac, grch38.pos[0], grch38.pos[1]
+                    mane_c_ac, grch38.ac, grch38.pos[0], grch38.pos[1]
                 )
 
             if not grch38 or not mane_tx_genomic_data:
@@ -1277,9 +1292,7 @@ class ManeTranscript:
                 mane_tx_genomic_data, coding_start_site
             )
 
-            if not self._validate_index(
-                mane_c_ac, mane_c_pos_change, coding_start_site
-            ):
+            if not self.validate_index(mane_c_ac, mane_c_pos_change, coding_start_site):
                 _logger.warning(
                     "%s are not valid positions on %s with coding start site %s",
                     mane_c_pos_change,
@@ -1300,7 +1313,7 @@ class ManeTranscript:
                 ),
                 refseq_c_ac=current_mane_data["RefSeq_nuc"],
                 ensembl_c_ac=current_mane_data["Ensembl_nuc"],
-                alt_ac=grch38.alt_ac if grch38 else None,
+                alt_ac=grch38.ac if grch38 else None,
             )
         return None
 
@@ -1367,9 +1380,7 @@ class ManeTranscript:
             )
 
             # Validate MANE C positions
-            if not self._validate_index(
-                mane_c_ac, mane_c_pos_change, coding_start_site
-            ):
+            if not self.validate_index(mane_c_ac, mane_c_pos_change, coding_start_site):
                 _logger.warning(
                     "%s are not valid positions on %s with coding start site %s",
                     mane_c_pos_change,
