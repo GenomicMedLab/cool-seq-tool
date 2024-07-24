@@ -5,7 +5,7 @@ from unittest.mock import patch
 import polars as pl
 import pytest
 
-from cool_seq_tool.sources import ManeGeneData
+from cool_seq_tool.schemas import ManeGeneData
 
 
 @pytest.fixture(scope="module")

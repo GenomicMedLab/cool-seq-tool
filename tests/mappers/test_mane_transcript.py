@@ -671,19 +671,36 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
 @pytest.mark.asyncio()
 async def test_g_to_grch38(test_mane_transcript, grch38_egfr, grch38_braf):
     """Test that g_to_grch38 method works correctly."""
-    resp = await test_mane_transcript.g_to_grch38("NC_000007.13", 55259515, 55259515)
+    resp = await test_mane_transcript.g_to_grch38(
+        "NC_000007.13", 55259515, 55259515, get_mane_genes=False
+    )
+    grch38_egfr_no_genes = grch38_egfr.copy()
+    grch38_egfr_no_genes.mane_genes = []
+    assert resp == grch38_egfr_no_genes
+
+    resp = await test_mane_transcript.g_to_grch38(
+        "NC_000007.13", 55259515, 55259515, get_mane_genes=True
+    )
     assert resp == grch38_egfr
 
-    resp = await test_mane_transcript.g_to_grch38("NC_000007.13", 140453136, 140453136)
+    resp = await test_mane_transcript.g_to_grch38(
+        "NC_000007.13", 140453136, 140453136, get_mane_genes=True
+    )
     assert resp == grch38_braf
 
     resp = await test_mane_transcript.g_to_grch38(
-        "NC_000007.13", 140453135, 140453136, residue_mode=ResidueMode.INTER_RESIDUE
+        "NC_000007.13",
+        140453135,
+        140453136,
+        residue_mode=ResidueMode.INTER_RESIDUE,
+        get_mane_genes=True,
     )
     assert resp == grch38_braf
 
     # Already on GRCh38
-    resp = await test_mane_transcript.g_to_grch38("NC_000007.14", 140753336, 140753336)
+    resp = await test_mane_transcript.g_to_grch38(
+        "NC_000007.14", 140753336, 140753336, get_mane_genes=True
+    )
     assert resp == grch38_braf
 
 

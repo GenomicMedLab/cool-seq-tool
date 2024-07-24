@@ -5,8 +5,7 @@ import asyncio
 import pytest
 
 from cool_seq_tool.app import CoolSeqTool
-from cool_seq_tool.schemas import Strand
-from cool_seq_tool.sources import ManeGeneData
+from cool_seq_tool.schemas import ManeGeneData, Strand
 
 
 @pytest.fixture(scope="session")

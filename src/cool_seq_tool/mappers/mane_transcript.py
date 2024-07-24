@@ -25,12 +25,12 @@ from cool_seq_tool.mappers.liftover import LiftOver
 from cool_seq_tool.schemas import (
     AnnotationLayer,
     Assembly,
+    ManeGeneData,
     ResidueMode,
     Strand,
     TranscriptPriority,
 )
 from cool_seq_tool.sources import (
-    ManeGeneData,
     ManeTranscriptMappings,
     TranscriptMappings,
     UtaDatabase,

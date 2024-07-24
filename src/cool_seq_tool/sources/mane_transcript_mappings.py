@@ -6,19 +6,11 @@ import logging
 from pathlib import Path
 
 import polars as pl
-from pydantic import BaseModel, StrictInt, StrictStr
 
 from cool_seq_tool.resources.data_files import DataFile, get_data_file
+from cool_seq_tool.schemas import ManeGeneData
 
 _logger = logging.getLogger(__name__)
-
-
-class ManeGeneData(BaseModel, extra="forbid"):
-    """Define minimal object model for representing a MANE gene"""
-
-    ncbi_gene_id: StrictInt
-    hgnc_id: StrictInt | None
-    symbol: StrictStr
 
 
 class ManeTranscriptMappings:
