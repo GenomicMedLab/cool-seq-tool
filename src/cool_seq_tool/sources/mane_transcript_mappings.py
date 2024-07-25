@@ -8,6 +8,7 @@ from pathlib import Path
 import polars as pl
 
 from cool_seq_tool.resources.data_files import DataFile, get_data_file
+from cool_seq_tool.schemas import ManeGeneData
 
 _logger = logging.getLogger(__name__)
 
@@ -103,3 +104,37 @@ class ManeTranscriptMappings:
 
         mane_rows = mane_rows.sort(by="MANE_status", descending=True)
         return mane_rows.to_dicts()
+
+    def get_genomic_mane_genes(
+        self, ac: str, start: int, end: int
+    ) -> list[ManeGeneData]:
+        """Get MANE gene(s) for genomic location
+
+        :param ac: RefSeq genomic accession
+        :param start: Genomic start position. Assumes residue coordinates.
+        :param end: Genomic end position. Assumes residue coordinates.
+        :return: Unique MANE gene(s) found for a genomic location
+        """
+        mane_rows = self.df.filter(
+            (start >= pl.col("chr_start"))
+            & (end <= pl.col("chr_end"))
+            & (pl.col("GRCh38_chr") == ac)
+        ).unique(subset=["#NCBI_GeneID"])
+
+        if len(mane_rows) == 0:
+            return []
+
+        mane_rows = mane_rows.with_columns(
+            pl.col("#NCBI_GeneID")
+            .str.split_exact(":", 1)
+            .struct.field("field_1")
+            .cast(pl.Int32)
+            .alias("ncbi_gene_id"),
+            pl.col("HGNC_ID")
+            .str.split_exact(":", 1)
+            .struct.field("field_1")
+            .cast(pl.Int32)
+            .alias("hgnc_id"),
+        )
+        mane_rows = mane_rows.select(["ncbi_gene_id", "hgnc_id", "symbol"])
+        return [ManeGeneData(**mane_gene) for mane_gene in mane_rows.to_dicts()]

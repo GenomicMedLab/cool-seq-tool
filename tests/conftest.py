@@ -5,7 +5,7 @@ import asyncio
 import pytest
 
 from cool_seq_tool.app import CoolSeqTool
-from cool_seq_tool.schemas import Strand
+from cool_seq_tool.schemas import ManeGeneData, Strand
 
 
 @pytest.fixture(scope="session")
@@ -121,3 +121,15 @@ def genomic_tx_data():
         "tx_ac": "NM_004333.4",
         "alt_ac": "NC_000007.13",
     }
+
+
+@pytest.fixture(scope="session")
+def egfr_mane_gene():
+    """Create test fixture for EGFR MANE gene"""
+    return ManeGeneData(ncbi_gene_id=1956, hgnc_id=3236, symbol="EGFR")
+
+
+@pytest.fixture(scope="session")
+def braf_mane_gene():
+    """Create test fixture for BRAF MANE gene"""
+    return ManeGeneData(ncbi_gene_id=673, hgnc_id=1097, symbol="BRAF")

@@ -116,6 +116,14 @@ class BaseModelForbidExtra(BaseModel, extra="forbid"):
     """Base Pydantic model class with extra values forbidden."""
 
 
+class ManeGeneData(BaseModel, extra="forbid"):
+    """Define minimal object model for representing a MANE gene"""
+
+    ncbi_gene_id: StrictInt
+    hgnc_id: StrictInt | None
+    symbol: StrictStr
+
+
 class TranscriptExonData(BaseModelForbidExtra):
     """Model containing transcript exon data."""
 

@@ -25,6 +25,7 @@ from cool_seq_tool.mappers.liftover import LiftOver
 from cool_seq_tool.schemas import (
     AnnotationLayer,
     Assembly,
+    ManeGeneData,
     ResidueMode,
     Strand,
     TranscriptPriority,
@@ -72,6 +73,7 @@ class GenomicRepresentation(BaseModel):
     """Define object model for genomic representation"""
 
     pos: tuple[int, int]
+    mane_genes: list[ManeGeneData] = []
     status: Literal["grch38"] = TranscriptPriority.GRCH38.value
     ac: str
 
@@ -1125,6 +1127,7 @@ class ManeTranscript:
         ac: str,
         start_pos: int,
         end_pos: int,
+        get_mane_genes: bool = False,
         residue_mode: ResidueMode = ResidueMode.RESIDUE,
     ) -> GenomicRepresentation | None:
         """Return genomic coordinate on GRCh38 when not given gene context.
@@ -1132,6 +1135,8 @@ class ManeTranscript:
         :param ac: Genomic accession
         :param start_pos: Genomic start position
         :param end_pos: Genomic end position
+        :param get_mane_genes: ``True`` if mane genes for genomic position should be
+            included in response. ``False``, otherwise.
         :param residue_mode: Residue mode for ``start_pos`` and ``end_pos``
         :return: GRCh38 genomic representation (accession and start/end inter-residue
             position)
@@ -1143,7 +1148,15 @@ class ManeTranscript:
         if not descr:
             # Already GRCh38 assembly
             if self.validate_index(ac, (start_pos, end_pos), 0):
-                return GenomicRepresentation(ac=ac, pos=(start_pos, end_pos))
+                return GenomicRepresentation(
+                    ac=ac,
+                    pos=(start_pos, end_pos),
+                    mane_genes=self.mane_transcript_mappings.get_genomic_mane_genes(
+                        ac, start_pos + 1, end_pos
+                    )
+                    if get_mane_genes
+                    else [],
+                )
             return None
         chromosome, assembly = descr
         is_same_pos = start_pos == end_pos
@@ -1174,7 +1187,15 @@ class ManeTranscript:
         if newest_ac:
             ac = newest_ac[0]
             if self.validate_index(ac, (start_pos, end_pos), 0):
-                return GenomicRepresentation(ac=ac, pos=(start_pos, end_pos))
+                return GenomicRepresentation(
+                    ac=ac,
+                    pos=(start_pos, end_pos),
+                    mane_genes=self.mane_transcript_mappings.get_genomic_mane_genes(
+                        ac, start_pos + 1, end_pos
+                    )
+                    if get_mane_genes
+                    else [],
+                )
         return None
 
     @staticmethod
@@ -1247,7 +1268,7 @@ class ManeTranscript:
 
             # Liftover to GRCh38
             grch38 = await self.g_to_grch38(
-                ac, start_pos, end_pos, residue_mode=residue_mode
+                ac, start_pos, end_pos, get_mane_genes=False, residue_mode=residue_mode
             )
             mane_tx_genomic_data = None
             if grch38:

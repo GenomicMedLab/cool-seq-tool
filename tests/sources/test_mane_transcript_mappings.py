@@ -1,6 +1,11 @@
 """Module for testing MANE Transcript Mapping class."""
 
+from unittest.mock import patch
+
+import polars as pl
 import pytest
+
+from cool_seq_tool.schemas import ManeGeneData
 
 
 @pytest.fixture(scope="module")
@@ -201,3 +206,49 @@ def test_get_mane_data_from_chr_pos(
         "NC_000023", 37994300, 37994310
     )
     assert resp == []
+
+
+def test_get_genomic_mane_genes(
+    test_mane_transcript_mappings, braf_mane_gene, egfr_mane_gene
+):
+    """Test that get_genomic_mane_genes method works correctly"""
+    new_df = pl.DataFrame(
+        {
+            "#NCBI_GeneID": ["GeneID:673", "GeneID:673", "GeneID:1956", "GeneID:1"],
+            "Ensembl_Gene": [
+                "ENSG00000157764.14",
+                "ENSG00000157764.14",
+                "ENSG00000146648.21",
+                "ENSG1.1",
+            ],
+            "HGNC_ID": ["HGNC:1097", "HGNC:1097", "HGNC:3236", "HGNC:2"],
+            "symbol": ["BRAF", "BRAF", "EGFR", "Dummy"],
+            "GRCh38_chr": [
+                "NC_000007.14",
+                "NC_000007.14",
+                "NC_000007.14",
+                "NC_000007.14",
+            ],
+            "chr_start": [140719337, 140730665, 55019017, 55019017],
+            "chr_end": [140924929, 140924929, 55211628, 55211628],
+        }
+    )
+
+    with patch.object(test_mane_transcript_mappings, "df", new_df):
+        mane_genes = test_mane_transcript_mappings.get_genomic_mane_genes(
+            "NC_000007.14", 140753336, 140753336
+        )
+        assert mane_genes == [braf_mane_gene]
+
+        mane_genes = test_mane_transcript_mappings.get_genomic_mane_genes(
+            "NC_000007.14", 55191822, 55191822
+        )
+        assert len(mane_genes) == 2
+        assert egfr_mane_gene in mane_genes
+        assert ManeGeneData(ncbi_gene_id=1, hgnc_id=2, symbol="Dummy") in mane_genes
+
+        # No MANE genes found for given genomic location
+        mane_genes = test_mane_transcript_mappings.get_genomic_mane_genes(
+            "NC_000007.14", 140718337, 140718337
+        )
+        assert mane_genes == []
