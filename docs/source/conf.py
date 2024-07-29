@@ -72,7 +72,7 @@ def linkcode_resolve(domain, info):
     if not info["module"]:
         return None
     filename = info["module"].replace(".", "/")
-    return f"https://github.com/genomicmedlab/cool-seq-tool/blob/main/{filename}.py"  # noqa: E501
+    return f"https://github.com/genomicmedlab/cool-seq-tool/blob/main/src/{filename}.py"
 
 
 # -- code block style --------------------------------------------------------
