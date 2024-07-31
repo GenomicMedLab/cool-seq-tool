@@ -20,6 +20,23 @@ def test_egc_mapper(test_cool_seq_tool):
 
 
 @pytest.fixture(scope="module")
+def nm_152263_exons_genomic_coords():
+    """Create test fixture for NM_152263.4 exons and genomic coordinates."""
+    return [
+        (0, 0, 199, 154191901, 154192100, -1),
+        (1, 199, 325, 154191185, 154191311, -1),
+        (2, 325, 459, 154176114, 154176248, -1),
+        (3, 459, 577, 154173083, 154173201, -1),
+        (4, 577, 648, 154172907, 154172978, -1),
+        (5, 648, 724, 154171412, 154171488, -1),
+        (6, 724, 787, 154170648, 154170711, -1),
+        (7, 787, 857, 154170399, 154170469, -1),
+        (8, 857, 936, 154169304, 154169383, -1),
+        (9, 936, 7064, 154161812, 154167940, -1),
+    ]
+
+
+@pytest.fixture(scope="module")
 def tpm3_exon1():
     """Create test fixture for TPM3 exon 1."""
     params = {
@@ -541,6 +558,28 @@ async def test_get_alt_ac_start_and_end(
     resp = await test_egc_mapper._get_alt_ac_start_and_end("NM_152263.3", gene="TPM3")
     assert resp[0] is None
     assert resp[1] == "Must provide either `tx_exon_start` or `tx_exon_end` or both"
+
+
+@pytest.mark.asyncio()
+async def test_get_tx_exons_genomic_coords(
+    test_egc_mapper, nm_152263_exons_genomic_coords
+):
+    """Test that _get_tx_exons_genomic_coords works correctly."""
+    resp = await test_egc_mapper._get_tx_exons_genomic_coords(
+        "NM_152263.4", "NC_000001.11"
+    )
+    assert resp[0] == nm_152263_exons_genomic_coords
+    assert resp[1] is None
+
+    # Invalid transcript accession given chromosome accession
+    resp = await test_egc_mapper._get_tx_exons_genomic_coords(
+        "NM_001105539.3", "NC_000001.11"
+    )
+    assert resp[0] is None
+    assert (
+        resp[1]
+        == "Unable to get exons and genomic coordinates for NM_001105539.3 on NC_000001.11"
+    )
 
 
 @pytest.mark.asyncio()
