@@ -65,19 +65,6 @@ def nm_152263_exons():
 
 
 @pytest.fixture(scope="session")
-def nm_001105539_exons_genomic_coords():
-    """Create test fixture for NM_001105539.3 exons and genomic coordinates."""
-    return [
-        (0, 0, 1557, 80486225, 80487782),
-        (1, 1557, 2446, 80499493, 80500382),
-        (2, 2446, 2545, 80513909, 80514008),
-        (3, 2545, 2722, 80518402, 80518579),
-        (4, 2722, 2895, 80518781, 80518954),
-        (5, 2895, 9938, 80519222, 80526265),
-    ]
-
-
-@pytest.fixture(scope="session")
 def tpm3_1_8_start_genomic():
     """Create test fixture for genomic data for exon 1, 8"""
     return "TPM3", "NC_000001.11", 154191901, 154192135, -1
