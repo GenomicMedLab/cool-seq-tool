@@ -54,13 +54,14 @@ class TranscriptPriority(str, Enum):
 
 
 class CoordinateType(str, Enum):
-    """Create Enum for residue modes.
+    """Create Enum for coordinate types.
 
     It is preferred to operate in inter-residue coordinates, but users should be
     careful to define the coordinate mode of their data when calling ``cool-seq-tool``
     functions.
 
-    Residue coordinates start with 1, whereas inter-residue coordinates start with 0.
+    ``RESIDUE`` means 1-indexed, residue coordinates and ``INTER_RESIDUE`` means
+    0-indexed, inter-residue coordinates.
 
                       |   | C |   | T |   | G |   |
     RESIDUE           |   | 1 |   | 2 |   | 3 |   |
