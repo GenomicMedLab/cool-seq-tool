@@ -478,6 +478,43 @@ class ExonGenomicCoordsMapper:
                     return None, error
         return tuple(alt_ac_data_values), None
 
+    async def _get_tx_exons_genomic_coords(
+        self,
+        tx_ac: str,
+        alt_ac: str,
+    ) -> tuple[tuple[int, int, int, int, int, int] | None, str | None]:
+        """Get exon number, transcript coordinates, and genomic coordinates
+
+        :param tx_ac: Transcript accession
+        :param alt_ac: RefSeq genomic accession
+        :return: Tuple of exon numbers, transcript and genomic coordinates, strand,
+            and warnings if found
+        """
+        query = f"""
+            SELECT DISTINCT ord, tx_start_i, tx_end_i, alt_start_i, alt_end_i, alt_strand
+            FROM {self.uta_db.schema}.tx_exon_aln_v
+            WHERE tx_ac = '{tx_ac}'
+            AND alt_ac = '{alt_ac}'
+            """  # noqa: S608
+        result = await self.uta_db.execute_query(query)
+
+        if not result:
+            msg = f"Unable to get exons and genomic coordinates for {tx_ac} on {alt_ac}"
+            _logger.warning(msg)
+            return None, msg
+        tx_exons_genomic_coords = [
+            (
+                r["ord"],
+                r["tx_start_i"],
+                r["tx_end_i"],
+                r["alt_start_i"],
+                r["alt_end_i"],
+                r["alt_strand"],
+            )
+            for r in result
+        ]
+        return tx_exons_genomic_coords, None
+
     async def _genomic_to_transcript_exon_coordinate(
         self,
         pos: int,
@@ -567,7 +604,7 @@ class ExonGenomicCoordsMapper:
                                 [f"Could not find a transcript for {gene} on {alt_ac}"],
                             )
 
-            tx_genomic_coords, w = await self.uta_db.get_tx_exons_genomic_coords(
+            tx_genomic_coords, w = await self._get_tx_exons_genomic_coords(
                 tx_ac=transcript, alt_ac=alt_ac
             )
             if not tx_genomic_coords:
