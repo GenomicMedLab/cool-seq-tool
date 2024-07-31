@@ -2,7 +2,7 @@
 
 import pytest
 
-from cool_seq_tool.schemas import ResidueMode
+from cool_seq_tool.schemas import CoordinateType
 
 
 def test_get_reference_sequence(test_seqrepo_access):
@@ -14,7 +14,7 @@ def test_get_reference_sequence(test_seqrepo_access):
     assert resp == ("VK", None)
 
     resp = test_seqrepo_access.get_reference_sequence(
-        "NP_004324.2", 599, 600, residue_mode=ResidueMode.INTER_RESIDUE
+        "NP_004324.2", 599, 600, coordinate_type=CoordinateType.INTER_RESIDUE
     )
     assert resp == ("V", None)
 

@@ -9,16 +9,16 @@ from cool_seq_tool.mappers.mane_transcript import CdnaRepresentation, ManeTransc
 from cool_seq_tool.schemas import (
     AnnotationLayer,
     Assembly,
+    CoordinateType,
     GenomicData,
     GenomicDataResponse,
-    ResidueMode,
     Strand,
     TranscriptExonData,
     TranscriptExonDataResponse,
 )
 from cool_seq_tool.sources.mane_transcript_mappings import ManeTranscriptMappings
 from cool_seq_tool.sources.uta_database import GenesGenomicAcs, UtaDatabase
-from cool_seq_tool.utils import get_inter_residue_pos, service_meta
+from cool_seq_tool.utils import service_meta
 
 CoordinatesResponseType = TypeVar(
     "CoordinatesResponseType", GenomicDataResponse, TranscriptExonDataResponse
@@ -243,8 +243,8 @@ class ExonGenomicCoordsMapper:
         transcript: str | None = None,
         get_nearest_transcript_junction: bool = False,
         gene: str | None = None,
-        residue_mode: Literal[ResidueMode.INTER_RESIDUE]
-        | Literal[ResidueMode.RESIDUE] = ResidueMode.RESIDUE,
+        coordinate_type: Literal[CoordinateType.INTER_RESIDUE]
+        | Literal[CoordinateType.RESIDUE] = CoordinateType.RESIDUE,
     ) -> GenomicDataResponse:
         """Get transcript data for genomic data, lifted over to GRCh38.
 
@@ -288,7 +288,7 @@ class ExonGenomicCoordsMapper:
             breakpoint for the 3' end.
         :param gene: gene name. Ideally, HGNC symbol. Must be given if no ``transcript``
             value is provided.
-        :param residue_mode: Residue mode for ``start`` and ``end``
+        :param coordinate_type: Residue mode for ``start`` and ``end``
         :return: Genomic data (inter-residue coordinates)
         """
         resp = GenomicDataResponse(
@@ -309,10 +309,9 @@ class ExonGenomicCoordsMapper:
             gene = gene.upper().strip()
 
         if start:
-            if residue_mode == ResidueMode.RESIDUE:
-                # zero-based for UTA
+            if coordinate_type == CoordinateType.RESIDUE:
+                # inter-residue based for UTA
                 start -= 1
-            residue_mode = ResidueMode.ZERO
             start_data = await self._genomic_to_transcript_exon_coordinate(
                 start,
                 chromosome=chromosome,
@@ -332,7 +331,6 @@ class ExonGenomicCoordsMapper:
 
         if end:
             end -= 1
-            residue_mode = ResidueMode.ZERO
             end_data = await self._genomic_to_transcript_exon_coordinate(
                 end,
                 chromosome=chromosome,
@@ -500,7 +498,7 @@ class ExonGenomicCoordsMapper:
     ) -> TranscriptExonDataResponse:
         """Convert individual genomic data to transcript data
 
-        :param pos: Genomic position (zero-based)
+        :param pos: Genomic position (inter-residue based)
         :param chromosome: Chromosome. Must give chromosome without a prefix
             (i.e. ``1`` or ``X``). If not provided, must provide ``alt_ac``.
             If ``alt_ac`` is also provided, ``alt_ac`` will be used.
@@ -723,17 +721,16 @@ class ExonGenomicCoordsMapper:
             position.
         :return: Warnings if found
         """
-        start, end = get_inter_residue_pos(pos, pos, residue_mode=ResidueMode.ZERO)
         mane_data: (
             CdnaRepresentation | None
         ) = await self.mane_transcript.get_mane_transcript(
             alt_ac,
-            start,
-            end,
+            pos,
+            pos + 1,
             AnnotationLayer.GENOMIC,
             gene=gene,
             try_longest_compatible=True,
-            residue_mode=ResidueMode.INTER_RESIDUE,
+            coordinate_type=CoordinateType.INTER_RESIDUE,
         )
         if not mane_data:
             msg = f"Unable to find mane data for {alt_ac} with position {pos}"

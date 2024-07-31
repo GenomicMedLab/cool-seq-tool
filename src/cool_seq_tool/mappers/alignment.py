@@ -3,7 +3,7 @@ reference sequences.
 """
 
 from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
-from cool_seq_tool.schemas import AnnotationLayer, Assembly, ResidueMode
+from cool_seq_tool.schemas import AnnotationLayer, Assembly, CoordinateType
 from cool_seq_tool.sources import TranscriptMappings, UtaDatabase
 
 
@@ -32,14 +32,14 @@ class AlignmentMapper:
         p_ac: str,
         p_start_pos: int,
         p_end_pos: int,
-        residue_mode: ResidueMode = ResidueMode.RESIDUE,
+        coordinate_type: CoordinateType = CoordinateType.RESIDUE,
     ) -> tuple[dict | None, str | None]:
         """Translate protein representation to cDNA representation.
 
         :param p_ac: Protein RefSeq accession
         :param p_start_pos: Protein start position
         :param p_end_pos: Protein end position
-        :param residue_mode: Residue mode for ``p_start_pos`` and ``p_end_pos``
+        :param coordinate_type: Residue mode for ``p_start_pos`` and ``p_end_pos``
         :return: Tuple containing:
 
         * cDNA representation (accession, codon range positions for corresponding
@@ -66,7 +66,7 @@ class AlignmentMapper:
         # 1 amino acid maps to 3 nucleotides in the codon
         # Since we have the end of the codon, we will subtract 2 to get the start of the
         # codon. We want to return inter-residue (0-based), so we subtract 1 from this.
-        if residue_mode == ResidueMode.RESIDUE:
+        if coordinate_type == CoordinateType.RESIDUE:
             c_pos = (p_start_pos * 3) - 3, p_end_pos * 3
         else:
             if p_start_pos == p_end_pos:
@@ -79,7 +79,7 @@ class AlignmentMapper:
             "c_start_pos": c_pos[0],
             "c_end_pos": c_pos[1],
             "cds_start": cds_start,
-            "residue_mode": ResidueMode.INTER_RESIDUE.value,
+            "coordinate_type": CoordinateType.INTER_RESIDUE.value,
         }, None
 
     async def _get_cds_start(self, c_ac: str) -> tuple[int | None, str | None]:
@@ -105,7 +105,7 @@ class AlignmentMapper:
         c_start_pos: int,
         c_end_pos: int,
         cds_start: int | None = None,
-        residue_mode: ResidueMode = ResidueMode.RESIDUE,
+        coordinate_type: CoordinateType = CoordinateType.RESIDUE,
         target_genome_assembly: bool = Assembly.GRCH38,
     ) -> tuple[dict | None, str | None]:
         """Translate cDNA representation to genomic representation
@@ -125,9 +125,9 @@ class AlignmentMapper:
         if any(
             (
                 c_start_pos == c_end_pos,
-                (residue_mode == ResidueMode.INTER_RESIDUE)
+                (coordinate_type == CoordinateType.INTER_RESIDUE)
                 and ((c_end_pos - c_start_pos) % 3 != 0),
-                (residue_mode == ResidueMode.RESIDUE)
+                (coordinate_type == CoordinateType.RESIDUE)
                 and ((c_end_pos - (c_start_pos - 1)) % 3 != 0),
             )
         ):
@@ -146,7 +146,7 @@ class AlignmentMapper:
                 return None, warning
 
         # Change to inter-residue
-        if residue_mode == ResidueMode.RESIDUE:
+        if coordinate_type == CoordinateType.RESIDUE:
             c_start_pos -= 1
 
         # Get aligned genomic and transcript data
@@ -194,7 +194,7 @@ class AlignmentMapper:
                             "g_ac": alt_ac,
                             "g_start_pos": g_start_pos,
                             "g_end_pos": g_end_pos,
-                            "residue_mode": ResidueMode.INTER_RESIDUE.value,
+                            "coordinate_type": CoordinateType.INTER_RESIDUE.value,
                         }
             else:
                 warning = (
@@ -209,7 +209,7 @@ class AlignmentMapper:
         p_ac: str,
         p_start_pos: int,
         p_end_pos: int,
-        residue_mode: ResidueMode = ResidueMode.INTER_RESIDUE,
+        coordinate_type: CoordinateType = CoordinateType.INTER_RESIDUE,
         target_genome_assembly: Assembly = Assembly.GRCH38,
     ) -> tuple[dict | None, str | None]:
         """Translate protein representation to genomic representation, by way of
@@ -218,7 +218,7 @@ class AlignmentMapper:
         :param p_ac: Protein RefSeq accession
         :param p_start_pos: Protein start position
         :param p_end_pos: Protein end position
-        :param residue_mode: Residue mode for ``p_start_pos`` and ``p_end_pos``.
+        :param coordinate_type: Residue mode for ``p_start_pos`` and ``p_end_pos``.
         :param target_genome_assembly: Genome assembly to get genomic data for
         :return: Tuple containing:
 
@@ -227,7 +227,7 @@ class AlignmentMapper:
         * Warnings, if conversion to cDNA or genomic coordinates fails.
         """
         c_data, warning = await self.p_to_c(
-            p_ac, p_start_pos, p_end_pos, residue_mode=residue_mode
+            p_ac, p_start_pos, p_end_pos, coordinate_type=coordinate_type
         )
         if not c_data:
             return None, warning
@@ -238,7 +238,7 @@ class AlignmentMapper:
             c_data["c_start_pos"],
             c_data["c_end_pos"],
             c_data["cds_start"],
-            residue_mode=ResidueMode.INTER_RESIDUE,
+            coordinate_type=CoordinateType.INTER_RESIDUE,
             target_genome_assembly=target_genome_assembly,
         )
         return g_data, warning

@@ -8,7 +8,7 @@ from pathlib import Path
 
 from ga4gh.vrs.dataproxy import SeqRepoDataProxy
 
-from cool_seq_tool.schemas import Assembly, ResidueMode
+from cool_seq_tool.schemas import Assembly, CoordinateType
 from cool_seq_tool.utils import get_inter_residue_pos, process_chromosome_input
 
 _logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ class SeqRepoAccess(SeqRepoDataProxy):
         ac: str,
         start: int | None = None,
         end: int | None = None,
-        residue_mode: ResidueMode = ResidueMode.RESIDUE,
+        coordinate_type: CoordinateType = CoordinateType.RESIDUE,
     ) -> tuple[str, str | None]:
         """Get reference sequence for an accession given a start and end position. If
         ``start`` and ``end`` are not given, returns the entire reference sequence.
@@ -46,7 +46,7 @@ class SeqRepoAccess(SeqRepoDataProxy):
         :param start: Start pos change
         :param end: End pos change. If ``None`` assumes both ``start`` and ``end`` have
             same values, if ``start`` exists.
-        :param residue_mode: Residue mode for ``start`` and ``end``
+        :param coordinate_type: Residue mode for ``start`` and ``end``
         :return: Sequence at position (if accession and positions actually
             exist, else return empty string), warning if any
         """
@@ -55,11 +55,11 @@ class SeqRepoAccess(SeqRepoDataProxy):
                 msg = f"start ({start}) cannot be greater than end ({end})"
                 return "", msg
 
-            start, end = get_inter_residue_pos(start, end, residue_mode)
+            start, end = get_inter_residue_pos(start, end, coordinate_type)
             if start == end:
                 end += 1
         else:
-            if start is not None and residue_mode == ResidueMode.RESIDUE:
+            if start is not None and coordinate_type == CoordinateType.RESIDUE:
                 start -= 1
 
         try:
