@@ -39,7 +39,7 @@ class AlignmentMapper:
         :param p_ac: Protein RefSeq accession
         :param p_start_pos: Protein start position
         :param p_end_pos: Protein end position
-        :param coordinate_type: Residue mode for ``p_start_pos`` and ``p_end_pos``
+        :param coordinate_type: Coordinate type for ``p_start_pos`` and ``p_end_pos``
         :return: Tuple containing:
 
         * cDNA representation (accession, codon range positions for corresponding
@@ -218,7 +218,7 @@ class AlignmentMapper:
         :param p_ac: Protein RefSeq accession
         :param p_start_pos: Protein start position
         :param p_end_pos: Protein end position
-        :param coordinate_type: Residue mode for ``p_start_pos`` and ``p_end_pos``.
+        :param coordinate_type: Coordinate type for ``p_start_pos`` and ``p_end_pos``.
         :param target_genome_assembly: Genome assembly to get genomic data for
         :return: Tuple containing:
 

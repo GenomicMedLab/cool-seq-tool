@@ -30,7 +30,7 @@ def get_inter_residue_pos(
 
     :param start_pos: Start position
     :param end_pos: End position
-    :param coordinate_type: Residue mode for `start_pos` and `end_pos`
+    :param coordinate_type: Coordinate type for `start_pos` and `end_pos`
     :return: Inter-residue coordinates
     """
     if coordinate_type == CoordinateType.RESIDUE:
