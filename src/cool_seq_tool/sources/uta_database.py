@@ -331,16 +331,16 @@ class UtaDatabase:
         self,
         tx_ac: str,
         alt_ac: str,
-    ) -> tuple[tuple[int, int, int, int, int] | None, str | None]:
+    ) -> tuple[tuple[int, int, int, int, int, int] | None, str | None]:
         """Get exon number, transcript coordinates, and genomic coordinates
 
         :param tx_ac: Transcript accession
         :param alt_ac: RefSeq genomic accession
-        :return: Tuple of exon numbers, transcript and genomic coordinates,
+        :return: Tuple of exon numbers, transcript and genomic coordinates, strand,
             and warnings if found
         """
         query = f"""
-            SELECT DISTINCT ord, tx_start_i, tx_end_i, alt_start_i, alt_end_i
+            SELECT DISTINCT ord, tx_start_i, tx_end_i, alt_start_i, alt_end_i, alt_strand
             FROM {self.schema}.tx_exon_aln_v
             WHERE tx_ac = '{tx_ac}'
             AND alt_ac = '{alt_ac}'
@@ -352,7 +352,14 @@ class UtaDatabase:
             _logger.warning(msg)
             return None, msg
         tx_exons_genomic_coords = [
-            (r["ord"], r["tx_start_i"], r["tx_end_i"], r["alt_start_i"], r["alt_end_i"])
+            (
+                r["ord"],
+                r["tx_start_i"],
+                r["tx_end_i"],
+                r["alt_start_i"],
+                r["alt_end_i"],
+                r["alt_strand"],
+            )
             for r in result
         ]
         return tx_exons_genomic_coords, None
