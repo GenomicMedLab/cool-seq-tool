@@ -6,35 +6,35 @@ import logging
 from bioutils.accessions import chr22XY
 
 from cool_seq_tool import __version__
-from cool_seq_tool.schemas import ResidueMode, ServiceMeta
+from cool_seq_tool.schemas import CoordinateType, ServiceMeta
 
 _logger = logging.getLogger(__name__)
 
 
 def get_inter_residue_pos(
-    start_pos: int, end_pos: int, residue_mode: ResidueMode
+    start_pos: int, end_pos: int, coordinate_type: CoordinateType
 ) -> tuple[int, int]:
     """Return equivalent inter-residue position.
 
-    Generally, we prefer to work with inter-residue coordinates where possible. Our
+    Residue coordinates start with 1, whereas inter-residue coordinates start with 0.
+
+    It is preferred to work with inter-residue coordinates where possible. Our
     rationale is detailed in an appendix to the
     `VRS docs <https://vrs.ga4gh.org/en/stable/appendices/design_decisions.html#inter-residue-coordinates>`_.
     This function is used internally to shift user-provided coordinates accordingly.
 
     >>> from cool_seq_tool.utils import get_inter_residue_pos
-    >>> from cool_seq_tool.schemas import ResidueMode
-    >>> get_inter_residue_pos(10, ResidueMode.RESIDUE)
+    >>> from cool_seq_tool.schemas import CoordinateType
+    >>> get_inter_residue_pos(10, CoordinateType.RESIDUE)
     ((9, 9), None)
 
     :param start_pos: Start position
     :param end_pos: End position
-    :param residue_mode: Residue mode for `start_pos` and `end_pos`
+    :param coordinate_type: Coordinate type for `start_pos` and `end_pos`
     :return: Inter-residue coordinates
     """
-    if residue_mode == ResidueMode.RESIDUE:
+    if coordinate_type == CoordinateType.RESIDUE:
         start_pos -= 1
-    elif residue_mode == ResidueMode.ZERO:
-        end_pos += 1
     return start_pos, end_pos
 
 

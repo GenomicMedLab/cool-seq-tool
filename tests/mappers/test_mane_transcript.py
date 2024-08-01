@@ -14,7 +14,7 @@ from cool_seq_tool.mappers.mane_transcript import (
 )
 from cool_seq_tool.schemas import (
     AnnotationLayer,
-    ResidueMode,
+    CoordinateType,
     Strand,
     TranscriptPriority,
 )
@@ -335,7 +335,7 @@ async def test_p_to_mane_p(test_mane_transcript, braf_v600e_mane_p, egfr_l858r_m
         599,
         600,
         AnnotationLayer.PROTEIN,
-        residue_mode=ResidueMode.INTER_RESIDUE,
+        coordinate_type=CoordinateType.INTER_RESIDUE,
     )
     assert mane_p == braf_v600e_mane_p
 
@@ -350,7 +350,7 @@ async def test_p_to_mane_p(test_mane_transcript, braf_v600e_mane_p, egfr_l858r_m
         599,
         600,
         AnnotationLayer.PROTEIN,
-        residue_mode=ResidueMode.INTER_RESIDUE,
+        coordinate_type=CoordinateType.INTER_RESIDUE,
     )
     assert mane_p == braf_v600e_mane_p
 
@@ -419,7 +419,7 @@ async def test_c_to_mane_c(test_mane_transcript, braf_v600e_mane_c, egfr_l858r_m
         1798,
         1799,
         AnnotationLayer.CDNA,
-        residue_mode=ResidueMode.INTER_RESIDUE,
+        coordinate_type=CoordinateType.INTER_RESIDUE,
     )
     assert mane_c == cpy_braf_v600e_mane_c
 
@@ -526,7 +526,7 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         600,
         gene="BRAF",
         start_annotation_layer=AnnotationLayer.PROTEIN,
-        residue_mode=ResidueMode.INTER_RESIDUE,
+        coordinate_type=CoordinateType.INTER_RESIDUE,
         mane_transcripts=mane_transcripts,
     )
     assert resp == p_expected
@@ -536,7 +536,7 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         600,
         gene="BRAF",
         start_annotation_layer=AnnotationLayer.PROTEIN,
-        residue_mode=ResidueMode.RESIDUE,
+        coordinate_type=CoordinateType.RESIDUE,
         mane_transcripts=mane_transcripts,
     )
     assert resp == p_expected
@@ -565,7 +565,7 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         1799,
         gene="BRAF",
         start_annotation_layer=AnnotationLayer.CDNA,
-        residue_mode=ResidueMode.INTER_RESIDUE,
+        coordinate_type=CoordinateType.INTER_RESIDUE,
         mane_transcripts=mane_transcripts,
     )
     assert resp == c_expected
@@ -576,7 +576,7 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
         1799,
         gene="BRAF",
         start_annotation_layer=AnnotationLayer.CDNA,
-        residue_mode=ResidueMode.INTER_RESIDUE,
+        coordinate_type=CoordinateType.INTER_RESIDUE,
         mane_transcripts=mane_transcripts,
         end_annotation_layer=EndAnnotationLayer.PROTEIN_AND_CDNA,
     )
@@ -693,7 +693,7 @@ async def test_g_to_grch38(test_mane_transcript, grch38_egfr, grch38_braf):
         "NC_000007.13",
         140453135,
         140453136,
-        residue_mode=ResidueMode.INTER_RESIDUE,
+        coordinate_type=CoordinateType.INTER_RESIDUE,
         get_mane_genes=True,
     )
     assert resp == grch38_braf
@@ -718,7 +718,7 @@ async def test_g_to_mane_c(test_mane_transcript, egfr_l858r_mane_c, braf_v600e_m
         55259514,
         55259515,
         gene="EGFR",
-        residue_mode=ResidueMode.INTER_RESIDUE,
+        coordinate_type=CoordinateType.INTER_RESIDUE,
     )
     assert mane_c == egfr_l858r_mane_c
 
@@ -732,7 +732,7 @@ async def test_g_to_mane_c(test_mane_transcript, egfr_l858r_mane_c, braf_v600e_m
         140453135,
         140453136,
         gene="BRAF",
-        residue_mode=ResidueMode.INTER_RESIDUE,
+        coordinate_type=CoordinateType.INTER_RESIDUE,
     )
     assert mane_c == braf_v600e_mane_c
 
@@ -747,7 +747,7 @@ async def test_g_to_mane_c(test_mane_transcript, egfr_l858r_mane_c, braf_v600e_m
         140453136,
         AnnotationLayer.GENOMIC,
         gene="BRAF",
-        residue_mode=ResidueMode.INTER_RESIDUE,
+        coordinate_type=CoordinateType.INTER_RESIDUE,
     )
     assert mane_c == braf_v600e_mane_c
 

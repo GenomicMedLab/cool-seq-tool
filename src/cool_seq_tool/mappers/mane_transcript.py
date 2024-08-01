@@ -25,9 +25,9 @@ from cool_seq_tool.mappers.liftover import LiftOver
 from cool_seq_tool.schemas import (
     AnnotationLayer,
     Assembly,
+    CoordinateType,
     GenomicTxMetadata,
     ManeGeneData,
-    ResidueMode,
     Strand,
     TranscriptPriority,
 )
@@ -562,7 +562,7 @@ class ManeTranscript:
         | GenomicRepresentation,
         expected_ref: str,
         anno: AnnotationLayer,
-        residue_mode: ResidueMode,
+        coordinate_type: CoordinateType,
     ) -> bool:
         """Return whether or not reference changes are the same.
 
@@ -574,7 +574,7 @@ class ManeTranscript:
             position change
         :param expected_ref: Reference at position given during input
         :param anno: Annotation layer we are starting from
-        :param residue_mode: Residue mode for ``start_pos`` and ``end_pos``
+        :param coordinate_type: Coordinate type for ``start_pos`` and ``end_pos``
         :return: ``True`` if reference check passes. ``False`` otherwise.
         """
         if anno == AnnotationLayer.CDNA:
@@ -582,7 +582,7 @@ class ManeTranscript:
             end_pos += coding_start_site
 
         ref, _ = self.seqrepo_access.get_reference_sequence(
-            ac, start=start_pos, end=end_pos, residue_mode=residue_mode
+            ac, start=start_pos, end=end_pos, coordinate_type=coordinate_type
         )
         if ref is None:
             return False
@@ -598,7 +598,7 @@ class ManeTranscript:
                 mane_transcript.refseq,
                 start=mane_start_pos,
                 end=mane_end_pos if mane_start_pos != mane_end_pos else None,
-                residue_mode=residue_mode,
+                coordinate_type=coordinate_type,
             )
             if not mane_ref:
                 _logger.info("Unable to validate reference for MANE Transcript")
@@ -633,7 +633,10 @@ class ManeTranscript:
         end_pos = pos[1] + coding_start_site
         return bool(
             self.seqrepo_access.get_reference_sequence(
-                ac, start=start_pos, end=end_pos, residue_mode=ResidueMode.INTER_RESIDUE
+                ac,
+                start=start_pos,
+                end=end_pos,
+                coordinate_type=CoordinateType.INTER_RESIDUE,
             )[0]
         )
 
@@ -690,7 +693,7 @@ class ManeTranscript:
         start_annotation_layer: AnnotationLayer,
         gene: str | None = None,
         ref: str | None = None,
-        residue_mode: ResidueMode = ResidueMode.RESIDUE,
+        coordinate_type: CoordinateType = CoordinateType.RESIDUE,
         mane_transcripts: set | None = None,
         alt_ac: str | None = None,
         end_annotation_layer: EndAnnotationLayer | None = None,
@@ -701,7 +704,7 @@ class ManeTranscript:
 
         >>> import asyncio
         >>> from cool_seq_tool import CoolSeqTool
-        >>> from cool_seq_tool.schemas import AnnotationLayer, ResidueMode
+        >>> from cool_seq_tool.schemas import AnnotationLayer, CoordinateType
         >>> mane_mapper = CoolSeqTool().mane_transcript
         >>> mane_transcripts = {
         ...     "ENST00000646891.2",
@@ -715,7 +718,7 @@ class ManeTranscript:
         ...         599,
         ...         gene="BRAF",
         ...         start_annotation_layer=AnnotationLayer.PROTEIN,
-        ...         residue_mode=ResidueMode.INTER_RESIDUE,
+        ...         coordinate_type=CoordinateType.INTER_RESIDUE,
         ...         mane_transcripts=mane_transcripts,
         ...     )
         ... )
@@ -732,7 +735,7 @@ class ManeTranscript:
         :param start_annotation_layer: Starting annotation layer
         :param gene: HGNC gene symbol
         :param ref: Reference at position given during input
-        :param residue_mode: Residue mode for ``start_pos`` and ``end_pos``
+        :param coordinate_type: Coordinate type for ``start_pos`` and ``end_pos``
         :param mane_transcripts: Attempted mane transcripts that were not compatible
         :param alt_ac: Genomic accession
         :param end_annotation_layer: The end annotation layer. If not provided, will be
@@ -768,8 +771,8 @@ class ManeTranscript:
             )
 
         lcr_result = None
-        start_pos, end_pos = get_inter_residue_pos(start_pos, end_pos, residue_mode)
-        residue_mode = ResidueMode.INTER_RESIDUE
+        start_pos, end_pos = get_inter_residue_pos(start_pos, end_pos, coordinate_type)
+        coordinate_type = CoordinateType.INTER_RESIDUE
 
         is_p_or_c_start_anno = True
         if start_annotation_layer == AnnotationLayer.PROTEIN:
@@ -857,7 +860,7 @@ class ManeTranscript:
                         {},
                         ref,
                         AnnotationLayer.PROTEIN,
-                        residue_mode,
+                        coordinate_type,
                     )
                 elif start_annotation_layer == AnnotationLayer.CDNA:
                     valid_references = self._validate_references(
@@ -868,7 +871,7 @@ class ManeTranscript:
                         {},
                         ref,
                         AnnotationLayer.CDNA,
-                        residue_mode,
+                        coordinate_type,
                     )
                 else:
                     valid_references = self._validate_references(
@@ -879,7 +882,7 @@ class ManeTranscript:
                         {},
                         ref,
                         AnnotationLayer.GENOMIC,
-                        residue_mode,
+                        coordinate_type,
                     )
 
                 if not valid_references:
@@ -960,8 +963,8 @@ class ManeTranscript:
         gene: str | None = None,
         ref: str | None = None,
         try_longest_compatible: bool = False,
-        residue_mode: Literal[ResidueMode.RESIDUE]
-        | Literal[ResidueMode.INTER_RESIDUE] = ResidueMode.RESIDUE,
+        coordinate_type: Literal[CoordinateType.RESIDUE]
+        | Literal[CoordinateType.INTER_RESIDUE] = CoordinateType.RESIDUE,
     ) -> DataRepresentation | CdnaRepresentation | None:
         """Return MANE representation
 
@@ -975,7 +978,7 @@ class ManeTranscript:
             provided.
 
         >>> from cool_seq_tool import CoolSeqTool
-        >>> from cool_seq_tool.schemas import AnnotationLayer, ResidueMode
+        >>> from cool_seq_tool.schemas import AnnotationLayer, CoordinateType
         >>> import asyncio
         >>> mane_mapper = CoolSeqTool().mane_transcript
         >>> result = asyncio.run(
@@ -983,7 +986,7 @@ class ManeTranscript:
         ...         "NP_004324.2",
         ...         599,
         ...         AnnotationLayer.PROTEIN,
-        ...         residue_mode=ResidueMode.INTER_RESIDUE,
+        ...         coordinate_type=CoordinateType.INTER_RESIDUE,
         ...     )
         ... )
         >>> result.gene, result.refseq, result.status
@@ -1001,13 +1004,13 @@ class ManeTranscript:
         :param ref: Reference at position given during input
         :param try_longest_compatible: ``True`` if should try longest compatible remaining
             if mane transcript was not compatible. ``False`` otherwise.
-        :param ResidueMode residue_mode: Starting residue mode for ``start_pos`` and
-            ``end_pos``. Will always return coordinates in inter-residue
+        :param CoordinateType coordinate_type: Starting Coordinate type for
+            ``start_pos`` and ``end_pos``. Will always return inter-residue coordinates
         :return: MANE data or longest transcript compatible data if validation
             checks are correct. Will return inter-residue coordinates. Else, ``None``.
         """
-        start_pos, end_pos = get_inter_residue_pos(start_pos, end_pos, residue_mode)
-        residue_mode = ResidueMode.INTER_RESIDUE
+        start_pos, end_pos = get_inter_residue_pos(start_pos, end_pos, coordinate_type)
+        coordinate_type = CoordinateType.INTER_RESIDUE
         if ref:
             ref = ref[: end_pos - start_pos]
 
@@ -1076,7 +1079,7 @@ class ManeTranscript:
                         mane,
                         ref,
                         start_annotation_layer,
-                        residue_mode,
+                        coordinate_type,
                     )
                     if not valid_references:
                         continue
@@ -1091,7 +1094,7 @@ class ManeTranscript:
                         AnnotationLayer.PROTEIN,
                         ref=ref,
                         gene=g.gene,
-                        residue_mode=residue_mode,
+                        coordinate_type=coordinate_type,
                         mane_transcripts=mane_transcripts,
                     )
                 return await self.get_longest_compatible_transcript(
@@ -1100,7 +1103,7 @@ class ManeTranscript:
                     AnnotationLayer.CDNA,
                     ref=ref,
                     gene=g["gene"],
-                    residue_mode=residue_mode,
+                    coordinate_type=coordinate_type,
                     mane_transcripts=mane_transcripts,
                 )
             return None
@@ -1111,11 +1114,11 @@ class ManeTranscript:
                     start_pos,
                     end_pos,
                     get_mane_genes=True,
-                    residue_mode=residue_mode,
+                    coordinate_type=coordinate_type,
                 )
 
             return await self.g_to_mane_c(
-                ac, start_pos, end_pos, gene, residue_mode=residue_mode
+                ac, start_pos, end_pos, gene, coordinate_type=coordinate_type
             )
         _logger.warning("Annotation layer not supported: %s", start_annotation_layer)
         return None
@@ -1126,7 +1129,7 @@ class ManeTranscript:
         start_pos: int,
         end_pos: int,
         get_mane_genes: bool = False,
-        residue_mode: ResidueMode = ResidueMode.RESIDUE,
+        coordinate_type: CoordinateType = CoordinateType.RESIDUE,
     ) -> GenomicRepresentation | None:
         """Return genomic coordinate on GRCh38 when not given gene context.
 
@@ -1135,11 +1138,11 @@ class ManeTranscript:
         :param end_pos: Genomic end position
         :param get_mane_genes: ``True`` if mane genes for genomic position should be
             included in response. ``False``, otherwise.
-        :param residue_mode: Residue mode for ``start_pos`` and ``end_pos``
+        :param coordinate_type: Coordinate type for ``start_pos`` and ``end_pos``
         :return: GRCh38 genomic representation (accession and start/end inter-residue
             position)
         """
-        start_pos, end_pos = get_inter_residue_pos(start_pos, end_pos, residue_mode)
+        start_pos, end_pos = get_inter_residue_pos(start_pos, end_pos, coordinate_type)
 
         # Checking to see what chromosome and assembly we're on
         descr = await self.uta_db.get_chr_assembly(ac)
@@ -1224,7 +1227,7 @@ class ManeTranscript:
         start_pos: int,
         end_pos: int,
         gene: str,
-        residue_mode: ResidueMode = ResidueMode.RESIDUE,
+        coordinate_type: CoordinateType = CoordinateType.RESIDUE,
     ) -> CdnaRepresentation | None:
         """Return MANE Transcript on the c. coordinate.
 
@@ -1246,12 +1249,12 @@ class ManeTranscript:
         :param start_pos: genomic start position
         :param end_pos: genomic end position
         :param gene: HGNC gene symbol
-        :param residue_mode: Starting residue mode for ``start_pos`` and ``end_pos``.
-            Will always return coordinates in inter-residue.
+        :param coordinate_type: Starting Coordinate type for ``start_pos`` and
+            ``end_pos``. Will always return inter-residue coordinates.
         :return: MANE Transcripts with cDNA change on c. coordinate
         """
-        start_pos, end_pos = get_inter_residue_pos(start_pos, end_pos, residue_mode)
-        residue_mode = ResidueMode.INTER_RESIDUE
+        start_pos, end_pos = get_inter_residue_pos(start_pos, end_pos, coordinate_type)
+        coordinate_type = CoordinateType.INTER_RESIDUE
 
         if not await self.uta_db.validate_genomic_ac(ac):
             _logger.warning("Genomic accession does not exist: %s", ac)
@@ -1266,7 +1269,11 @@ class ManeTranscript:
 
             # Liftover to GRCh38
             grch38 = await self.g_to_grch38(
-                ac, start_pos, end_pos, get_mane_genes=False, residue_mode=residue_mode
+                ac,
+                start_pos,
+                end_pos,
+                get_mane_genes=False,
+                coordinate_type=coordinate_type,
             )
             mane_tx_genomic_data = None
             if grch38:
@@ -1321,7 +1328,7 @@ class ManeTranscript:
         start_pos: int,
         end_pos: int,
         gene: str | None = None,
-        residue_mode: ResidueMode = ResidueMode.RESIDUE,
+        coordinate_type: CoordinateType = CoordinateType.RESIDUE,
         try_longest_compatible: bool = False,
     ) -> dict | None:
         """Given GRCh38 genomic representation, return protein representation.
@@ -1334,8 +1341,8 @@ class ManeTranscript:
         :param start_pos: Start position
         :param end_pos: End position
         :param gene: HGNC gene symbol
-        :param residue_mode: Starting residue mode for ``start_pos`` and ``end_pos``. Will
-            always return coordinates as inter-residue.
+        :param coordinate_type: Starting Coordinate type for ``start_pos`` and
+            ``end_pos``. Will always return inter-residue coordinates.
         :param try_longest_compatible: ``True`` if should try longest compatible remaining
             if mane transcript(s) not compatible. ``False`` otherwise.
         :return: If successful, return MANE data or longest compatible remaining (if
@@ -1354,8 +1361,8 @@ class ManeTranscript:
             return None
 
         # Step 2: Get inter-residue position
-        start_pos, end_pos = get_inter_residue_pos(start_pos, end_pos, residue_mode)
-        residue_mode = ResidueMode.INTER_RESIDUE
+        start_pos, end_pos = get_inter_residue_pos(start_pos, end_pos, coordinate_type)
+        coordinate_type = CoordinateType.INTER_RESIDUE
 
         # Step 3: Try getting MANE protein representation
         mane_transcripts = set()  # Used if getting longest compatible remaining
@@ -1408,7 +1415,7 @@ class ManeTranscript:
                 start_pos,
                 end_pos,
                 AnnotationLayer.GENOMIC,
-                residue_mode=residue_mode,
+                coordinate_type=coordinate_type,
                 alt_ac=alt_ac,
                 end_annotation_layer=EndAnnotationLayer.PROTEIN_AND_CDNA,
                 mane_transcripts=mane_transcripts,
