@@ -235,8 +235,8 @@ class ExonGenomicCoordsMapper:
         self,
         chromosome: str | None = None,
         alt_ac: str | None = None,
-        start: int | None = None,
-        end: int | None = None,
+        seg_start: int | None = None,
+        seg_end: int | None = None,
         transcript: str | None = None,
         get_nearest_transcript_junction: bool = False,
         gene: str | None = None,
@@ -255,8 +255,8 @@ class ExonGenomicCoordsMapper:
         >>> result = asyncio.run(
         ...     egc.genomic_to_tx_segment(
         ...         alt_ac="NC_000001.11",
-        ...         start=154192136,
-        ...         end=154170400,
+        ...         seg_start=154192136,
+        ...         seg_end=154170400,
         ...         transcript="NM_152263.3",
         ...     )
         ... )
@@ -268,30 +268,30 @@ class ExonGenomicCoordsMapper:
         :param alt_ac: Genomic accession (i.e. ``NC_000001.11``). If not provided,
             must provide ``chromosome. If ``chromosome`` is also provided, ``alt_ac``
             will be used.
-        :param start: Start genomic position
-        :param end: End genomic position
+        :param seg_start: Genomic position where the transcript segment starts
+        :param seg_end: Genomic position where the transcript segment ends
         :param transcript: The transcript to use. If this is not given, we will try the
             following transcripts: MANE Select, MANE Clinical Plus, Longest Remaining
             Compatible Transcript. See the :ref:`Transcript Selection policy <transcript_selection_policy>`
             page.
         :param get_nearest_transcript_junction: If ``True``, this will return the
-            adjacent exon if the position specified by``start`` or ``end`` does not
-            occur on an exon. For the positive strand, adjacent is defined as the exon
-            preceding the breakpoint for the 5' end and the exon following the
+            adjacent exon if the position specified by``seg_start`` or ``seg_end`` does
+            not occur on an exon. For the positive strand, adjacent is defined as the
+            exon preceding the breakpoint for the 5' end and the exon following the
             breakpoint for the 3' end. For the negative strand, adjacent is defined as
             the exon following the breakpoint for the 5' end and the exon preceding the
             breakpoint for the 3' end.
         :param gene: gene name. Ideally, HGNC symbol. Must be given if no ``transcript``
             value is provided.
-        :param coordinate_type: Residue mode for ``start`` and ``end``
+        :param coordinate_type: Residue mode for ``seg_start`` and ``seg_end``
         :return: Genomic data (inter-residue coordinates)
         """
         resp = GenomicDataResponse(
             genomic_data=None, warnings=[], service_meta=service_meta()
         )
         warnings = []
-        if start is None and end is None:
-            warnings.append("Must provide either `start` or `end`")
+        if seg_start is None and seg_end is None:
+            warnings.append("Must provide either `seg_start` or `seg_end`")
         if chromosome is None and alt_ac is None:
             warnings.append("Must provide either `chromosome` or `alt_ac`")
         if transcript is None and gene is None:
@@ -303,12 +303,12 @@ class ExonGenomicCoordsMapper:
         if gene is not None:
             gene = gene.upper().strip()
 
-        if start:
+        if seg_start:
             if coordinate_type == CoordinateType.RESIDUE:
                 # inter-residue based for UTA
-                start -= 1
+                seg_start -= 1
             start_data = await self._genomic_to_transcript_exon_coordinate(
-                start,
+                seg_start,
                 chromosome=chromosome,
                 alt_ac=alt_ac,
                 transcript=transcript,
@@ -323,10 +323,10 @@ class ExonGenomicCoordsMapper:
         else:
             start_data = None
 
-        if end:
-            end -= 1
+        if seg_end:
+            seg_end -= 1
             end_data = await self._genomic_to_transcript_exon_coordinate(
-                end,
+                seg_end,
                 chromosome=chromosome,
                 alt_ac=alt_ac,
                 transcript=transcript,
@@ -517,7 +517,7 @@ class ExonGenomicCoordsMapper:
 
     async def _genomic_to_transcript_exon_coordinate(
         self,
-        pos: int,
+        seg_pos: int,
         chromosome: str | None = None,
         alt_ac: str | None = None,
         transcript: str | None = None,
@@ -527,7 +527,8 @@ class ExonGenomicCoordsMapper:
     ) -> TranscriptExonDataResponse:
         """Convert individual genomic data to transcript data
 
-        :param pos: Genomic position (inter-residue based)
+        :param seg_pos: Genomic position where the transcript segment starts or ends
+            (inter-residue based)
         :param chromosome: Chromosome. Must give chromosome without a prefix
             (i.e. ``1`` or ``X``). If not provided, must provide ``alt_ac``.
             If ``alt_ac`` is also provided, ``alt_ac`` will be used.
@@ -539,14 +540,14 @@ class ExonGenomicCoordsMapper:
             Compatible Transcript
         :param gene: HGNC gene symbol
         :param get_nearest_transcript_junction: If ``True``, this will return the
-            adjacent exon if the position specified by``start`` or ``end`` does not
-            occur on an exon. For the positive strand, adjacent is defined as the exon
-            preceding the breakpoint for the 5' end and the exon following the
+            adjacent exon if the position specified by``seg_start`` or ``seg_end`` does
+            not occur on an exon. For the positive strand, adjacent is defined as the
+            exon preceding the breakpoint for the 5' end and the exon following the
             breakpoint for the 3' end. For the negative strand, adjacent is defined as
             the exon following the breakpoint for the 5' end and the exon preceding the
             breakpoint for the 3' end.
-        :param is_start: ``True`` if ``pos`` is start position. ``False`` if ``pos`` is
-            end position.
+        :param is_start: ``True`` if ``seg_pos`` is where the transcript segment starts.
+            ``False`` if ``seg_pos`` is where the transcript segment ends.
         :return: Transcript data (inter-residue coordinates)
         """
         resp = TranscriptExonDataResponse(
@@ -615,25 +616,25 @@ class ExonGenomicCoordsMapper:
 
             # Check if breakpoint occurs on an exon.
             # If not, determine the adjacent exon given the selected transcript
-            if not self._is_exonic_breakpoint(pos, tx_genomic_coords):
+            if not self._is_exonic_breakpoint(seg_pos, tx_genomic_coords):
                 exon = self._get_adjacent_exon(
                     tx_exons_genomic_coords=tx_genomic_coords,
                     strand=strand,
-                    start=pos if is_start else None,
-                    end=pos if not is_start else None,
+                    start=seg_pos if is_start else None,
+                    end=seg_pos if not is_start else None,
                 )
 
                 params["exon"] = exon
                 params["transcript"] = transcript
                 params["gene"] = gene
-                params["pos"] = pos
+                params["pos"] = seg_pos
                 params["chr"] = alt_ac
 
                 self._set_exon_offset(
                     params=params,
                     start=tx_genomic_coords[exon - 1][3],  # Start exon coordinate
                     end=tx_genomic_coords[exon - 1][4],  # End exon coordinate
-                    pos=pos,
+                    pos=seg_pos,
                     is_start=is_start,
                     strand=strand,
                 )
@@ -648,7 +649,7 @@ class ExonGenomicCoordsMapper:
                 )
 
             genes_alt_acs, warning = await self.uta_db.get_genes_and_alt_acs(
-                pos, alt_ac=alt_ac, gene=gene
+                seg_pos, alt_ac=alt_ac, gene=gene
             )
         elif chromosome:
             # Check if just chromosome is given. If it is, we should
@@ -661,7 +662,7 @@ class ExonGenomicCoordsMapper:
                 chromosome = int(chromosome)
 
             genes_alt_acs, warning = await self.uta_db.get_genes_and_alt_acs(
-                pos, chromosome=chromosome, gene=gene
+                seg_pos, chromosome=chromosome, gene=gene
             )
         else:
             genes_alt_acs = None
@@ -676,14 +677,14 @@ class ExonGenomicCoordsMapper:
 
         if transcript is None:
             warnings = await self._set_mane_genomic_data(
-                params, gene, alt_ac, pos, is_start
+                params, gene, alt_ac, seg_pos, is_start
             )
             if warnings:
                 return self._return_warnings(resp, [warnings])
         else:
             params["transcript"] = transcript
             params["gene"] = gene
-            params["pos"] = pos
+            params["pos"] = seg_pos
             params["chr"] = alt_ac
             warning = await self._set_genomic_data(params, is_start)
             if warning:
