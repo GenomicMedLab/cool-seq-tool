@@ -40,13 +40,13 @@ All CoolSeqTool resources can be initialized by way of a top-level class instanc
 
 ```pycon
 >>> from cool_seq_tool import CoolSeqTool
->>> from cool_seq_tool.schemas import AnnotationLayer, ResidueMode
+>>> from cool_seq_tool.schemas import AnnotationLayer, CoordinateType
 >>> cst = CoolSeqTool()
 >>> result = await cst.mane_transcript.get_mane_transcript(
 ...     "NP_004324.2",
 ...     599,
 ...     AnnotationLayer.PROTEIN,
-...     residue_mode=ResidueMode.INTER_RESIDUE,
+...     coordinate_type=CoordinateType.INTER_RESIDUE,
 ... )
 >>> result.gene, result.refseq, result.status
 ('EGFR', 'NM_005228.5', <TranscriptPriority.MANE_SELECT: 'mane_select'>)

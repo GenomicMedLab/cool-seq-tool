@@ -5,7 +5,12 @@ from datetime import datetime
 
 import pytest
 
-from cool_seq_tool.schemas import GenomicData, ResidueMode, Strand, TranscriptExonData
+from cool_seq_tool.schemas import (
+    CoordinateType,
+    GenomicData,
+    Strand,
+    TranscriptExonData,
+)
 
 
 @pytest.fixture(scope="module")
@@ -623,7 +628,7 @@ async def test_tpm3(
         "end": 154170400,
         "strand": Strand.NEGATIVE,
         "transcript": "NM_152263.3",
-        "residue_mode": ResidueMode.INTER_RESIDUE,
+        "coordinate_type": CoordinateType.INTER_RESIDUE,
     }
     g_to_t_resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon1_exon8)
@@ -644,7 +649,7 @@ async def test_tpm3(
         "start": 154192135,
         "end": 154170400,
         "transcript": "NM_152263.3",
-        "residue_mode": ResidueMode.RESIDUE,
+        "coordinate_type": CoordinateType.RESIDUE,
     }
     g_to_t_resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon1_exon8)
@@ -665,7 +670,7 @@ async def test_tpm3(
         "start": 154192132,
         "end": 154170404,
         "transcript": "NM_152263.3",
-        "residue_mode": ResidueMode.INTER_RESIDUE,
+        "coordinate_type": CoordinateType.INTER_RESIDUE,
     }
     g_to_t_resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon1_exon8_offset)
@@ -686,7 +691,7 @@ async def test_tpm3(
         "start": 154192132,
         "end": 154170404,
         "transcript": "NM_152263.3",
-        "residue_mode": ResidueMode.INTER_RESIDUE,
+        "coordinate_type": CoordinateType.INTER_RESIDUE,
         "strand": Strand.NEGATIVE,
     }
     g_to_t_resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
@@ -708,7 +713,7 @@ async def test_tpm3(
         "start": 154192134,
         "strand": Strand.NEGATIVE,
         "transcript": "NM_152263.3",
-        "residue_mode": ResidueMode.INTER_RESIDUE,
+        "coordinate_type": CoordinateType.INTER_RESIDUE,
     }
     g_to_t_resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon1_g)
@@ -729,7 +734,7 @@ async def test_tpm3(
         "end": 154170400,
         "strand": Strand.NEGATIVE,
         "transcript": "NM_152263.3",
-        "residue_mode": ResidueMode.INTER_RESIDUE,
+        "coordinate_type": CoordinateType.INTER_RESIDUE,
     }
     g_to_t_resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon8_g)
@@ -987,7 +992,7 @@ async def test_valid_inputs(test_egc_mapper):
         "start": 154437254,
         "end": 154437299,
         "gene": "GDI1",
-        "residue_mode": ResidueMode.INTER_RESIDUE,
+        "coordinate_type": CoordinateType.INTER_RESIDUE,
     }
     resp = await test_egc_mapper.genomic_to_transcript_exon_coordinates(**inputs)
     assert resp.genomic_data
