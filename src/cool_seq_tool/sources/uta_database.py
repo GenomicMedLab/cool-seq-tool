@@ -16,7 +16,7 @@ from botocore.exceptions import ClientError
 from cool_seq_tool.schemas import (
     AnnotationLayer,
     Assembly,
-    DbConnectionArgs,
+    BaseModelForbidExtra,
     GenesGenomicAcs,
     GenomicTxData,
     GenomicTxMetadata,
@@ -31,6 +31,16 @@ UTA_DB_URL = environ.get(
 )
 
 _logger = logging.getLogger(__name__)
+
+
+class DbConnectionArgs(BaseModelForbidExtra):
+    """Represent database connection arguments"""
+
+    host: str
+    port: int
+    user: str
+    password: str
+    database: str
 
 
 class UtaDatabase:

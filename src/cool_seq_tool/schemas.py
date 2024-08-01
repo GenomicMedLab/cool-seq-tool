@@ -109,16 +109,6 @@ class BaseModelForbidExtra(BaseModel, extra="forbid"):
     """Base Pydantic model class with extra values forbidden."""
 
 
-class DbConnectionArgs(BaseModelForbidExtra):
-    """Represent database connection arguments"""
-
-    host: str
-    port: int
-    user: str
-    password: str
-    database: str
-
-
 class GenesGenomicAcs(BaseModelForbidExtra):
     """Represent HGNC gene symbols and genomic accessions"""
 
