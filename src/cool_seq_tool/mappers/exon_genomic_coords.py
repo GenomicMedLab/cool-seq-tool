@@ -17,7 +17,7 @@ from cool_seq_tool.schemas import (
     TranscriptExonDataResponse,
 )
 from cool_seq_tool.sources.mane_transcript_mappings import ManeTranscriptMappings
-from cool_seq_tool.sources.uta_database import UtaDatabase
+from cool_seq_tool.sources.uta_database import GenesGenomicAcs, UtaDatabase
 from cool_seq_tool.utils import get_inter_residue_pos, service_meta
 
 CoordinatesResponseType = TypeVar(
@@ -666,15 +666,15 @@ class ExonGenomicCoordsMapper:
 
     @staticmethod
     def _get_gene_and_alt_ac(
-        genes_alt_acs: dict, gene: str | None
+        genes_alt_acs: GenesGenomicAcs, gene: str | None
     ) -> tuple[tuple[str, str] | None, str | None]:
-        """Return gene genomic accession
+        """Return gene and genomic accession
 
-        :param genes_alt_acs: Dictionary containing genes and genomic accessions
+        :param genes_alt_acs: Genes and genomic accessions
         :param gene: Gene symbol
-        :return: (Gene, Genomic accession) if both exist
+        :return: Gene and genomic accession if both exist and warning if found
         """
-        alt_acs = genes_alt_acs["alt_acs"]
+        alt_acs = genes_alt_acs.alt_acs
         len_alt_acs = len(alt_acs)
         if len_alt_acs > 1:
             return None, f"Found more than one accessions: {alt_acs}"
@@ -682,7 +682,7 @@ class ExonGenomicCoordsMapper:
             return None, "No genomic accessions found"
         alt_ac = next(iter(alt_acs))
 
-        genes = genes_alt_acs["genes"]
+        genes = genes_alt_acs.genes
         len_genes = len(genes)
         input_gene = gene
         output_gene = None

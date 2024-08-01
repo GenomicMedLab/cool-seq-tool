@@ -13,7 +13,15 @@ import polars as pl
 from asyncpg.exceptions import InterfaceError, InvalidAuthorizationSpecificationError
 from botocore.exceptions import ClientError
 
-from cool_seq_tool.schemas import AnnotationLayer, Assembly, Strand
+from cool_seq_tool.schemas import (
+    AnnotationLayer,
+    Assembly,
+    BaseModelForbidExtra,
+    GenesGenomicAcs,
+    GenomicTxData,
+    GenomicTxMetadata,
+    Strand,
+)
 
 # use `bound` to upper-bound UtaDatabase or child classes
 UTADatabaseType = TypeVar("UTADatabaseType", bound="UtaDatabase")
@@ -23,6 +31,16 @@ UTA_DB_URL = environ.get(
 )
 
 _logger = logging.getLogger(__name__)
+
+
+class DbConnectionArgs(BaseModelForbidExtra):
+    """Represent database connection arguments"""
+
+    host: str
+    port: int
+    user: str
+    password: str
+    database: str
 
 
 class UtaDatabase:
@@ -51,11 +69,11 @@ class UtaDatabase:
         self.db_url = db_url.replace(original_pwd, quote(original_pwd))
         self.args = self._get_conn_args()
 
-    def _get_conn_args(self) -> dict:
+    def _get_conn_args(self) -> DbConnectionArgs:
         """Return connection arguments.
 
         :param db_url: raw connection URL
-        :return: Database credentials
+        :return: Database connection arguments
         """
         if "UTA_DB_PROD" in environ:
             secret = ast.literal_eval(self.get_secret())
@@ -72,23 +90,24 @@ class UtaDatabase:
             environ["UTA_DB_URL"] = (
                 f"postgresql://{username}@{host}:{port}/{database}/{schema}"
             )
-            return {
-                "host": host,
-                "port": int(port),
-                "database": database,
-                "user": username,
-                "password": password,
-            }
+            return DbConnectionArgs(
+                host=host,
+                port=int(port),
+                database=database,
+                user=username,
+                password=password,
+            )
+
         url = ParseResult(urlparse(self.db_url))
         self.schema = url.schema
         password = unquote(url.password) if url.password else ""
-        return {
-            "host": url.hostname,
-            "port": url.port,
-            "database": url.database,
-            "user": url.username,
-            "password": password,
-        }
+        return DbConnectionArgs(
+            host=url.hostname,
+            port=url.port,
+            database=url.database,
+            user=url.username,
+            password=password,
+        )
 
     async def create_pool(self) -> None:
         """Create connection pool if not already created."""
@@ -100,11 +119,11 @@ class UtaDatabase:
                     max_size=10,
                     max_inactive_connection_lifetime=3,
                     command_timeout=60,
-                    host=self.args["host"],
-                    port=self.args["port"],
-                    user=self.args["user"],
-                    password=self.args["password"],
-                    database=self.args["database"],
+                    host=self.args.host,
+                    port=self.args.port,
+                    user=self.args.user,
+                    password=self.args.password,
+                    database=self.args.database,
                 )
             except InterfaceError as e:
                 _logger.error(
@@ -222,7 +241,7 @@ class UtaDatabase:
         chromosome: int | None = None,
         alt_ac: str | None = None,
         gene: str | None = None,
-    ) -> tuple[dict | None, str | None]:
+    ) -> tuple[GenesGenomicAcs | None, str | None]:
         """Return genes and genomic accessions for a position on a chromosome or alt_ac
 
         :param pos: Genomic position
@@ -234,7 +253,7 @@ class UtaDatabase:
             must provide ``chromosome``. If ``chromosome`` is also provided, ``alt_ac``
             will be used.
         :param gene: Gene symbol
-        :return: Dictionary containing genes and genomic accessions and warnings if found
+        :return: Genes and genomic accessions and warnings if found
         """
         alt_ac_cond = (
             f"WHERE alt_ac = '{alt_ac}'"
@@ -276,7 +295,7 @@ class UtaDatabase:
         for r in results:
             genes.add(r[0])
             alt_acs.add(r[1])
-        return {"genes": genes, "alt_acs": alt_acs}, None
+        return GenesGenomicAcs(genes=genes, alt_acs=alt_acs), None
 
     async def get_tx_exons(
         self, tx_ac: str, alt_ac: str | None = None
@@ -565,19 +584,14 @@ class UtaDatabase:
         return [list(r) for r in result]
 
     @staticmethod
-    def data_from_result(result: list) -> dict | None:
+    def data_from_result(result: list) -> GenomicTxData | None:
         """Return data found from result.
 
         :param result: Data from tx_exon_aln_v table
-        :return: Gene, strand, and position ranges for tx and alt_ac
+        :return: Aligned genomic / transcript exon data
         """
-        gene = result[0]
         tx_pos_range = result[2], result[3]
         alt_pos_range = result[5], result[6]
-        strand = Strand(result[7])
-        alt_aln_method = result[8]
-        tx_exon_id = result[9]
-        alt_exon_id = result[10]
 
         if (tx_pos_range[1] - tx_pos_range[0]) != (alt_pos_range[1] - alt_pos_range[0]):
             _logger.warning(
@@ -587,19 +601,19 @@ class UtaDatabase:
             )
             return None
 
-        return {
-            "gene": gene,
-            "strand": strand,
-            "tx_pos_range": tx_pos_range,
-            "alt_pos_range": alt_pos_range,
-            "alt_aln_method": alt_aln_method,
-            "tx_exon_id": tx_exon_id,
-            "alt_exon_id": alt_exon_id,
-        }
+        return GenomicTxData(
+            gene=result[0],
+            strand=Strand(result[7]),
+            tx_pos_range=tx_pos_range,
+            alt_pos_range=alt_pos_range,
+            alt_aln_method=result[8],
+            tx_exon_id=result[9],
+            alt_exon_id=result[10],
+        )
 
     async def get_mane_c_genomic_data(
         self, ac: str, alt_ac: str | None, start_pos: int, end_pos: int
-    ) -> dict | None:
+    ) -> GenomicTxMetadata | None:
         """Get MANE transcript and genomic data. Used when going from g. to MANE c.
         representation.
 
@@ -623,7 +637,8 @@ class UtaDatabase:
             be set to ``None`` if unavailable.
         :param start_pos: Genomic start position
         :param end_pos: Genomic end position change
-        :return: MANE transcript results if successful
+        :return: Metadata for MANE genomic and transcript accessions results if
+            successful
         """
         results = await self.get_tx_exon_aln_v_data(
             ac, start_pos, end_pos, alt_ac=alt_ac, use_tx_pos=False
@@ -632,8 +647,8 @@ class UtaDatabase:
             return None
         result = results[0]
 
-        data = self.data_from_result(result)
-        if not data:
+        genomic_tx_data = self.data_from_result(result)
+        if not genomic_tx_data:
             return None
 
         coding_start_site = await self.get_cds_start_end(ac)
@@ -641,25 +656,30 @@ class UtaDatabase:
             _logger.warning("Accession %s not found in UTA", ac)
             return None
 
-        data["tx_ac"] = result[1]
-        data["alt_ac"] = result[4]
-        data["coding_start_site"] = coding_start_site[0]
-        data["coding_end_site"] = coding_start_site[1]
+        coding_start_site, coding_end_site = coding_start_site
 
-        if data["strand"] == Strand.NEGATIVE:
-            data["alt_pos_change_range"] = (end_pos, start_pos)
-            data["alt_pos_change"] = (
-                data["alt_pos_range"][1] - data["alt_pos_change_range"][0],
-                data["alt_pos_change_range"][1] - data["alt_pos_range"][0],
+        if genomic_tx_data.strand == Strand.NEGATIVE:
+            alt_pos_change_range = (end_pos, start_pos)
+            pos_change = (
+                genomic_tx_data.alt_pos_range[1] - alt_pos_change_range[0],
+                alt_pos_change_range[1] - genomic_tx_data.alt_pos_range[0],
             )
         else:
-            data["alt_pos_change_range"] = (start_pos, end_pos)
-            data["alt_pos_change"] = (
-                data["alt_pos_change_range"][0] - data["alt_pos_range"][0],
-                data["alt_pos_range"][1] - data["alt_pos_change_range"][1],
+            alt_pos_change_range = (start_pos, end_pos)
+            pos_change = (
+                alt_pos_change_range[0] - genomic_tx_data.alt_pos_range[0],
+                genomic_tx_data.alt_pos_range[1] - alt_pos_change_range[1],
             )
 
-        return data
+        return GenomicTxMetadata(
+            **genomic_tx_data.model_dump(),
+            pos_change=pos_change,
+            tx_ac=result[1],
+            alt_ac=result[4],
+            coding_start_site=coding_start_site,
+            coding_end_site=coding_end_site,
+            alt_pos_change_range=alt_pos_change_range,
+        )
 
     async def get_genomic_tx_data(
         self,
@@ -669,7 +689,7 @@ class UtaDatabase:
         | Literal[AnnotationLayer.GENOMIC] = AnnotationLayer.CDNA,
         alt_ac: str | None = None,
         target_genome_assembly: Assembly = Assembly.GRCH38,
-    ) -> dict | None:
+    ) -> GenomicTxMetadata | None:
         """Get transcript mapping to genomic data.
 
         :param tx_ac: Accession on c. coordinate
@@ -678,8 +698,7 @@ class UtaDatabase:
         :param alt_ac: Accession on g. coordinate
         :param target_genome_assembly: Genome assembly to get genomic data for.
             If ``alt_ac`` is provided, it will return the associated assembly.
-        :return: Gene, Transcript accession and position change,
-            Altered transcript accession and position change, Strand
+        :return: Metadata for genomic and transcript accessions
         """
         results = await self.get_tx_exon_aln_v_data(
             tx_ac,
@@ -696,35 +715,39 @@ class UtaDatabase:
         else:
             result = results[0]
 
-        data = self.data_from_result(result)
-        if not data:
+        genomic_tx_data = self.data_from_result(result)
+        if not genomic_tx_data:
             return None
-        data["tx_ac"] = result[1]
-        data["alt_ac"] = result[4]
 
-        data["pos_change"] = (
-            pos[0] - data["tx_pos_range"][0],
-            data["tx_pos_range"][1] - pos[1],
+        pos_change = (
+            pos[0] - genomic_tx_data.tx_pos_range[0],
+            genomic_tx_data.tx_pos_range[1] - pos[1],
         )
 
         if annotation_layer == AnnotationLayer.CDNA:
-            if data["strand"] == Strand.NEGATIVE:
-                data["alt_pos_change_range"] = (
-                    data["alt_pos_range"][1] - data["pos_change"][0],
-                    data["alt_pos_range"][0] + data["pos_change"][1],
+            if genomic_tx_data.strand == Strand.NEGATIVE:
+                alt_pos_change_range = (
+                    genomic_tx_data.alt_pos_range[1] - pos_change[0],
+                    genomic_tx_data.alt_pos_range[0] + pos_change[1],
                 )
             else:
-                data["alt_pos_change_range"] = (
-                    data["alt_pos_range"][0] + data["pos_change"][0],
-                    data["alt_pos_range"][1] - data["pos_change"][1],
+                alt_pos_change_range = (
+                    genomic_tx_data.alt_pos_range[0] + pos_change[0],
+                    genomic_tx_data.alt_pos_range[1] - pos_change[1],
                 )
         else:
-            if data["strand"] == Strand.NEGATIVE:
-                data["alt_pos_change_range"] = (pos[1], pos[0])
+            if genomic_tx_data.strand == Strand.NEGATIVE:
+                alt_pos_change_range = (pos[1], pos[0])
             else:
-                data["alt_pos_change_range"] = pos
+                alt_pos_change_range = pos
 
-        return data
+        return GenomicTxMetadata(
+            **genomic_tx_data.model_dump(),
+            tx_ac=result[1],
+            alt_ac=result[4],
+            pos_change=pos_change,
+            alt_pos_change_range=alt_pos_change_range,
+        )
 
     async def get_ac_from_gene(self, gene: str) -> list[str]:
         """Return genomic accession(s) associated to a gene.
