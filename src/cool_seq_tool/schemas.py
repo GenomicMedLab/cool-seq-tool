@@ -53,15 +53,17 @@ class TranscriptPriority(str, Enum):
     GRCH38 = "grch38"
 
 
-class ResidueMode(str, Enum):
-    """Create Enum for residue modes.
+class CoordinateType(str, Enum):
+    """Create Enum for coordinate types.
 
-    We typically prefer to operate in inter-residue coordinates, but users should be
+    It is preferred to operate in inter-residue coordinates, but users should be
     careful to define the coordinate mode of their data when calling ``cool-seq-tool``
     functions.
 
+    ``RESIDUE`` means 1-indexed, residue coordinates and ``INTER_RESIDUE`` means
+    0-indexed, inter-residue coordinates.
+
                       |   | C |   | T |   | G |   |
-    ZERO              |   | 0 |   | 1 |   | 2 |   |
     RESIDUE           |   | 1 |   | 2 |   | 3 |   |
     INTER_RESIDUE     | 0 |   | 1 |   | 2 |   | 3 |
 
@@ -76,14 +78,6 @@ class ResidueMode(str, Enum):
          - T
          -
          - G
-         -
-       * - ``ZERO``
-         -
-         - 0
-         -
-         - 1
-         -
-         - 2
          -
        * - ``RESIDUE``
          -
@@ -107,7 +101,6 @@ class ResidueMode(str, Enum):
     `Variation Representation Schema (VRS) paper <https://www.ncbi.nlm.nih.gov/pmc/articles/pmid/35311178/>`_ for further discussion.
     """
 
-    ZERO = "zero"
     RESIDUE = "residue"
     INTER_RESIDUE = "inter-residue"
 
