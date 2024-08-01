@@ -85,8 +85,3 @@ Individual classes will accept arguments upon initialization to set parameters r
      - A path to a `chainfile <https://genome.ucsc.edu/goldenPath/help/chain.html>`_ for lifting from GRCh37 to GRCh38. Used by the :py:class:`LiftOver <cool_seq_tool.mappers.liftover.LiftOver>` class as input to `agct <https://pypi.org/project/agct/>`_. If not provided, agct will fetch it automatically from UCSC.
    * - ``LIFTOVER_CHAIN_38_TO_37``
      - A path to a `chainfile <https://genome.ucsc.edu/goldenPath/help/chain.html>`_ for lifting from GRCh38 to GRCh37. Used by the :py:class:`LiftOver <cool_seq_tool.mappers.liftover.LiftOver>` class as input to `agct <https://pypi.org/project/agct/>`_. If not provided, agct will fetch it automatically from UCSC.
-
-Schema support
---------------
-
-Many genomic data objects produced by Cool-Seq-Tool are structured in conformance with the `Variation Representation Specification <https://vrs.ga4gh.org/en/stable/>`_, courtesy of the `VRS-Python <https://github.com/ga4gh/vrs-python>`_ library.
