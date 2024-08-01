@@ -574,7 +574,7 @@ class ManeTranscript:
             position change
         :param expected_ref: Reference at position given during input
         :param anno: Annotation layer we are starting from
-        :param coordinate_type: Residue mode for ``start_pos`` and ``end_pos``
+        :param coordinate_type: Coordinate type for ``start_pos`` and ``end_pos``
         :return: ``True`` if reference check passes. ``False`` otherwise.
         """
         if anno == AnnotationLayer.CDNA:
@@ -735,7 +735,7 @@ class ManeTranscript:
         :param start_annotation_layer: Starting annotation layer
         :param gene: HGNC gene symbol
         :param ref: Reference at position given during input
-        :param coordinate_type: Residue mode for ``start_pos`` and ``end_pos``
+        :param coordinate_type: Coordinate type for ``start_pos`` and ``end_pos``
         :param mane_transcripts: Attempted mane transcripts that were not compatible
         :param alt_ac: Genomic accession
         :param end_annotation_layer: The end annotation layer. If not provided, will be
@@ -1004,8 +1004,8 @@ class ManeTranscript:
         :param ref: Reference at position given during input
         :param try_longest_compatible: ``True`` if should try longest compatible remaining
             if mane transcript was not compatible. ``False`` otherwise.
-        :param CoordinateType coordinate_type: Starting residue mode for ``start_pos`` and
-            ``end_pos``. Will always return coordinates in inter-residue
+        :param CoordinateType coordinate_type: Starting Coordinate type for
+            ``start_pos`` and ``end_pos``. Will always return inter-residue coordinates
         :return: MANE data or longest transcript compatible data if validation
             checks are correct. Will return inter-residue coordinates. Else, ``None``.
         """
@@ -1138,7 +1138,7 @@ class ManeTranscript:
         :param end_pos: Genomic end position
         :param get_mane_genes: ``True`` if mane genes for genomic position should be
             included in response. ``False``, otherwise.
-        :param coordinate_type: Residue mode for ``start_pos`` and ``end_pos``
+        :param coordinate_type: Coordinate type for ``start_pos`` and ``end_pos``
         :return: GRCh38 genomic representation (accession and start/end inter-residue
             position)
         """
@@ -1249,8 +1249,8 @@ class ManeTranscript:
         :param start_pos: genomic start position
         :param end_pos: genomic end position
         :param gene: HGNC gene symbol
-        :param coordinate_type: Starting residue mode for ``start_pos`` and ``end_pos``.
-            Will always return coordinates in inter-residue.
+        :param coordinate_type: Starting Coordinate type for ``start_pos`` and
+            ``end_pos``. Will always return inter-residue coordinates.
         :return: MANE Transcripts with cDNA change on c. coordinate
         """
         start_pos, end_pos = get_inter_residue_pos(start_pos, end_pos, coordinate_type)
@@ -1341,8 +1341,8 @@ class ManeTranscript:
         :param start_pos: Start position
         :param end_pos: End position
         :param gene: HGNC gene symbol
-        :param coordinate_type: Starting residue mode for ``start_pos`` and ``end_pos``. Will
-            always return coordinates as inter-residue.
+        :param coordinate_type: Starting Coordinate type for ``start_pos`` and
+            ``end_pos``. Will always return inter-residue coordinates.
         :param try_longest_compatible: ``True`` if should try longest compatible remaining
             if mane transcript(s) not compatible. ``False`` otherwise.
         :return: If successful, return MANE data or longest compatible remaining (if
