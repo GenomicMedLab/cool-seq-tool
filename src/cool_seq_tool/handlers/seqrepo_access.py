@@ -46,7 +46,7 @@ class SeqRepoAccess(SeqRepoDataProxy):
         :param start: Start pos change
         :param end: End pos change. If ``None`` assumes both ``start`` and ``end`` have
             same values, if ``start`` exists.
-        :param coordinate_type: Residue mode for ``start`` and ``end``
+        :param coordinate_type: Coordinate type for ``start`` and ``end``
         :return: Sequence at position (if accession and positions actually
             exist, else return empty string), warning if any
         """
