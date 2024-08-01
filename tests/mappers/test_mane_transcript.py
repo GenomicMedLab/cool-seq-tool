@@ -1,6 +1,5 @@
 """Module for testing MANE Transcript class."""
 
-from copy import deepcopy
 from unittest.mock import patch
 
 import polars as pl
@@ -19,6 +18,7 @@ from cool_seq_tool.schemas import (
     Strand,
     TranscriptPriority,
 )
+from cool_seq_tool.sources.uta_database import GenomicTxMetadata
 
 
 @pytest.fixture(scope="module")
@@ -51,7 +51,7 @@ def braf_mane_data():
 @pytest.fixture(scope="module")
 def nm_004333v6_g():
     """Create test fixture for NM_004333.6 genomic data."""
-    return {
+    params = {
         "gene": "BRAF",
         "tx_ac": "NM_004333.6",
         "tx_pos_range": (1967, 2086),
@@ -65,6 +65,7 @@ def nm_004333v6_g():
         "alt_exon_id": 9507338,
         "coding_start_site": 226,
     }
+    return GenomicTxMetadata(**params)
 
 
 @pytest.fixture(scope="module")
@@ -297,25 +298,25 @@ async def test_g_to_c(
 
 def test_set_liftover(test_mane_transcript, genomic_tx_data):
     """Test that _set_liftover works correctly."""
-    cpy = deepcopy(genomic_tx_data)
-    expected = deepcopy(genomic_tx_data)
+    cpy = genomic_tx_data.copy(deep=True)
+    expected = genomic_tx_data.copy(deep=True)
     test_mane_transcript._set_liftover(cpy, "alt_pos_range", "chr7", "GRCh38")
-    expected["alt_pos_range"] = (140739811, 140739946)
+    expected.alt_pos_range = (140739811, 140739946)
     assert cpy == expected
     test_mane_transcript._set_liftover(cpy, "alt_pos_change_range", "chr7", "GRCh38")
-    expected["alt_pos_change_range"] = (140739903, 140739903)
+    expected.alt_pos_change_range = (140739903, 140739903)
     assert cpy == expected
 
 
 @pytest.mark.asyncio()
 async def test_liftover_to_38(test_mane_transcript, genomic_tx_data):
     """Test that liftover_to_38 works correctly."""
-    cpy = deepcopy(genomic_tx_data)
-    expected = deepcopy(genomic_tx_data)
+    cpy = genomic_tx_data.copy(deep=True)
+    expected = genomic_tx_data.copy(deep=True)
     await test_mane_transcript._liftover_to_38(cpy)
-    expected["alt_ac"] = "NC_000007.14"
-    expected["alt_pos_change_range"] = (140739903, 140739903)
-    expected["alt_pos_range"] = (140739811, 140739946)
+    expected.alt_ac = "NC_000007.14"
+    expected.alt_pos_change_range = (140739903, 140739903)
+    expected.alt_pos_range = (140739811, 140739946)
     assert cpy == expected
 
 

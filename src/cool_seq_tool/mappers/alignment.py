@@ -163,7 +163,7 @@ class AlignmentMapper:
                 f"position ({c_start_pos}, {c_end_pos})"
             )
         else:
-            alt_ac = genomic_tx_data["alt_ac"]
+            alt_ac = genomic_tx_data.alt_ac
 
             # Validate that genomic accession assembly == target_genome_assembly
             aliases, _ = self.seqrepo_access.translate_identifier(alt_ac)
@@ -180,7 +180,7 @@ class AlignmentMapper:
                             f"{target_genome_assembly}"
                         )
                     else:
-                        g_pos = genomic_tx_data["alt_pos_change_range"]
+                        g_pos = genomic_tx_data.alt_pos_change_range
 
                         # start pos should be less than end pos in response
                         if g_pos[0] > g_pos[1]:

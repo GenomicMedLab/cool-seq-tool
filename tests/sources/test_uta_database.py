@@ -3,6 +3,7 @@
 import pytest
 
 from cool_seq_tool.schemas import Strand
+from cool_seq_tool.sources.uta_database import GenomicTxData, GenomicTxMetadata
 
 
 @pytest.fixture(scope="module")
@@ -26,7 +27,7 @@ def tx_exon_aln_v_data():
 @pytest.fixture(scope="module")
 def data_from_result():
     """Create test fixture for data from result"""
-    return {
+    params = {
         "gene": "BRAF",
         "strand": Strand.NEGATIVE,
         "tx_pos_range": (1802, 1921),
@@ -35,6 +36,7 @@ def data_from_result():
         "tx_exon_id": 780494,
         "alt_exon_id": 1927263,
     }
+    return GenomicTxData(**params)
 
 
 @pytest.mark.asyncio()
@@ -183,7 +185,7 @@ async def test_mane_c_genomic_data(test_db):
     resp = await test_db.get_mane_c_genomic_data(
         "NM_001374258.1", None, 140753335, 140753335
     )
-    expected = {
+    expected_params = {
         "gene": "BRAF",
         "strand": Strand.NEGATIVE,
         "tx_pos_range": (2087, 2206),
@@ -193,19 +195,19 @@ async def test_mane_c_genomic_data(test_db):
         "alt_exon_id": 9353476,
         "coding_start_site": 226,
         "coding_end_site": 2650,
-        "alt_pos_change": (58, 61),
+        "pos_change": (58, 61),
         "alt_pos_change_range": (140753335, 140753335),
         "tx_ac": "NM_001374258.1",
         "alt_ac": "NC_000007.14",
     }
-    assert resp == expected
+    assert resp == GenomicTxMetadata(**expected_params)
 
 
 @pytest.mark.asyncio()
 async def test_get_genomic_tx_data(test_db, genomic_tx_data):
     """Test that get_genomic_tx_data works correctly."""
     resp = await test_db.get_genomic_tx_data("NM_004333.4", (2145, 2145))
-    assert resp == {
+    expected_params = {
         "gene": "BRAF",
         "strand": Strand.NEGATIVE,
         "tx_pos_range": (2053, 2188),
@@ -218,6 +220,7 @@ async def test_get_genomic_tx_data(test_db, genomic_tx_data):
         "pos_change": (92, 43),
         "alt_pos_change_range": (140739854, 140739854),
     }
+    assert resp == GenomicTxMetadata(**expected_params)
 
 
 @pytest.mark.asyncio()

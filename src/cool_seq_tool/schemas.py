@@ -116,6 +116,36 @@ class BaseModelForbidExtra(BaseModel, extra="forbid"):
     """Base Pydantic model class with extra values forbidden."""
 
 
+class GenesGenomicAcs(BaseModelForbidExtra):
+    """Represent HGNC gene symbols and genomic accessions"""
+
+    genes: set[str]
+    alt_acs: set[str]
+
+
+class GenomicTxData(BaseModelForbidExtra):
+    """Represent aligned genomic/transcript exon data"""
+
+    gene: str
+    strand: Strand
+    tx_pos_range: tuple[int, int]
+    alt_pos_range: tuple[int, int]
+    alt_aln_method: str
+    tx_exon_id: int
+    alt_exon_id: int
+
+
+class GenomicTxMetadata(GenomicTxData):
+    """Store relevant metadata for genomic and transcript accessions"""
+
+    tx_ac: str
+    alt_ac: str
+    coding_start_site: int = 0
+    coding_end_site: int = 0
+    alt_pos_change_range: tuple[int, int]
+    pos_change: tuple[int, int] | None
+
+
 class ManeGeneData(BaseModel, extra="forbid"):
     """Define minimal object model for representing a MANE gene"""
 
