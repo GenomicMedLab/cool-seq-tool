@@ -1,7 +1,7 @@
 """Provide mapping capabilities between transcript exon and genomic coordinates."""
 
 import logging
-from typing import Literal, TypeVar
+from typing import TypeVar
 
 from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
 from cool_seq_tool.mappers.liftover import LiftOver
@@ -240,10 +240,10 @@ class ExonGenomicCoordsMapper:
         transcript: str | None = None,
         get_nearest_transcript_junction: bool = False,
         gene: str | None = None,
-        coordinate_type: Literal[CoordinateType.INTER_RESIDUE]
-        | Literal[CoordinateType.RESIDUE] = CoordinateType.RESIDUE,
     ) -> GenomicDataResponse:
         """Get transcript segment data for genomic data, lifted over to GRCh38.
+
+        Must provide inter-residue coordinates.
 
         MANE Transcript data will be returned if and only if ``transcript`` is not
         supplied. ``gene`` must be given in order to retrieve MANE Transcript data.
@@ -268,8 +268,10 @@ class ExonGenomicCoordsMapper:
         :param alt_ac: Genomic accession (i.e. ``NC_000001.11``). If not provided,
             must provide ``chromosome. If ``chromosome`` is also provided, ``alt_ac``
             will be used.
-        :param seg_start: Genomic position where the transcript segment starts
-        :param seg_end: Genomic position where the transcript segment ends
+        :param seg_start: Genomic position where the transcript segment starts.
+            Must provide inter-residue coordinates.
+        :param seg_end: Genomic position where the transcript segment ends.
+            Must provide inter-residue coordinates.
         :param transcript: The transcript to use. If this is not given, we will try the
             following transcripts: MANE Select, MANE Clinical Plus, Longest Remaining
             Compatible Transcript. See the :ref:`Transcript Selection policy <transcript_selection_policy>`
@@ -283,7 +285,6 @@ class ExonGenomicCoordsMapper:
             breakpoint for the 3' end.
         :param gene: gene name. Ideally, HGNC symbol. Must be given if no ``transcript``
             value is provided.
-        :param coordinate_type: Residue mode for ``seg_start`` and ``seg_end``
         :return: Genomic data (inter-residue coordinates)
         """
         resp = GenomicDataResponse(
@@ -304,9 +305,6 @@ class ExonGenomicCoordsMapper:
             gene = gene.upper().strip()
 
         if seg_start:
-            if coordinate_type == CoordinateType.RESIDUE:
-                # inter-residue based for UTA
-                seg_start -= 1
             start_data = await self._genomic_to_transcript_exon_coordinate(
                 seg_start,
                 chromosome=chromosome,

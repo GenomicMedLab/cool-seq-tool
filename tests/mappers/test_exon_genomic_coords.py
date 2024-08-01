@@ -6,7 +6,6 @@ from datetime import datetime
 import pytest
 
 from cool_seq_tool.schemas import (
-    CoordinateType,
     GenomicData,
     Strand,
     TranscriptExonData,
@@ -471,7 +470,7 @@ async def test_genomic_to_transcript_fusion_context(
 
     inputs = {
         "chromosome": "8",
-        "seg_start": 80518581,
+        "seg_start": 80518580,
         "gene": "ZBTB10",
         "get_nearest_transcript_junction": True,
     }
@@ -489,7 +488,7 @@ async def test_genomic_to_transcript_fusion_context(
 
     inputs = {
         "chromosome": "1",
-        "seg_start": 154173081,
+        "seg_start": 154173080,
         "gene": "TPM3",
         "get_nearest_transcript_junction": True,
     }
@@ -507,7 +506,7 @@ async def test_genomic_to_transcript_fusion_context(
 
     inputs = {
         "chromosome": "5",
-        "seg_start": 69645879,
+        "seg_start": 69645878,
         "gene": "GUSBP3",
         "get_nearest_transcript_junction": True,
     }
@@ -516,7 +515,7 @@ async def test_genomic_to_transcript_fusion_context(
 
     inputs = {  # Test when gene and strand are not provided
         "chromosome": "5",
-        "seg_start": 69645879,
+        "seg_start": 69645878,
         "transcript": "NR_027386.2",
         "get_nearest_transcript_junction": True,
     }
@@ -528,7 +527,7 @@ async def test_genomic_to_transcript_fusion_context(
 
     inputs = {  # Test when transcript is provided
         "chromosome": "5",
-        "seg_start": 69645879,
+        "seg_start": 69645878,
         "gene": "GUSBP3",
         "transcript": "NR_027386.2",
         "get_nearest_transcript_junction": True,
@@ -633,7 +632,7 @@ async def test_tpm3(
     """
     inputs = {
         "alt_ac": "NC_000001.11",
-        "seg_start": 154192135,
+        "seg_start": 154192134,
         "seg_end": 154170400,
         "transcript": "NM_152263.3",
     }
@@ -655,7 +654,6 @@ async def test_tpm3(
         "seg_start": 154192134,
         "seg_end": 154170400,
         "transcript": "NM_152263.3",
-        "coordinate_type": CoordinateType.INTER_RESIDUE,
     }
     g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon1_exon8)
@@ -676,7 +674,6 @@ async def test_tpm3(
         "seg_start": 154192132,
         "seg_end": 154170404,
         "transcript": "NM_152263.3",
-        "coordinate_type": CoordinateType.INTER_RESIDUE,
     }
     g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon1_exon8_offset)
@@ -696,7 +693,6 @@ async def test_tpm3(
         "alt_ac": "NC_000001.11",
         "seg_start": 154192134,
         "transcript": "NM_152263.3",
-        "coordinate_type": CoordinateType.INTER_RESIDUE,
     }
     g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon1_g)
@@ -716,7 +712,6 @@ async def test_tpm3(
         "alt_ac": "NC_000001.11",
         "seg_end": 154170400,
         "transcript": "NM_152263.3",
-        "coordinate_type": CoordinateType.INTER_RESIDUE,
     }
     g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
     genomic_data_assertion_checks(g_to_t_resp, tpm3_exon8_g)
@@ -739,7 +734,7 @@ async def test_braf(test_egc_mapper, mane_braf):
     """
     inputs = {
         "alt_ac": "NC_000007.13",
-        "seg_start": 140501360,
+        "seg_start": 140501359,
         "seg_end": 140453136,
         "gene": "BRAF",
     }
@@ -766,7 +761,7 @@ async def test_wee1(test_egc_mapper, wee1_exon2_exon11, mane_wee1_exon2_exon11):
     """
     inputs = {
         "alt_ac": "NC_000011.9",
-        "seg_start": 9597640,
+        "seg_start": 9597639,
         "seg_end": 9609996,
         "transcript": "NM_003390.3",
     }
@@ -786,7 +781,7 @@ async def test_wee1(test_egc_mapper, wee1_exon2_exon11, mane_wee1_exon2_exon11):
     # add gene
     inputs = {
         "alt_ac": "NC_000011.9",
-        "seg_start": 9597640,
+        "seg_start": 9597639,
         "seg_end": 9609996,
         "transcript": "NM_003390.3",
         "gene": "wee1",
@@ -807,7 +802,7 @@ async def test_wee1(test_egc_mapper, wee1_exon2_exon11, mane_wee1_exon2_exon11):
     # MANE since no transcript provided
     inputs = {
         "alt_ac": "NC_000011.9",
-        "seg_start": 9597640,
+        "seg_start": 9597639,
         "seg_end": 9609996,
         "gene": "wee1",
     }
@@ -939,7 +934,7 @@ async def test_transcript_to_genomic(
 @pytest.mark.asyncio()
 async def test_valid_inputs(test_egc_mapper):
     """Test that valid inputs don"t return any errors"""
-    inputs = {"gene": "TPM3", "alt_ac": "NC_000001.11", "seg_start": 154171413}
+    inputs = {"gene": "TPM3", "alt_ac": "NC_000001.11", "seg_start": 154171412}
     resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
     assert resp.genomic_data
 
@@ -963,10 +958,9 @@ async def test_valid_inputs(test_egc_mapper):
     # Test X/Y chromosome bug
     inputs = {
         "chromosome": "X",
-        "seg_start": 154437254,
+        "seg_start": 154437253,
         "seg_end": 154437299,
         "gene": "GDI1",
-        "coordinate_type": CoordinateType.INTER_RESIDUE,
     }
     resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
     assert resp.genomic_data
@@ -982,7 +976,7 @@ async def test_invalid(test_egc_mapper):
     """Test that invalid queries return `None`."""
     resp = await test_egc_mapper.genomic_to_tx_segment(
         transcript="NM_152263 3",
-        seg_start=154192135,
+        seg_start=154192134,
         seg_end=154170399,
         alt_ac="NC_000001.11",
     )
@@ -1002,7 +996,7 @@ async def test_invalid(test_egc_mapper):
     # Invalid gene
     resp = await test_egc_mapper.genomic_to_tx_segment(
         alt_ac="NC_000001.11",
-        seg_start=154192135,
+        seg_start=154192134,
         seg_end=154170399,
         transcript="NM_152263.3",
         gene="dummy gene",
@@ -1017,7 +1011,7 @@ async def test_invalid(test_egc_mapper):
     # Invalid accession
     resp = await test_egc_mapper.genomic_to_tx_segment(
         alt_ac="NC_000001.200",
-        seg_start=154192135,
+        seg_start=154192134,
         seg_end=154170399,
         transcript="NM_152263.3",
     )
@@ -1027,7 +1021,7 @@ async def test_invalid(test_egc_mapper):
     # Invalid coordinates
     resp = await test_egc_mapper.genomic_to_tx_segment(
         alt_ac="NC_000001.11",
-        seg_start=9999999999999,
+        seg_start=9999999999998,
         seg_end=9999999999999,
         transcript="NM_152263.3",
     )
@@ -1039,7 +1033,7 @@ async def test_invalid(test_egc_mapper):
 
     resp = await test_egc_mapper.genomic_to_tx_segment(
         chromosome="1",
-        seg_start=154170400,
+        seg_start=154170399,
         transcript="NM_002529.3",
     )
     genomic_data_assertion_checks(resp, is_valid=False)
@@ -1047,7 +1041,7 @@ async def test_invalid(test_egc_mapper):
 
     # Must supply either gene or transcript
     resp = await test_egc_mapper.genomic_to_tx_segment(
-        seg_start=154192135, alt_ac="NC_000001.11"
+        seg_start=154192134, alt_ac="NC_000001.11"
     )
     genomic_data_assertion_checks(resp, is_valid=False)
     assert resp.warnings == ["Must provide either `gene` or `transcript`"]
