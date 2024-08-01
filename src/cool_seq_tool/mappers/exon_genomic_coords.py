@@ -54,9 +54,7 @@ class ExonGenomicCoordsMapper:
 
         >>> import asyncio
         >>> result = asyncio.run(
-        ...     egc.transcript_to_genomic_coordinates(
-        ...         "NM_002529.3", exon_start=2, exon_end=17
-        ...     )
+        ...     egc.tx_segment_to_genomic("NM_002529.3", exon_start=2, exon_end=17)
         ... )
         >>> result.genomic_data.start, result.genomic_data.end
         (156864428, 156881456)
@@ -89,7 +87,7 @@ class ExonGenomicCoordsMapper:
             resp.warnings.append(msg)
         return resp
 
-    async def transcript_to_genomic_coordinates(
+    async def tx_segment_to_genomic(
         self,
         transcript: str,
         gene: str | None = None,
@@ -98,7 +96,7 @@ class ExonGenomicCoordsMapper:
         exon_end: int | None = None,
         exon_end_offset: int = 0,
     ) -> GenomicDataResponse:
-        """Get genomic data given transcript data.
+        """Get genomic data given transcript segment data.
 
         By default, transcript data is aligned to the GRCh38 assembly.
 
@@ -106,7 +104,7 @@ class ExonGenomicCoordsMapper:
         >>> from cool_seq_tool import CoolSeqTool
         >>> egc = CoolSeqTool().ex_g_coords_mapper
         >>> tpm3 = asyncio.run(
-        ...     egc.transcript_to_genomic_coordinates(
+        ...     egc.tx_segment_to_genomic(
         ...         "NM_152263.3",
         ...         gene="TPM3",
         ...         exon_start=1,
@@ -233,7 +231,7 @@ class ExonGenomicCoordsMapper:
 
         return resp
 
-    async def genomic_to_transcript_exon_coordinates(
+    async def genomic_to_tx_segment(
         self,
         chromosome: str | None = None,
         alt_ac: str | None = None,
@@ -246,7 +244,7 @@ class ExonGenomicCoordsMapper:
         coordinate_type: Literal[CoordinateType.INTER_RESIDUE]
         | Literal[CoordinateType.RESIDUE] = CoordinateType.RESIDUE,
     ) -> GenomicDataResponse:
-        """Get transcript data for genomic data, lifted over to GRCh38.
+        """Get transcript segment data for genomic data, lifted over to GRCh38.
 
         MANE Transcript data will be returned if and only if ``transcript`` is not
         supplied. ``gene`` must be given in order to retrieve MANE Transcript data.
@@ -256,7 +254,7 @@ class ExonGenomicCoordsMapper:
         >>> from cool_seq_tool.schemas import Strand
         >>> egc = CoolSeqTool().ex_g_coords_mapper
         >>> result = asyncio.run(
-        ...     egc.genomic_to_transcript_exon_coordinates(
+        ...     egc.genomic_to_tx_segment(
         ...         alt_ac="NC_000001.11",
         ...         start=154192136,
         ...         end=154170400,
