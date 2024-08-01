@@ -6,6 +6,7 @@ import pytest
 
 from cool_seq_tool.app import CoolSeqTool
 from cool_seq_tool.schemas import ManeGeneData, Strand
+from cool_seq_tool.sources.uta_database import GenomicTxMetadata
 
 
 @pytest.fixture(scope="session")
@@ -108,7 +109,7 @@ def tpm3_1_8_end_genomic():
 @pytest.fixture(scope="session")
 def genomic_tx_data():
     """Create test fixture for genomic_tx_data"""
-    return {
+    params = {
         "gene": "BRAF",
         "strand": Strand.NEGATIVE,
         "tx_pos_range": (2053, 2188),
@@ -121,6 +122,7 @@ def genomic_tx_data():
         "tx_ac": "NM_004333.4",
         "alt_ac": "NC_000007.13",
     }
+    return GenomicTxMetadata(**params)
 
 
 @pytest.fixture(scope="session")

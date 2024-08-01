@@ -25,6 +25,7 @@ from cool_seq_tool.mappers.liftover import LiftOver
 from cool_seq_tool.schemas import (
     AnnotationLayer,
     Assembly,
+    GenomicTxMetadata,
     ManeGeneData,
     ResidueMode,
     Strand,
@@ -182,13 +183,12 @@ class ManeTranscript:
         pos = self._p_to_c_pos(start_pos, end_pos)
         return ac, pos
 
-    async def _c_to_g(self, ac: str, pos: tuple[int, int]) -> dict | None:
+    async def _c_to_g(self, ac: str, pos: tuple[int, int]) -> GenomicTxMetadata | None:
         """Get g. annotation from c. annotation.
 
         :param ac: cDNA accession
         :param pos: [cDNA pos start, cDNA pos end]
-        :return: Gene, Transcript accession and position change,
-            Altered transcript accession and position change, Strand
+        :return: Metadata for genomic and transcript accessions
         """
         # UTA does not store ENST versions
         # So we want to make sure version is valid
@@ -220,13 +220,13 @@ class ManeTranscript:
             ac, pos, AnnotationLayer.CDNA, coding_start_site=coding_start_site
         )
 
-    async def _liftover_to_38(self, genomic_tx_data: dict) -> None:
+    async def _liftover_to_38(self, genomic_tx_data: GenomicTxMetadata) -> None:
         """Liftover genomic_tx_data to hg38 assembly.
 
-        :param genomic_tx_data: Dictionary containing gene, nc_accession, alt_pos, and
-            strand. This will be mutated in-place if not GRCh38 assembly.
+        :param genomic_tx_data: Metadata for genomic and transcript accessions. This
+            will be mutated in-place if not GRCh38 assembly.
         """
-        descr = await self.uta_db.get_chr_assembly(genomic_tx_data["alt_ac"])
+        descr = await self.uta_db.get_chr_assembly(genomic_tx_data.alt_ac)
         if descr is None:
             # already grch38
             return
@@ -235,14 +235,14 @@ class ManeTranscript:
         query = f"""
             SELECT DISTINCT alt_ac
             FROM {self.uta_db.schema}.tx_exon_aln_v
-            WHERE tx_ac = '{genomic_tx_data['tx_ac']}';
+            WHERE tx_ac = '{genomic_tx_data.tx_ac}';
             """  # noqa: S608
         nc_acs = await self.uta_db.execute_query(query)
         nc_acs = [nc_ac[0] for nc_ac in nc_acs]
-        if nc_acs == [genomic_tx_data["alt_ac"]]:
+        if nc_acs == [genomic_tx_data.alt_ac]:
             _logger.warning(
                 "UTA does not have GRCh38 assembly for %s",
-                genomic_tx_data["alt_ac"].split(".")[0],
+                genomic_tx_data.alt_ac.split(".")[0],
             )
             return
 
@@ -258,7 +258,7 @@ class ManeTranscript:
         )
 
         # Change alt_ac to most recent
-        if genomic_tx_data["alt_ac"].startswith("EN"):
+        if genomic_tx_data.alt_ac.startswith("EN"):
             order_by_cond = "ORDER BY alt_ac DESC;"
         else:
             order_by_cond = """
@@ -268,50 +268,49 @@ class ManeTranscript:
         query = f"""
             SELECT alt_ac
             FROM {self.uta_db.schema}.genomic
-            WHERE alt_ac LIKE '{genomic_tx_data['alt_ac'].split('.')[0]}%'
+            WHERE alt_ac LIKE '{genomic_tx_data.alt_ac.split('.')[0]}%'
             {order_by_cond}
             """  # noqa: S608
         nc_acs = await self.uta_db.execute_query(query)
-        genomic_tx_data["alt_ac"] = nc_acs[0][0]
+        genomic_tx_data.alt_ac = nc_acs[0][0]
 
     def _set_liftover(
         self,
-        genomic_tx_data: dict,
+        genomic_tx_data: GenomicTxMetadata,
         key: str,
         chromosome: str,
         liftover_to_assembly: Assembly,
     ) -> None:
         """Update genomic_tx_data to have coordinates for given assembly.
 
-        :param genomic_tx_data: Dictionary containing gene, nc_accession, alt_pos, and
-            strand
+        :param genomic_tx_data: Metadata for genomic and transcript accessions
         :param key: Key to access coordinate positions
         :param chromosome: Chromosome, must be prefixed with ``chr``
         :param liftover_to_assembly: Assembly to liftover to
         """
+        coords = getattr(genomic_tx_data, key)
         liftover_start_i = self.liftover.get_liftover(
-            chromosome, genomic_tx_data[key][0], liftover_to_assembly
+            chromosome, coords[0], liftover_to_assembly
         )
         if liftover_start_i is None:
             _logger.warning(
                 "Unable to liftover position %s on %s",
-                genomic_tx_data[key][0],
+                coords[0],
                 chromosome,
             )
             return
 
         liftover_end_i = self.liftover.get_liftover(
-            chromosome, genomic_tx_data[key][1], liftover_to_assembly
+            chromosome, coords[1], liftover_to_assembly
         )
         if liftover_end_i is None:
             _logger.warning(
                 "Unable to liftover position %s on %s",
-                genomic_tx_data[key][1],
+                coords[1],
                 chromosome,
             )
             return
-
-        genomic_tx_data[key] = liftover_start_i[1], liftover_end_i[1]
+        setattr(genomic_tx_data, key, (liftover_start_i[1], liftover_end_i[1]))
 
     async def _get_and_validate_genomic_tx_data(
         self,
@@ -321,7 +320,7 @@ class ManeTranscript:
         | Literal[AnnotationLayer.GENOMIC] = AnnotationLayer.CDNA,
         coding_start_site: int | None = None,
         alt_ac: str | None = None,
-    ) -> dict | None:
+    ) -> GenomicTxMetadata | None:
         """Get and validate genomic_tx_data
 
         :param tx_ac: Accession on c. coordinate
@@ -329,7 +328,8 @@ class ManeTranscript:
         :param annotation_layer: Annotation layer for ``ac`` and ``pos``
         :param coding_start_site: Coding start site
         :param alt_ac: Accession on g. coordinate
-        :return: genomic_tx_data if found and validated, else None
+        :return: Metadata for genomic and transcript accessions if found and validated,
+            else None
         """
         genomic_tx_data = await self.uta_db.get_genomic_tx_data(
             tx_ac, pos, annotation_layer, alt_ac=alt_ac
@@ -342,14 +342,14 @@ class ManeTranscript:
                 annotation_layer,
             )
             return None
-        genomic_tx_data["coding_start_site"] = coding_start_site
+        genomic_tx_data.coding_start_site = coding_start_site
 
         if not alt_ac:
             # Only want to liftover if alt_ac not provided. If alt_ac is provided,
             # it means user wants to stick with the queried assembly
-            og_alt_exon_id = genomic_tx_data["alt_exon_id"]
+            og_alt_exon_id = genomic_tx_data.alt_exon_id
             await self._liftover_to_38(genomic_tx_data)
-            liftover_alt_exon_id = genomic_tx_data["alt_exon_id"]
+            liftover_alt_exon_id = genomic_tx_data.alt_exon_id
 
             # Validation check: Exon structure
             if og_alt_exon_id != liftover_alt_exon_id:
@@ -467,14 +467,14 @@ class ManeTranscript:
         :return: Transcript data
         """
         if found_result:
-            tx_g_pos = g["alt_pos_range"]
-            tx_pos_range = g["tx_pos_range"]
+            tx_g_pos = g.alt_pos_range
+            tx_pos_range = g.tx_pos_range
         else:
             result = await self.uta_db.get_tx_exon_aln_v_data(
                 refseq_c_ac,
-                g["alt_pos_change_range"][0],
-                g["alt_pos_change_range"][1],
-                alt_ac=alt_ac if alt_ac else g["alt_ac"],
+                g.alt_pos_change_range[0],
+                g.alt_pos_change_range[1],
+                alt_ac=alt_ac if alt_ac else g.alt_ac,
                 use_tx_pos=False,
             )
 
@@ -492,10 +492,10 @@ class ManeTranscript:
             return None
         coding_start_site = cds_start_end[0]
 
-        g_pos = g["alt_pos_change_range"]  # start/end genomic change
+        g_pos = g.alt_pos_change_range  # start/end genomic change
         g_pos_change = g_pos[0] - tx_g_pos[0], tx_g_pos[1] - g_pos[1]
 
-        if g["strand"] == Strand.NEGATIVE:
+        if g.strand == Strand.NEGATIVE:
             g_pos_change = (tx_g_pos[1] - g_pos[0], g_pos[1] - tx_g_pos[0])
 
         c_pos_change = (
@@ -507,10 +507,10 @@ class ManeTranscript:
             c_pos_change = c_pos_change[1], c_pos_change[0]
 
         return self._get_c_data(
-            gene=g["gene"],
+            gene=g.gene,
             cds_start_end=cds_start_end,
             c_pos_change=c_pos_change,
-            strand=g["strand"],
+            strand=g.strand,
             alt_ac=alt_ac,
             status=status,
             refseq_c_ac=refseq_c_ac,
@@ -903,7 +903,7 @@ class ManeTranscript:
                         gene,
                         row["pro_ac"],
                         lcr_c_data.pos,
-                        g["strand"],
+                        g.strand,
                         lcr_c_data.status,
                     )
                     coding_start_site = 0
@@ -925,7 +925,7 @@ class ManeTranscript:
                     gene,
                     row["pro_ac"],
                     lcr_c_data.pos,
-                    g["strand"],
+                    g.strand,
                     lcr_c_data.status,
                 ),
                 cdna=lcr_c_data,
@@ -1026,7 +1026,7 @@ class ManeTranscript:
             if g is None:
                 return None
             # Get mane data for gene
-            mane_data = self.mane_transcript_mappings.get_gene_mane_data(g["gene"])
+            mane_data = self.mane_transcript_mappings.get_gene_mane_data(g.gene)
             if not mane_data:
                 return None
 
@@ -1053,10 +1053,8 @@ class ManeTranscript:
                 if not mane:
                     continue
 
-                if not mane.alt_ac:
-                    g_alt_ac = g.get("alt_ac")
-                    if g_alt_ac:
-                        mane.alt_ac = g_alt_ac
+                if not mane.alt_ac and g.alt_ac:
+                    mane.alt_ac = g.alt_ac
 
                 valid_reading_frame = self._validate_reading_frames(
                     c_ac, c_pos[0], c_pos[1], mane
@@ -1072,7 +1070,7 @@ class ManeTranscript:
                 if ref:
                     valid_references = self._validate_references(
                         ac,
-                        g["coding_start_site"],
+                        g.coding_start_site,
                         start_pos,
                         end_pos,
                         mane,
@@ -1092,7 +1090,7 @@ class ManeTranscript:
                         end_pos,
                         AnnotationLayer.PROTEIN,
                         ref=ref,
-                        gene=g["gene"],
+                        gene=g.gene,
                         residue_mode=residue_mode,
                         mane_transcripts=mane_transcripts,
                     )
@@ -1200,7 +1198,7 @@ class ManeTranscript:
 
     @staticmethod
     def get_mane_c_pos_change(
-        mane_tx_genomic_data: dict, coding_start_site: int
+        mane_tx_genomic_data: GenomicTxMetadata, coding_start_site: int
     ) -> tuple[int, int]:
         """Get mane c position change
 
@@ -1208,12 +1206,12 @@ class ManeTranscript:
         :param coding_start_site: Coding start site
         :return: cDNA pos start, cDNA pos end
         """
-        tx_pos_range = mane_tx_genomic_data["tx_pos_range"]
-        alt_pos_change = mane_tx_genomic_data["alt_pos_change"]
+        tx_pos_range = mane_tx_genomic_data.tx_pos_range
+        pos_change = mane_tx_genomic_data.pos_change
 
         mane_c_pos_change = (
-            tx_pos_range[0] + alt_pos_change[0] - coding_start_site,
-            tx_pos_range[1] - alt_pos_change[1] - coding_start_site,
+            tx_pos_range[0] + pos_change[0] - coding_start_site,
+            tx_pos_range[1] - pos_change[1] - coding_start_site,
         )
 
         if mane_c_pos_change[0] > mane_c_pos_change[1]:
@@ -1286,8 +1284,8 @@ class ManeTranscript:
                     continue
                 _logger.info("Not using most recent assembly")
 
-            coding_start_site = mane_tx_genomic_data["coding_start_site"]
-            coding_end_site = mane_tx_genomic_data["coding_end_site"]
+            coding_start_site = mane_tx_genomic_data.coding_start_site
+            coding_end_site = mane_tx_genomic_data.coding_end_site
             mane_c_pos_change = self.get_mane_c_pos_change(
                 mane_tx_genomic_data, coding_start_site
             )
@@ -1373,8 +1371,8 @@ class ManeTranscript:
                 continue
 
             # Get MANE C positions
-            coding_start_site = mane_tx_genomic_data["coding_start_site"]
-            coding_end_site = mane_tx_genomic_data["coding_end_site"]
+            coding_start_site = mane_tx_genomic_data.coding_start_site
+            coding_end_site = mane_tx_genomic_data.coding_end_site
             mane_c_pos_change = self.get_mane_c_pos_change(
                 mane_tx_genomic_data, coding_start_site
             )
@@ -1394,7 +1392,7 @@ class ManeTranscript:
                 cdna=self._get_c_data(
                     (coding_start_site, coding_end_site),
                     mane_c_pos_change,
-                    mane_tx_genomic_data["strand"],
+                    mane_tx_genomic_data.strand,
                     TranscriptPriority(
                         "_".join(current_mane_data["MANE_status"].split()).lower()
                     ),
