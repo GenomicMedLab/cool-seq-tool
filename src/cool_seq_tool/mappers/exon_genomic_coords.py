@@ -286,7 +286,7 @@ class ExonGenomicCoordsMapper:
             breakpoint for the 3' end.
         :param gene: gene name. Ideally, HGNC symbol. Must be given if no ``transcript``
             value is provided.
-        :param coordinate_type: Residue mode for ``start`` and ``end``
+        :param coordinate_type: Coordinate type for ``start`` and ``end``
         :return: Genomic data (inter-residue coordinates)
         """
         resp = GenomicDataResponse(
