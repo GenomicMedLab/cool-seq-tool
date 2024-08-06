@@ -3,12 +3,15 @@
 import logging
 from typing import Literal, TypeVar
 
+from pydantic import Field, StrictInt
+
 from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
 from cool_seq_tool.mappers.liftover import LiftOver
 from cool_seq_tool.mappers.mane_transcript import CdnaRepresentation, ManeTranscript
 from cool_seq_tool.schemas import (
     AnnotationLayer,
     Assembly,
+    BaseModelForbidExtra,
     CoordinateType,
     GenomicData,
     GenomicDataResponse,
@@ -25,6 +28,26 @@ CoordinatesResponseType = TypeVar(
 )
 
 _logger = logging.getLogger(__name__)
+
+
+class ExonCoord(BaseModelForbidExtra):
+    """Model for representing exon coordinate data"""
+
+    ord: StrictInt = Field(..., description="Exon number. 0-based.")
+    tx_start_i: StrictInt = Field(
+        ...,
+        description="Transcript start index of the exon. Inter-residue coordinates.",
+    )
+    tx_end_i: StrictInt = Field(
+        ..., description="Transcript end index of the exon. Inter-residue coordinates."
+    )
+    alt_start_i: StrictInt = Field(
+        ..., description="Genomic start index of the exon. Inter-residue coordinates."
+    )
+    alt_end_i: StrictInt = Field(
+        ..., description="Genomic end index of the exon. Inter-residue coordinates."
+    )
+    alt_strand: Strand = Field(..., description="Strand.")
 
 
 class ExonGenomicCoordsMapper:
@@ -156,18 +179,16 @@ class ExonGenomicCoordsMapper:
         if warnings:
             return self._return_warnings(resp, warnings)
 
-        # Get all exons and associated start/end coordinates for transcript
-        tx_exons, warning = await self.uta_db.get_tx_exons(transcript)
-        if not tx_exons:
-            return self._return_warnings(resp, [warning] if warning else [])
-
         # Get exon start and exon end coordinates
-        tx_exon_coords, warning = self.get_tx_exon_coords(
-            transcript, tx_exons, exon_start, exon_end
+        (
+            tx_exon_start_coords,
+            tx_exon_end_coords,
+            errors,
+        ) = await self._get_start_end_exon_coords(
+            transcript, exon_start=exon_start, exon_end=exon_end
         )
-        if not tx_exon_coords:
-            return self._return_warnings(resp, [warning] if warning else [])
-        tx_exon_start_coords, tx_exon_end_coords = tx_exon_coords
+        if errors:
+            return self._return_warnings(resp, errors)
 
         if gene:
             gene = gene.upper().strip()
@@ -368,67 +389,89 @@ class ExonGenomicCoordsMapper:
         resp.genomic_data = GenomicData(**params)
         return resp
 
-    @staticmethod
-    def _validate_exon(
-        transcript: str, tx_exons: list[tuple[int, int]], exon_number: int
-    ) -> tuple[tuple[int, int] | None, str | None]:
-        """Validate that exon number exists on a given transcript
+    async def _get_all_exon_coords(
+        self, tx_ac: str, genomic_ac: str | None = None
+    ) -> list[ExonCoord]:
+        """Get all exon coordinate data for a transcript.
 
-        :param transcript: Transcript accession
-        :param tx_exons: List of transcript's exons and associated coordinates
-        :param exon_number: Exon number to validate
-        :return: Exon coordinates for a given exon number and warnings if found
+        If ``genomic_ac`` is NOT provided, this method will use the GRCh38 accession
+        associated to ``tx_ac``.
+
+        :param tx_ac: The RefSeq transcript accession to get exon data for.
+        :param genomic_ac: The RefSeq genomic accession to get exon data for.
+        :return: List of all exon coordinate data for ``tx_ac`` and ``genomic_ac``.
+            The exon coordinate data will include the exon number, transcript and
+            genomic positions for the start and end of the exon, and strand.
         """
-        msg = f"Exon {exon_number} does not exist on {transcript}"
-        try:
-            if exon_number < 1:
-                return None, msg
-            exon = tx_exons[exon_number - 1]
-        except IndexError:
-            return None, msg
-        return exon, None
+        if genomic_ac:
+            query = f"""
+                SELECT DISTINCT ord, tx_start_i, tx_end_i, alt_start_i, alt_end_i, alt_strand
+                FROM {self.uta_db.schema}.tx_exon_aln_v
+                WHERE tx_ac = '{tx_ac}'
+                AND alt_aln_method = 'splign'
+                AND alt_ac = '{genomic_ac}'
+                """  # noqa: S608
+        else:
+            query = f"""
+                SELECT DISTINCT ord, tx_start_i, tx_end_i, alt_start_i, alt_end_i, alt_strand
+                FROM {self.uta_db.schema}.tx_exon_aln_v as t
+                INNER JOIN {self.uta_db.schema}._seq_anno_most_recent as s
+                ON t.alt_ac = s.ac
+                WHERE s.descr = ''
+                AND t.tx_ac = '{tx_ac}'
+                AND t.alt_aln_method = 'splign'
+                AND t.alt_ac like 'NC_000%'
+                """  # noqa: S608
 
-    def get_tx_exon_coords(
+        results = await self.uta_db.execute_query(query)
+        return [ExonCoord(**r) for r in results]
+
+    async def _get_start_end_exon_coords(
         self,
-        transcript: str,
-        tx_exons: list[tuple[int, int]],
+        tx_ac: str,
         exon_start: int | None = None,
         exon_end: int | None = None,
-    ) -> tuple[
-        tuple[tuple[int, int] | None, tuple[int, int] | None] | None,
-        str | None,
-    ]:
-        """Get exon coordinates for ``exon_start`` and ``exon_end``
+        genomic_ac: str | None = None,
+    ) -> tuple[ExonCoord | None, ExonCoord | None, list[str]]:
+        """Get exon coordinates for a transcript given exon start and exon end.
 
-        :param transcript: Transcript accession
-        :param tx_exons: List of all transcript exons and coordinates
-        :param exon_start: Start exon number
-        :param exon_end: End exon number
-        :return: [Transcript start exon coords, Transcript end exon coords],
-            and warnings if found
+        If ``genomic_ac`` is NOT provided, this method will use the GRCh38 accession
+        associated to ``tx_ac``.
+
+        :param tx_ac: The RefSeq transcript accession to get exon data for.
+        :param exon_start: Start exon number to get coordinate data for. 1-based.
+        :param exon_end: End exon number to get coordinate data for. 1-based.
+        :param genomic_ac: The RefSeq genomic accession to get exon data for.
+        :return: Tuple containing start exon coordinate data, end exon coordinate data,
+            and list of errors. The exon coordinate data will include the exon number,
+            transcript and genomic positions for the start and end of the exon, and
+            strand.
         """
-        if exon_start is not None:
-            tx_exon_start, warning = self._validate_exon(
-                transcript, tx_exons, exon_start
-            )
-            if not tx_exon_start:
-                return None, warning
-        else:
-            tx_exon_start = None
+        tx_exons = await self._get_all_exon_coords(tx_ac, genomic_ac=genomic_ac)
+        if not tx_exons:
+            return None, None, [f"No exons found given {tx_ac}"]
 
-        if exon_end is not None:
-            tx_exon_end, warning = self._validate_exon(transcript, tx_exons, exon_end)
-            if not tx_exon_end:
-                return None, warning
-        else:
-            tx_exon_end = None
-        return (tx_exon_start, tx_exon_end), None
+        errors = []
+        start_end_exons = []
+        for exon_num in [exon_start, exon_end]:
+            if exon_num is not None:
+                try:
+                    start_end_exons.append(tx_exons[exon_num - 1])
+                    continue
+                except IndexError:
+                    errors.append(f"Exon {exon_num} does not exist on {tx_ac}")
+            start_end_exons.append(None)
+
+        if errors:
+            start_end_exons = [None, None]
+
+        return *start_end_exons, errors
 
     async def _get_alt_ac_start_and_end(
         self,
         tx_ac: str,
-        tx_exon_start: tuple[int, int] | None = None,
-        tx_exon_end: tuple[int, int] | None = None,
+        tx_exon_start: ExonCoord | None = None,
+        tx_exon_end: ExonCoord | None = None,
         gene: str | None = None,
     ) -> tuple[tuple[tuple[int, int], tuple[int, int]] | None, str | None]:
         """Get aligned genomic coordinates for transcript exon start and end.
@@ -450,7 +493,7 @@ class ExonGenomicCoordsMapper:
         for exon, key in [(tx_exon_start, "start"), (tx_exon_end, "end")]:
             if exon:
                 alt_ac_val, warning = await self.uta_db.get_alt_ac_start_or_end(
-                    tx_ac, exon[0], exon[1], gene=gene
+                    tx_ac, exon.tx_start_i, exon.tx_end_i, gene=gene
                 )
                 if alt_ac_val:
                     alt_ac_data[key] = alt_ac_val
@@ -567,13 +610,15 @@ class ExonGenomicCoordsMapper:
                                 [f"Could not find a transcript for {gene} on {alt_ac}"],
                             )
 
-            tx_genomic_coords, w = await self.uta_db.get_tx_exons_genomic_coords(
-                tx_ac=transcript, alt_ac=alt_ac
+            tx_genomic_coords = await self._get_all_exon_coords(
+                tx_ac=transcript, genomic_ac=alt_ac
             )
             if not tx_genomic_coords:
-                return self._return_warnings(resp, [w])
+                return self._return_warnings(
+                    resp, [f"No exons found given {transcript} and {alt_ac}"]
+                )
 
-            strand = Strand(tx_genomic_coords[0][-1])
+            strand = Strand(tx_genomic_coords[0].alt_strand)
             params["strand"] = strand
 
             # Check if breakpoint occurs on an exon.
@@ -594,8 +639,8 @@ class ExonGenomicCoordsMapper:
 
                 self._set_exon_offset(
                     params=params,
-                    start=tx_genomic_coords[exon - 1][3],  # Start exon coordinate
-                    end=tx_genomic_coords[exon - 1][4],  # End exon coordinate
+                    start=tx_genomic_coords[exon - 1].alt_start_i,
+                    end=tx_genomic_coords[exon - 1].alt_end_i,
                     pos=pos,
                     is_start=is_start,
                     strand=strand,
@@ -738,14 +783,17 @@ class ExonGenomicCoordsMapper:
             if mane_data.ensembl
             else None
         )
-        tx_exons = await self._structure_exons(params["transcript"], alt_ac=alt_ac)
+
+        tx_exons = await self._get_all_exon_coords(
+            params["transcript"], genomic_ac=alt_ac
+        )
         if not tx_exons:
-            return f"Unable to get exons for {params['transcript']}"
+            return f"No exons found given {params['transcript']}"
         tx_pos = mane_data.pos[0] + mane_data.coding_start_site
         params["exon"] = self._get_exon_number(tx_exons, tx_pos)
 
         try:
-            tx_exon = tx_exons[params["exon"] - 1]
+            tx_exon: ExonCoord = tx_exons[params["exon"] - 1]
         except IndexError:
             msg = (
                 f"{params['transcript']} with position {tx_pos} "
@@ -757,8 +805,8 @@ class ExonGenomicCoordsMapper:
         params["strand"] = Strand(mane_data.strand)
         self._set_exon_offset(
             params,
-            tx_exon[0],
-            tx_exon[1],
+            tx_exon.tx_start_i,
+            tx_exon.tx_end_i,
             tx_pos,
             is_start=is_start,
             strand=params["strand"],
@@ -814,9 +862,11 @@ class ExonGenomicCoordsMapper:
             params["pos"] = liftover_data[1]
             params["chr"] = grch38_ac
 
-        tx_exons = await self._structure_exons(params["transcript"], alt_ac=grch38_ac)
+        tx_exons = await self._get_all_exon_coords(
+            params["transcript"], genomic_ac=grch38_ac
+        )
         if not tx_exons:
-            return f"Unable to get exons for {params['transcript']}"
+            return f"No exons found given {params['transcript']}"
 
         data = await self.uta_db.get_tx_exon_aln_v_data(
             params["transcript"],
@@ -837,13 +887,13 @@ class ExonGenomicCoordsMapper:
         i = 1
         found_tx_exon = False
         for exon in tx_exons:
-            if data_exons == exon:
+            if data_exons == (exon.tx_start_i, exon.tx_end_i):
                 found_tx_exon = True
                 break
             i += 1
         if not found_tx_exon:
             # Either first or last
-            i = 1 if data_exons == (0, tx_exons[0][1]) else i - 1
+            i = 1 if data_exons == (0, tx_exons[0].tx_end_i) else i - 1
         params["exon"] = i
         params["strand"] = Strand(data[7])
         if not is_start:
@@ -884,24 +934,8 @@ class ExonGenomicCoordsMapper:
             else:
                 params["exon_offset"] = pos - start
 
-    async def _structure_exons(
-        self, transcript: str, alt_ac: str | None = None
-    ) -> list[tuple[int, int]]:
-        """Structure exons as list of tuples.
-
-        :param transcript: Transcript accession
-        :param alt_ac: Genomic accession
-        :return: List of tuples containing transcript exon coordinates
-        """
-        tx_exons, _ = await self.uta_db.get_tx_exons(transcript, alt_ac=alt_ac)
-
-        if not tx_exons:
-            return []
-
-        return [(coords[0], coords[1]) for coords in tx_exons]
-
     @staticmethod
-    def _get_exon_number(tx_exons: list, tx_pos: int) -> int:
+    def _get_exon_number(tx_exons: list[ExonCoord], tx_pos: int) -> int:
         """Find related exon number for a position
 
         :param tx_exons: List of exon coordinates for a transcript
@@ -910,7 +944,7 @@ class ExonGenomicCoordsMapper:
         """
         i = 1
         for coords in tx_exons:
-            if coords[0] <= tx_pos <= coords[1]:
+            if coords.tx_start_i <= tx_pos <= coords.tx_end_i:
                 break
             i += 1
         return i
@@ -928,13 +962,7 @@ class ExonGenomicCoordsMapper:
         adjacent is defined as the exon following the breakpoint for the 5' end and the
         exon preceding the breakpoint for the 3' end.
 
-        :param: tx_exons_genomic_coords: List of tuples describing exons and genomic
-            coordinates for a transcript. Each tuple contains the transcript number
-            (0-indexed), the transcript coordinates for the exon, and the genomic
-            coordinates for the exon. Pos 0 in the tuple corresponds to the exon
-            number, pos 1 and pos 2 refer to the start and end transcript coordinates,
-            respectively, and pos 3 and 4 refer to the start and end genomic
-            coordinates, respectively.
+        :param tx_genomic_coords: Transcript exon coordinate data
         :param strand: Strand
         :param: start: Genomic coordinate of breakpoint
         :param: end: Genomic coordinate of breakpoint
@@ -950,19 +978,22 @@ class ExonGenomicCoordsMapper:
             else:
                 lte_exon = next_exon
                 gte_exon = exon
-            if bp >= lte_exon[4] and bp <= gte_exon[3]:
+            if bp >= lte_exon.alt_end_i and bp <= gte_exon.alt_start_i:
                 break
         # Return current exon if end position is provided, next exon if start position
         # is provided. exon[0] needs to be incremented by 1 in both cases as exons are
         # 0-based in UTA
-        return exon[0] + 1 if end else exon[0] + 2
+        return exon.ord + 1 if end else exon.ord + 2
 
     @staticmethod
-    def _is_exonic_breakpoint(pos: int, tx_genomic_coords: list) -> bool:
+    def _is_exonic_breakpoint(pos: int, tx_genomic_coords: list[ExonCoord]) -> bool:
         """Check if a breakpoint occurs on an exon
 
         :param pos: Genomic breakpoint
-        :param tx_genomic_coords: A list of genomic coordinates for a transcript
+        :param tx_genomic_coords: Transcript exon coordinate data
         :return: True if the breakpoint occurs on an exon
         """
-        return any(pos >= exon[3] and pos <= exon[4] for exon in tx_genomic_coords)
+        return any(
+            pos >= exon.alt_start_i and pos <= exon.alt_end_i
+            for exon in tx_genomic_coords
+        )
