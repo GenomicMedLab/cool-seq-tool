@@ -5,6 +5,7 @@ from datetime import datetime
 
 import pytest
 
+from cool_seq_tool.mappers.exon_genomic_coords import ExonCoord
 from cool_seq_tool.schemas import (
     CoordinateType,
     GenomicData,
@@ -349,15 +350,51 @@ def transcript_exon_data_assertion_checks(actual, expected=None, is_valid=True):
 
 
 @pytest.mark.asyncio()
-async def test_get_tx_exon_coords(test_egc_mapper, nm_152263_exons):
-    """Test that get_tx_exon_coords works correctly."""
-    resp = test_egc_mapper.get_tx_exon_coords("NM_152263.3", nm_152263_exons, 1, 8)
-    assert resp[0] == ((0, 234), (822, 892))
-    assert resp[1] is None
+async def test_get_all_exon_coords(test_egc_mapper, nm_152263_exons):
+    """Test that _get_all_exon_coords works correctly."""
+    resp = await test_egc_mapper._get_all_exon_coords("NM_152263.3")
+    assert resp == nm_152263_exons
 
-    resp = test_egc_mapper.get_tx_exon_coords("NM_152263.3", nm_152263_exons, 1, 11)
-    assert resp[0] is None
-    assert resp[1] == "Exon 11 does not exist on NM_152263.3"
+    # Invalid transcript accession
+    resp = await test_egc_mapper._get_all_exon_coords("NM_152263.36")
+    assert resp == []
+
+
+@pytest.mark.asyncio()
+async def test_get_start_end_exon_coords(test_egc_mapper):
+    """Test that _get_start_end_exon_coords works correctly."""
+    resp = await test_egc_mapper._get_start_end_exon_coords(
+        "NM_152263.3", exon_start=1, exon_end=8
+    )
+    assert resp == (
+        ExonCoord(
+            ord=0,
+            tx_start_i=0,
+            tx_end_i=234,
+            alt_start_i=154191901,
+            alt_end_i=154192135,
+            alt_strand=Strand.NEGATIVE,
+        ),
+        ExonCoord(
+            ord=7,
+            tx_start_i=822,
+            tx_end_i=892,
+            alt_start_i=154170399,
+            alt_end_i=154170469,
+            alt_strand=Strand.NEGATIVE,
+        ),
+        [],
+    )
+
+    resp = await test_egc_mapper._get_start_end_exon_coords(
+        "NM_152263.3", exon_start=1, exon_end=11
+    )
+    assert resp == (None, None, ["Exon 11 does not exist on NM_152263.3"])
+
+    resp = await test_egc_mapper._get_start_end_exon_coords(
+        "NM_1234.5", exon_start=1, exon_end=11
+    )
+    assert resp == (None, None, ["No exons found given NM_1234.5"])
 
 
 @pytest.mark.asyncio()
@@ -533,7 +570,24 @@ async def test_get_alt_ac_start_and_end(
 ):
     """Test that _get_alt_ac_start_and_end works correctly."""
     resp = await test_egc_mapper._get_alt_ac_start_and_end(
-        "NM_152263.3", ["117", "234"], ["822", "892"], "TPM3"
+        "NM_152263.3",
+        ExonCoord(
+            ord=0,
+            tx_start_i=0,
+            tx_end_i=234,
+            alt_start_i=154191901,
+            alt_end_i=154192135,
+            alt_strand=Strand.NEGATIVE,
+        ),
+        ExonCoord(
+            ord=7,
+            tx_start_i=822,
+            tx_end_i=892,
+            alt_start_i=154170399,
+            alt_end_i=154170469,
+            alt_strand=Strand.NEGATIVE,
+        ),
+        "TPM3",
     )
     assert resp[0] == (tpm3_1_8_start_genomic, tpm3_1_8_end_genomic)
     assert resp[1] is None
@@ -1012,7 +1066,7 @@ async def test_invalid(test_egc_mapper):
         end=154170399,
         alt_ac="NC_000001.11",
     )
-    assert resp.warnings == ["Unable to get exons for NM_152263 3"]
+    assert resp.warnings == ["No exons found given NM_152263 3"]
 
     # start and end not given
     resp = await test_egc_mapper.genomic_to_tx_segment(
@@ -1121,7 +1175,7 @@ async def test_invalid(test_egc_mapper):
         exon_start=7, exon_end=None, transcript="NM_12345.6"
     )
     genomic_data_assertion_checks(resp, is_valid=False)
-    assert resp.warnings == ["Unable to get exons for NM_12345.6"]
+    assert resp.warnings == ["No exons found given NM_12345.6"]
 
     # Index error for invalid exon
     resp = await test_egc_mapper.tx_segment_to_genomic(
