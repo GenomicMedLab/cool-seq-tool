@@ -3,25 +3,30 @@
 import pytest
 
 from cool_seq_tool.schemas import Strand
-from cool_seq_tool.sources.uta_database import GenomicTxData, GenomicTxMetadata
+from cool_seq_tool.sources.uta_database import (
+    GenomicTxData,
+    GenomicTxMetadata,
+    TxExonAlnData,
+)
 
 
 @pytest.fixture(scope="module")
 def tx_exon_aln_v_data():
     """Create test fixture for tx_aln_v_data test."""
-    return [
-        "BRAF",
-        "NM_004333.4",
-        1802,
-        1921,
-        "NC_000007.13",
-        140453074,
-        140453193,
-        -1,
-        "splign",
-        780494,
-        1927263,
-    ]
+    return TxExonAlnData(
+        hgnc="BRAF",
+        ord=14,
+        tx_ac="NM_004333.4",
+        tx_start_i=1802,
+        tx_end_i=1921,
+        alt_ac="NC_000007.13",
+        alt_start_i=140453074,
+        alt_end_i=140453193,
+        alt_strand=Strand.NEGATIVE,
+        alt_aln_method="splign",
+        tx_exon_id=780494,
+        alt_exon_id=1927263,
+    )
 
 
 @pytest.fixture(scope="module")
@@ -106,40 +111,37 @@ async def test_get_tx_exon_aln_v_data(test_db, tx_exon_aln_v_data):
     assert resp == [tx_exon_aln_v_data]
 
     resp = await test_db.get_tx_exon_aln_v_data(
-        "NM_004333.4", 140453136, None, alt_ac=None, use_tx_pos=False
-    )
-    assert resp == [tx_exon_aln_v_data]
-
-    resp = await test_db.get_tx_exon_aln_v_data(
-        "NM_004333.4", 1860, None, alt_ac=None, use_tx_pos=True
+        "NM_004333.4", 1860, 1860, alt_ac=None, use_tx_pos=True
     )
     assert resp == [
-        [
-            "BRAF",
-            "NM_004333.4",
-            1802,
-            1921,
-            "NC_000007.13",
-            140453074,
-            140453193,
-            -1,
-            "splign",
-            780494,
-            1927263,
-        ],
-        [
-            "BRAF",
-            "NM_004333.4",
-            1802,
-            1921,
-            "NC_000007.14",
-            140753274,
-            140753393,
-            -1,
-            "splign",
-            780494,
-            6619850,
-        ],
+        TxExonAlnData(
+            hgnc="BRAF",
+            ord=14,
+            tx_ac="NM_004333.4",
+            tx_start_i=1802,
+            tx_end_i=1921,
+            alt_ac="NC_000007.13",
+            alt_start_i=140453074,
+            alt_end_i=140453193,
+            alt_strand=Strand.NEGATIVE,
+            alt_aln_method="splign",
+            tx_exon_id=780494,
+            alt_exon_id=1927263,
+        ),
+        TxExonAlnData(
+            hgnc="BRAF",
+            ord=14,
+            tx_ac="NM_004333.4",
+            tx_start_i=1802,
+            tx_end_i=1921,
+            alt_ac="NC_000007.14",
+            alt_start_i=140753274,
+            alt_end_i=140753393,
+            alt_strand=Strand.NEGATIVE,
+            alt_aln_method="splign",
+            tx_exon_id=780494,
+            alt_exon_id=6619850,
+        ),
     ]
 
 
