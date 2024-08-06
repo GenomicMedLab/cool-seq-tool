@@ -824,7 +824,7 @@ class ExonGenomicCoordsMapper:
         genomic_pos = genomic_coords[1] - 1 if is_start else genomic_coords[0] + 1
         params["pos"] = (
             genomic_pos - params["exon_offset"]
-            if params["strand"] == -1
+            if params["strand"] == Strand.NEGATIVE
             else genomic_pos + params["exon_offset"]
         )
         return None
@@ -951,7 +951,7 @@ class ExonGenomicCoordsMapper:
 
     @staticmethod
     def _get_adjacent_exon(
-        tx_exons_genomic_coords: list[tuple[int, int, int, int, int]],
+        tx_exons_genomic_coords: list[ExonCoord],
         strand: Strand,
         start: int | None = None,
         end: int | None = None,

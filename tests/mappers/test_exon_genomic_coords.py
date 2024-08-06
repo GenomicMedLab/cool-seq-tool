@@ -350,13 +350,22 @@ def transcript_exon_data_assertion_checks(actual, expected=None, is_valid=True):
 
 
 @pytest.mark.asyncio()
-async def test_get_all_exon_coords(test_egc_mapper, nm_152263_exons):
+async def test_get_all_exon_coords(
+    test_egc_mapper, nm_152263_exons, nm_152263_exons_genomic_coords
+):
     """Test that _get_all_exon_coords works correctly."""
     resp = await test_egc_mapper._get_all_exon_coords("NM_152263.3")
     assert resp == nm_152263_exons
 
     # Invalid transcript accession
     resp = await test_egc_mapper._get_all_exon_coords("NM_152263.36")
+    assert resp == []
+
+    resp = await test_egc_mapper._get_all_exon_coords("NM_152263.4", "NC_000001.11")
+    assert resp == nm_152263_exons_genomic_coords
+
+    # Invalid transcript accession given chromosome accession
+    resp = await test_egc_mapper._get_all_exon_coords("NM_001105539.3", "NC_000001.11")
     assert resp == []
 
 
