@@ -43,6 +43,28 @@ class DbConnectionArgs(BaseModelForbidExtra):
     database: str
 
 
+class GenomicAlnData(BaseModelForbidExtra):
+    """Represent genomic alignment data from UTA tx_exon_aln_v view"""
+
+    hgnc: str
+    ord: int
+    alt_ac: str
+    alt_start_i: int
+    alt_end_i: int
+    alt_strand: Strand
+
+
+class TxExonAlnData(GenomicAlnData):
+    """Represent data from UTA tx_exon_aln_v view"""
+
+    tx_ac: str
+    tx_start_i: int
+    tx_end_i: int
+    alt_aln_method: str
+    tx_exon_id: int
+    alt_exon_id: int
+
+
 class UtaDatabase:
     """Provide transcript lookup and metadata tools via the Universal Transcript Archive
     (UTA) database.
@@ -297,63 +319,21 @@ class UtaDatabase:
             alt_acs.add(r[1])
         return GenesGenomicAcs(genes=genes, alt_acs=alt_acs), None
 
-    async def get_tx_exons(
-        self, tx_ac: str, alt_ac: str | None = None
-    ) -> tuple[list[tuple[int, int]] | None, str | None]:
-        """Get list of transcript exons start/end coordinates.
-
-        :param tx_ac: Transcript accession
-        :param alt_ac: Genomic accession
-        :return: List of a transcript's accessions and warnings if found
-        """
-        if alt_ac:
-            # We know what assembly we're looking for since we have the
-            # genomic accession
-            query = f"""
-                SELECT DISTINCT tx_start_i, tx_end_i
-                FROM {self.schema}.tx_exon_aln_v
-                WHERE tx_ac = '{tx_ac}'
-                AND alt_aln_method = 'splign'
-                AND alt_ac = '{alt_ac}'
-                """  # noqa: S608
-        else:
-            # Use GRCh38 by default if no genomic accession is provided
-            query = f"""
-                SELECT DISTINCT tx_start_i, tx_end_i
-                FROM {self.schema}.tx_exon_aln_v as t
-                INNER JOIN {self.schema}._seq_anno_most_recent as s
-                ON t.alt_ac = s.ac
-                WHERE s.descr = ''
-                AND t.tx_ac = '{tx_ac}'
-                AND t.alt_aln_method = 'splign'
-                AND t.alt_ac like 'NC_000%'
-                """  # noqa: S608
-        result = await self.execute_query(query)
-
-        if not result:
-            msg = f"Unable to get exons for {tx_ac}"
-            _logger.warning(msg)
-            return None, msg
-        tx_exons = [(r["tx_start_i"], r["tx_end_i"]) for r in result]
-        return tx_exons, None
-
     async def get_alt_ac_start_or_end(
         self, tx_ac: str, tx_exon_start: int, tx_exon_end: int, gene: str | None
-    ) -> tuple[tuple[str, str, int, int, int] | None, str | None]:
+    ) -> tuple[GenomicAlnData | None, str | None]:
         """Get genomic data for related transcript exon start or end.
 
         :param tx_ac: Transcript accession
         :param tx_exon_start: Transcript's exon start coordinate
         :param tx_exon_end: Transcript's exon end coordinate
         :param gene: HGNC gene symbol
-        :return: [hgnc symbol, genomic accession for chromosome,
-            aligned genomic start coordinate, aligned genomic end coordinate, strand],
-            and warnings if found
+        :return: Genomic alignment data and warnings if found
         """
         gene_query = f"AND T.hgnc = '{gene}'" if gene else ""
 
         query = f"""
-            SELECT T.hgnc, T.alt_ac, T.alt_start_i, T.alt_end_i, T.alt_strand
+            SELECT T.hgnc, T.alt_ac, T.alt_start_i, T.alt_end_i, T.alt_strand, T.ord
             FROM {self.schema}._cds_exons_fp_v as C
             JOIN {self.schema}.tx_exon_aln_v as T ON T.tx_ac = C.tx_ac
             WHERE T.tx_ac = '{tx_ac}'
@@ -376,8 +356,7 @@ class UtaDatabase:
                 msg += f" on gene {gene}"
             _logger.warning(msg)
             return None, msg
-        result = result[0]
-        return (result[0], result[1], result[2], result[3], result[4]), None
+        return GenomicAlnData(**result[0]), None
 
     async def get_cds_start_end(self, tx_ac: str) -> tuple[int, int] | None:
         """Get coding start and end site
@@ -486,7 +465,7 @@ class UtaDatabase:
         alt_ac: str | None = None,
         use_tx_pos: bool = True,
         like_tx_ac: bool = False,
-    ) -> list:
+    ) -> list[TxExonAlnData]:
         """Return queried data from tx_exon_aln_v table.
 
         :param tx_ac: accession on c. coordinate
@@ -500,7 +479,7 @@ class UtaDatabase:
         :param like_tx_ac: ``True`` if tx_ac condition should be a like statement.
             This is used when you want to query an accession regardless of its version
             ``False`` if tx_condition will be exact match
-        :return: List of tx_exon_aln_v data
+        :return: List of transcript exon alignment data
         """
         if end_pos is None:
             end_pos = start_pos
@@ -525,13 +504,10 @@ class UtaDatabase:
         else:
             alt_ac_q = f"AND alt_ac LIKE 'NC_00%'"  # noqa: F541
 
-        if use_tx_pos:
-            pos_q = f"""tx_start_i AND tx_end_i"""  # noqa: F541
-        else:
-            pos_q = f"""alt_start_i AND alt_end_i"""  # noqa: F541
+        pos_q = "tx_start_i AND tx_end_i" if use_tx_pos else "alt_start_i AND alt_end_i"
 
         query = f"""
-            SELECT hgnc, tx_ac, tx_start_i, tx_end_i, alt_ac, alt_start_i,
+            SELECT hgnc, tx_ac, ord, tx_start_i, tx_end_i, alt_ac, alt_start_i,
                 alt_end_i, alt_strand, alt_aln_method, tx_exon_id, alt_exon_id
             FROM {self.schema}.tx_exon_aln_v
             {tx_q}
@@ -551,17 +527,17 @@ class UtaDatabase:
                 temp_ac,
                 alt_ac,
             )
-        return [list(r) for r in result]
+        return [TxExonAlnData(**r) for r in result]
 
     @staticmethod
-    def data_from_result(result: list) -> GenomicTxData | None:
+    def data_from_result(result: TxExonAlnData) -> GenomicTxData | None:
         """Return data found from result.
 
         :param result: Data from tx_exon_aln_v table
         :return: Aligned genomic / transcript exon data
         """
-        tx_pos_range = result[2], result[3]
-        alt_pos_range = result[5], result[6]
+        tx_pos_range = result.tx_start_i, result.tx_end_i
+        alt_pos_range = result.alt_start_i, result.alt_end_i
 
         if (tx_pos_range[1] - tx_pos_range[0]) != (alt_pos_range[1] - alt_pos_range[0]):
             _logger.warning(
@@ -572,13 +548,13 @@ class UtaDatabase:
             return None
 
         return GenomicTxData(
-            gene=result[0],
-            strand=Strand(result[7]),
+            gene=result.hgnc,
+            strand=Strand(result.alt_strand),
             tx_pos_range=tx_pos_range,
             alt_pos_range=alt_pos_range,
-            alt_aln_method=result[8],
-            tx_exon_id=result[9],
-            alt_exon_id=result[10],
+            alt_aln_method=result.alt_aln_method,
+            tx_exon_id=result.tx_exon_id,
+            alt_exon_id=result.alt_exon_id,
         )
 
     async def get_mane_c_genomic_data(
@@ -644,8 +620,8 @@ class UtaDatabase:
         return GenomicTxMetadata(
             **genomic_tx_data.model_dump(),
             pos_change=pos_change,
-            tx_ac=result[1],
-            alt_ac=result[4],
+            tx_ac=result.tx_ac,
+            alt_ac=result.alt_ac,
             coding_start_site=coding_start_site,
             coding_end_site=coding_end_site,
             alt_pos_change_range=alt_pos_change_range,
@@ -713,8 +689,8 @@ class UtaDatabase:
 
         return GenomicTxMetadata(
             **genomic_tx_data.model_dump(),
-            tx_ac=result[1],
-            alt_ac=result[4],
+            tx_ac=result.tx_ac,
+            alt_ac=result.alt_ac,
             pos_change=pos_change,
             alt_pos_change_range=alt_pos_change_range,
         )

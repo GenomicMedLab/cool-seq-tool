@@ -6,7 +6,7 @@ import pytest
 
 from cool_seq_tool.app import CoolSeqTool
 from cool_seq_tool.schemas import ManeGeneData, Strand
-from cool_seq_tool.sources.uta_database import GenomicTxMetadata
+from cool_seq_tool.sources.uta_database import GenomicAlnData, GenomicTxMetadata
 
 
 @pytest.fixture(scope="session")
@@ -67,13 +67,27 @@ def nm_152263_exons():
 @pytest.fixture(scope="session")
 def tpm3_1_8_start_genomic():
     """Create test fixture for genomic data for exon 1, 8"""
-    return "TPM3", "NC_000001.11", 154191901, 154192135, -1
+    return GenomicAlnData(
+        hgnc="TPM3",
+        ord=0,
+        alt_ac="NC_000001.11",
+        alt_start_i=154191901,
+        alt_end_i=154192135,
+        alt_strand=Strand.NEGATIVE,
+    )
 
 
 @pytest.fixture(scope="session")
 def tpm3_1_8_end_genomic():
     """Create test fixture for genomic data for exon 1, 8"""
-    return "TPM3", "NC_000001.11", 154170399, 154170469, -1
+    return GenomicAlnData(
+        hgnc="TPM3",
+        ord=7,
+        alt_ac="NC_000001.11",
+        alt_start_i=154170399,
+        alt_end_i=154170469,
+        alt_strand=Strand.NEGATIVE,
+    )
 
 
 @pytest.fixture(scope="session")
