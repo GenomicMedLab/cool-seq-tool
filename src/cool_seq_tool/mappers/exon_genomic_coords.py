@@ -962,10 +962,10 @@ class ExonGenomicCoordsMapper:
         adjacent is defined as the exon following the breakpoint for the 5' end and the
         exon preceding the breakpoint for the 3' end.
 
-        :param tx_genomic_coords: Transcript exon coordinate data
+        :param tx_exons_genomic_coords: Transcript exon coordinate data
         :param strand: Strand
-        :param: start: Genomic coordinate of breakpoint
-        :param: end: Genomic coordinate of breakpoint
+        :param start: Genomic coordinate of breakpoint
+        :param end: Genomic coordinate of breakpoint
         :return: Exon number corresponding to adjacent exon. Will be 1-based
         """
         for i in range(len(tx_exons_genomic_coords) - 1):
@@ -990,10 +990,9 @@ class ExonGenomicCoordsMapper:
         """Check if a breakpoint occurs on an exon
 
         :param pos: Genomic breakpoint
-        :param tx_genomic_coords: Transcript exon coordinate data
+        :param tx_genomic_coords: A list of transcript exon coordinate data
         :return: True if the breakpoint occurs on an exon
         """
         return any(
-            pos >= exon.alt_start_i and pos <= exon.alt_end_i
-            for exon in tx_genomic_coords
+            exon.alt_start_i <= pos <= exon.alt_end_i for exon in tx_genomic_coords
         )
