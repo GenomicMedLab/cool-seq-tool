@@ -484,8 +484,8 @@ class ManeTranscript:
                 )
                 return None
             result = result[-1]
-            tx_g_pos = result[5], result[6]  # alt_start_i, alt_end_i
-            tx_pos_range = result[2], result[3]  # tx_start_i, tx_end_i
+            tx_g_pos = result.alt_start_i, result.alt_end_i
+            tx_pos_range = result.tx_start_i, result.tx_end_i
 
         cds_start_end = await self.uta_db.get_cds_start_end(refseq_c_ac)
         if not cds_start_end:

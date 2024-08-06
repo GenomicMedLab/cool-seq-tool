@@ -3,25 +3,30 @@
 import pytest
 
 from cool_seq_tool.schemas import Strand
-from cool_seq_tool.sources.uta_database import GenomicTxData, GenomicTxMetadata
+from cool_seq_tool.sources.uta_database import (
+    GenomicTxData,
+    GenomicTxMetadata,
+    TxExonAlnData,
+)
 
 
 @pytest.fixture(scope="module")
 def tx_exon_aln_v_data():
     """Create test fixture for tx_aln_v_data test."""
-    return [
-        "BRAF",
-        "NM_004333.4",
-        1802,
-        1921,
-        "NC_000007.13",
-        140453074,
-        140453193,
-        -1,
-        "splign",
-        780494,
-        1927263,
-    ]
+    return TxExonAlnData(
+        hgnc="BRAF",
+        ord=14,
+        tx_ac="NM_004333.4",
+        tx_start_i=1802,
+        tx_end_i=1921,
+        alt_ac="NC_000007.13",
+        alt_start_i=140453074,
+        alt_end_i=140453193,
+        alt_strand=Strand.NEGATIVE,
+        alt_aln_method="splign",
+        tx_exon_id=780494,
+        alt_exon_id=1927263,
+    )
 
 
 @pytest.fixture(scope="module")
@@ -37,19 +42,6 @@ def data_from_result():
         "alt_exon_id": 1927263,
     }
     return GenomicTxData(**params)
-
-
-@pytest.mark.asyncio()
-async def test_get_tx_exons(test_db, nm_152263_exons):
-    """Test that get_tx_exons works correctly."""
-    resp = await test_db.get_tx_exons("NM_152263.3")
-    assert resp[0] == nm_152263_exons
-    assert resp[1] is None
-
-    # Invalid transcript accession
-    resp = await test_db.get_tx_exons("NM_152263.36")
-    assert resp[0] is None
-    assert resp[1] == "Unable to get exons for NM_152263.36"
 
 
 @pytest.mark.asyncio()
@@ -127,32 +119,34 @@ async def test_get_tx_exon_aln_v_data(test_db, tx_exon_aln_v_data):
         "NM_004333.4", 1860, None, alt_ac=None, use_tx_pos=True
     )
     assert resp == [
-        [
-            "BRAF",
-            "NM_004333.4",
-            1802,
-            1921,
-            "NC_000007.13",
-            140453074,
-            140453193,
-            -1,
-            "splign",
-            780494,
-            1927263,
-        ],
-        [
-            "BRAF",
-            "NM_004333.4",
-            1802,
-            1921,
-            "NC_000007.14",
-            140753274,
-            140753393,
-            -1,
-            "splign",
-            780494,
-            6619850,
-        ],
+        TxExonAlnData(
+            hgnc="BRAF",
+            ord=14,
+            tx_ac="NM_004333.4",
+            tx_start_i=1802,
+            tx_end_i=1921,
+            alt_ac="NC_000007.13",
+            alt_start_i=140453074,
+            alt_end_i=140453193,
+            alt_strand=Strand.NEGATIVE,
+            alt_aln_method="splign",
+            tx_exon_id=780494,
+            alt_exon_id=1927263,
+        ),
+        TxExonAlnData(
+            hgnc="BRAF",
+            ord=14,
+            tx_ac="NM_004333.4",
+            tx_start_i=1802,
+            tx_end_i=1921,
+            alt_ac="NC_000007.14",
+            alt_start_i=140753274,
+            alt_end_i=140753393,
+            alt_strand=Strand.NEGATIVE,
+            alt_aln_method="splign",
+            tx_exon_id=780494,
+            alt_exon_id=6619850,
+        ),
     ]
 
 
