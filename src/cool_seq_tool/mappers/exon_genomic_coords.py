@@ -203,8 +203,10 @@ class ExonGenomicCoordsMapper:
         alt_ac_start_data, alt_ac_end_data = alt_ac_start_end
 
         # Get gene and chromosome data, check that at least one was retrieved
-        gene = alt_ac_start_data[0] if alt_ac_start_data else alt_ac_end_data[0]
-        chromosome = alt_ac_start_data[1] if alt_ac_start_data else alt_ac_end_data[1]
+        gene = alt_ac_start_data.hgnc if alt_ac_start_data else alt_ac_end_data.hgnc
+        chromosome = (
+            alt_ac_start_data.alt_ac if alt_ac_start_data else alt_ac_end_data.alt_ac
+        )
         if gene is None or chromosome is None:
             return self._return_warnings(
                 resp,
@@ -213,12 +215,12 @@ class ExonGenomicCoordsMapper:
                 ],
             )
 
-        g_start = alt_ac_start_data[3] - 1 if alt_ac_start_data else None
-        g_end = alt_ac_end_data[2] + 1 if alt_ac_end_data else None
+        g_start = alt_ac_start_data.alt_end_i - 1 if alt_ac_start_data else None
+        g_end = alt_ac_end_data.alt_start_i + 1 if alt_ac_end_data else None
         strand = (
-            Strand(alt_ac_start_data[4])
+            Strand(alt_ac_start_data.alt_strand)
             if alt_ac_start_data
-            else Strand(alt_ac_end_data[4])
+            else Strand(alt_ac_end_data.alt_strand)
         )
 
         # Using none since could set to 0
@@ -502,19 +504,21 @@ class ExonGenomicCoordsMapper:
         # Validate that start and end alignments have matching gene, genomic accession,
         # and strand
         if all(alt_ac_data_values):
-            for i in (0, 1, 4):
-                if alt_ac_data["start"][i] != alt_ac_data["end"][i]:
-                    if i == 0:
+            for attr in ["hgnc", "alt_ac", "alt_strand"]:
+                start_attr = getattr(alt_ac_data["start"], attr)
+                end_attr = getattr(alt_ac_data["end"], attr)
+                if start_attr != end_attr:
+                    if attr == "hgnc":
                         error = "HGNC gene symbol does not match"
-                    elif i == 1:
+                    elif attr == "alt_ac":
                         error = "Genomic accession does not match"
                     else:
                         error = "Strand does not match"
                     _logger.warning(
                         "%s: %s != %s",
                         error,
-                        alt_ac_data["start"][i],
-                        alt_ac_data["end"][i],
+                        start_attr,
+                        end_attr,
                     )
                     return None, error
         return tuple(alt_ac_data_values), None
@@ -818,9 +822,10 @@ class ExonGenomicCoordsMapper:
         if genomic_data is None:
             return warnings
 
-        params["chr"] = genomic_data[1]
-        genomic_coords = genomic_data[2], genomic_data[3]
-        genomic_pos = genomic_coords[1] - 1 if is_start else genomic_coords[0] + 1
+        params["chr"] = genomic_data.alt_ac
+        genomic_pos = (
+            genomic_data.alt_end_i - 1 if is_start else genomic_data.alt_start_i + 1
+        )
         params["pos"] = (
             genomic_pos - params["exon_offset"]
             if params["strand"] == Strand.NEGATIVE

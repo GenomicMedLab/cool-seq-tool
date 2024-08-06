@@ -43,6 +43,17 @@ class DbConnectionArgs(BaseModelForbidExtra):
     database: str
 
 
+class GenomicAlnData(BaseModelForbidExtra):
+    """Represent genomic alignment data from UTA tx_exon_aln_v view"""
+
+    hgnc: str
+    ord: int
+    alt_ac: str
+    alt_start_i: int
+    alt_end_i: int
+    alt_strand: Strand
+
+
 class UtaDatabase:
     """Provide transcript lookup and metadata tools via the Universal Transcript Archive
     (UTA) database.
@@ -299,21 +310,19 @@ class UtaDatabase:
 
     async def get_alt_ac_start_or_end(
         self, tx_ac: str, tx_exon_start: int, tx_exon_end: int, gene: str | None
-    ) -> tuple[tuple[str, str, int, int, int] | None, str | None]:
+    ) -> tuple[GenomicAlnData | None, str | None]:
         """Get genomic data for related transcript exon start or end.
 
         :param tx_ac: Transcript accession
         :param tx_exon_start: Transcript's exon start coordinate
         :param tx_exon_end: Transcript's exon end coordinate
         :param gene: HGNC gene symbol
-        :return: [hgnc symbol, genomic accession for chromosome,
-            aligned genomic start coordinate, aligned genomic end coordinate, strand],
-            and warnings if found
+        :return: Genomic alignment data and warnings if found
         """
         gene_query = f"AND T.hgnc = '{gene}'" if gene else ""
 
         query = f"""
-            SELECT T.hgnc, T.alt_ac, T.alt_start_i, T.alt_end_i, T.alt_strand
+            SELECT T.hgnc, T.alt_ac, T.alt_start_i, T.alt_end_i, T.alt_strand, T.ord
             FROM {self.schema}._cds_exons_fp_v as C
             JOIN {self.schema}.tx_exon_aln_v as T ON T.tx_ac = C.tx_ac
             WHERE T.tx_ac = '{tx_ac}'
@@ -336,8 +345,7 @@ class UtaDatabase:
                 msg += f" on gene {gene}"
             _logger.warning(msg)
             return None, msg
-        result = result[0]
-        return (result[0], result[1], result[2], result[3], result[4]), None
+        return GenomicAlnData(**result[0]), None
 
     async def get_cds_start_end(self, tx_ac: str) -> tuple[int, int] | None:
         """Get coding start and end site
