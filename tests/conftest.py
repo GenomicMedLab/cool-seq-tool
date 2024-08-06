@@ -5,6 +5,7 @@ import asyncio
 import pytest
 
 from cool_seq_tool.app import CoolSeqTool
+from cool_seq_tool.mappers.exon_genomic_coords import ExonCoord
 from cool_seq_tool.schemas import ManeGeneData, Strand
 from cool_seq_tool.sources.uta_database import GenomicTxMetadata
 
@@ -51,16 +52,86 @@ def test_mane_transcript_mappings(test_cool_seq_tool):
 def nm_152263_exons():
     """Create test fixture for NM_152263.3 exons."""
     return [
-        (0, 234),
-        (234, 360),
-        (360, 494),
-        (494, 612),
-        (612, 683),
-        (683, 759),
-        (759, 822),
-        (822, 892),
-        (892, 971),
-        (971, 7099),
+        ExonCoord(
+            ord=0,
+            tx_start_i=0,
+            tx_end_i=234,
+            alt_start_i=154191901,
+            alt_end_i=154192135,
+            alt_strand=Strand.NEGATIVE,
+        ),
+        ExonCoord(
+            ord=1,
+            tx_start_i=234,
+            tx_end_i=360,
+            alt_start_i=154191185,
+            alt_end_i=154191311,
+            alt_strand=Strand.NEGATIVE,
+        ),
+        ExonCoord(
+            ord=2,
+            tx_start_i=360,
+            tx_end_i=494,
+            alt_start_i=154176114,
+            alt_end_i=154176248,
+            alt_strand=Strand.NEGATIVE,
+        ),
+        ExonCoord(
+            ord=3,
+            tx_start_i=494,
+            tx_end_i=612,
+            alt_start_i=154173083,
+            alt_end_i=154173201,
+            alt_strand=Strand.NEGATIVE,
+        ),
+        ExonCoord(
+            ord=4,
+            tx_start_i=612,
+            tx_end_i=683,
+            alt_start_i=154172907,
+            alt_end_i=154172978,
+            alt_strand=Strand.NEGATIVE,
+        ),
+        ExonCoord(
+            ord=5,
+            tx_start_i=683,
+            tx_end_i=759,
+            alt_start_i=154171412,
+            alt_end_i=154171488,
+            alt_strand=Strand.NEGATIVE,
+        ),
+        ExonCoord(
+            ord=6,
+            tx_start_i=759,
+            tx_end_i=822,
+            alt_start_i=154170648,
+            alt_end_i=154170711,
+            alt_strand=Strand.NEGATIVE,
+        ),
+        ExonCoord(
+            ord=7,
+            tx_start_i=822,
+            tx_end_i=892,
+            alt_start_i=154170399,
+            alt_end_i=154170469,
+            alt_strand=Strand.NEGATIVE,
+        ),
+        ExonCoord(
+            ord=8,
+            tx_start_i=892,
+            tx_end_i=971,
+            alt_start_i=154169304,
+            alt_end_i=154169383,
+            alt_strand=Strand.NEGATIVE,
+        ),
+        ExonCoord(
+            ord=9,
+            tx_start_i=971,
+            tx_end_i=7099,
+            alt_start_i=154161812,
+            alt_end_i=154167940,
+            alt_strand=Strand.NEGATIVE,
+        ),
     ]
 
 
