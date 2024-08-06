@@ -20,9 +20,9 @@ _now = str(datetime.datetime.now(tz=datetime.timezone.utc))
 class AnnotationLayer(str, Enum):
     """Create enum for supported annotation layers"""
 
-    PROTEIN: Literal["p"] = "p"
-    CDNA: Literal["c"] = "c"
-    GENOMIC: Literal["g"] = "g"
+    PROTEIN = "p"
+    CDNA = "c"
+    GENOMIC = "g"
 
 
 class Strand(IntEnum):
