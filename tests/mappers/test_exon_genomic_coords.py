@@ -164,7 +164,7 @@ def nm_001105539_exons_genomic_coords():
 
 @pytest.fixture(scope="module")
 def tpm3_exon1():
-    """Create test fixture for TPM3 exon 1."""
+    """Create test fixture for TPM3 exon 1 (negative strand)."""
     params = {
         "gene": "TPM3",
         "genomic_accession": "NC_000001.11",
@@ -187,7 +187,7 @@ def tpm3_exon1():
 
 @pytest.fixture(scope="module")
 def tpm3_exon8():
-    """Create test fixture for TPM3 exon 8."""
+    """Create test fixture for TPM3 exon 8 (negative strand)."""
     params = {
         "gene": "TPM3",
         "genomic_accession": "NC_000001.11",
@@ -267,14 +267,14 @@ def tpm3_exon1_exon8_offset(tpm3_exon1, tpm3_exon8):
 
 @pytest.fixture(scope="module")
 def mane_braf():
-    """Create test fixture for BRAF."""
+    """Create test fixture for BRAF (negative strand)."""
     params = {
         "gene": "BRAF",
         "genomic_accession": "NC_000007.14",
         "tx_ac": "NM_004333.6",
         "seg_start": {
             "exon_ord": 5,
-            "offset": 148,
+            "offset": -148,
             "genomic_location": {
                 "type": "SequenceLocation",
                 "sequenceReference": {
@@ -286,7 +286,7 @@ def mane_braf():
         },
         "seg_end": {
             "exon_ord": 14,
-            "offset": -57,
+            "offset": 57,
             "genomic_location": {
                 "type": "SequenceLocation",
                 "sequenceReference": {
@@ -302,7 +302,7 @@ def mane_braf():
 
 @pytest.fixture(scope="module")
 def wee1_exon2_exon11():
-    """Create test fixture for WEE1."""
+    """Create test fixture for WEE1 (positive strand)."""
     params = {
         "gene": "WEE1",
         "genomic_accession": "NC_000011.10",
@@ -337,7 +337,7 @@ def wee1_exon2_exon11():
 
 @pytest.fixture(scope="module")
 def mane_wee1_exon2_exon11():
-    """Create test fixture for WEE1."""
+    """Create test fixture for WEE1 (positive strand)."""
     params = {
         "gene": "WEE1",
         "genomic_accession": "NC_000011.10",
@@ -372,7 +372,7 @@ def mane_wee1_exon2_exon11():
 
 @pytest.fixture(scope="module")
 def ntrk1_exon10_exon17():
-    """Create test fixture for NTRK1."""
+    """Create test fixture for NTRK1 (positive strand)."""
     params = {
         "gene": "NTRK1",
         "genomic_accession": "NC_000001.11",
@@ -407,7 +407,7 @@ def ntrk1_exon10_exon17():
 
 @pytest.fixture(scope="module")
 def zbtb10_exon3_end():
-    """Create test fixture for ZBTB10, end of exon 3"""
+    """Create test fixture for ZBTB10, end of exon 3 (positive strand)"""
     params = {
         "gene": "ZBTB10",
         "genomic_accession": "NC_000008.11",
@@ -431,7 +431,7 @@ def zbtb10_exon3_end():
 
 @pytest.fixture(scope="module")
 def zbtb10_exon5_start():
-    """Create test fixture for ZBTB10, start of exon 5"""
+    """Create test fixture for ZBTB10, start of exon 5 (positive strand)"""
     params = {
         "gene": "ZBTB10",
         "genomic_accession": "NC_000008.11",
@@ -455,7 +455,7 @@ def zbtb10_exon5_start():
 
 @pytest.fixture(scope="module")
 def tpm3_exon6_end():
-    """Create test fixture for TPM3, end of exon 6"""
+    """Create test fixture for TPM3, end of exon 6 (negative strand)"""
     params = {
         "gene": "TPM3",
         "genomic_accession": "NC_000001.11",
@@ -463,7 +463,7 @@ def tpm3_exon6_end():
         "seg_start": None,
         "seg_end": {
             "exon_ord": 5,
-            "offset": -2,
+            "offset": 2,
             "genomic_location": {
                 "type": "SequenceLocation",
                 "sequenceReference": {
@@ -479,14 +479,14 @@ def tpm3_exon6_end():
 
 @pytest.fixture(scope="module")
 def tpm3_exon5_start():
-    """Create test fixture for TPM3, start of exon 5"""
+    """Create test fixture for TPM3, start of exon 5 (negative strand)"""
     params = {
         "gene": "TPM3",
         "genomic_accession": "NC_000001.11",
         "tx_ac": "NM_152263.4",
         "seg_start": {
             "exon_ord": 4,
-            "offset": 102,
+            "offset": -102,
             "genomic_location": {
                 "type": "SequenceLocation",
                 "sequenceReference": {
@@ -503,7 +503,7 @@ def tpm3_exon5_start():
 
 @pytest.fixture(scope="module")
 def gusbp3_exon2_end():
-    """Create test fixture for GUSBP3, end of exon 2"""
+    """Create test fixture for GUSBP3, end of exon 2 (negative strand)"""
     params = {
         "gene": "GUSBP3",
         "genomic_accession": "NC_000005.10",
@@ -511,7 +511,7 @@ def gusbp3_exon2_end():
         "seg_start": None,
         "seg_end": {
             "exon_ord": 1,
-            "offset": -1,
+            "offset": 1,
             "genomic_location": {
                 "type": "SequenceLocation",
                 "sequenceReference": {
@@ -527,14 +527,14 @@ def gusbp3_exon2_end():
 
 @pytest.fixture(scope="module")
 def gusbp3_exon5_start():
-    """Create test fixture for GUSBP3, start of exon 5"""
+    """Create test fixture for GUSBP3, start of exon 5 (negative strand)"""
     params = {
         "gene": "GUSBP3",
         "genomic_accession": "NC_000005.10",
         "tx_ac": "NR_027386.2",
         "seg_start": {
             "exon_ord": 4,
-            "offset": 3589,
+            "offset": -3589,
             "genomic_location": {
                 "type": "SequenceLocation",
                 "sequenceReference": {
