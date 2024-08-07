@@ -258,7 +258,6 @@ class ExonGenomicCoordsMapper:
         alt_ac: str | None = None,
         start: int | None = None,
         end: int | None = None,
-        strand: Strand | None = None,
         transcript: str | None = None,
         get_nearest_transcript_junction: bool = False,
         gene: str | None = None,
@@ -279,7 +278,6 @@ class ExonGenomicCoordsMapper:
         ...         alt_ac="NC_000001.11",
         ...         start=154192136,
         ...         end=154170400,
-        ...         strand=Strand.NEGATIVE,
         ...         transcript="NM_152263.3",
         ...     )
         ... )
@@ -293,7 +291,6 @@ class ExonGenomicCoordsMapper:
             will be used.
         :param start: Start genomic position
         :param end: End genomic position
-        :param strand: Strand
         :param transcript: The transcript to use. If this is not given, we will try the
             following transcripts: MANE Select, MANE Clinical Plus, Longest Remaining
             Compatible Transcript. See the :ref:`Transcript Selection policy <transcript_selection_policy>`
@@ -335,7 +332,6 @@ class ExonGenomicCoordsMapper:
                 start,
                 chromosome=chromosome,
                 alt_ac=alt_ac,
-                strand=strand,
                 transcript=transcript,
                 gene=gene,
                 get_nearest_transcript_junction=get_nearest_transcript_junction,
@@ -354,7 +350,6 @@ class ExonGenomicCoordsMapper:
                 end,
                 chromosome=chromosome,
                 alt_ac=alt_ac,
-                strand=strand,
                 transcript=transcript,
                 gene=gene,
                 get_nearest_transcript_junction=get_nearest_transcript_junction,
@@ -531,7 +526,6 @@ class ExonGenomicCoordsMapper:
         pos: int,
         chromosome: str | None = None,
         alt_ac: str | None = None,
-        strand: Strand | None = None,
         transcript: str | None = None,
         gene: str | None = None,
         get_nearest_transcript_junction: bool = False,
@@ -546,7 +540,6 @@ class ExonGenomicCoordsMapper:
         :param alt_ac: Genomic accession (i.e. ``NC_000001.11``). If not provided,
             must provide ``chromosome. If ``chromosome`` is also provided, ``alt_ac``
             will be used.
-        :param strand: Strand
         :param transcript: The transcript to use. If this is not given, we will try the
             following transcripts: MANE Select, MANE Clinical Plus, Longest Remaining
             Compatible Transcript
@@ -568,11 +561,11 @@ class ExonGenomicCoordsMapper:
         params = {key: None for key in TranscriptExonData.model_fields}
 
         if get_nearest_transcript_junction:
-            if not gene or not strand:
+            if not gene:
                 return self._return_warnings(
                     resp,
                     [
-                        "Gene or strand must be provided to select the adjacent transcript junction"
+                        "Gene must be provided to select the adjacent transcript junction"
                     ],
                 )
             if not alt_ac:
@@ -625,6 +618,9 @@ class ExonGenomicCoordsMapper:
                     resp, [f"No exons found given {transcript} and {alt_ac}"]
                 )
 
+            strand = Strand(tx_genomic_coords[0].alt_strand)
+            params["strand"] = strand
+
             # Check if breakpoint occurs on an exon.
             # If not, determine the adjacent exon given the selected transcript
             if not self._is_exonic_breakpoint(pos, tx_genomic_coords):
@@ -649,7 +645,6 @@ class ExonGenomicCoordsMapper:
                     is_start=is_start,
                     strand=strand,
                 )
-                params["strand"] = strand.value
                 resp.transcript_exon_data = TranscriptExonData(**params)
                 return resp
 
@@ -661,7 +656,7 @@ class ExonGenomicCoordsMapper:
                 )
 
             genes_alt_acs, warning = await self.uta_db.get_genes_and_alt_acs(
-                pos, strand=strand, alt_ac=alt_ac, gene=gene
+                pos, alt_ac=alt_ac, gene=gene
             )
         elif chromosome:
             # Check if just chromosome is given. If it is, we should
@@ -674,7 +669,7 @@ class ExonGenomicCoordsMapper:
                 chromosome = int(chromosome)
 
             genes_alt_acs, warning = await self.uta_db.get_genes_and_alt_acs(
-                pos, strand=strand, chromosome=chromosome, gene=gene
+                pos, chromosome=chromosome, gene=gene
             )
         else:
             genes_alt_acs = None
@@ -689,7 +684,7 @@ class ExonGenomicCoordsMapper:
 
         if transcript is None:
             warnings = await self._set_mane_genomic_data(
-                params, gene, alt_ac, pos, strand, is_start
+                params, gene, alt_ac, pos, is_start
             )
             if warnings:
                 return self._return_warnings(resp, [warnings])
@@ -698,7 +693,7 @@ class ExonGenomicCoordsMapper:
             params["gene"] = gene
             params["pos"] = pos
             params["chr"] = alt_ac
-            warning = await self._set_genomic_data(params, strand, is_start)
+            warning = await self._set_genomic_data(params, is_start)
             if warning:
                 return self._return_warnings(resp, [warning])
 
@@ -750,7 +745,6 @@ class ExonGenomicCoordsMapper:
         gene: str,
         alt_ac: str,
         pos: int,
-        strand: Strand,
         is_start: bool,
     ) -> str | None:
         """Set genomic data in `params` found from MANE.
@@ -759,7 +753,6 @@ class ExonGenomicCoordsMapper:
         :param gene: Gene symbol
         :param alt_ac: Genomic accession
         :param pos: Genomic position
-        :param strand: Strand
         :param is_start: `True` if `pos` is start position. `False` if `pos` is end
             position.
         :return: Warnings if found
@@ -809,15 +802,14 @@ class ExonGenomicCoordsMapper:
             _logger.warning(msg)
             return msg
 
-        strand_to_use = strand if strand is not None else mane_data.strand
-        params["strand"] = strand_to_use
+        params["strand"] = Strand(mane_data.strand)
         self._set_exon_offset(
             params,
             tx_exon.tx_start_i,
             tx_exon.tx_end_i,
             tx_pos,
             is_start=is_start,
-            strand=strand_to_use,
+            strand=params["strand"],
         )
 
         # Need to check if we need to change pos for liftover
@@ -832,18 +824,15 @@ class ExonGenomicCoordsMapper:
         genomic_pos = genomic_coords[1] - 1 if is_start else genomic_coords[0] + 1
         params["pos"] = (
             genomic_pos - params["exon_offset"]
-            if strand_to_use == -1
+            if params["strand"] == Strand.NEGATIVE
             else genomic_pos + params["exon_offset"]
         )
         return None
 
-    async def _set_genomic_data(
-        self, params: dict, strand: Strand, is_start: bool
-    ) -> str | None:
+    async def _set_genomic_data(self, params: dict, is_start: bool) -> str | None:
         """Set genomic data in ``params``
 
         :param params: Parameters for response
-        :param strand: Strand
         :param is_start: ``True`` if ``pos`` is start position. ``False`` if ``pos`` is
             end position.
         :return: Warnings if found
@@ -906,9 +895,7 @@ class ExonGenomicCoordsMapper:
             # Either first or last
             i = 1 if data_exons == (0, tx_exons[0].tx_end_i) else i - 1
         params["exon"] = i
-
-        strand_to_use = strand if strand is not None else Strand(data[7])
-        params["strand"] = strand_to_use
+        params["strand"] = Strand(data[7])
         if not is_start:
             # convert back to inter-residue for end position
             params["pos"] += 1
@@ -918,7 +905,7 @@ class ExonGenomicCoordsMapper:
             data[6] - 1 if is_start else data[6],  # need to convert to inter-residue
             params["pos"],
             is_start=is_start,
-            strand=strand_to_use,
+            strand=params["strand"],
         )
         return None
 
