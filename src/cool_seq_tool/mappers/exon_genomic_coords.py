@@ -1,7 +1,7 @@
 """Provide mapping capabilities between transcript exon and genomic coordinates."""
 
 import logging
-from typing import Literal, TypeVar
+from typing import TypeVar
 
 from pydantic import Field, StrictInt
 
@@ -261,10 +261,10 @@ class ExonGenomicCoordsMapper:
         transcript: str | None = None,
         get_nearest_transcript_junction: bool = False,
         gene: str | None = None,
-        coordinate_type: Literal[CoordinateType.INTER_RESIDUE]
-        | Literal[CoordinateType.RESIDUE] = CoordinateType.RESIDUE,
     ) -> GenomicDataResponse:
         """Get transcript segment data for genomic data, lifted over to GRCh38.
+
+        Must provide inter-residue coordinates.
 
         MANE Transcript data will be returned if and only if ``transcript`` is not
         supplied. ``gene`` must be given in order to retrieve MANE Transcript data.
@@ -326,9 +326,6 @@ class ExonGenomicCoordsMapper:
             gene = gene.upper().strip()
 
         if genomic_start:
-            if coordinate_type == CoordinateType.RESIDUE:
-                # inter-residue based for UTA
-                genomic_start -= 1
             start_data = await self._genomic_to_transcript_exon_coordinate(
                 genomic_start,
                 chromosome=chromosome,
