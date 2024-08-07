@@ -61,6 +61,25 @@ class GenomicAlnData(BaseModelForbidExtra):
     alt_strand: Strand = Field(..., description="Strand.")
 
 
+class TxExonAlnData(GenomicAlnData):
+    """Represent data from UTA tx_exon_aln_v view"""
+
+    tx_ac: StrictStr = Field(..., description="Transcript accession.")
+    tx_start_i: StrictInt = Field(
+        ...,
+        description="`tx_ac`'s start index of the exon using inter-residue coordinates.",
+    )
+    tx_end_i: StrictInt = Field(
+        ...,
+        description="`tx_ac`'s end index of the exon using inter-residue coordinates.",
+    )
+    alt_aln_method: StrictStr = Field(
+        ..., description="The alignment method used to compare sequences."
+    )
+    tx_exon_id: StrictInt = Field(..., description="`tx_ac` exon identifier.")
+    alt_exon_id: StrictInt = Field(..., description="`alt_ac` exon identifier.")
+
+
 class UtaDatabase:
     """Provide transcript lookup and metadata tools via the Universal Transcript Archive
     (UTA) database.
@@ -461,7 +480,7 @@ class UtaDatabase:
         alt_ac: str | None = None,
         use_tx_pos: bool = True,
         like_tx_ac: bool = False,
-    ) -> list:
+    ) -> list[TxExonAlnData]:
         """Return queried data from tx_exon_aln_v table.
 
         :param tx_ac: accession on c. coordinate
@@ -475,11 +494,8 @@ class UtaDatabase:
         :param like_tx_ac: ``True`` if tx_ac condition should be a like statement.
             This is used when you want to query an accession regardless of its version
             ``False`` if tx_condition will be exact match
-        :return: List of tx_exon_aln_v data
+        :return: List of transcript exon alignment data
         """
-        if end_pos is None:
-            end_pos = start_pos
-
         if tx_ac.startswith("EN"):
             temp_ac = tx_ac.split(".")[0]
             aln_method = f"AND alt_aln_method='genebuild'"  # noqa: F541
@@ -507,7 +523,7 @@ class UtaDatabase:
 
         query = f"""
             SELECT hgnc, tx_ac, tx_start_i, tx_end_i, alt_ac, alt_start_i,
-                alt_end_i, alt_strand, alt_aln_method, tx_exon_id, alt_exon_id
+                alt_end_i, alt_strand, alt_aln_method, ord, tx_exon_id, alt_exon_id
             FROM {self.schema}.tx_exon_aln_v
             {tx_q}
             {alt_ac_q}
@@ -526,17 +542,17 @@ class UtaDatabase:
                 temp_ac,
                 alt_ac,
             )
-        return [list(r) for r in result]
+        return [TxExonAlnData(**r) for r in result]
 
     @staticmethod
-    def data_from_result(result: list) -> GenomicTxData | None:
+    def data_from_result(result: TxExonAlnData) -> GenomicTxData | None:
         """Return data found from result.
 
-        :param result: Data from tx_exon_aln_v table
+        :param result: Transcript exon alignment data
         :return: Aligned genomic / transcript exon data
         """
-        tx_pos_range = result[2], result[3]
-        alt_pos_range = result[5], result[6]
+        tx_pos_range = result.tx_start_i, result.tx_end_i
+        alt_pos_range = result.alt_start_i, result.alt_end_i
 
         if (tx_pos_range[1] - tx_pos_range[0]) != (alt_pos_range[1] - alt_pos_range[0]):
             _logger.warning(
@@ -547,13 +563,13 @@ class UtaDatabase:
             return None
 
         return GenomicTxData(
-            gene=result[0],
-            strand=Strand(result[7]),
+            gene=result.hgnc,
+            strand=Strand(result.alt_strand),
             tx_pos_range=tx_pos_range,
             alt_pos_range=alt_pos_range,
-            alt_aln_method=result[8],
-            tx_exon_id=result[9],
-            alt_exon_id=result[10],
+            alt_aln_method=result.alt_aln_method,
+            tx_exon_id=result.tx_exon_id,
+            alt_exon_id=result.alt_exon_id,
         )
 
     async def get_mane_c_genomic_data(
@@ -619,8 +635,8 @@ class UtaDatabase:
         return GenomicTxMetadata(
             **genomic_tx_data.model_dump(),
             pos_change=pos_change,
-            tx_ac=result[1],
-            alt_ac=result[4],
+            tx_ac=result.tx_ac,
+            alt_ac=result.alt_ac,
             coding_start_site=coding_start_site,
             coding_end_site=coding_end_site,
             alt_pos_change_range=alt_pos_change_range,
@@ -688,8 +704,8 @@ class UtaDatabase:
 
         return GenomicTxMetadata(
             **genomic_tx_data.model_dump(),
-            tx_ac=result[1],
-            alt_ac=result[4],
+            tx_ac=result.tx_ac,
+            alt_ac=result.alt_ac,
             pos_change=pos_change,
             alt_pos_change_range=alt_pos_change_range,
         )
