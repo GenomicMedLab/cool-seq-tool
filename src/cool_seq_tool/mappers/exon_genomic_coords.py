@@ -617,11 +617,13 @@ class ExonGenomicCoordsMapper:
                                 [f"Could not find a transcript for {gene} on {alt_ac}"],
                             )
 
-            tx_genomic_coords, w = await self.uta_db.get_tx_exons_genomic_coords(
-                tx_ac=transcript, alt_ac=alt_ac
+            tx_genomic_coords = await self._get_all_exon_coords(
+                tx_ac=transcript, genomic_ac=alt_ac
             )
             if not tx_genomic_coords:
-                return self._return_warnings(resp, [w])
+                return self._return_warnings(
+                    resp, [f"No exons found given {transcript} and {alt_ac}"]
+                )
 
             # Check if breakpoint occurs on an exon.
             # If not, determine the adjacent exon given the selected transcript
@@ -641,8 +643,8 @@ class ExonGenomicCoordsMapper:
 
                 self._set_exon_offset(
                     params=params,
-                    start=tx_genomic_coords[exon - 1][3],  # Start exon coordinate
-                    end=tx_genomic_coords[exon - 1][4],  # End exon coordinate
+                    start=tx_genomic_coords[exon - 1].alt_start_i,
+                    end=tx_genomic_coords[exon - 1].alt_end_i,
                     pos=pos,
                     is_start=is_start,
                     strand=strand,
@@ -962,7 +964,7 @@ class ExonGenomicCoordsMapper:
 
     @staticmethod
     def _get_adjacent_exon(
-        tx_exons_genomic_coords: list[tuple[int, int, int, int, int]],
+        tx_exons_genomic_coords: list[ExonCoord],
         strand: Strand,
         start: int | None = None,
         end: int | None = None,
@@ -973,16 +975,10 @@ class ExonGenomicCoordsMapper:
         adjacent is defined as the exon following the breakpoint for the 5' end and the
         exon preceding the breakpoint for the 3' end.
 
-        :param: tx_exons_genomic_coords: List of tuples describing exons and genomic
-            coordinates for a transcript. Each tuple contains the transcript number
-            (0-indexed), the transcript coordinates for the exon, and the genomic
-            coordinates for the exon. Pos 0 in the tuple corresponds to the exon
-            number, pos 1 and pos 2 refer to the start and end transcript coordinates,
-            respectively, and pos 3 and 4 refer to the start and end genomic
-            coordinates, respectively.
+        :param tx_exons_genomic_coords: Transcript exon coordinate data
         :param strand: Strand
-        :param: start: Genomic coordinate of breakpoint
-        :param: end: Genomic coordinate of breakpoint
+        :param start: Genomic coordinate of breakpoint
+        :param end: Genomic coordinate of breakpoint
         :return: Exon number corresponding to adjacent exon. Will be 1-based
         """
         for i in range(len(tx_exons_genomic_coords) - 1):
@@ -995,19 +991,21 @@ class ExonGenomicCoordsMapper:
             else:
                 lte_exon = next_exon
                 gte_exon = exon
-            if bp >= lte_exon[4] and bp <= gte_exon[3]:
+            if bp >= lte_exon.alt_end_i and bp <= gte_exon.alt_start_i:
                 break
         # Return current exon if end position is provided, next exon if start position
         # is provided. exon[0] needs to be incremented by 1 in both cases as exons are
         # 0-based in UTA
-        return exon[0] + 1 if end else exon[0] + 2
+        return exon.ord + 1 if end else exon.ord + 2
 
     @staticmethod
-    def _is_exonic_breakpoint(pos: int, tx_genomic_coords: list) -> bool:
+    def _is_exonic_breakpoint(pos: int, tx_genomic_coords: list[ExonCoord]) -> bool:
         """Check if a breakpoint occurs on an exon
 
         :param pos: Genomic breakpoint
-        :param tx_genomic_coords: A list of genomic coordinates for a transcript
+        :param tx_genomic_coords: A list of transcript exon coordinate data
         :return: True if the breakpoint occurs on an exon
         """
-        return any(pos >= exon[3] and pos <= exon[4] for exon in tx_genomic_coords)
+        return any(
+            exon.alt_start_i <= pos <= exon.alt_end_i for exon in tx_genomic_coords
+        )
