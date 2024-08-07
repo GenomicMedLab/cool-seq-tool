@@ -511,12 +511,7 @@ class ExonGenomicCoordsMapper:
                 start_attr = getattr(alt_ac_data["start"], attr)
                 end_attr = getattr(alt_ac_data["end"], attr)
                 if start_attr != end_attr:
-                    if attr == "hgnc":
-                        error = "HGNC gene symbol does not match"
-                    elif attr == "alt_ac":
-                        error = "Genomic accession does not match"
-                    else:
-                        error = "Strand does not match"
+                    error = f"{attr} mismatch. {start_attr} != {end_attr}."
                     _logger.warning(
                         "%s: %s != %s",
                         error,
