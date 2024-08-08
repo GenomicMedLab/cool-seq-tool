@@ -1079,7 +1079,7 @@ async def test_transcript_to_genomic(
         exon_start=1, exon_end=8, exon_end_offset=5, transcript="NM_152263.3"
     )
     expected.seg_end.offset = 5
-    expected.seg_end.genomic_location.start = 154170474
+    expected.seg_end.genomic_location.start = 154170404
     genomic_tx_seg_service_checks(resp, expected)
 
     resp = await test_egc_mapper.tx_segment_to_genomic(
