@@ -107,7 +107,6 @@ class CoolSeqTool:
         self.ex_g_coords_mapper = ExonGenomicCoordsMapper(
             self.seqrepo_access,
             self.uta_db,
-            self.mane_transcript,
             self.mane_transcript_mappings,
             self.liftover,
         )
