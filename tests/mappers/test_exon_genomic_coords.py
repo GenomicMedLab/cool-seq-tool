@@ -178,7 +178,7 @@ def tpm3_exon1():
                     "type": "SequenceReference",
                     "refgetAccession": "SQ.Ya6Rs7DHhDeg7YaOSg1EoNi3U_nQ9SvO",
                 },
-                "end": 154191901,
+                "end": 154192135,
             },
         },
     }
@@ -201,7 +201,7 @@ def tpm3_exon8():
                     "type": "SequenceReference",
                     "refgetAccession": "SQ.Ya6Rs7DHhDeg7YaOSg1EoNi3U_nQ9SvO",
                 },
-                "start": 154170469,
+                "start": 154170399,
             },
         },
     }
@@ -674,7 +674,7 @@ async def test_get_adjacent_exon(
     """Test that get_adjacent_exon works properly"""
     resp = test_egc_mapper._get_adjacent_exon(
         tx_exons_genomic_coords=nm_152263_exons_genomic_coords,
-        end=154191901,
+        end=154192135,
         strand=Strand.NEGATIVE,
     )
     assert resp == 0
@@ -864,7 +864,7 @@ async def test_genomic_to_transcript(test_egc_mapper, tpm3_exon1, tpm3_exon8):
     method works correctly.
     """
     resp = await test_egc_mapper._genomic_to_tx_segment(
-        154191901,
+        154192135,
         genomic_accession="NC_000001.11",
         transcript="NM_152263.3",
         gene="TPM3",
@@ -872,17 +872,17 @@ async def test_genomic_to_transcript(test_egc_mapper, tpm3_exon1, tpm3_exon8):
     genomic_tx_seg_checks(resp, tpm3_exon1)
 
     resp = await test_egc_mapper._genomic_to_tx_segment(
-        154191901, chromosome="1", transcript="NM_152263.3"
+        154192135, chromosome="1", transcript="NM_152263.3"
     )
     genomic_tx_seg_checks(resp, tpm3_exon1)
 
     resp = await test_egc_mapper._genomic_to_tx_segment(
-        154191901, chromosome="1", transcript="NM_152263.3"
+        154192135, chromosome="1", transcript="NM_152263.3"
     )
     genomic_tx_seg_checks(resp, tpm3_exon1)
 
     resp = await test_egc_mapper._genomic_to_tx_segment(
-        154170469,
+        154170399,
         genomic_accession="NC_000001.11",
         transcript="NM_152263.3",
         is_start=False,
@@ -890,7 +890,7 @@ async def test_genomic_to_transcript(test_egc_mapper, tpm3_exon1, tpm3_exon8):
     genomic_tx_seg_checks(resp, tpm3_exon8)
 
     resp = await test_egc_mapper._genomic_to_tx_segment(
-        154170469,
+        154170399,
         chromosome="1",
         transcript="NM_152263.3",
         is_start=False,
@@ -898,7 +898,7 @@ async def test_genomic_to_transcript(test_egc_mapper, tpm3_exon1, tpm3_exon8):
     genomic_tx_seg_checks(resp, tpm3_exon8)
 
     resp = await test_egc_mapper._genomic_to_tx_segment(
-        154170469, chromosome="1", transcript="NM_152263.3", is_start=False
+        154170399, chromosome="1", transcript="NM_152263.3", is_start=False
     )
     genomic_tx_seg_checks(resp, tpm3_exon8)
 
@@ -916,8 +916,8 @@ async def test_tpm3(
     """
     inputs = {
         "genomic_accession": "NC_000001.11",
-        "genomic_start": 154191901,
-        "genomic_end": 154170469,
+        "genomic_start": 154170399,
+        "genomic_end": 154192135,
         "transcript": "NM_152263.3",
     }
     g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
@@ -946,7 +946,7 @@ async def test_tpm3(
     # Test only setting start
     inputs = {
         "genomic_accession": "NC_000001.11",
-        "genomic_start": 154191901,
+        "genomic_start": 1154170399,
         "transcript": "NM_152263.3",
     }
     g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
@@ -960,7 +960,7 @@ async def test_tpm3(
     # Test only setting end
     inputs = {
         "genomic_accession": "NC_000001.11",
-        "genomic_end": 154170469,
+        "genomic_end": 154192135,
         "transcript": "NM_152263.3",
     }
     g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
@@ -1189,8 +1189,8 @@ async def test_invalid(test_egc_mapper):
     """Test that invalid queries return `None`."""
     resp = await test_egc_mapper.genomic_to_tx_segment(
         transcript="NM_152263 3",
-        genomic_start=154191901,
-        genomic_end=154170469,
+        genomic_start=154170399,
+        genomic_end=154192135,
         genomic_accession="NC_000001.11",
     )
     assert resp.errors == ["Unable to get exons for NM_152263 3"]
@@ -1210,7 +1210,7 @@ async def test_invalid(test_egc_mapper):
     resp = await test_egc_mapper.genomic_to_tx_segment(
         genomic_accession="NC_000001.11",
         genomic_start=154191901,
-        genomic_end=154170469,
+        genomic_end=154192135,
         transcript="NM_152263.3",
         gene="dummy gene",
     )
@@ -1225,7 +1225,7 @@ async def test_invalid(test_egc_mapper):
     resp = await test_egc_mapper.genomic_to_tx_segment(
         genomic_accession="NC_000001.200",
         genomic_start=154191901,
-        genomic_end=154170469,
+        genomic_end=154192135,
         transcript="NM_152263.3",
     )
     genomic_tx_seg_service_checks(resp, is_valid=False)
@@ -1246,7 +1246,7 @@ async def test_invalid(test_egc_mapper):
 
     resp = await test_egc_mapper.genomic_to_tx_segment(
         chromosome="1",
-        genomic_start=154170469,
+        genomic_start=154192135,
         transcript="NM_002529.3",
     )
     genomic_tx_seg_service_checks(resp, is_valid=False)
