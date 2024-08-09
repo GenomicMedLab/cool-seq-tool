@@ -850,13 +850,8 @@ class ExonGenomicCoordsMapper:
             return _GenomicTxSeg(errors=[warning])
         gene, genomic_ac = gene_genomic_ac
 
-        if transcript is None:
-            return await self._get_mane_genomic_tx_seg(
-                gene, genomic_ac, genomic_pos, is_start
-            )
-
         return await self._get_genomic_tx_seg(
-            genomic_ac, genomic_pos, transcript, is_start, gene
+            genomic_ac, genomic_pos, is_start, gene, tx_ac=transcript
         )
 
     def _get_vrs_seq_loc(
@@ -928,144 +923,66 @@ class ExonGenomicCoordsMapper:
         gene = output_gene if output_gene else input_gene
         return (gene, alt_ac), None
 
-    async def _get_mane_genomic_tx_seg(
-        self,
-        gene: str,
-        genomic_ac: str,
-        genomic_pos: int,
-        is_start: bool,
-    ) -> _GenomicTxSeg:
-        """Get MANE genomic transcript segment data
-
-        :param gene: HGNC gene symbol
-        :param genomic_ac: Genomic RefSeq accession
-        :param genomic_pos: Genomic position where the transcript segment occurs
-        :param is_start: Whether or not ``genomic_pos`` represents start position
-        :return: MANE genomic transcript data if found
-        """
-        mane_data = self.mane_transcript_mappings.get_gene_mane_data(gene)
-        if not mane_data:
-            err_msg = (
-                f"Unable to find mane data for {genomic_ac} with position {genomic_pos}"
-            )
-            if gene:
-                err_msg += f" on gene {gene}"
-            _logger.warning(err_msg)
-            return _GenomicTxSeg(errors=[err_msg])
-
-        mane_data = mane_data[0]
-        tx_ac = mane_data["RefSeq_nuc"]
-        grch38_genomic_ac = mane_data["GRCh38_chr"]
-
-        if grch38_genomic_ac != genomic_ac:
-            # Liftover GRCh37 to GRCh38
-            chromosome = self.seqrepo_access.translate_identifier(
-                grch38_genomic_ac, Assembly.GRCH38.value
-            )[0][-1].split(":")[-1]
-            grch38_data = self.liftover.get_liftover(
-                chromosome, genomic_pos, Assembly.GRCH38
-            )
-            if not grch38_data:
-                return _GenomicTxSeg(
-                    errors=[f"{genomic_pos} does not exist on {chromosome}"]
-                )
-            genomic_pos = grch38_data[1]
-            genomic_ac = grch38_genomic_ac
-
-        # TODO: Clean this up. This is copy/paste from _get_genomic_tx_seg
-        tx_exons = await self._get_all_exon_coords(tx_ac=tx_ac, genomic_ac=genomic_ac)
-        if not tx_exons:
-            return _GenomicTxSeg(errors=[f"No exons found given {tx_ac}"])
-
-        tx_exon_aln_data = await self.uta_db.get_tx_exon_aln_v_data(
-            tx_ac,
-            genomic_pos,
-            genomic_pos,
-            alt_ac=genomic_ac,
-            use_tx_pos=False,
-        )
-        if len(tx_exon_aln_data) != 1:
-            return _GenomicTxSeg(
-                errors=[
-                    f"Must find exactly one row for genomic data, but found: {len(tx_exon_aln_data)}"
-                ]
-            )
-
-        tx_exon_aln_data = tx_exon_aln_data[0]
-        if tx_exon_aln_data.hgnc != gene:
-            return _GenomicTxSeg(
-                errors=[f"Expected gene, {gene}, but found {tx_exon_aln_data.hgnc}"]
-            )
-
-        offset = self._get_exon_offset(
-            start_i=tx_exon_aln_data.alt_start_i,
-            end_i=tx_exon_aln_data.alt_end_i,
-            strand=Strand(tx_exon_aln_data.alt_strand),
-            use_start_i=False,  # This doesn't impact anything since we're on the exon
-            is_in_exon=True,
-            start=genomic_pos if is_start else None,
-            end=genomic_pos if not is_start else None,
-        )
-
-        genomic_location, err_msg = self._get_vrs_seq_loc(
-            genomic_ac, genomic_pos, is_start, tx_exon_aln_data.alt_strand
-        )
-        if err_msg:
-            return _GenomicTxSeg(errors=[err_msg])
-
-        return _GenomicTxSeg(
-            gene=tx_exon_aln_data.hgnc,
-            genomic_ac=genomic_ac,
-            tx_ac=tx_exon_aln_data.tx_ac,
-            seg=TxSegment(
-                exon_ord=tx_exon_aln_data.ord,
-                offset=offset,
-                genomic_location=genomic_location,
-            ),
-        )
-
     async def _get_genomic_tx_seg(
         self,
         genomic_ac: str,
         genomic_pos: int,
-        tx_ac: str,
         is_start: bool,
         gene: str,
+        tx_ac: str | None,
     ) -> _GenomicTxSeg:
         """Get genomic transcript segment data
 
         Will liftover to GRCh38 assembly. If liftover is unsuccessful, will return
         errors.
 
+        If ``tx_ac`` is not provided, will attempt to retrieve MANE transcript.
+
         :param genomic_ac: Genomic RefSeq accession
         :param genomic_pos: Genomic position where the transcript segment occurs
-        :param tx_ac: Transcript RefSeq accession
         :param is_start: Whether or not ``genomic_pos`` represents the start position.
         :param gene: HGNC gene symbol
+        :param tx_ac: Transcript RefSeq accession. If not provided, will use MANE
+            transcript
         :return: Genomic transcript segment data
         """
-        # We should always try to liftover
-        grch38_ac = await self.uta_db.get_newest_assembly_ac(genomic_ac)
-        if not grch38_ac:
-            return _GenomicTxSeg(errors=[f"Invalid genomic accession: {genomic_ac}"])
-
-        grch38_ac = grch38_ac[0]
-        if grch38_ac != genomic_ac:  # alt_ac is genomic accession
-            # Liftover to 38
-            descr = await self.uta_db.get_chr_assembly(genomic_ac)
-            if descr is None:
+        if tx_ac:
+            # We should always try to liftover
+            grch38_ac = await self.uta_db.get_newest_assembly_ac(genomic_ac)
+            if not grch38_ac:
                 return _GenomicTxSeg(
-                    errors=[f"Unable to get chromosome and assembly for {genomic_ac}"]
+                    errors=[f"Invalid genomic accession: {genomic_ac}"]
                 )
+            grch38_ac = grch38_ac[0]
+        else:
+            mane_data = self.mane_transcript_mappings.get_gene_mane_data(gene)
+            if not mane_data:
+                err_msg = f"Unable to find mane data for {genomic_ac} with position {genomic_pos}"
+                if gene:
+                    err_msg += f" on gene {gene}"
+                _logger.warning(err_msg)
+                return _GenomicTxSeg(errors=[err_msg])
 
-            chromosome_number, _ = descr
+            mane_data = mane_data[0]
+            tx_ac = mane_data["RefSeq_nuc"]
+            grch38_ac = mane_data["GRCh38_chr"]
+
+        if grch38_ac != genomic_ac:
+            # Ensure genomic_ac is GRCh37
+            chromosome, _ = self.seqrepo_access.translate_identifier(
+                genomic_ac, Assembly.GRCH37.value
+            )
+            if not chromosome:
+                return _GenomicTxSeg(errors=["`genomic_ac` must use GRCh37 or GRCh38"])
+
+            chromosome = chromosome[-1].split(":")[-1]
             liftover_data = self.liftover.get_liftover(
-                chromosome_number, genomic_pos, Assembly.GRCH38
+                chromosome, genomic_pos, Assembly.GRCH38
             )
             if liftover_data is None:
                 return _GenomicTxSeg(
                     errors=[
-                        f"Position {genomic_pos} does not exist on chromosome {chromosome_number}"
+                        f"Position {genomic_pos} does not exist on chromosome {chromosome}"
                     ]
                 )
 
