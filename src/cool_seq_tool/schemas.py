@@ -108,13 +108,6 @@ class BaseModelForbidExtra(BaseModel, extra="forbid"):
     """Base Pydantic model class with extra values forbidden."""
 
 
-class GenesGenomicAcs(BaseModelForbidExtra):
-    """Represent HGNC gene symbols and genomic accessions"""
-
-    genes: set[str]
-    alt_acs: set[str]
-
-
 class GenomicTxData(BaseModelForbidExtra):
     """Represent aligned genomic/transcript exon data"""
 

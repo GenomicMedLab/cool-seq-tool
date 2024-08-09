@@ -1213,11 +1213,7 @@ async def test_invalid(test_egc_mapper):
         gene="dummy gene",
     )
     genomic_tx_seg_service_checks(resp, is_valid=False)
-    assert resp.errors == [
-        "Unable to find a result for chromosome NC_000001.11 "
-        "where genomic coordinate 154191901 is mapped between an "
-        "exon's start and end coordinates and on gene DUMMY GENE"
-    ]
+    assert resp.errors == ["Expected gene, DUMMY GENE, but found TPM3"]
 
     # Invalid accession
     resp = await test_egc_mapper.genomic_to_tx_segment(
@@ -1238,8 +1234,7 @@ async def test_invalid(test_egc_mapper):
     )
     genomic_tx_seg_service_checks(resp, is_valid=False)
     assert resp.errors == [
-        "Unable to find a result for chromosome NC_000001.11 where genomic "
-        "coordinate 9999999999998 is mapped between an exon's start and end coordinates"
+        "No gene(s) found given NC_000001.11 on position 9999999999998"
     ]
 
     resp = await test_egc_mapper.genomic_to_tx_segment(

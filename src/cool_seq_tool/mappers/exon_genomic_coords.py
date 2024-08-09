@@ -14,7 +14,7 @@ from cool_seq_tool.schemas import (
     Strand,
 )
 from cool_seq_tool.sources.mane_transcript_mappings import ManeTranscriptMappings
-from cool_seq_tool.sources.uta_database import GenesGenomicAcs, UtaDatabase
+from cool_seq_tool.sources.uta_database import UtaDatabase
 from cool_seq_tool.utils import service_meta
 
 _logger = logging.getLogger(__name__)
@@ -693,7 +693,8 @@ class ExonGenomicCoordsMapper:
         :param genomic_pos: Genomic position where the transcript segment starts or ends
             (inter-residue based)
         :param chromosome: Chromosome. Must give chromosome without a prefix
-            (i.e. ``1`` or ``X``). If not provided, must provide ``genomic_ac``.
+            (i.e. ``1`` or ``X``). If not provided, must provide ``genomic_ac``. If
+            position maps to both GRCh37 and GRCh38, GRCh38 assembly will be used.
             If ``genomic_ac`` is also provided, ``genomic_ac`` will be used.
         :param genomic_ac: Genomic accession (i.e. ``NC_000001.11``). If not provided,
             must provide ``chromosome. If ``chromosome`` is also provided, ``genomic_ac``
@@ -823,32 +824,55 @@ class ExonGenomicCoordsMapper:
                     errors=[f"Invalid genomic accession: {genomic_ac}"]
                 )
 
-            genes_alt_acs, warning = await self.uta_db.get_genes_and_alt_acs(
-                genomic_pos, alt_ac=genomic_ac, gene=gene
+            genes, err_msg = await self.uta_db.get_genomic_ac_genes(
+                genomic_pos, genomic_ac
             )
-        elif chromosome:
-            # Check if just chromosome is given. If it is, we should
-            # convert this to the correct accession version
-            if chromosome == "X":
-                chromosome = 23
-            elif chromosome == "Y":
-                chromosome = 24
+            if genes:
+                _gene = next(iter(genes))
+                if gene and _gene != gene:
+                    return _GenomicTxSeg(
+                        errors=[f"Expected gene, {gene}, but found {_gene}"]
+                    )
+
+                gene = _gene
             else:
-                chromosome = int(chromosome)
+                return _GenomicTxSeg(errors=[err_msg])
+        elif chromosome:
+            # Try GRCh38 first
+            for assembly in [Assembly.GRCH38.value, Assembly.GRCH37.value]:
+                _genomic_acs, err_msg = self.seqrepo_access.translate_identifier(
+                    f"{assembly}:chr{chromosome}", "refseq"
+                )
+                if err_msg:
+                    return _GenomicTxSeg(errors=[err_msg])
+                _genomic_ac = _genomic_acs[0].split(":")[-1]
 
-            genes_alt_acs, warning = await self.uta_db.get_genes_and_alt_acs(
-                genomic_pos, chromosome=chromosome, gene=gene
-            )
-        else:
-            genes_alt_acs = None
+                genes, err_msg = await self.uta_db.get_genomic_ac_genes(
+                    genomic_pos, _genomic_ac
+                )
+                if genes:
+                    _gene = next(iter(genes))
+                    if gene and _gene != gene:
+                        return _GenomicTxSeg(
+                            errors=[f"Expected gene, {gene}, but found {_gene}"]
+                        )
+                    gene = _gene
+                    genomic_ac = _genomic_ac
+                    break
 
-        if not genes_alt_acs:
-            return _GenomicTxSeg(errors=[warning])
+            if not genomic_ac:
+                return _GenomicTxSeg(
+                    errors=[
+                        f"Unable to get genomic RefSeq accession for chromosome {chromosome} on position {genomic_pos}"
+                    ]
+                )
 
-        gene_genomic_ac, warning = self._get_gene_and_alt_ac(genes_alt_acs, gene)
-        if not gene_genomic_ac:
-            return _GenomicTxSeg(errors=[warning])
-        gene, genomic_ac = gene_genomic_ac
+            if not gene:
+                return _GenomicTxSeg(
+                    errors=[
+                        f"Unable to get gene given {genomic_ac} on position {genomic_pos}"
+                    ]
+                )
 
         return await self._get_genomic_tx_seg(
             genomic_ac, genomic_pos, is_start, gene, tx_ac=transcript
@@ -883,45 +907,6 @@ class ExonGenomicCoordsMapper:
             start=genomic_pos if use_start else None,
             end=genomic_pos if not use_start else None,
         ), None
-
-    @staticmethod
-    def _get_gene_and_alt_ac(
-        genes_alt_acs: GenesGenomicAcs, gene: str | None
-    ) -> tuple[tuple[str, str] | None, str | None]:
-        """Return genomic accession and related gene
-
-        :param genes_alt_acs: List of genes and genomic accessions
-        :param gene: Gene symbol to match on
-        :return: Genomic accession and related gene if found, and errors
-        """
-        alt_acs = genes_alt_acs.alt_acs
-        len_alt_acs = len(alt_acs)
-        if len_alt_acs > 1:
-            return None, f"Found more than one accessions: {alt_acs}"
-        if len_alt_acs == 0:
-            return None, "No genomic accessions found"
-        alt_ac = next(iter(alt_acs))
-
-        genes = genes_alt_acs.genes
-        len_genes = len(genes)
-        input_gene = gene
-        output_gene = None
-        if len_genes == 1:
-            output_gene = next(iter(genes))
-        elif len_genes > 1:
-            return None, f"Found more than one gene: {genes}"
-        elif len_genes == 0:
-            return None, "No genes found"
-
-        if input_gene is not None and output_gene != input_gene.upper():
-            return (
-                None,
-                f"Input gene, {input_gene}, does not match "
-                f"expected output gene, {output_gene}",
-            )
-
-        gene = output_gene if output_gene else input_gene
-        return (gene, alt_ac), None
 
     async def _get_genomic_tx_seg(
         self,
@@ -1008,10 +993,6 @@ class ExonGenomicCoordsMapper:
             )
 
         tx_exon_aln_data = tx_exon_aln_data[0]
-        if tx_exon_aln_data.hgnc != gene:
-            return _GenomicTxSeg(
-                errors=[f"Expected gene, {gene}, but found {tx_exon_aln_data.hgnc}"]
-            )
 
         offset = self._get_exon_offset(
             start_i=tx_exon_aln_data.alt_start_i,
