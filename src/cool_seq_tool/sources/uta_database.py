@@ -12,6 +12,7 @@ import boto3
 import polars as pl
 from asyncpg.exceptions import InterfaceError, InvalidAuthorizationSpecificationError
 from botocore.exceptions import ClientError
+from pydantic import Field, StrictInt, StrictStr
 
 from cool_seq_tool.schemas import (
     AnnotationLayer,
@@ -45,23 +46,37 @@ class DbConnectionArgs(BaseModelForbidExtra):
 class GenomicAlnData(BaseModelForbidExtra):
     """Represent genomic alignment data from UTA tx_exon_aln_v view"""
 
-    hgnc: str
-    ord: int
-    alt_ac: str
-    alt_start_i: int
-    alt_end_i: int
-    alt_strand: Strand
+    hgnc: StrictStr = Field(..., description="HGNC gene symbol.")
+    ord: StrictInt = Field(..., description="Exon number. 0-based.")
+    alt_ac: StrictStr = Field(..., description="RefSeq genomic accession.")
+    alt_start_i: StrictInt = Field(
+        ...,
+        description="`alt_ac`'s start index of the exon using inter-residue coordinates.",
+    )
+    alt_end_i: StrictInt = Field(
+        ...,
+        description="`alt_ac`'s end index of the exon using inter-residue coordinates.",
+    )
+    alt_strand: Strand = Field(..., description="Strand.")
 
 
 class TxExonAlnData(GenomicAlnData):
     """Represent data from UTA tx_exon_aln_v view"""
 
-    tx_ac: str
-    tx_start_i: int
-    tx_end_i: int
-    alt_aln_method: str
-    tx_exon_id: int
-    alt_exon_id: int
+    tx_ac: StrictStr = Field(..., description="Transcript accession.")
+    tx_start_i: StrictInt = Field(
+        ...,
+        description="`tx_ac`'s start index of the exon using inter-residue coordinates.",
+    )
+    tx_end_i: StrictInt = Field(
+        ...,
+        description="`tx_ac`'s end index of the exon using inter-residue coordinates.",
+    )
+    alt_aln_method: StrictStr = Field(
+        ..., description="The alignment method used to compare sequences."
+    )
+    tx_exon_id: StrictInt = Field(..., description="`tx_ac` exon identifier.")
+    alt_exon_id: StrictInt = Field(..., description="`alt_ac` exon identifier.")
 
 
 class UtaDatabase:

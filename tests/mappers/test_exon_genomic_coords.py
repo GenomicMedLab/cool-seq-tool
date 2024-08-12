@@ -668,13 +668,70 @@ def genomic_tx_seg_checks(actual, expected=None, is_valid=True):
 
 
 @pytest.mark.asyncio()
+async def test_get_all_exon_coords(
+    test_egc_mapper, nm_152263_exons, nm_152263_exons_genomic_coords
+):
+    """Test that _get_all_exon_coords works correctly."""
+    resp = await test_egc_mapper._get_all_exon_coords("NM_152263.3")
+    assert resp == nm_152263_exons
+
+    # Invalid transcript accession
+    resp = await test_egc_mapper._get_all_exon_coords("NM_152263.36")
+    assert resp == []
+
+    resp = await test_egc_mapper._get_all_exon_coords("NM_152263.4", "NC_000001.11")
+    assert resp == nm_152263_exons_genomic_coords
+
+    # Invalid transcript accession given chromosome accession
+    resp = await test_egc_mapper._get_all_exon_coords("NM_001105539.3", "NC_000001.11")
+    assert resp == []
+
+
+@pytest.mark.asyncio()
+async def test_get_start_end_exon_coords(test_egc_mapper):
+    """Test that _get_start_end_exon_coords works correctly."""
+    resp = await test_egc_mapper._get_start_end_exon_coords(
+        "NM_152263.3", exon_start=1, exon_end=8
+    )
+    assert resp == (
+        ExonCoord(
+            ord=0,
+            tx_start_i=0,
+            tx_end_i=234,
+            alt_start_i=154191901,
+            alt_end_i=154192135,
+            alt_strand=Strand.NEGATIVE,
+        ),
+        ExonCoord(
+            ord=7,
+            tx_start_i=822,
+            tx_end_i=892,
+            alt_start_i=154170399,
+            alt_end_i=154170469,
+            alt_strand=Strand.NEGATIVE,
+        ),
+        [],
+    )
+
+    resp = await test_egc_mapper._get_start_end_exon_coords(
+        "NM_152263.3", exon_start=1, exon_end=11
+    )
+    assert resp == (None, None, ["Exon 11 does not exist on NM_152263.3"])
+
+    resp = await test_egc_mapper._get_start_end_exon_coords(
+        "NM_1234.5", exon_start=1, exon_end=11
+    )
+    assert resp == (None, None, ["No exons found given NM_1234.5"])
+
+
+@pytest.mark.asyncio()
 async def test_get_adjacent_exon(
     test_egc_mapper, nm_152263_exons_genomic_coords, nm_001105539_exons_genomic_coords
 ):
     """Test that get_adjacent_exon works properly"""
     resp = test_egc_mapper._get_adjacent_exon(
         tx_exons_genomic_coords=nm_152263_exons_genomic_coords,
-        end=154191901,
+        end=154192100,
         strand=Strand.NEGATIVE,
     )
     assert resp == 0

@@ -557,6 +557,7 @@ class ExonGenomicCoordsMapper:
         :return: List of all exon coordinate data for ``tx_ac`` and ``genomic_ac``.
             The exon coordinate data will include the exon number, transcript and
             genomic positions for the start and end of the exon, and strand.
+            The list will be ordered by ascending exon number.
         """
         if genomic_ac:
             query = f"""
@@ -565,6 +566,7 @@ class ExonGenomicCoordsMapper:
                 WHERE tx_ac = '{tx_ac}'
                 AND alt_aln_method = 'splign'
                 AND alt_ac = '{genomic_ac}'
+                ORDER BY ord ASC
                 """  # noqa: S608
         else:
             query = f"""
@@ -576,6 +578,7 @@ class ExonGenomicCoordsMapper:
                 AND t.tx_ac = '{tx_ac}'
                 AND t.alt_aln_method = 'splign'
                 AND t.alt_ac like 'NC_000%'
+                ORDER BY ord ASC
                 """  # noqa: S608
 
         results = await self.uta_db.execute_query(query)
@@ -663,12 +666,7 @@ class ExonGenomicCoordsMapper:
                 start_attr = getattr(alt_ac_data["start"], attr)
                 end_attr = getattr(alt_ac_data["end"], attr)
                 if start_attr != end_attr:
-                    if attr == "hgnc":
-                        error = "HGNC gene symbol does not match"
-                    elif attr == "alt_ac":
-                        error = "Genomic accession does not match"
-                    else:
-                        error = "Strand does not match"
+                    error = f"{attr} mismatch. {start_attr} != {end_attr}."
                     _logger.warning(
                         "%s: %s != %s",
                         error,
@@ -1096,6 +1094,10 @@ class ExonGenomicCoordsMapper:
         """
         for i in range(len(tx_exons_genomic_coords) - 1):
             exon = tx_exons_genomic_coords[i]
+            if start == exon.alt_start_i:
+                break
+            if end == exon.alt_end_i:
+                break
             next_exon = tx_exons_genomic_coords[i + 1]
             bp = start if start else end
             if strand == Strand.POSITIVE:
