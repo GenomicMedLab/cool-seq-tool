@@ -885,7 +885,7 @@ class ExonGenomicCoordsMapper:
 
         # Find exon number
         data = data[0]
-        data_exons = data[2], data[3]
+        data_exons = data.tx_start_i, data.tx_end_i
         i = 1
         found_tx_exon = False
         for exon in tx_exons:
@@ -897,14 +897,18 @@ class ExonGenomicCoordsMapper:
             # Either first or last
             i = 1 if data_exons == (0, tx_exons[0].tx_end_i) else i - 1
         params["exon"] = i
-        params["strand"] = Strand(data[7])
+        params["strand"] = Strand(data.alt_strand)
         if not is_start:
             # convert back to inter-residue for end position
             params["pos"] += 1
         self._set_exon_offset(
             params,
-            data[5] if is_start else data[5] + 1,  # need to convert to inter-residue
-            data[6] - 1 if is_start else data[6],  # need to convert to inter-residue
+            data.alt_start_i
+            if is_start
+            else data.alt_start_i + 1,  # need to convert to inter-residue
+            data.alt_end_i - 1
+            if is_start
+            else data.alt_end_i,  # need to convert to inter-residue
             params["pos"],
             is_start=is_start,
             strand=params["strand"],
