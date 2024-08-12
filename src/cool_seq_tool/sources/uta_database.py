@@ -12,6 +12,7 @@ import boto3
 import polars as pl
 from asyncpg.exceptions import InterfaceError, InvalidAuthorizationSpecificationError
 from botocore.exceptions import ClientError
+from pydantic import Field, StrictInt, StrictStr
 
 from cool_seq_tool.schemas import (
     AnnotationLayer,
@@ -41,6 +42,23 @@ class DbConnectionArgs(BaseModelForbidExtra):
     user: str
     password: str
     database: str
+
+
+class GenomicAlnData(BaseModelForbidExtra):
+    """Represent genomic alignment data from UTA tx_exon_aln_v view"""
+
+    hgnc: StrictStr = Field(..., description="HGNC gene symbol.")
+    ord: StrictInt = Field(..., description="Exon number. 0-based.")
+    alt_ac: StrictStr = Field(..., description="RefSeq genomic accession.")
+    alt_start_i: StrictInt = Field(
+        ...,
+        description="`alt_ac`'s start index of the exon using inter-residue coordinates.",
+    )
+    alt_end_i: StrictInt = Field(
+        ...,
+        description="`alt_ac`'s end index of the exon using inter-residue coordinates.",
+    )
+    alt_strand: Strand = Field(..., description="Strand.")
 
 
 class UtaDatabase:
@@ -299,21 +317,19 @@ class UtaDatabase:
 
     async def get_alt_ac_start_or_end(
         self, tx_ac: str, tx_exon_start: int, tx_exon_end: int, gene: str | None
-    ) -> tuple[tuple[str, str, int, int, int] | None, str | None]:
+    ) -> tuple[GenomicAlnData | None, str | None]:
         """Get genomic data for related transcript exon start or end.
 
         :param tx_ac: Transcript accession
         :param tx_exon_start: Transcript's exon start coordinate
         :param tx_exon_end: Transcript's exon end coordinate
         :param gene: HGNC gene symbol
-        :return: [hgnc symbol, genomic accession for chromosome,
-            aligned genomic start coordinate, aligned genomic end coordinate, strand],
-            and warnings if found
+        :return: Genomic alignment data and warnings if found
         """
         gene_query = f"AND T.hgnc = '{gene}'" if gene else ""
 
         query = f"""
-            SELECT T.hgnc, T.alt_ac, T.alt_start_i, T.alt_end_i, T.alt_strand
+            SELECT T.hgnc, T.alt_ac, T.alt_start_i, T.alt_end_i, T.alt_strand, T.ord
             FROM {self.schema}._cds_exons_fp_v as C
             JOIN {self.schema}.tx_exon_aln_v as T ON T.tx_ac = C.tx_ac
             WHERE T.tx_ac = '{tx_ac}'
@@ -336,8 +352,7 @@ class UtaDatabase:
                 msg += f" on gene {gene}"
             _logger.warning(msg)
             return None, msg
-        result = result[0]
-        return (result[0], result[1], result[2], result[3], result[4]), None
+        return GenomicAlnData(**result[0]), None
 
     async def get_cds_start_end(self, tx_ac: str) -> tuple[int, int] | None:
         """Get coding start and end site
