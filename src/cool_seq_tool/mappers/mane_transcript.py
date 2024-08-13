@@ -101,7 +101,7 @@ class ManeTranscript:
         A handful of resources are required for initialization, so when defaults are
         enough, it's easiest to let the core CoolSeqTool class handle it for you:
 
-        >>> from cool_seq_tool.app import CoolSeqTool
+        >>> from cool_seq_tool import CoolSeqTool
         >>> mane_mapper = CoolSeqTool().mane_transcript
 
         Note that most methods are defined as Python coroutines, so they must be called
@@ -700,7 +700,7 @@ class ManeTranscript:
         information.
 
         >>> import asyncio
-        >>> from cool_seq_tool.app import CoolSeqTool
+        >>> from cool_seq_tool import CoolSeqTool
         >>> from cool_seq_tool.schemas import AnnotationLayer, ResidueMode
         >>> mane_mapper = CoolSeqTool().mane_transcript
         >>> mane_transcripts = {
@@ -974,7 +974,7 @@ class ManeTranscript:
             ``AnnotationLayer.GENOMIC`` GRCh38 representation if ``gene`` is NOT
             provided.
 
-        >>> from cool_seq_tool.app import CoolSeqTool
+        >>> from cool_seq_tool import CoolSeqTool
         >>> from cool_seq_tool.schemas import AnnotationLayer, ResidueMode
         >>> import asyncio
         >>> mane_mapper = CoolSeqTool().mane_transcript
@@ -1231,7 +1231,7 @@ class ManeTranscript:
         """Return MANE Transcript on the c. coordinate.
 
         >>> import asyncio
-        >>> from cool_seq_tool.app import CoolSeqTool
+        >>> from cool_seq_tool import CoolSeqTool
         >>> cst = CoolSeqTool()
         >>> result = asyncio.run(
         ...     cst.mane_transcript.g_to_mane_c(

@@ -45,7 +45,7 @@ class ExonGenomicCoordsMapper:
         A lot of resources are required for initialization, so when defaults are enough,
         it's easiest to let the core CoolSeqTool class handle it for you:
 
-        >>> from cool_seq_tool.app import CoolSeqTool
+        >>> from cool_seq_tool import CoolSeqTool
         >>> egc = CoolSeqTool().ex_g_coords_mapper
 
         Note that this class's public methods are all defined as ``async``, so they will
@@ -103,7 +103,7 @@ class ExonGenomicCoordsMapper:
         By default, transcript data is aligned to the GRCh38 assembly.
 
         >>> import asyncio
-        >>> from cool_seq_tool.app import CoolSeqTool
+        >>> from cool_seq_tool import CoolSeqTool
         >>> egc = CoolSeqTool().ex_g_coords_mapper
         >>> tpm3 = asyncio.run(
         ...     egc.transcript_to_genomic_coordinates(
@@ -252,7 +252,7 @@ class ExonGenomicCoordsMapper:
         supplied. ``gene`` must be given in order to retrieve MANE Transcript data.
 
         >>> import asyncio
-        >>> from cool_seq_tool.app import CoolSeqTool
+        >>> from cool_seq_tool import CoolSeqTool
         >>> from cool_seq_tool.schemas import Strand
         >>> egc = CoolSeqTool().ex_g_coords_mapper
         >>> result = asyncio.run(

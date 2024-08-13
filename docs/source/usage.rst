@@ -15,7 +15,7 @@ The core :py:class:`CoolSeqTool <cool_seq_tool.app.CoolSeqTool>` class encapsula
 
 .. code-block:: pycon
 
-   >>> from cool_seq_tool.app import CoolSeqTool
+   >>> from cool_seq_tool import CoolSeqTool
    >>> cst = CoolSeqTool()
    >>> cst.seqrepo_access.translate_alias("NM_002529.3")[0][-1]
    'ga4gh:SQ.RSkww1aYmsMiWbNdNnOTnVDAM3ZWp1uA'
@@ -34,7 +34,7 @@ Descriptions and examples of functions can be found in the :ref:`API Reference <
 
    .. code-block:: python
 
-       from cool_seq_tool.app import CoolSeqTool
+       from cool_seq_tool import CoolSeqTool
 
        async def do_thing():
            mane_mapper = CoolSeqTool().mane_transcript
@@ -50,7 +50,7 @@ Descriptions and examples of functions can be found in the :ref:`API Reference <
    .. code-block:: pycon
 
       >>> import asyncio
-      >>> from cool_seq_tool.app import cool_seq_tool
+      >>> from cool_seq_tool import cool_seq_tool
       >>> mane_mapper = CoolSeqTool().mane_transcript
       >>> result = asyncio.run(mane_mapper.g_to_grch38("NC_000001.11", 100, 200))
       >>> print(result)
