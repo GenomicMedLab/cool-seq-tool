@@ -10,6 +10,7 @@ finally:
     del version, PackageNotFoundError
 
 
+# must import after __version__ declaration to prevent ImportError
 from cool_seq_tool.app import CoolSeqTool
 
 __all__ = ["CoolSeqTool", "__version__"]
