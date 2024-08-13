@@ -178,7 +178,7 @@ def tpm3_exon1():
                     "type": "SequenceReference",
                     "refgetAccession": "SQ.Ya6Rs7DHhDeg7YaOSg1EoNi3U_nQ9SvO",
                 },
-                "end": 154191901,
+                "end": 154192135,
             },
         },
     }
@@ -201,7 +201,7 @@ def tpm3_exon8():
                     "type": "SequenceReference",
                     "refgetAccession": "SQ.Ya6Rs7DHhDeg7YaOSg1EoNi3U_nQ9SvO",
                 },
-                "start": 154170469,
+                "start": 154170399,
             },
         },
     }
@@ -921,7 +921,7 @@ async def test_genomic_to_transcript(test_egc_mapper, tpm3_exon1, tpm3_exon8):
     method works correctly.
     """
     resp = await test_egc_mapper._genomic_to_tx_segment(
-        154191901,
+        154192135,
         genomic_ac="NC_000001.11",
         transcript="NM_152263.3",
         gene="TPM3",
@@ -929,17 +929,17 @@ async def test_genomic_to_transcript(test_egc_mapper, tpm3_exon1, tpm3_exon8):
     genomic_tx_seg_checks(resp, tpm3_exon1)
 
     resp = await test_egc_mapper._genomic_to_tx_segment(
-        154191901, chromosome="1", transcript="NM_152263.3"
+        154192135, chromosome="1", transcript="NM_152263.3"
     )
     genomic_tx_seg_checks(resp, tpm3_exon1)
 
     resp = await test_egc_mapper._genomic_to_tx_segment(
-        154191901, chromosome="1", transcript="NM_152263.3"
+        154192135, chromosome="1", transcript="NM_152263.3"
     )
     genomic_tx_seg_checks(resp, tpm3_exon1)
 
     resp = await test_egc_mapper._genomic_to_tx_segment(
-        154170469,
+        154170399,
         genomic_ac="NC_000001.11",
         transcript="NM_152263.3",
         is_start=False,
@@ -947,7 +947,7 @@ async def test_genomic_to_transcript(test_egc_mapper, tpm3_exon1, tpm3_exon8):
     genomic_tx_seg_checks(resp, tpm3_exon8)
 
     resp = await test_egc_mapper._genomic_to_tx_segment(
-        154170469,
+        154170399,
         chromosome="1",
         transcript="NM_152263.3",
         is_start=False,
@@ -955,7 +955,7 @@ async def test_genomic_to_transcript(test_egc_mapper, tpm3_exon1, tpm3_exon8):
     genomic_tx_seg_checks(resp, tpm3_exon8)
 
     resp = await test_egc_mapper._genomic_to_tx_segment(
-        154170469, chromosome="1", transcript="NM_152263.3", is_start=False
+        154170399, chromosome="1", transcript="NM_152263.3", is_start=False
     )
     genomic_tx_seg_checks(resp, tpm3_exon8)
 
@@ -973,8 +973,8 @@ async def test_tpm3(
     """
     inputs = {
         "genomic_ac": "NC_000001.11",
-        "genomic_start": 154191901,
-        "genomic_end": 154170469,
+        "genomic_start": 154170399,
+        "genomic_end": 154192135,
         "transcript": "NM_152263.3",
     }
     g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
@@ -1003,7 +1003,7 @@ async def test_tpm3(
     # Test only setting start
     inputs = {
         "genomic_ac": "NC_000001.11",
-        "genomic_start": 154191901,
+        "genomic_start": 154192135,
         "transcript": "NM_152263.3",
     }
     g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
@@ -1017,7 +1017,7 @@ async def test_tpm3(
     # Test only setting end
     inputs = {
         "genomic_ac": "NC_000001.11",
-        "genomic_end": 154170469,
+        "genomic_end": 154170399,
         "transcript": "NM_152263.3",
     }
     g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
@@ -1135,9 +1135,9 @@ async def test_transcript_to_genomic(
 
     expected = tpm3_exon1_exon8.model_copy(deep=True)
     resp = await test_egc_mapper.tx_segment_to_genomic(
-        exon_start=1, exon_end=8, exon_end_offset=5, transcript="NM_152263.3"
+        exon_start=1, exon_end=8, exon_end_offset=-5, transcript="NM_152263.3"
     )
-    expected.seg_end.offset = 5
+    expected.seg_end.offset = -5
     expected.seg_end.genomic_location.start = 154170404
     genomic_tx_seg_service_checks(resp, expected)
 
@@ -1150,7 +1150,7 @@ async def test_transcript_to_genomic(
     )
     expected.seg_start.exon_ord = 2
     expected.seg_start.offset = 3
-    expected.seg_start.genomic_location.end = 154176117
+    expected.seg_start.genomic_location.end = 154176245
     genomic_tx_seg_service_checks(resp, expected)
 
     resp = await test_egc_mapper.tx_segment_to_genomic(
@@ -1161,7 +1161,7 @@ async def test_transcript_to_genomic(
         transcript="NM_152263.3",
     )
     expected.seg_start.offset = -3
-    expected.seg_start.genomic_location.end = 154176111
+    expected.seg_start.genomic_location.end = 154176251
     genomic_tx_seg_service_checks(resp, expected)
 
     # NTRK1
