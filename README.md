@@ -39,7 +39,7 @@ See the [installation instructions](https://coolseqtool.readthedocs.io/latest/in
 All CoolSeqTool resources can be initialized by way of a top-level class instance:
 
 ```pycon
->>> from cool_seq_tool.app import CoolSeqTool
+>>> from cool_seq_tool import CoolSeqTool
 >>> from cool_seq_tool.schemas import AnnotationLayer, ResidueMode
 >>> cst = CoolSeqTool()
 >>> result = await cst.mane_transcript.get_mane_transcript(

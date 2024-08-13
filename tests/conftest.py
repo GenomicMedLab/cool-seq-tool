@@ -4,7 +4,7 @@ import asyncio
 
 import pytest
 
-from cool_seq_tool.app import CoolSeqTool
+from cool_seq_tool import CoolSeqTool
 from cool_seq_tool.schemas import ManeGeneData, Strand
 
 

@@ -8,3 +8,8 @@ except PackageNotFoundError:
     __version__ = "unknown"
 finally:
     del version, PackageNotFoundError
+
+
+from cool_seq_tool.app import CoolSeqTool
+
+__all__ = ["CoolSeqTool", "__version__"]

@@ -48,7 +48,7 @@ class CoolSeqTool:
 
         Initialization with default resource locations is straightforward:
 
-        >>> from cool_seq_tool.app import CoolSeqTool
+        >>> from cool_seq_tool import CoolSeqTool
         >>> cst = CoolSeqTool()
 
         By default, this will attempt to fetch the latest versions of static resources,
