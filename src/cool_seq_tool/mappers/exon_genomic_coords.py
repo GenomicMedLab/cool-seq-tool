@@ -367,46 +367,24 @@ class ExonGenomicCoordsMapper:
         )
 
         if exon_start_exists:
-            if strand == Strand.POSITIVE:
-                genomic_pos = exon_start_offset + alt_ac_start_data.alt_start_i
-            else:
-                genomic_pos = alt_ac_start_data.alt_end_i - exon_start_offset
-            start_genomic_loc, err_msg = self._get_vrs_seq_loc(
+            seg_start, err_msg = self._get_tx_segment(
                 genomic_ac,
-                genomic_pos,
-                is_start=True,
-                strand=strand,
+                strand,
+                exon_start_offset,
+                alt_ac_start_data,
+                is_seg_start=True,
             )
             if err_msg:
                 return _return_service_errors([err_msg])
-
-            seg_start = TxSegment(
-                exon_ord=alt_ac_start_data.ord,
-                genomic_location=start_genomic_loc,
-                offset=exon_start_offset,
-            )
         else:
             seg_start = None
 
         if exon_end_exists:
-            if strand == Strand.POSITIVE:
-                genomic_pos = exon_end_offset + alt_ac_end_data.alt_end_i
-            else:
-                genomic_pos = alt_ac_end_data.alt_start_i - exon_end_offset
-            end_genomic_loc, err_msg = self._get_vrs_seq_loc(
-                genomic_ac,
-                genomic_pos,
-                is_start=False,
-                strand=strand,
+            seg_end, err_msg = self._get_tx_segment(
+                genomic_ac, strand, exon_end_offset, alt_ac_end_data, is_seg_start=False
             )
             if err_msg:
                 return _return_service_errors([err_msg])
-
-            seg_end = TxSegment(
-                exon_ord=alt_ac_end_data.ord,
-                genomic_location=end_genomic_loc,
-                offset=exon_end_offset,
-            )
         else:
             seg_end = None
 
@@ -877,6 +855,50 @@ class ExonGenomicCoordsMapper:
         return await self._get_genomic_tx_seg(
             genomic_ac, genomic_pos, is_start, gene, tx_ac=transcript
         )
+
+    def _get_tx_segment(
+        self,
+        genomic_ac: str,
+        strand: Strand,
+        offset: int,
+        genomic_ac_data: ExonCoord,
+        is_seg_start: bool = False,
+    ) -> tuple[TxSegment | None, str | None]:
+        """Get transcript segment data given ``genomic_ac`` and offset data
+
+        :param genomic_ac: Genomic RefSeq accession
+        :param strand: Strand
+        :param offset: Exon offset
+        :param genomic_ac_data: Exon coordinate data for ``genomic_ac``
+        :param is_seg_start: ``True`` if retrieving genomic data where the transcript
+            segment starts, defaults to ``False``
+        :return: Transcript segment data
+        """
+        if is_seg_start:
+            if strand == Strand.POSITIVE:
+                seg_genomic_pos = offset + genomic_ac_data.alt_start_i
+            else:
+                seg_genomic_pos = genomic_ac_data.alt_end_i - offset
+        else:
+            if strand == Strand.POSITIVE:
+                seg_genomic_pos = offset + genomic_ac_data.alt_end_i
+            else:
+                seg_genomic_pos = genomic_ac_data.alt_start_i - offset
+
+        genomic_loc, err_msg = self._get_vrs_seq_loc(
+            genomic_ac,
+            seg_genomic_pos,
+            is_start=is_seg_start,
+            strand=strand,
+        )
+        if err_msg:
+            return None, err_msg
+
+        return TxSegment(
+            exon_ord=genomic_ac_data.ord,
+            genomic_location=genomic_loc,
+            offset=offset,
+        ), None
 
     def _get_vrs_seq_loc(
         self, genomic_ac: str, genomic_pos: int, is_start: bool, strand: Strand
