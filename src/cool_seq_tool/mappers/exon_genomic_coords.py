@@ -370,7 +370,7 @@ class ExonGenomicCoordsMapper:
             if strand == Strand.POSITIVE:
                 genomic_pos = exon_start_offset + alt_ac_start_data.alt_start_i
             else:
-                genomic_pos = alt_ac_start_data.alt_start_i + exon_start_offset
+                genomic_pos = alt_ac_start_data.alt_end_i - exon_start_offset
             start_genomic_loc, err_msg = self._get_vrs_seq_loc(
                 genomic_ac,
                 genomic_pos,
@@ -392,7 +392,7 @@ class ExonGenomicCoordsMapper:
             if strand == Strand.POSITIVE:
                 genomic_pos = exon_end_offset + alt_ac_end_data.alt_end_i
             else:
-                genomic_pos = alt_ac_end_data.alt_start_i + exon_end_offset
+                genomic_pos = alt_ac_end_data.alt_start_i - exon_end_offset
             end_genomic_loc, err_msg = self._get_vrs_seq_loc(
                 genomic_ac,
                 genomic_pos,
@@ -1046,11 +1046,9 @@ class ExonGenomicCoordsMapper:
         """
         if is_in_exon:
             if start is not None:
-                offset = (
-                    start - start_i if strand == Strand.POSITIVE else start_i - start
-                )
+                offset = start - start_i if strand == Strand.POSITIVE else end_i - start
             else:
-                offset = end - end_i if strand == Strand.POSITIVE else end_i - end
+                offset = end - end_i if strand == Strand.POSITIVE else start_i - end
         else:
             if strand == Strand.POSITIVE:
                 offset = start - start_i if use_start_i else end - end_i
