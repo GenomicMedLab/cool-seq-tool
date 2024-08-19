@@ -422,8 +422,8 @@ class ExonGenomicCoordsMapper:
         self,
         chromosome: str | None = None,
         genomic_ac: str | None = None,
-        genomic_start: int | None = None,
-        genomic_end: int | None = None,
+        seg_start_genomic: int | None = None,
+        seg_end_genomic: int | None = None,
         transcript: str | None = None,
         get_nearest_transcript_junction: bool = False,
         gene: str | None = None,
@@ -442,8 +442,8 @@ class ExonGenomicCoordsMapper:
         >>> result = asyncio.run(
         ...     egc.genomic_to_tx_segment(
         ...         genomic_ac="NC_000001.11",
-        ...         genomic_start=154192135,
-        ...         genomic_end=154170399,
+        ...         seg_start_genomic=154192135,
+        ...         seg_end_genomic=154170399,
         ...         transcript="NM_152263.3",
         ...     )
         ... )
@@ -456,28 +456,30 @@ class ExonGenomicCoordsMapper:
         :param genomic_ac: Genomic accession (i.e. ``NC_000001.11``). If not provided,
             must provide ``chromosome. If ``chromosome`` is also provided,
             ``genomic_ac`` will be used.
-        :param genomic_start: Genomic position where the transcript segment starts
-        :param genomic_end: Genomic position where the transcript segment ends
+        :param seg_start_genomic: Genomic position where the transcript segment starts
+        :param seg_end_genomic: Genomic position where the transcript segment ends
         :param transcript: The transcript to use. If this is not given, we will try the
             following transcripts: MANE Select, MANE Clinical Plus, Longest Remaining
             Compatible Transcript. See the :ref:`Transcript Selection policy <transcript_selection_policy>`
             page.
         :param get_nearest_transcript_junction: If ``True``, this will return the
-            adjacent exon if the position specified by``genomic_start`` or
-            ``genomic_end`` does not occur on an exon. For the positive strand, adjacent
+            adjacent exon if the position specified by``seg_start_genomic`` or
+            ``seg_end_genomic`` does not occur on an exon. For the positive strand, adjacent
             is defined as the exon preceding the breakpoint for the 5' end and the exon
             following the breakpoint for the 3' end. For the negative strand, adjacent
             is defined as the exon following the breakpoint for the 5' end and the exon
             preceding the breakpoint for the 3' end.
         :param gene: gene name. Ideally, HGNC symbol. Must be given if no ``transcript``
             value is provided.
-        :param coordinate_type: Coordinate type for ``genomic_start`` and
-            ``genomic_end``
+        :param coordinate_type: Coordinate type for ``seg_start_genomic`` and
+            ``seg_end_genomic``
         :return: Genomic data (inter-residue coordinates)
         """
         errors = []
-        if genomic_start is None and genomic_end is None:
-            errors.append("Must provide either `genomic_start` or `genomic_end`")
+        if seg_start_genomic is None and seg_end_genomic is None:
+            errors.append(
+                "Must provide either `seg_start_genomic` or `seg_end_genomic`"
+            )
         if chromosome is None and genomic_ac is None:
             errors.append("Must provide either `chromosome` or `alt_ac`")
         if transcript is None and gene is None:
@@ -490,9 +492,9 @@ class ExonGenomicCoordsMapper:
 
         params = {}
 
-        if genomic_start:
+        if seg_start_genomic:
             start_tx_seg_data = await self._genomic_to_tx_segment(
-                genomic_start,
+                seg_start_genomic,
                 chromosome=chromosome,
                 genomic_ac=genomic_ac,
                 transcript=transcript,
@@ -510,9 +512,9 @@ class ExonGenomicCoordsMapper:
         else:
             start_tx_seg_data = None
 
-        if genomic_end:
+        if seg_end_genomic:
             end_tx_seg_data = await self._genomic_to_tx_segment(
-                genomic_end,
+                seg_end_genomic,
                 chromosome=chromosome,
                 genomic_ac=genomic_ac,
                 transcript=transcript,
@@ -702,8 +704,8 @@ class ExonGenomicCoordsMapper:
             Compatible Transcript
         :param gene: HGNC gene symbol
         :param get_nearest_transcript_junction: If ``True``, this will return the
-            adjacent exon if the position specified by``genomic_start`` or
-            ``genomic_end`` does not occur on an exon. For the positive strand, adjacent
+            adjacent exon if the position specified by``seg_start_genomic`` or
+            ``seg_end_genomic`` does not occur on an exon. For the positive strand, adjacent
             is defined as the exon preceding the breakpoint for the 5' end and the exon
             following the breakpoint for the 3' end. For the negative strand, adjacent
             is defined as the exon following the breakpoint for the 5' end and the exon
