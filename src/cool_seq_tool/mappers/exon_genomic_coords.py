@@ -84,7 +84,7 @@ class TxSegment(BaseModelForbidExtra):
 
 
 class _GenomicTxSeg(BaseModelForbidExtra):
-    """Model for representing genomic and transcript segment data."""
+    """Model for representing a boundary for a transcript segment."""
 
     seg: TxSegment | None = Field(None, description="Transcript segment.")
     gene: StrictStr | None = Field(None, description="HGNC gene symbol.")
@@ -269,7 +269,7 @@ class ExonGenomicCoordsMapper:
         exon_end: int | None = None,
         exon_end_offset: int = 0,
     ) -> GenomicTxSegService:
-        """Get genomic data given transcript segment data.
+        """Get aligned genomic data given transcript segment data.
 
         By default, transcript data is aligned to the GRCh38 assembly.
 
@@ -284,10 +284,14 @@ class ExonGenomicCoordsMapper:
         ...         exon_end=8,
         ...     )
         ... )
-        >>> tpm3.genomic_data.chr, tpm3.genomic_data.start, tpm3.genomic_data.end
+        >>> (
+        ...     tpm3.genomic_ac,
+        ...     tpm3.seg_start.genomic_location.end,
+        ...     tpm3.seg_end.genomic_location.start,
+        ... )
         ('NC_000001.11', 154192135, 154170399)
 
-        :param transcript: Transcript accession
+        :param transcript: RefSeq transcript accession
         :param gene: HGNC gene symbol
         :param exon_start: Starting transcript exon number (1-based). If not provided,
             must provide ``exon_end``
@@ -666,7 +670,7 @@ class ExonGenomicCoordsMapper:
         get_nearest_transcript_junction: bool = False,
         is_start: bool = True,
     ) -> _GenomicTxSeg:
-        """Convert individual genomic data to transcript data
+        """Given genomic data, generate a boundary for a transcript segment.
 
         :param genomic_pos: Genomic position where the transcript segment starts or ends
             (inter-residue based)
@@ -690,7 +694,7 @@ class ExonGenomicCoordsMapper:
             preceding the breakpoint for the 3' end.
         :param is_start: ``True`` if ``genomic_pos`` is where the transcript segment starts.
             ``False`` if ``genomic_pos`` is where the transcript segment ends.
-        :return: Transcript data (inter-residue coordinates)
+        :return: Data for a transcript segment boundary (inter-residue coordinates)
         """
         params = {key: None for key in _GenomicTxSeg.model_fields}
 
@@ -852,7 +856,7 @@ class ExonGenomicCoordsMapper:
                     ]
                 )
 
-        return await self._get_genomic_tx_seg(
+        return await self._get_tx_seg_genomic_metadata(
             genomic_ac, genomic_pos, is_start, gene, tx_ac=transcript
         )
 
@@ -930,7 +934,7 @@ class ExonGenomicCoordsMapper:
             end=genomic_pos if not use_start else None,
         ), None
 
-    async def _get_genomic_tx_seg(
+    async def _get_tx_seg_genomic_metadata(
         self,
         genomic_ac: str,
         genomic_pos: int,
@@ -938,7 +942,7 @@ class ExonGenomicCoordsMapper:
         gene: str,
         tx_ac: str | None,
     ) -> _GenomicTxSeg:
-        """Get genomic transcript segment data
+        """Get transcript segment data and associated genomic metadata.
 
         Will liftover to GRCh38 assembly. If liftover is unsuccessful, will return
         errors.
@@ -951,7 +955,7 @@ class ExonGenomicCoordsMapper:
         :param gene: HGNC gene symbol
         :param tx_ac: Transcript RefSeq accession. If not provided, will use MANE
             transcript
-        :return: Genomic transcript segment data
+        :return: Transcript segment data and associated genomic metadata
         """
         if tx_ac:
             # We should always try to liftover
@@ -1059,7 +1063,8 @@ class ExonGenomicCoordsMapper:
         :param end_i: Exon end index (inter-residue)
         :param strand: Strand
         :param use_start_i: Whether or not ``start_i`` should be used to compute the
-            offset, defaults to ``True``
+            offset, defaults to ``True``. This is only used when ``is_in_exon`` is
+            ``False``.
         :param is_in_exon: Whether or not the position occurs in an exon, defaults to
             ``True``
         :param start: Provided start position, defaults to ``None``. Must provide
