@@ -980,10 +980,10 @@ async def test_tpm3(
     g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
     genomic_tx_seg_service_checks(g_to_t_resp, tpm3_exon1_exon8)
 
-    # t_to_g_resp = await test_egc_mapper.tx_segment_to_genomic(
-    #     **get_t_to_g_args(g_to_t_resp)
-    # )
-    # genomic_tx_seg_service_checks(t_to_g_resp, tpm3_exon1_exon8)
+    t_to_g_resp = await test_egc_mapper.tx_segment_to_genomic(
+        **get_t_to_g_args(g_to_t_resp)
+    )
+    genomic_tx_seg_service_checks(t_to_g_resp, tpm3_exon1_exon8)
 
     # Offset
     inputs = {
@@ -995,10 +995,10 @@ async def test_tpm3(
     g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
     genomic_tx_seg_service_checks(g_to_t_resp, tpm3_exon1_exon8_offset)
 
-    # t_to_g_resp = await test_egc_mapper.tx_segment_to_genomic(
-    #     **get_t_to_g_args(g_to_t_resp)
-    # )
-    # genomic_tx_seg_service_checks(t_to_g_resp, tpm3_exon1_exon8_offset)
+    t_to_g_resp = await test_egc_mapper.tx_segment_to_genomic(
+        **get_t_to_g_args(g_to_t_resp)
+    )
+    genomic_tx_seg_service_checks(t_to_g_resp, tpm3_exon1_exon8_offset)
 
     # Test only setting start
     inputs = {
@@ -1112,26 +1112,29 @@ async def test_transcript_to_genomic(
     """Test that tx_segment_to_genomic works correctly."""
     # TPM3
     expected = tpm3_exon8_g.model_copy(deep=True)
-    # resp = await test_egc_mapper.tx_segment_to_genomic(
-    #     exon_start=None, exon_end=8, transcript="NM_152263.3"
-    # )
-    # expected.seg_end.genomic_location.start = 154170399
-    # genomic_tx_seg_service_checks(resp, expected)
+    resp = await test_egc_mapper.tx_segment_to_genomic(
+        exon_start=None, exon_end=8, transcript="NM_152263.3"
+    )
+    expected.seg_end.genomic_location.start = 154170399
+    genomic_tx_seg_service_checks(resp, expected)
 
-    # resp = await test_egc_mapper.tx_segment_to_genomic(
-    #     exon_start=1, exon_end=None, transcript="NM_152263.3"
-    # )
-    # genomic_tx_seg_service_checks(resp, tpm3_exon1_g)
+    resp = await test_egc_mapper.tx_segment_to_genomic(
+        exon_start=1, exon_end=None, transcript="NM_152263.3"
+    )
+    expected.seg_start.genomic_location.end = 154192135
+    genomic_tx_seg_service_checks(resp, tpm3_exon1_g)
 
-    # resp = await test_egc_mapper.tx_segment_to_genomic(
-    #     exon_start=None, exon_end=8, gene="TPM3", transcript="NM_152263.3"
-    # )
-    # genomic_tx_seg_service_checks(resp, expected)
+    resp = await test_egc_mapper.tx_segment_to_genomic(
+        exon_start=None, exon_end=8, gene="TPM3", transcript="NM_152263.3"
+    )
+    expected.seg_end.genomic_location.start = 154170399
+    genomic_tx_seg_service_checks(resp, expected)
 
-    # resp = await test_egc_mapper.tx_segment_to_genomic(
-    #     exon_start=None, exon_end=8, gene="tpm3", transcript="NM_152263.3"
-    # )
-    # genomic_tx_seg_service_checks(resp, expected)
+    resp = await test_egc_mapper.tx_segment_to_genomic(
+        exon_start=None, exon_end=8, gene="tpm3", transcript="NM_152263.3"
+    )
+    expected.seg_end.genomic_location.start = 154170399
+    genomic_tx_seg_service_checks(resp, expected)
 
     expected = tpm3_exon1_exon8.model_copy(deep=True)
     resp = await test_egc_mapper.tx_segment_to_genomic(
