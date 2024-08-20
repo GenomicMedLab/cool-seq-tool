@@ -25,7 +25,7 @@ def _check_errors(
     required_fields: list[str],
     either_or_fields: list[tuple[str, str]] | None = None,
 ) -> dict:
-    """Ensure that required fields are set if `errors` field is empty
+    """Ensure that required fields are set if ``errors`` field is empty
 
     :param values: Values in model
     :param required_fields: List of field names that are required if there are no errors
@@ -36,13 +36,15 @@ def _check_errors(
     :return: Values in model
     """
     if not values.get("errors"):
-        if not all(values.get(required_field) for required_field in required_fields):
+        if not all(
+            values.get(required_field) is not None for required_field in required_fields
+        ):
             err_msg = f"{required_fields} must all be provided"
             raise ValueError(err_msg)
 
         if either_or_fields:
             for field1, field2 in either_or_fields:
-                if not (values.get(field1) or values.get(field2)):
+                if not (values.get(field1) is not None or values.get(field2)):
                     err_msg = f"At least one of {field1} or {field2} must be provided"
                     raise ValueError(err_msg)
 
