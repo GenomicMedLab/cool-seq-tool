@@ -1086,21 +1086,6 @@ class ExonGenomicCoordsMapper:
         return offset
 
     @staticmethod
-    def _get_exon_number(tx_exons: list[ExonCoord], tx_pos: int) -> int:
-        """Find related exon number for a position
-
-        :param tx_exons: List of exon coordinates for a transcript
-        :param tx_pos: Transcript position change
-        :return: Exon number associated to transcript position change. Will be 0-based.
-            If there is no exon associated to the transcript position change, -1 will
-            be returned.
-        """
-        for coords in tx_exons:
-            if coords.tx_start_i <= tx_pos < coords.tx_end_i:
-                return coords.ord
-        return -1
-
-    @staticmethod
     def _get_adjacent_exon(
         tx_exons_genomic_coords: list[ExonCoord],
         strand: Strand,
