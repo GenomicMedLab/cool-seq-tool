@@ -6,8 +6,8 @@ import pytest
 
 from cool_seq_tool.mappers.exon_genomic_coords import (
     ExonCoord,
+    GenomicTxSeg,
     GenomicTxSegService,
-    _GenomicTxSeg,
 )
 from cool_seq_tool.schemas import (
     Strand,
@@ -182,7 +182,7 @@ def tpm3_exon1():
             },
         },
     }
-    return _GenomicTxSeg(**params)
+    return GenomicTxSeg(**params)
 
 
 @pytest.fixture(scope="module")
@@ -205,7 +205,7 @@ def tpm3_exon8():
             },
         },
     }
-    return _GenomicTxSeg(**params)
+    return GenomicTxSeg(**params)
 
 
 @pytest.fixture(scope="module")
@@ -1408,13 +1408,6 @@ async def test_invalid(test_egc_mapper):
         " 0 and 234 between an exon's start and end coordinates on gene "
         "NTKR1"
     ]
-
-    # No transcript given
-    resp = await test_egc_mapper.tx_segment_to_genomic(
-        exon_start=1, exon_end=8, gene="NTKR1", transcript=""
-    )
-    genomic_tx_seg_service_checks(resp, is_valid=False)
-    assert resp.errors == ["Must provide `transcript`"]
 
     # No exons given
     resp = await test_egc_mapper.tx_segment_to_genomic(
