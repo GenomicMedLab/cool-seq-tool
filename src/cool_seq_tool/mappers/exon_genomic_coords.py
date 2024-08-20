@@ -2,7 +2,7 @@
 
 import logging
 
-from ga4gh.vrs import models
+from ga4gh.vrs.models import SequenceLocation, SequenceReference
 from pydantic import ConfigDict, Field, StrictInt, StrictStr, model_validator
 
 from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
@@ -53,7 +53,7 @@ class ExonCoord(BaseModelForbidExtra):
     )
 
 
-class _TxSegment(BaseModelForbidExtra):
+class TxSegment(BaseModelForbidExtra):
     """Model for representing transcript segment data."""
 
     exon_ord: StrictInt = Field(..., description="Exon number. 0-based.")
@@ -61,7 +61,7 @@ class _TxSegment(BaseModelForbidExtra):
         0,
         description="The value added to or subtracted from the `genomic_location` to find the start or end of an exon.",
     )
-    genomic_location: models.SequenceLocation = Field(
+    genomic_location: SequenceLocation = Field(
         ..., description="The genomic position of a transcript segment."
     )
 
@@ -83,10 +83,10 @@ class _TxSegment(BaseModelForbidExtra):
     )
 
 
-class _GenomicTxSeg(BaseModelForbidExtra):
+class GenomicTxSeg(BaseModelForbidExtra):
     """Model for representing a boundary for a transcript segment."""
 
-    seg: _TxSegment | None = Field(None, description="Transcript segment.")
+    seg: TxSegment | None = Field(None, description="Transcript segment.")
     gene: StrictStr | None = Field(None, description="HGNC gene symbol.")
     genomic_ac: StrictStr | None = Field(None, description="RefSeq genomic accession.")
     tx_ac: StrictStr | None = Field(None, description="RefSeq transcript accession.")
@@ -143,8 +143,8 @@ class GenomicTxSegService(BaseModelForbidExtra):
     gene: StrictStr | None = Field(None, description="HGNC gene symbol.")
     genomic_ac: StrictStr | None = Field(None, description="RefSeq genomic accession.")
     tx_ac: StrictStr | None = Field(None, description="RefSeq transcript accession.")
-    seg_start: _TxSegment | None = Field(None, description="Start transcript segment.")
-    seg_end: _TxSegment | None = Field(None, description="End transcript segment.")
+    seg_start: TxSegment | None = Field(None, description="Start transcript segment.")
+    seg_end: TxSegment | None = Field(None, description="End transcript segment.")
     errors: list[StrictStr] = Field([], description="Error messages.")
     service_meta: ServiceMeta = Field(..., description="Service metadata.")
 
@@ -303,11 +303,6 @@ class ExonGenomicCoordsMapper:
         """
         # Ensure valid inputs
         errors = []
-        if not transcript:
-            errors.append("Must provide `transcript`")
-        else:
-            transcript = transcript
-
         exon_start_exists, exon_end_exists = False, False
         if exon_start is not None:
             if exon_start < 1:
@@ -669,7 +664,7 @@ class ExonGenomicCoordsMapper:
         gene: str | None = None,
         get_nearest_transcript_junction: bool = False,
         is_start: bool = True,
-    ) -> _GenomicTxSeg:
+    ) -> GenomicTxSeg:
         """Given genomic data, generate a boundary for a transcript segment.
 
         :param genomic_pos: Genomic position where the transcript segment starts or ends
@@ -696,11 +691,11 @@ class ExonGenomicCoordsMapper:
             ``False`` if ``genomic_pos`` is where the transcript segment ends.
         :return: Data for a transcript segment boundary (inter-residue coordinates)
         """
-        params = {key: None for key in _GenomicTxSeg.model_fields}
+        params = {key: None for key in GenomicTxSeg.model_fields}
 
         if get_nearest_transcript_junction:
             if not gene:
-                return _GenomicTxSeg(
+                return GenomicTxSeg(
                     errors=[
                         "`gene` must be provided to select the adjacent transcript junction"
                     ]
@@ -710,7 +705,7 @@ class ExonGenomicCoordsMapper:
                 genomic_acs, err_msg = self.seqrepo_access.chromosome_to_acs(chromosome)
 
                 if not genomic_acs:
-                    return _GenomicTxSeg(
+                    return GenomicTxSeg(
                         errors=[err_msg],
                     )
                 genomic_ac = genomic_acs[0]
@@ -745,7 +740,7 @@ class ExonGenomicCoordsMapper:
                         if result:
                             transcript = result[0]["tx_ac"]
                         else:
-                            return _GenomicTxSeg(
+                            return GenomicTxSeg(
                                 errors=[
                                     f"Could not find a transcript for {gene} on {genomic_ac}"
                                 ]
@@ -755,7 +750,7 @@ class ExonGenomicCoordsMapper:
                 tx_ac=transcript, genomic_ac=genomic_ac
             )
             if not tx_exons:
-                return _GenomicTxSeg(errors=[f"No exons found given {transcript}"])
+                return GenomicTxSeg(errors=[f"No exons found given {transcript}"])
 
             strand = Strand(tx_exons[0].alt_strand)
             params["strand"] = strand
@@ -786,13 +781,13 @@ class ExonGenomicCoordsMapper:
                     genomic_ac, genomic_pos, is_start, strand
                 )
                 if err_msg:
-                    return _GenomicTxSeg(errors=[err_msg])
+                    return GenomicTxSeg(errors=[err_msg])
 
-                return _GenomicTxSeg(
+                return GenomicTxSeg(
                     gene=gene,
                     genomic_ac=genomic_ac,
                     tx_ac=transcript,
-                    seg=_TxSegment(
+                    seg=TxSegment(
                         exon_ord=exon_num,
                         offset=offset,
                         genomic_location=genomic_location,
@@ -802,23 +797,18 @@ class ExonGenomicCoordsMapper:
         if genomic_ac:
             # Check if valid accession is given
             if not await self.uta_db.validate_genomic_ac(genomic_ac):
-                return _GenomicTxSeg(
-                    errors=[f"Invalid genomic accession: {genomic_ac}"]
-                )
+                return GenomicTxSeg(errors=[f"Invalid genomic accession: {genomic_ac}"])
 
-            genes, err_msg = await self.uta_db.get_genomic_ac_genes(
-                genomic_pos, genomic_ac
-            )
-            if genes:
-                _gene = next(iter(genes))
+            _gene, err_msg = await self._get_genomic_ac_gene(genomic_pos, genomic_ac)
+            if _gene:
                 if gene and _gene != gene:
-                    return _GenomicTxSeg(
+                    return GenomicTxSeg(
                         errors=[f"Expected gene, {gene}, but found {_gene}"]
                     )
 
                 gene = _gene
             else:
-                return _GenomicTxSeg(errors=[err_msg])
+                return GenomicTxSeg(errors=[err_msg])
         elif chromosome:
             # Try GRCh38 first
             for assembly in [Assembly.GRCH38.value, Assembly.GRCH37.value]:
@@ -826,16 +816,15 @@ class ExonGenomicCoordsMapper:
                     f"{assembly}:chr{chromosome}", "refseq"
                 )
                 if err_msg:
-                    return _GenomicTxSeg(errors=[err_msg])
+                    return GenomicTxSeg(errors=[err_msg])
                 _genomic_ac = _genomic_acs[0].split(":")[-1]
 
-                genes, err_msg = await self.uta_db.get_genomic_ac_genes(
+                _gene, err_msg = await self._get_genomic_ac_gene(
                     genomic_pos, _genomic_ac
                 )
-                if genes:
-                    _gene = next(iter(genes))
+                if _gene:
                     if gene and _gene != gene:
-                        return _GenomicTxSeg(
+                        return GenomicTxSeg(
                             errors=[f"Expected gene, {gene}, but found {_gene}"]
                         )
                     gene = _gene
@@ -843,14 +832,14 @@ class ExonGenomicCoordsMapper:
                     break
 
             if not genomic_ac:
-                return _GenomicTxSeg(
+                return GenomicTxSeg(
                     errors=[
                         f"Unable to get genomic RefSeq accession for chromosome {chromosome} on position {genomic_pos}"
                     ]
                 )
 
             if not gene:
-                return _GenomicTxSeg(
+                return GenomicTxSeg(
                     errors=[
                         f"Unable to get gene given {genomic_ac} on position {genomic_pos}"
                     ]
@@ -860,6 +849,36 @@ class ExonGenomicCoordsMapper:
             genomic_ac, genomic_pos, is_start, gene, tx_ac=transcript
         )
 
+    async def _get_genomic_ac_gene(
+        self,
+        pos: int,
+        genomic_ac: str,
+    ) -> tuple[str | None, str | None]:
+        """Get gene given a genomic accession and position.
+
+        If multiple genes are found for a given ``pos`` and ``genomic_ac``, only one
+        gene will be returned.
+
+        :param pos: Genomic position on ``genomic_ac``
+        :param genomic_ac: RefSeq genomic accession, e.g. ``"NC_000007.14"``
+        :return: HGNC gene symbol associated to genomic accession and position and
+            warning
+        """
+        query = f"""
+            SELECT DISTINCT hgnc
+            FROM {self.uta_db.schema}.tx_exon_aln_v
+            WHERE alt_ac = '{genomic_ac}'
+            AND alt_aln_method = 'splign'
+            AND {pos} BETWEEN alt_start_i AND alt_end_i
+            ORDER BY hgnc
+            LIMIT 1;
+            """  # noqa: S608
+        results = await self.uta_db.execute_query(query)
+        if not results:
+            return None, f"No gene(s) found given {genomic_ac} on position {pos}"
+
+        return results[0]["hgnc"], None
+
     def _get_tx_segment(
         self,
         genomic_ac: str,
@@ -867,7 +886,7 @@ class ExonGenomicCoordsMapper:
         offset: int,
         genomic_ac_data: ExonCoord,
         is_seg_start: bool = False,
-    ) -> tuple[_TxSegment | None, str | None]:
+    ) -> tuple[TxSegment | None, str | None]:
         """Get transcript segment data given ``genomic_ac`` and offset data
 
         :param genomic_ac: Genomic RefSeq accession
@@ -898,7 +917,7 @@ class ExonGenomicCoordsMapper:
         if err_msg:
             return None, err_msg
 
-        return _TxSegment(
+        return TxSegment(
             exon_ord=genomic_ac_data.ord,
             genomic_location=genomic_loc,
             offset=offset,
@@ -906,7 +925,7 @@ class ExonGenomicCoordsMapper:
 
     def _get_vrs_seq_loc(
         self, genomic_ac: str, genomic_pos: int, is_start: bool, strand: Strand
-    ) -> tuple[models.SequenceLocation | None, str | None]:
+    ) -> tuple[SequenceLocation | None, str | None]:
         """Create VRS Sequence Location for genomic position where transcript segment
         occurs
 
@@ -926,8 +945,8 @@ class ExonGenomicCoordsMapper:
 
         use_start = strand == Strand.POSITIVE if is_start else strand != Strand.POSITIVE
 
-        return models.SequenceLocation(
-            sequenceReference=models.SequenceReference(
+        return SequenceLocation(
+            sequenceReference=SequenceReference(
                 refgetAccession=ga4gh_seq_id[0].split("ga4gh:")[-1]
             ),
             start=genomic_pos if use_start else None,
@@ -941,7 +960,7 @@ class ExonGenomicCoordsMapper:
         is_start: bool,
         gene: str,
         tx_ac: str | None,
-    ) -> _GenomicTxSeg:
+    ) -> GenomicTxSeg:
         """Get transcript segment data and associated genomic metadata.
 
         Will liftover to GRCh38 assembly. If liftover is unsuccessful, will return
@@ -961,9 +980,7 @@ class ExonGenomicCoordsMapper:
             # We should always try to liftover
             grch38_ac = await self.uta_db.get_newest_assembly_ac(genomic_ac)
             if not grch38_ac:
-                return _GenomicTxSeg(
-                    errors=[f"Invalid genomic accession: {genomic_ac}"]
-                )
+                return GenomicTxSeg(errors=[f"Invalid genomic accession: {genomic_ac}"])
             grch38_ac = grch38_ac[0]
         else:
             mane_data = self.mane_transcript_mappings.get_gene_mane_data(gene)
@@ -972,7 +989,7 @@ class ExonGenomicCoordsMapper:
                 if gene:
                     err_msg += f" on gene {gene}"
                 _logger.warning(err_msg)
-                return _GenomicTxSeg(errors=[err_msg])
+                return GenomicTxSeg(errors=[err_msg])
 
             mane_data = mane_data[0]
             tx_ac = mane_data["RefSeq_nuc"]
@@ -984,14 +1001,14 @@ class ExonGenomicCoordsMapper:
                 genomic_ac, Assembly.GRCH37.value
             )
             if not chromosome:
-                return _GenomicTxSeg(errors=["`genomic_ac` must use GRCh37 or GRCh38"])
+                return GenomicTxSeg(errors=["`genomic_ac` must use GRCh37 or GRCh38"])
 
             chromosome = chromosome[-1].split(":")[-1]
             liftover_data = self.liftover.get_liftover(
                 chromosome, genomic_pos, Assembly.GRCH38
             )
             if liftover_data is None:
-                return _GenomicTxSeg(
+                return GenomicTxSeg(
                     errors=[
                         f"Position {genomic_pos} does not exist on chromosome {chromosome}"
                     ]
@@ -1002,7 +1019,7 @@ class ExonGenomicCoordsMapper:
 
         tx_exons = await self._get_all_exon_coords(tx_ac, genomic_ac=grch38_ac)
         if not tx_exons:
-            return _GenomicTxSeg(errors=[f"No exons found given {tx_ac}"])
+            return GenomicTxSeg(errors=[f"No exons found given {tx_ac}"])
 
         tx_exon_aln_data = await self.uta_db.get_tx_exon_aln_v_data(
             tx_ac,
@@ -1012,7 +1029,7 @@ class ExonGenomicCoordsMapper:
             use_tx_pos=False,
         )
         if len(tx_exon_aln_data) != 1:
-            return _GenomicTxSeg(
+            return GenomicTxSeg(
                 errors=[
                     f"Must find exactly one row for genomic data, but found: {len(tx_exon_aln_data)}"
                 ]
@@ -1034,13 +1051,13 @@ class ExonGenomicCoordsMapper:
             genomic_ac, genomic_pos, is_start, tx_exon_aln_data.alt_strand
         )
         if err_msg:
-            return _GenomicTxSeg(errors=[err_msg])
+            return GenomicTxSeg(errors=[err_msg])
 
-        return _GenomicTxSeg(
+        return GenomicTxSeg(
             gene=tx_exon_aln_data.hgnc,
             genomic_ac=genomic_ac,
             tx_ac=tx_exon_aln_data.tx_ac,
-            seg=_TxSegment(
+            seg=TxSegment(
                 exon_ord=tx_exon_aln_data.ord,
                 offset=offset,
                 genomic_location=genomic_location,

@@ -270,31 +270,6 @@ class UtaDatabase:
         """
         return [list(i) for i in li]
 
-    async def get_genomic_ac_genes(
-        self,
-        pos: int,
-        alt_ac: str,
-    ) -> tuple[set[str] | None, str | None]:
-        """Get genes given a genomic accession and position
-
-        :param pos: Genomic position
-        :param alt_ac: RefSeq accession, e.g. ``"NC_000007.14"``
-        :return: Set of HGNC gene symbols associated to genomic accession and position
-            and warning
-        """
-        query = f"""
-            SELECT DISTINCT(hgnc)
-            FROM {self.schema}.tx_exon_aln_v
-            WHERE alt_ac = '{alt_ac}'
-            AND alt_aln_method = 'splign'
-            AND {pos} BETWEEN alt_start_i AND alt_end_i;
-            """  # noqa: S608
-        results = await self.execute_query(query)
-        if not results:
-            return None, f"No gene(s) found given {alt_ac} on position {pos}"
-
-        return {r["hgnc"] for r in results}, None
-
     async def get_alt_ac_start_or_end(
         self, tx_ac: str, tx_exon_start: int, tx_exon_end: int, gene: str | None
     ) -> tuple[GenomicAlnData | None, str | None]:
