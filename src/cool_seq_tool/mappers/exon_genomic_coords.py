@@ -915,7 +915,7 @@ class ExonGenomicCoordsMapper:
         :param genomic_ac: RefSeq genomic accession
         :param genomic_pos: Genomic position on ``genomic_ac``
         :param grch38_ac: GRCh38 genomic accession for ``genomic_ac``. If not provided,
-            will get associated GRCh38 accession.
+            will attempt to retrieve associated GRCh38 accession from UTA.
         :return: GRCh38 accession, GRCh38 position, and errors if unable to get GRCh38
             representation
         """
@@ -925,7 +925,7 @@ class ExonGenomicCoordsMapper:
                 return _Grch38Data(
                     accession=None,
                     position=None,
-                    errors=[f"Invalid genomic accession: {genomic_ac}"],
+                    errors=[f"Unrecognized genomic accession: {genomic_ac}."],
                 )
 
             grch38_ac = grch38_ac[0]
@@ -936,10 +936,17 @@ class ExonGenomicCoordsMapper:
                 genomic_ac, Assembly.GRCH37.value
             )
             if not chromosome:
+                _logger.warning(
+                    "SeqRepo could not find associated %s assembly for genomic accession %s.",
+                    Assembly.GRCH37.value,
+                    genomic_ac,
+                )
                 return _Grch38Data(
                     accession=None,
                     position=None,
-                    errors=["`genomic_ac` must use GRCh37 or GRCh38"],
+                    errors=[
+                        f"`genomic_ac` must use {Assembly.GRCH37.value} or {Assembly.GRCH38.value} assembly."
+                    ],
                 )
 
             chromosome = chromosome[-1].split(":")[-1]
@@ -951,7 +958,7 @@ class ExonGenomicCoordsMapper:
                     accession=None,
                     position=None,
                     errors=[
-                        f"Position {genomic_pos} does not exist on chromosome {chromosome}"
+                        f"Lifting over {genomic_pos} on {genomic_ac} from {Assembly.GRCH37.value} to {Assembly.GRCH38.value} was unsuccessful."
                     ],
                 )
 
@@ -1079,7 +1086,9 @@ class ExonGenomicCoordsMapper:
             grch38_ac = mane_data["GRCh38_chr"]
 
         # Always liftover to GRCh38
-        grch38_data = await self._get_grch38_ac_pos(genomic_ac, genomic_pos)
+        grch38_data = await self._get_grch38_ac_pos(
+            genomic_ac, genomic_pos, grch38_ac=grch38_ac
+        )
         if grch38_data.errors:
             return _GenomicTxSeg(errors=grch38_data.errors)
         genomic_ac, genomic_pos = grch38_data.accession, grch38_data.position
