@@ -278,7 +278,7 @@ class UtaDatabase:
         """Get genes given a genomic accession and position
 
         :param pos: Genomic position
-        :param alt_ac: RefSeq
+        :param alt_ac: RefSeq accession, e.g. ``"NC_000007.14"``
         :return: Set of HGNC gene symbols associated to genomic accession and position
             and warning
         """
