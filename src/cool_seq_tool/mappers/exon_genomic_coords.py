@@ -68,15 +68,15 @@ class _TxSegment(BaseModelForbidExtra):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "exon_ord": 1,
-                "exon_offset": 0,
+                "exon_ord": 0,
+                "offset": 0,
                 "genomic_location": {
                     "type": "SequenceLocation",
                     "sequenceReference": {
                         "type": "SequenceReference",
-                        "refgetAccession": "SQ.2NkFm8HK88MqeNkCgj78KidCAXgnsfV1",
+                        "refgetAccession": "SQ.Ya6Rs7DHhDeg7YaOSg1EoNi3U_nQ9SvO",
                     },
-                    "start": 9575887,
+                    "end": 154192135,
                 },
             }
         }
@@ -116,19 +116,19 @@ class _GenomicTxSeg(BaseModelForbidExtra):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "gene": "BRAF",
-                "genomic_ac": "NC_000007.14",
-                "tx_ac": "NM_004333.6",
+                "gene": "TPM3",
+                "genomic_ac": "NC_000001.11",
+                "tx_ac": "NM_152263.3",
                 "seg": {
-                    "exon_ord": 5,
-                    "offset": -148,
+                    "exon_ord": 0,
+                    "offset": 0,
                     "genomic_location": {
                         "type": "SequenceLocation",
                         "sequenceReference": {
                             "type": "SequenceReference",
-                            "refgetAccession": "SQ.F-LrLMe1SRpfUZHkQmvkVKFEGaoDeHul",
+                            "refgetAccession": "SQ.Ya6Rs7DHhDeg7YaOSg1EoNi3U_nQ9SvO",
                         },
-                        "end": 140801559,
+                        "end": 154192135,
                     },
                 },
                 "errors": [],
@@ -175,31 +175,31 @@ class GenomicTxSegService(BaseModelForbidExtra):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "gene": "BRAF",
-                "genomic_ac": "NC_000007.14",
-                "tx_ac": "NM_004333.6",
+                "gene": "TPM3",
+                "genomic_ac": "NC_000001.11",
+                "tx_ac": "NM_152263.3",
                 "seg_start": {
-                    "exon_ord": 5,
-                    "offset": -148,
+                    "exon_ord": 0,
+                    "offset": 0,
                     "genomic_location": {
                         "type": "SequenceLocation",
                         "sequenceReference": {
                             "type": "SequenceReference",
-                            "refgetAccession": "SQ.F-LrLMe1SRpfUZHkQmvkVKFEGaoDeHul",
+                            "refgetAccession": "SQ.Ya6Rs7DHhDeg7YaOSg1EoNi3U_nQ9SvO",
                         },
-                        "end": 140801559,
+                        "end": 154192135,
                     },
                 },
                 "seg_end": {
-                    "exon_ord": 14,
-                    "offset": 57,
+                    "exon_ord": 7,
+                    "offset": 0,
                     "genomic_location": {
                         "type": "SequenceLocation",
                         "sequenceReference": {
                             "type": "SequenceReference",
-                            "refgetAccession": "SQ.F-LrLMe1SRpfUZHkQmvkVKFEGaoDeHul",
+                            "refgetAccession": "SQ.Ya6Rs7DHhDeg7YaOSg1EoNi3U_nQ9SvO",
                         },
-                        "start": 140753336,
+                        "start": 154170399,
                     },
                 },
             }
