@@ -20,7 +20,7 @@ from cool_seq_tool.utils import service_meta
 _logger = logging.getLogger(__name__)
 
 
-class ExonCoord(BaseModelForbidExtra):
+class _ExonCoord(BaseModelForbidExtra):
     """Model for representing exon coordinate data"""
 
     ord: StrictInt = Field(..., description="Exon number. 0-based.")
@@ -527,7 +527,7 @@ class ExonGenomicCoordsMapper:
 
     async def _get_all_exon_coords(
         self, tx_ac: str, genomic_ac: str | None = None
-    ) -> list[ExonCoord]:
+    ) -> list[_ExonCoord]:
         """Get all exon coordinate data for a transcript.
 
         If ``genomic_ac`` is NOT provided, this method will use the GRCh38 accession
@@ -563,7 +563,7 @@ class ExonGenomicCoordsMapper:
                 """  # noqa: S608
 
         results = await self.uta_db.execute_query(query)
-        return [ExonCoord(**r) for r in results]
+        return [_ExonCoord(**r) for r in results]
 
     async def _get_start_end_exon_coords(
         self,
@@ -571,7 +571,7 @@ class ExonGenomicCoordsMapper:
         exon_start: int | None = None,
         exon_end: int | None = None,
         genomic_ac: str | None = None,
-    ) -> tuple[ExonCoord | None, ExonCoord | None, list[str]]:
+    ) -> tuple[_ExonCoord | None, _ExonCoord | None, list[str]]:
         """Get exon coordinates for a transcript given exon start and exon end.
 
         If ``genomic_ac`` is NOT provided, this method will use the GRCh38 accession
@@ -609,8 +609,8 @@ class ExonGenomicCoordsMapper:
     async def _get_alt_ac_start_and_end(
         self,
         tx_ac: str,
-        tx_exon_start: ExonCoord | None = None,
-        tx_exon_end: ExonCoord | None = None,
+        tx_exon_start: _ExonCoord | None = None,
+        tx_exon_end: _ExonCoord | None = None,
         gene: str | None = None,
     ) -> tuple[tuple[tuple[int, int], tuple[int, int]] | None, str | None]:
         """Get aligned genomic coordinates for transcript exon start and end.
@@ -948,7 +948,7 @@ class ExonGenomicCoordsMapper:
         genomic_ac: str,
         strand: Strand,
         offset: int,
-        genomic_ac_data: ExonCoord,
+        genomic_ac_data: _ExonCoord,
         is_seg_start: bool = False,
     ) -> tuple[TxSegment | None, str | None]:
         """Get transcript segment data given ``genomic_ac`` and offset data
@@ -1153,7 +1153,7 @@ class ExonGenomicCoordsMapper:
 
     @staticmethod
     def _get_adjacent_exon(
-        tx_exons_genomic_coords: list[ExonCoord],
+        tx_exons_genomic_coords: list[_ExonCoord],
         strand: Strand,
         start: int | None = None,
         end: int | None = None,
@@ -1191,7 +1191,7 @@ class ExonGenomicCoordsMapper:
         return exon.ord if end else exon.ord + 1
 
     @staticmethod
-    def _is_exonic_breakpoint(pos: int, tx_genomic_coords: list[ExonCoord]) -> bool:
+    def _is_exonic_breakpoint(pos: int, tx_genomic_coords: list[_ExonCoord]) -> bool:
         """Check if a breakpoint occurs on an exon
 
         :param pos: Genomic breakpoint
