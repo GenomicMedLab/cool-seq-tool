@@ -104,7 +104,7 @@ class ExonCoord(BaseModelForbidExtra):
     )
 
 
-class TxSegment(BaseModelForbidExtra):
+class _TxSegment(BaseModelForbidExtra):
     """Model for representing transcript segment data."""
 
     exon_ord: StrictInt = Field(..., description="Exon number. 0-based.")
@@ -137,7 +137,7 @@ class TxSegment(BaseModelForbidExtra):
 class _GenomicTxSeg(BaseModelForbidExtra):
     """Model for representing a boundary for a transcript segment."""
 
-    seg: TxSegment | None = Field(None, description="Transcript segment.")
+    seg: _TxSegment | None = Field(None, description="Transcript segment.")
     gene: StrictStr | None = Field(None, description="HGNC gene symbol.")
     genomic_ac: StrictStr | None = Field(None, description="RefSeq genomic accession.")
     tx_ac: StrictStr | None = Field(None, description="RefSeq transcript accession.")
@@ -186,8 +186,8 @@ class GenomicTxSegService(BaseModelForbidExtra):
     gene: StrictStr | None = Field(None, description="HGNC gene symbol.")
     genomic_ac: StrictStr | None = Field(None, description="RefSeq genomic accession.")
     tx_ac: StrictStr | None = Field(None, description="RefSeq transcript accession.")
-    seg_start: TxSegment | None = Field(None, description="Start transcript segment.")
-    seg_end: TxSegment | None = Field(None, description="End transcript segment.")
+    seg_start: _TxSegment | None = Field(None, description="Start transcript segment.")
+    seg_end: _TxSegment | None = Field(None, description="End transcript segment.")
     errors: list[StrictStr] = Field([], description="Error messages.")
     service_meta: ServiceMeta = Field(..., description="Service metadata.")
 
@@ -839,7 +839,7 @@ class ExonGenomicCoordsMapper:
                     gene=gene,
                     genomic_ac=genomic_ac,
                     tx_ac=transcript,
-                    seg=TxSegment(
+                    seg=_TxSegment(
                         exon_ord=exon_num,
                         offset=offset,
                         genomic_location=genomic_location,
@@ -967,7 +967,7 @@ class ExonGenomicCoordsMapper:
         offset: int,
         genomic_ac_data: ExonCoord,
         is_seg_start: bool = False,
-    ) -> tuple[TxSegment | None, str | None]:
+    ) -> tuple[_TxSegment | None, str | None]:
         """Get transcript segment data given ``genomic_ac`` and offset data
 
         :param genomic_ac: Genomic RefSeq accession
@@ -998,7 +998,7 @@ class ExonGenomicCoordsMapper:
         if err_msg:
             return None, err_msg
 
-        return TxSegment(
+        return _TxSegment(
             exon_ord=genomic_ac_data.ord,
             genomic_location=genomic_loc,
             offset=offset,
@@ -1124,7 +1124,7 @@ class ExonGenomicCoordsMapper:
             gene=tx_exon_aln_data.hgnc,
             genomic_ac=genomic_ac,
             tx_ac=tx_exon_aln_data.tx_ac,
-            seg=TxSegment(
+            seg=_TxSegment(
                 exon_ord=tx_exon_aln_data.ord,
                 offset=offset,
                 genomic_location=genomic_location,
@@ -1168,21 +1168,6 @@ class ExonGenomicCoordsMapper:
             else:
                 offset = start_i - end if use_start_i else end_i - start
         return offset
-
-    @staticmethod
-    def _get_exon_number(tx_exons: list[ExonCoord], tx_pos: int) -> int:
-        """Find related exon number for a position
-
-        :param tx_exons: List of exon coordinates for a transcript
-        :param tx_pos: Transcript position change
-        :return: Exon number associated to transcript position change. Will be 0-based.
-            If there is no exon associated to the transcript position change, -1 will
-            be returned.
-        """
-        for coords in tx_exons:
-            if coords.tx_start_i <= tx_pos < coords.tx_end_i:
-                return coords.ord
-        return -1
 
     @staticmethod
     def _get_adjacent_exon(
