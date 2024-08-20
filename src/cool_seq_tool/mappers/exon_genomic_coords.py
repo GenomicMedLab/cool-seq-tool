@@ -412,6 +412,8 @@ class ExonGenomicCoordsMapper:
     ) -> GenomicTxSegService:
         """Get transcript segment data for genomic data, lifted over to GRCh38.
 
+        If liftover to GRCh38 is unsuccessful, will return errors.
+
         Must provide inter-residue coordinates.
 
         MANE Transcript data will be returned if and only if ``transcript`` is not
@@ -672,6 +674,9 @@ class ExonGenomicCoordsMapper:
     ) -> _GenomicTxSeg:
         """Given genomic data, generate a boundary for a transcript segment.
 
+        Will liftover to GRCh38 assembly. If liftover is unsuccessful, will return
+        errors.
+
         :param genomic_pos: Genomic position where the transcript segment starts or ends
             (inter-residue based)
         :param chromosome: Chromosome. Must give chromosome without a prefix
@@ -714,6 +719,13 @@ class ExonGenomicCoordsMapper:
                         errors=[err_msg],
                     )
                 genomic_ac = genomic_acs[0]
+
+            # We should always try to liftover
+            genomic_ac, genomic_pos, err_msg = await self._get_grch38_ac_pos(
+                genomic_ac, genomic_pos
+            )
+            if err_msg:
+                return _GenomicTxSeg(errors=[err_msg])
 
             if not transcript:
                 # Select a transcript if not provided
@@ -860,6 +872,49 @@ class ExonGenomicCoordsMapper:
             genomic_ac, genomic_pos, is_start, gene, tx_ac=transcript
         )
 
+    async def _get_grch38_ac_pos(
+        self, genomic_ac: str, genomic_pos: int, grch38_ac: str | None = None
+    ) -> tuple[str | None, int | None, str | None]:
+        """Get GRCh38 genomic representation for accession and position
+
+        :param genomic_ac: RefSeq genomic accession
+        :param genomic_pos: Genomic position on ``genomic_ac``
+        :param grch38_ac: GRCh38 genomic accession for ``genomic_ac``. If not provided,
+            will get associated GRCh38 accession.
+        :return: Tuple containing GRCh38 accession, GRCh38 position, and errors if
+            unable to get GRCh38 representation
+        """
+        if not grch38_ac:
+            grch38_ac = await self.uta_db.get_newest_assembly_ac(genomic_ac)
+            if not grch38_ac:
+                return None, None, f"Invalid genomic accession: {genomic_ac}"
+
+            grch38_ac = grch38_ac[0]
+
+        if grch38_ac != genomic_ac:
+            # Ensure genomic_ac is GRCh37
+            chromosome, _ = self.seqrepo_access.translate_identifier(
+                genomic_ac, Assembly.GRCH37.value
+            )
+            if not chromosome:
+                return None, None, "`genomic_ac` must use GRCh37 or GRCh38"
+
+            chromosome = chromosome[-1].split(":")[-1]
+            liftover_data = self.liftover.get_liftover(
+                chromosome, genomic_pos, Assembly.GRCH38
+            )
+            if liftover_data is None:
+                return (
+                    None,
+                    None,
+                    f"Position {genomic_pos} does not exist on chromosome {chromosome}",
+                )
+
+            genomic_pos = liftover_data[1]
+            genomic_ac = grch38_ac
+
+        return genomic_ac, genomic_pos, None
+
     def _get_tx_segment(
         self,
         genomic_ac: str,
@@ -978,27 +1033,11 @@ class ExonGenomicCoordsMapper:
             tx_ac = mane_data["RefSeq_nuc"]
             grch38_ac = mane_data["GRCh38_chr"]
 
-        if grch38_ac != genomic_ac:
-            # Ensure genomic_ac is GRCh37
-            chromosome, _ = self.seqrepo_access.translate_identifier(
-                genomic_ac, Assembly.GRCH37.value
-            )
-            if not chromosome:
-                return _GenomicTxSeg(errors=["`genomic_ac` must use GRCh37 or GRCh38"])
-
-            chromosome = chromosome[-1].split(":")[-1]
-            liftover_data = self.liftover.get_liftover(
-                chromosome, genomic_pos, Assembly.GRCH38
-            )
-            if liftover_data is None:
-                return _GenomicTxSeg(
-                    errors=[
-                        f"Position {genomic_pos} does not exist on chromosome {chromosome}"
-                    ]
-                )
-
-            genomic_pos = liftover_data[1]
-            genomic_ac = grch38_ac
+        genomic_ac, genomic_pos, err_msg = await self._get_grch38_ac_pos(
+            genomic_ac, genomic_pos, grch38_ac=grch38_ac
+        )
+        if err_msg:
+            return _GenomicTxSeg(errors=[err_msg])
 
         tx_exons = await self._get_all_exon_coords(tx_ac, genomic_ac=grch38_ac)
         if not tx_exons:
