@@ -479,7 +479,7 @@ class ExonGenomicCoordsMapper:
                 transcript=transcript,
                 gene=gene,
                 get_nearest_transcript_junction=get_nearest_transcript_junction,
-                is_start=True,
+                is_seg_start=True,
             )
             if start_tx_seg_data.errors:
                 return _return_service_errors(start_tx_seg_data.errors)
@@ -499,7 +499,7 @@ class ExonGenomicCoordsMapper:
                 transcript=transcript,
                 gene=gene,
                 get_nearest_transcript_junction=get_nearest_transcript_junction,
-                is_start=False,
+                is_seg_start=False,
             )
             if end_tx_seg_data.errors:
                 return _return_service_errors(end_tx_seg_data.errors)
@@ -689,7 +689,7 @@ class ExonGenomicCoordsMapper:
         genomic_loc, err_msg = self._get_vrs_seq_loc(
             genomic_ac,
             seg_genomic_pos,
-            is_start=is_seg_start,
+            is_seg_start=is_seg_start,
             strand=strand,
         )
         if err_msg:
@@ -702,14 +702,14 @@ class ExonGenomicCoordsMapper:
         ), None
 
     def _get_vrs_seq_loc(
-        self, genomic_ac: str, genomic_pos: int, is_start: bool, strand: Strand
+        self, genomic_ac: str, genomic_pos: int, is_seg_start: bool, strand: Strand
     ) -> tuple[SequenceLocation | None, str | None]:
         """Create VRS Sequence Location for genomic position where transcript segment
         occurs
 
         :param genomic_ac: RefSeq genomic accession
         :param genomic_pos: Genomic position where the transcript segment occurs
-        :param is_start: ``True`` if ``genomic_pos`` is where the transcript segment
+        :param is_seg_start: ``True`` if ``genomic_pos`` is where the transcript segment
             starts. ``False`` if ``genomic_pos`` is where the transcript segment ends.
         :param strand: Strand
         :return: Tuple containing VRS location (if successful) and error message (if
@@ -721,7 +721,9 @@ class ExonGenomicCoordsMapper:
         if err_msg:
             return None, err_msg
 
-        use_start = strand == Strand.POSITIVE if is_start else strand != Strand.POSITIVE
+        use_start = (
+            strand == Strand.POSITIVE if is_seg_start else strand != Strand.POSITIVE
+        )
 
         return SequenceLocation(
             sequenceReference=SequenceReference(
@@ -739,7 +741,7 @@ class ExonGenomicCoordsMapper:
         transcript: str | None = None,
         gene: str | None = None,
         get_nearest_transcript_junction: bool = False,
-        is_start: bool = True,
+        is_seg_start: bool = True,
     ) -> GenomicTxSeg:
         """Given genomic data, generate a boundary for a transcript segment.
 
@@ -766,7 +768,7 @@ class ExonGenomicCoordsMapper:
             following the breakpoint for the 3' end. For the negative strand, adjacent
             is defined as the exon following the breakpoint for the 5' end and the exon
             preceding the breakpoint for the 3' end.
-        :param is_start: ``True`` if ``genomic_pos`` is where the transcript segment starts.
+        :param is_seg_start: ``True`` if ``genomic_pos`` is where the transcript segment starts.
             ``False`` if ``genomic_pos`` is where the transcript segment ends.
         :return: Data for a transcript segment boundary (inter-residue coordinates)
         """
@@ -847,8 +849,8 @@ class ExonGenomicCoordsMapper:
                 exon_num = self._get_adjacent_exon(
                     tx_exons_genomic_coords=tx_exons,
                     strand=strand,
-                    start=genomic_pos if is_start else None,
-                    end=genomic_pos if not is_start else None,
+                    start=genomic_pos if is_seg_start else None,
+                    end=genomic_pos if not is_seg_start else None,
                 )
 
                 offset = self._get_exon_offset(
@@ -856,15 +858,15 @@ class ExonGenomicCoordsMapper:
                     end_i=tx_exons[exon_num].alt_end_i,
                     strand=strand,
                     use_start_i=strand == Strand.POSITIVE
-                    if is_start
+                    if is_seg_start
                     else strand != Strand.POSITIVE,
                     is_in_exon=False,
-                    start=genomic_pos if is_start else None,
-                    end=genomic_pos if not is_start else None,
+                    start=genomic_pos if is_seg_start else None,
+                    end=genomic_pos if not is_seg_start else None,
                 )
 
                 genomic_location, err_msg = self._get_vrs_seq_loc(
-                    genomic_ac, genomic_pos, is_start, strand
+                    genomic_ac, genomic_pos, is_seg_start, strand
                 )
                 if err_msg:
                     return GenomicTxSeg(errors=[err_msg])
@@ -932,7 +934,7 @@ class ExonGenomicCoordsMapper:
                 )
 
         return await self._get_tx_seg_genomic_metadata(
-            genomic_ac, genomic_pos, is_start, gene, tx_ac=transcript
+            genomic_ac, genomic_pos, is_seg_start, gene, tx_ac=transcript
         )
 
     async def _get_grch38_ac_pos(
@@ -1021,7 +1023,7 @@ class ExonGenomicCoordsMapper:
         self,
         genomic_ac: str,
         genomic_pos: int,
-        is_start: bool,
+        is_seg_start: bool,
         gene: str,
         tx_ac: str | None,
     ) -> GenomicTxSeg:
@@ -1034,7 +1036,7 @@ class ExonGenomicCoordsMapper:
 
         :param genomic_ac: Genomic RefSeq accession
         :param genomic_pos: Genomic position where the transcript segment occurs
-        :param is_start: Whether or not ``genomic_pos`` represents the start position.
+        :param is_seg_start: Whether or not ``genomic_pos`` represents the start position.
         :param gene: HGNC gene symbol
         :param tx_ac: Transcript RefSeq accession. If not provided, will use MANE
             transcript
@@ -1092,12 +1094,12 @@ class ExonGenomicCoordsMapper:
             strand=Strand(tx_exon_aln_data.alt_strand),
             use_start_i=False,  # This doesn't impact anything since we're on the exon
             is_in_exon=True,
-            start=genomic_pos if is_start else None,
-            end=genomic_pos if not is_start else None,
+            start=genomic_pos if is_seg_start else None,
+            end=genomic_pos if not is_seg_start else None,
         )
 
         genomic_location, err_msg = self._get_vrs_seq_loc(
-            genomic_ac, genomic_pos, is_start, tx_exon_aln_data.alt_strand
+            genomic_ac, genomic_pos, is_seg_start, tx_exon_aln_data.alt_strand
         )
         if err_msg:
             return GenomicTxSeg(errors=[err_msg])
