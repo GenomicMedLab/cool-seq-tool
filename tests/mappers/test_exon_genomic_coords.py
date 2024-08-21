@@ -976,12 +976,14 @@ async def test_get_alt_ac_start_and_end(
         ),
         "TPM3",
     )
-    assert resp[0] == (tpm3_1_8_start_genomic, tpm3_1_8_end_genomic)
-    assert resp[1] is None
+    assert resp == (tpm3_1_8_start_genomic, tpm3_1_8_end_genomic, None)
 
     resp = await test_egc_mapper._get_alt_ac_start_and_end("NM_152263.3", gene="TPM3")
-    assert resp[0] is None
-    assert resp[1] == "Must provide either `tx_exon_start` or `tx_exon_end` or both"
+    assert resp == (
+        None,
+        None,
+        "Must provide either `tx_exon_start` or `tx_exon_end` or both",
+    )
 
 
 @pytest.mark.asyncio()

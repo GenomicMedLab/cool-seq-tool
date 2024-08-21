@@ -14,7 +14,7 @@ from cool_seq_tool.schemas import (
     Strand,
 )
 from cool_seq_tool.sources.mane_transcript_mappings import ManeTranscriptMappings
-from cool_seq_tool.sources.uta_database import UtaDatabase
+from cool_seq_tool.sources.uta_database import GenomicAlnData, UtaDatabase
 from cool_seq_tool.utils import service_meta
 
 _logger = logging.getLogger(__name__)
@@ -340,12 +340,15 @@ class ExonGenomicCoordsMapper:
 
         # Get aligned genomic data (hgnc gene, alt_ac, alt_start_i, alt_end_i, strand)
         # for exon(s)
-        alt_ac_start_end, err_msg = await self._get_alt_ac_start_and_end(
+        (
+            alt_ac_start_data,
+            alt_ac_end_data,
+            err_msg,
+        ) = await self._get_alt_ac_start_and_end(
             transcript, tx_exon_start_coords, tx_exon_end_coords, gene=gene
         )
-        if not alt_ac_start_end:
-            return _return_service_errors([err_msg] if err_msg else [])
-        alt_ac_start_data, alt_ac_end_data = alt_ac_start_end
+        if err_msg:
+            return _return_service_errors([err_msg])
 
         # Get gene and chromosome data, check that at least one was retrieved
         gene = alt_ac_start_data.hgnc if alt_ac_start_data else alt_ac_end_data.hgnc
@@ -612,8 +615,11 @@ class ExonGenomicCoordsMapper:
         tx_exon_start: _ExonCoord | None = None,
         tx_exon_end: _ExonCoord | None = None,
         gene: str | None = None,
-    ) -> tuple[tuple[tuple[int, int], tuple[int, int]] | None, str | None]:
+    ) -> tuple[GenomicAlnData | None, GenomicAlnData | None, str | None]:
         """Get aligned genomic coordinates for transcript exon start and end.
+
+        ``tx_exon_start`` and ``tx_exon_end`` will always have transcript and genomic
+        accession.
 
         :param tx_ac: Transcript accession
         :param tx_exon_start: Transcript's exon start coordinates. If not provided,
@@ -621,12 +627,13 @@ class ExonGenomicCoordsMapper:
         :param tx_exon_end: Transcript's exon end coordinates. If not provided, must
             provide ``tx_exon_start``
         :param gene: HGNC gene symbol
-        :return: Aligned genomic data, and warnings if found
+        :return: Tuple containing aligned genomic data for start and end exon and
+            warnings if found
         """
         if tx_exon_start is None and tx_exon_end is None:
             msg = "Must provide either `tx_exon_start` or `tx_exon_end` or both"
             _logger.warning(msg)
-            return None, msg
+            return None, None, msg
 
         alt_ac_data = {"start": None, "end": None}
         for exon, key in [(tx_exon_start, "start"), (tx_exon_end, "end")]:
@@ -637,25 +644,9 @@ class ExonGenomicCoordsMapper:
                 if alt_ac_val:
                     alt_ac_data[key] = alt_ac_val
                 else:
-                    return None, warning
+                    return None, None, warning
 
-        alt_ac_data_values = alt_ac_data.values()
-        # Validate that start and end alignments have matching gene, genomic accession,
-        # and strand
-        if all(alt_ac_data_values):
-            for attr in ["hgnc", "alt_ac", "alt_strand"]:
-                start_attr = getattr(alt_ac_data["start"], attr)
-                end_attr = getattr(alt_ac_data["end"], attr)
-                if start_attr != end_attr:
-                    error = f"{attr} mismatch. {start_attr} != {end_attr}."
-                    _logger.warning(
-                        "%s: %s != %s",
-                        error,
-                        start_attr,
-                        end_attr,
-                    )
-                    return None, error
-        return tuple(alt_ac_data_values), None
+        return *alt_ac_data.values(), None
 
     def _get_tx_segment(
         self,
