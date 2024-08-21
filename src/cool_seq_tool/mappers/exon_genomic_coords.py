@@ -39,13 +39,13 @@ def _check_errors(
         if any(
             values.get(required_field) is None for required_field in required_fields
         ):
-            err_msg = f"{required_fields} must all be provided"
+            err_msg = f"The following fields are required: {required_fields}."
             raise ValueError(err_msg)
 
         if either_or_fields:
             for field1, field2 in either_or_fields:
                 if values.get(field1) is None and values.get(field2) is None:
-                    err_msg = f"At least one of {field1} or {field2} must be provided"
+                    err_msg = f"Either `{field1}` or `{field2}` is required."
                     raise ValueError(err_msg)
 
     return values
