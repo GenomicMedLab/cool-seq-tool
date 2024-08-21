@@ -9,7 +9,6 @@ from pydantic import (
     ConfigDict,
     StrictInt,
     StrictStr,
-    model_validator,
 )
 
 from cool_seq_tool import __version__
@@ -109,13 +108,6 @@ class BaseModelForbidExtra(BaseModel, extra="forbid"):
     """Base Pydantic model class with extra values forbidden."""
 
 
-class GenesGenomicAcs(BaseModelForbidExtra):
-    """Represent HGNC gene symbols and genomic accessions"""
-
-    genes: set[str]
-    alt_acs: set[str]
-
-
 class GenomicTxData(BaseModelForbidExtra):
     """Represent aligned genomic/transcript exon data"""
 
@@ -147,91 +139,6 @@ class ManeGeneData(BaseModel, extra="forbid"):
     symbol: StrictStr
 
 
-class TranscriptExonData(BaseModelForbidExtra):
-    """Model containing transcript exon data."""
-
-    transcript: StrictStr
-    pos: StrictInt
-    exon: StrictInt
-    exon_offset: StrictInt = 0
-    gene: StrictStr
-    chr: StrictStr
-    strand: Strand
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "chr": "NC_000001.11",
-                "gene": "TPM3",
-                "pos": 154192135,
-                "exon": 1,
-                "exon_offset": 0,
-                "transcript": "NM_152263.3",
-                "strand": Strand.NEGATIVE,
-            }
-        }
-    )
-
-
-class GenomicData(BaseModelForbidExtra):
-    """Model containing genomic and transcript exon data."""
-
-    gene: StrictStr
-    chr: StrictStr
-    start: StrictInt | None = None  # Genomic start position
-    end: StrictInt | None = None  # Genomic end position
-    exon_start: StrictInt | None = None
-    exon_start_offset: StrictInt | None = 0
-    exon_end: StrictInt | None = None
-    exon_end_offset: StrictInt | None = 0
-    transcript: StrictStr
-    strand: Strand
-
-    @model_validator(mode="after")
-    def check_start_end(cls, values):
-        """Check that at least one of {``start``, ``end``} is set.
-        Check that at least one of {``exon_start``, ``exon_end``} is set.
-        If not set, set corresponding offset to ``None``
-        """
-        start = values.start
-        end = values.end
-        if not start and not end:
-            msg = "Missing values for `start` or `end`"
-            raise ValueError(msg)
-
-        if start:
-            if not values.exon_start:
-                msg = "Missing value `exon_start`"
-                raise ValueError(msg)
-        else:
-            values.exon_start_offset = None
-
-        if end:
-            if not values.exon_end:
-                msg = "Missing value `exon_end`"
-                raise ValueError(msg)
-        else:
-            values.exon_end_offset = None
-        return values
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "gene": "TPM3",
-                "chr": "NC_000001.11",
-                "start": 154192135,
-                "end": None,
-                "exon_start": 1,
-                "exon_end": None,
-                "exon_start_offset": 0,
-                "exon_end_offset": None,
-                "transcript": "NM_152263.3",
-                "strand": Strand.NEGATIVE,
-            }
-        }
-    )
-
-
 class ServiceMeta(BaseModelForbidExtra):
     """Metadata for cool_seq_tool service"""
 
@@ -249,71 +156,6 @@ class ServiceMeta(BaseModelForbidExtra):
                 "version": __version__,
                 "response_datetime": _now,
                 "url": "https://github.com/GenomicMedLab/cool-seq-tool",
-            }
-        }
-    )
-
-
-class TranscriptExonDataResponse(BaseModelForbidExtra):
-    """Response model for Transcript Exon Data"""
-
-    transcript_exon_data: TranscriptExonData | None = None
-    warnings: list[StrictStr] = []
-    service_meta: ServiceMeta
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "transcript_exon_data": {
-                    "chr": "NC_000001.11",
-                    "gene": "TPM3",
-                    "pos": 154192135,
-                    "exon": 1,
-                    "exon_offset": 0,
-                    "transcript": "NM_152263.3",
-                    "strand": Strand.NEGATIVE,
-                },
-                "warnings": [],
-                "service_meta": {
-                    "name": "cool_seq_tool",
-                    "version": __version__,
-                    "response_datetime": _now,
-                    "url": "https://github.com/GenomicMedLab/cool-seq-tool",
-                },
-            }
-        }
-    )
-
-
-class GenomicDataResponse(BaseModelForbidExtra):
-    """Response model for Genomic Data"""
-
-    genomic_data: GenomicData | None = None
-    warnings: list[StrictStr] = []
-    service_meta: ServiceMeta
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "genomic_data": {
-                    "gene": "TPM3",
-                    "chr": "NC_000001.11",
-                    "start": 154192135,
-                    "end": None,
-                    "exon_start": 1,
-                    "exon_end": None,
-                    "exon_start_offset": 0,
-                    "exon_end_offset": None,
-                    "transcript": "NM_152263.3",
-                    "strand": Strand.NEGATIVE,
-                },
-                "warnings": [],
-                "service_meta": {
-                    "name": "cool_seq_tool",
-                    "version": __version__,
-                    "response_datetime": _now,
-                    "url": "https://github.com/GenomicMedLab/cool-seq-tool",
-                },
             }
         }
     )
