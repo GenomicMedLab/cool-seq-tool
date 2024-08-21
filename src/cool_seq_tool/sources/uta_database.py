@@ -18,7 +18,6 @@ from cool_seq_tool.schemas import (
     AnnotationLayer,
     Assembly,
     BaseModelForbidExtra,
-    GenesGenomicAcs,
     GenomicTxData,
     GenomicTxMetadata,
     Strand,
@@ -270,69 +269,6 @@ class UtaDatabase:
         :return: List of list of objects
         """
         return [list(i) for i in li]
-
-    async def get_genes_and_alt_acs(
-        self,
-        pos: int,
-        strand: Strand | None = None,
-        chromosome: int | None = None,
-        alt_ac: str | None = None,
-        gene: str | None = None,
-    ) -> tuple[GenesGenomicAcs | None, str | None]:
-        """Return genes and genomic accessions for a position on a chromosome or alt_ac
-
-        :param pos: Genomic position
-        :param strand: Strand
-        :param chromosome: Chromosome. Must give chromosome without a prefix
-            (i.e. ``1`` or ``X``). If not provided, must provide ``alt_ac``.
-            If ``alt_ac`` is also provided, ``alt_ac`` will be used.
-        :param alt_ac: Genomic accession (i.e. ``NC_000001.11``). If not provided,
-            must provide ``chromosome``. If ``chromosome`` is also provided, ``alt_ac``
-            will be used.
-        :param gene: Gene symbol
-        :return: Genes and genomic accessions and warnings if found
-        """
-        alt_ac_cond = (
-            f"WHERE alt_ac = '{alt_ac}'"
-            if alt_ac
-            else f"WHERE alt_ac ~ '^NC_[0-9]+0{chromosome}.[0-9]+$'"
-        )
-        strand_cond = f"AND alt_strand = '{strand.value}'" if strand else ""
-        gene_cond = f"AND hgnc = '{gene}'" if gene else ""
-
-        query = f"""
-            SELECT hgnc, alt_ac
-            FROM {self.schema}.tx_exon_aln_v
-            {alt_ac_cond}
-            AND alt_aln_method = 'splign'
-            AND {pos} BETWEEN alt_start_i AND alt_end_i
-            {strand_cond}
-            {gene_cond};
-            """  # noqa: S608
-
-        results = await self.execute_query(query)
-        if not results:
-            msg = (
-                f"Unable to find a result for chromosome "
-                f"{alt_ac or chromosome} where genomic coordinate {pos}"
-                f" is mapped between an exon's start and end coordinates"
-            )
-            if strand:
-                msg += (
-                    f" on the "
-                    f"{'positive' if strand == Strand.POSITIVE else 'negative'} strand"
-                )
-            if gene:
-                msg += f" and on gene {gene}"
-            return None, msg
-
-        results = self._transform_list(results)
-        genes = set()
-        alt_acs = set()
-        for r in results:
-            genes.add(r[0])
-            alt_acs.add(r[1])
-        return GenesGenomicAcs(genes=genes, alt_acs=alt_acs), None
 
     async def get_alt_ac_start_or_end(
         self, tx_ac: str, tx_exon_start: int, tx_exon_end: int, gene: str | None
