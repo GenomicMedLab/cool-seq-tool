@@ -8,6 +8,7 @@ from cool_seq_tool.mappers.exon_genomic_coords import (
     ExonCoord,
     GenomicTxSeg,
     GenomicTxSegService,
+    _Grch38Data,
 )
 from cool_seq_tool.schemas import (
     Strand,
@@ -700,6 +701,46 @@ def genomic_tx_seg_checks(actual, expected=None, is_valid=True):
         assert actual.tx_ac is None
         assert actual.seg is None
         assert len(actual.errors) > 0
+
+
+@pytest.mark.asyncio()
+async def test_get_grch38_ac_pos(test_egc_mapper):
+    """Test that _get_grch38_ac_pos works correctly"""
+    grch38_ac = "NC_000001.11"
+    grch38_pos = 154192135
+    expected = _Grch38Data(accession=grch38_ac, position=grch38_pos), None
+
+    # GRCh37 provided
+    grch38_data = await test_egc_mapper._get_grch38_ac_pos("NC_000001.10", 154164611)
+    assert grch38_data == expected
+
+    # GRCh38 provided, no grch38_ac
+    grch38_data = await test_egc_mapper._get_grch38_ac_pos(grch38_ac, grch38_pos)
+    assert grch38_data == expected
+
+    # GRCh38 and grch38_ac provided
+    grch38_data = await test_egc_mapper._get_grch38_ac_pos(
+        grch38_ac, grch38_pos, grch38_ac=grch38_ac
+    )
+    assert grch38_data == expected
+
+    # Unrecognized accession
+    invalid_ac = "NC_0000026.10"
+    grch38_data = await test_egc_mapper._get_grch38_ac_pos(invalid_ac, 154164611)
+    assert grch38_data == (None, f"Unrecognized genomic accession: {invalid_ac}.")
+
+    # GRCh36 used
+    grch38_data = await test_egc_mapper._get_grch38_ac_pos("NC_000001.9", 154164611)
+    assert grch38_data == (None, "`genomic_ac` must use GRCh37 or GRCh38 assembly.")
+
+    # Unsuccessful liftover
+    grch38_data = await test_egc_mapper._get_grch38_ac_pos(
+        "NC_000001.10", 9999999999999999999
+    )
+    assert grch38_data == (
+        None,
+        "Lifting over 9999999999999999999 on NC_000001.10 from GRCh37 to GRCh38 was unsuccessful.",
+    )
 
 
 @pytest.mark.asyncio()

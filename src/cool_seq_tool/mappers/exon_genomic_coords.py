@@ -20,37 +20,6 @@ from cool_seq_tool.utils import service_meta
 _logger = logging.getLogger(__name__)
 
 
-def _check_errors(
-    values: dict,
-    required_fields: list[str],
-    either_or_fields: list[tuple[str, str]] | None = None,
-) -> dict:
-    """Ensure that required fields are set if ``errors`` field is empty
-
-    :param values: Values in model
-    :param required_fields: List of field names that are required if there are no errors
-    :param either_or_fields: List of field names where at least one field is required if
-        there are no errors
-    :raises ValueError: If required or either/or fields are not provided when there are
-        no errors
-    :return: Values in model
-    """
-    if not values.get("errors"):
-        if any(
-            values.get(required_field) is None for required_field in required_fields
-        ):
-            err_msg = f"The following fields are required: {required_fields}."
-            raise ValueError(err_msg)
-
-        if either_or_fields:
-            for field1, field2 in either_or_fields:
-                if values.get(field1) is None and values.get(field2) is None:
-                    err_msg = f"Either `{field1}` or `{field2}` is required."
-                    raise ValueError(err_msg)
-
-    return values
-
-
 class _Grch38Data(BaseModelForbidExtra):
     """Model representing GRCh38 accession and position, with errors"""
 
@@ -60,17 +29,6 @@ class _Grch38Data(BaseModelForbidExtra):
     position: StrictInt | None = Field(
         None, description="GRCh38 genomic position on `genomic_ac`."
     )
-    errors: list[StrictStr] = Field([], description="Error messages.")
-
-    @model_validator(mode="before")
-    def check_errors(cls, values: dict) -> dict:  # noqa: N805
-        """Ensure that fields are (un)set depending on errors
-
-        :param values: Values in model
-        :raises ValueError: If `accession` and `position` are not provided when there are no errors
-        :return: Values in model
-        """
-        return _check_errors(values, required_fields=["accession", "position"])
 
 
 class ExonCoord(BaseModelForbidExtra):
@@ -154,9 +112,17 @@ class GenomicTxSeg(BaseModelForbidExtra):
         provided when there are no errors
         :return: Values in model
         """
-        return _check_errors(
-            values, required_fields=["seg", "gene", "genomic_ac", "tx_ac"]
-        )
+        if not values.get("errors") and not all(
+            (
+                values.get("seg"),
+                values.get("gene"),
+                values.get("genomic_ac"),
+                values.get("tx_ac"),
+            )
+        ):
+            err_msg = "`seg`, `gene`, `genomic_ac` and `tx_ac` must be provided"
+            raise ValueError(err_msg)
+        return values
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -204,11 +170,18 @@ class GenomicTxSegService(BaseModelForbidExtra):
         :return: Values in model, including service metadata
         """
         values["service_meta"] = service_meta()
-        return _check_errors(
-            values,
-            required_fields=["gene", "genomic_ac", "tx_ac"],
-            either_or_fields=[("seg_start", "seg_end")],
-        )
+        if not values.get("errors") and not all(
+            (
+                values.get("gene"),
+                values.get("genomic_ac"),
+                values.get("tx_ac"),
+                values.get("seg_start") or values.get("seg_end"),
+            )
+        ):
+            err_msg = "`gene`, `genomic_ac`, `tx_ac` and `seg_start` or `seg_end` must be provided"
+            raise ValueError(err_msg)
+
+        return values
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -754,9 +727,11 @@ class ExonGenomicCoordsMapper:
                 genomic_ac = genomic_acs[0]
 
             # Always liftover to GRCh38
-            grch38_data = await self._get_grch38_ac_pos(genomic_ac, genomic_pos)
-            if grch38_data.errors:
-                return GenomicTxSeg(errors=grch38_data.errors)
+            grch38_data, err_msg = await self._get_grch38_ac_pos(
+                genomic_ac, genomic_pos
+            )
+            if err_msg:
+                return GenomicTxSeg(errors=[err_msg])
             genomic_ac, genomic_pos = grch38_data.accession, grch38_data.position
 
             if not transcript:
@@ -900,24 +875,20 @@ class ExonGenomicCoordsMapper:
 
     async def _get_grch38_ac_pos(
         self, genomic_ac: str, genomic_pos: int, grch38_ac: str | None = None
-    ) -> _Grch38Data:
+    ) -> tuple[_Grch38Data | None, str | None]:
         """Get GRCh38 genomic representation for accession and position
 
-        :param genomic_ac: RefSeq genomic accession
+        :param genomic_ac: RefSeq genomic accession (GRCh37 or GRCh38 assembly)
         :param genomic_pos: Genomic position on ``genomic_ac``
-        :param grch38_ac: GRCh38 genomic accession for ``genomic_ac``. If not provided,
-            will attempt to retrieve associated GRCh38 accession from UTA.
-        :return: GRCh38 accession, GRCh38 position, and errors if unable to get GRCh38
-            representation
+        :param grch38_ac: A valid GRCh38 genomic accession for ``genomic_ac``. If not
+            provided, will attempt to retrieve associated GRCh38 accession from UTA.
+        :return: Tuple containing GRCh38 accession and position, and errors if unable to
+            get GRCh38 representation
         """
         if not grch38_ac:
             grch38_ac = await self.uta_db.get_newest_assembly_ac(genomic_ac)
             if not grch38_ac:
-                return _Grch38Data(
-                    accession=None,
-                    position=None,
-                    errors=[f"Unrecognized genomic accession: {genomic_ac}."],
-                )
+                return None, f"Unrecognized genomic accession: {genomic_ac}."
 
             grch38_ac = grch38_ac[0]
 
@@ -932,12 +903,9 @@ class ExonGenomicCoordsMapper:
                     Assembly.GRCH37.value,
                     genomic_ac,
                 )
-                return _Grch38Data(
-                    accession=None,
-                    position=None,
-                    errors=[
-                        f"`genomic_ac` must use {Assembly.GRCH37.value} or {Assembly.GRCH38.value} assembly."
-                    ],
+                return (
+                    None,
+                    f"`genomic_ac` must use {Assembly.GRCH37.value} or {Assembly.GRCH38.value} assembly.",
                 )
 
             chromosome = chromosome[-1].split(":")[-1]
@@ -945,18 +913,15 @@ class ExonGenomicCoordsMapper:
                 chromosome, genomic_pos, Assembly.GRCH38
             )
             if liftover_data is None:
-                return _Grch38Data(
-                    accession=None,
-                    position=None,
-                    errors=[
-                        f"Lifting over {genomic_pos} on {genomic_ac} from {Assembly.GRCH37.value} to {Assembly.GRCH38.value} was unsuccessful."
-                    ],
+                return (
+                    None,
+                    f"Lifting over {genomic_pos} on {genomic_ac} from {Assembly.GRCH37.value} to {Assembly.GRCH38.value} was unsuccessful.",
                 )
 
             genomic_pos = liftover_data[1]
             genomic_ac = grch38_ac
 
-        return _Grch38Data(accession=genomic_ac, position=genomic_pos)
+        return _Grch38Data(accession=genomic_ac, position=genomic_pos), None
 
     async def _get_genomic_ac_gene(
         self,
@@ -1105,11 +1070,11 @@ class ExonGenomicCoordsMapper:
             grch38_ac = mane_data["GRCh38_chr"]
 
         # Always liftover to GRCh38
-        grch38_data = await self._get_grch38_ac_pos(
+        grch38_data, err_msg = await self._get_grch38_ac_pos(
             genomic_ac, genomic_pos, grch38_ac=grch38_ac
         )
-        if grch38_data.errors:
-            return GenomicTxSeg(errors=grch38_data.errors)
+        if err_msg:
+            return GenomicTxSeg(errors=[err_msg])
         genomic_ac, genomic_pos = grch38_data.accession, grch38_data.position
 
         tx_exons = await self._get_all_exon_coords(tx_ac, genomic_ac=grch38_ac)
