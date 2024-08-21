@@ -526,6 +526,41 @@ def gusbp3_exon2_end():
 
 
 @pytest.fixture(scope="module")
+def eln_grch38_intronic():
+    """Create test fixture for ELN (issue-329)"""
+    params = {
+        "gene": "ELN",
+        "genomic_ac": "NC_000007.14",
+        "tx_ac": "NM_000501.4",
+        "seg_start": {
+            "exon_ord": 0,
+            "offset": 1,
+            "genomic_location": {
+                "type": "SequenceLocation",
+                "sequenceReference": {
+                    "type": "SequenceReference",
+                    "refgetAccession": "SQ.F-LrLMe1SRpfUZHkQmvkVKFEGaoDeHul",
+                },
+                "start": 74028173,
+            },
+        },
+        "seg_end": {
+            "exon_ord": 7,
+            "offset": 431,
+            "genomic_location": {
+                "type": "SequenceLocation",
+                "sequenceReference": {
+                    "type": "SequenceReference",
+                    "refgetAccession": "SQ.F-LrLMe1SRpfUZHkQmvkVKFEGaoDeHul",
+                },
+                "end": 74043599,
+            },
+        },
+    }
+    return GenomicTxSegService(**params)
+
+
+@pytest.fixture(scope="module")
 def gusbp3_exon5_start():
     """Create test fixture for GUSBP3, start of exon 5 (negative strand)"""
     params = {
@@ -665,6 +700,51 @@ def genomic_tx_seg_checks(actual, expected=None, is_valid=True):
         assert actual.tx_ac is None
         assert actual.seg is None
         assert len(actual.errors) > 0
+
+
+@pytest.mark.asyncio()
+async def test_get_grch38_ac_pos(test_egc_mapper):
+    """Test that _get_grch38_ac_pos works correctly"""
+    grch38_ac = "NC_000001.11"
+    grch38_pos = 154192135
+    expected = grch38_ac, grch38_pos, None
+
+    # GRCh37 provided
+    grch38_data = await test_egc_mapper._get_grch38_ac_pos("NC_000001.10", 154164611)
+    assert grch38_data == expected
+
+    # GRCh38 provided, no grch38_ac
+    grch38_data = await test_egc_mapper._get_grch38_ac_pos(grch38_ac, grch38_pos)
+    assert grch38_data == expected
+
+    # GRCh38 and grch38_ac provided
+    grch38_data = await test_egc_mapper._get_grch38_ac_pos(
+        grch38_ac, grch38_pos, grch38_ac=grch38_ac
+    )
+    assert grch38_data == expected
+
+    # Unrecognized accession
+    invalid_ac = "NC_0000026.10"
+    grch38_data = await test_egc_mapper._get_grch38_ac_pos(invalid_ac, 154164611)
+    assert grch38_data == (None, None, f"Unrecognized genomic accession: {invalid_ac}.")
+
+    # GRCh36 used
+    grch38_data = await test_egc_mapper._get_grch38_ac_pos("NC_000001.9", 154164611)
+    assert grch38_data == (
+        None,
+        None,
+        "`genomic_ac` must use GRCh37 or GRCh38 assembly.",
+    )
+
+    # Unsuccessful liftover
+    grch38_data = await test_egc_mapper._get_grch38_ac_pos(
+        "NC_000001.10", 9999999999999999999
+    )
+    assert grch38_data == (
+        None,
+        None,
+        "Lifting over 9999999999999999999 on NC_000001.10 from GRCh37 to GRCh38 was unsuccessful.",
+    )
 
 
 @pytest.mark.asyncio()
@@ -1194,7 +1274,7 @@ async def test_transcript_to_genomic(
 
 
 @pytest.mark.asyncio()
-async def test_valid_inputs(test_egc_mapper):
+async def test_valid_inputs(test_egc_mapper, eln_grch38_intronic):
     """Test that valid inputs don"t return any errors"""
     inputs = {
         "gene": "TPM3",
@@ -1239,6 +1319,16 @@ async def test_valid_inputs(test_egc_mapper):
         gene="PDGFRB", transcript="NM_002609.4", exon_start=11, exon_end=23
     )
     assert all((resp.gene, resp.genomic_ac, resp.tx_ac, resp.seg_start, resp.seg_end))
+
+    # Liftover + intronic space
+    resp = await test_egc_mapper.genomic_to_tx_segment(
+        genomic_ac="NC_000007.13",  # not latest AC for chr 7
+        seg_start_genomic=73442503,
+        seg_end_genomic=73457929,  # not on an exon
+        gene="ELN",
+        get_nearest_transcript_junction=True,
+    )
+    genomic_tx_seg_service_checks(resp, eln_grch38_intronic)
 
 
 @pytest.mark.asyncio()
