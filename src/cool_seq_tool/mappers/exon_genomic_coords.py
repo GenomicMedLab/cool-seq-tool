@@ -20,17 +20,6 @@ from cool_seq_tool.utils import service_meta
 _logger = logging.getLogger(__name__)
 
 
-class _Grch38Data(BaseModelForbidExtra):
-    """Model representing GRCh38 accession and position, with errors"""
-
-    accession: StrictStr | None = Field(
-        None, description="GRCh38 genomic RefSeq accession."
-    )
-    position: StrictInt | None = Field(
-        None, description="GRCh38 genomic position on `genomic_ac`."
-    )
-
-
 class ExonCoord(BaseModelForbidExtra):
     """Model for representing exon coordinate data"""
 
@@ -727,12 +716,11 @@ class ExonGenomicCoordsMapper:
                 genomic_ac = genomic_acs[0]
 
             # Always liftover to GRCh38
-            grch38_data, err_msg = await self._get_grch38_ac_pos(
+            genomic_ac, genomic_pos, err_msg = await self._get_grch38_ac_pos(
                 genomic_ac, genomic_pos
             )
             if err_msg:
                 return GenomicTxSeg(errors=[err_msg])
-            genomic_ac, genomic_pos = grch38_data.accession, grch38_data.position
 
             if not transcript:
                 # Select a transcript if not provided
@@ -875,20 +863,20 @@ class ExonGenomicCoordsMapper:
 
     async def _get_grch38_ac_pos(
         self, genomic_ac: str, genomic_pos: int, grch38_ac: str | None = None
-    ) -> tuple[_Grch38Data | None, str | None]:
+    ) -> tuple[str | None, int | None, str | None]:
         """Get GRCh38 genomic representation for accession and position
 
         :param genomic_ac: RefSeq genomic accession (GRCh37 or GRCh38 assembly)
         :param genomic_pos: Genomic position on ``genomic_ac``
         :param grch38_ac: A valid GRCh38 genomic accession for ``genomic_ac``. If not
             provided, will attempt to retrieve associated GRCh38 accession from UTA.
-        :return: Tuple containing GRCh38 accession and position, and errors if unable to
-            get GRCh38 representation
+        :return: Tuple containing GRCh38 accession, GRCh38 position, and error message
+            if unable to get GRCh38 representation
         """
         if not grch38_ac:
             grch38_ac = await self.uta_db.get_newest_assembly_ac(genomic_ac)
             if not grch38_ac:
-                return None, f"Unrecognized genomic accession: {genomic_ac}."
+                return None, None, f"Unrecognized genomic accession: {genomic_ac}."
 
             grch38_ac = grch38_ac[0]
 
@@ -905,6 +893,7 @@ class ExonGenomicCoordsMapper:
                 )
                 return (
                     None,
+                    None,
                     f"`genomic_ac` must use {Assembly.GRCH37.value} or {Assembly.GRCH38.value} assembly.",
                 )
 
@@ -915,13 +904,14 @@ class ExonGenomicCoordsMapper:
             if liftover_data is None:
                 return (
                     None,
+                    None,
                     f"Lifting over {genomic_pos} on {genomic_ac} from {Assembly.GRCH37.value} to {Assembly.GRCH38.value} was unsuccessful.",
                 )
 
             genomic_pos = liftover_data[1]
             genomic_ac = grch38_ac
 
-        return _Grch38Data(accession=genomic_ac, position=genomic_pos), None
+        return genomic_ac, genomic_pos, None
 
     async def _get_genomic_ac_gene(
         self,
@@ -1070,12 +1060,11 @@ class ExonGenomicCoordsMapper:
             grch38_ac = mane_data["GRCh38_chr"]
 
         # Always liftover to GRCh38
-        grch38_data, err_msg = await self._get_grch38_ac_pos(
+        genomic_ac, genomic_pos, err_msg = await self._get_grch38_ac_pos(
             genomic_ac, genomic_pos, grch38_ac=grch38_ac
         )
         if err_msg:
             return GenomicTxSeg(errors=[err_msg])
-        genomic_ac, genomic_pos = grch38_data.accession, grch38_data.position
 
         tx_exons = await self._get_all_exon_coords(tx_ac, genomic_ac=grch38_ac)
         if not tx_exons:
