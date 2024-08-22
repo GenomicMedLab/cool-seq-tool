@@ -5,7 +5,7 @@ import asyncio
 import pytest
 
 from cool_seq_tool import CoolSeqTool
-from cool_seq_tool.mappers.exon_genomic_coords import ExonCoord
+from cool_seq_tool.mappers.exon_genomic_coords import _ExonCoord
 from cool_seq_tool.schemas import ManeGeneData, Strand
 from cool_seq_tool.sources.uta_database import GenomicAlnData, GenomicTxMetadata
 
@@ -52,7 +52,7 @@ def test_mane_transcript_mappings(test_cool_seq_tool):
 def nm_152263_exons():
     """Create test fixture for NM_152263.3 exons."""
     return [
-        ExonCoord(
+        _ExonCoord(
             ord=0,
             tx_start_i=0,
             tx_end_i=234,
@@ -60,7 +60,7 @@ def nm_152263_exons():
             alt_end_i=154192135,
             alt_strand=Strand.NEGATIVE,
         ),
-        ExonCoord(
+        _ExonCoord(
             ord=1,
             tx_start_i=234,
             tx_end_i=360,
@@ -68,7 +68,7 @@ def nm_152263_exons():
             alt_end_i=154191311,
             alt_strand=Strand.NEGATIVE,
         ),
-        ExonCoord(
+        _ExonCoord(
             ord=2,
             tx_start_i=360,
             tx_end_i=494,
@@ -76,7 +76,7 @@ def nm_152263_exons():
             alt_end_i=154176248,
             alt_strand=Strand.NEGATIVE,
         ),
-        ExonCoord(
+        _ExonCoord(
             ord=3,
             tx_start_i=494,
             tx_end_i=612,
@@ -84,7 +84,7 @@ def nm_152263_exons():
             alt_end_i=154173201,
             alt_strand=Strand.NEGATIVE,
         ),
-        ExonCoord(
+        _ExonCoord(
             ord=4,
             tx_start_i=612,
             tx_end_i=683,
@@ -92,7 +92,7 @@ def nm_152263_exons():
             alt_end_i=154172978,
             alt_strand=Strand.NEGATIVE,
         ),
-        ExonCoord(
+        _ExonCoord(
             ord=5,
             tx_start_i=683,
             tx_end_i=759,
@@ -100,7 +100,7 @@ def nm_152263_exons():
             alt_end_i=154171488,
             alt_strand=Strand.NEGATIVE,
         ),
-        ExonCoord(
+        _ExonCoord(
             ord=6,
             tx_start_i=759,
             tx_end_i=822,
@@ -108,7 +108,7 @@ def nm_152263_exons():
             alt_end_i=154170711,
             alt_strand=Strand.NEGATIVE,
         ),
-        ExonCoord(
+        _ExonCoord(
             ord=7,
             tx_start_i=822,
             tx_end_i=892,
@@ -116,7 +116,7 @@ def nm_152263_exons():
             alt_end_i=154170469,
             alt_strand=Strand.NEGATIVE,
         ),
-        ExonCoord(
+        _ExonCoord(
             ord=8,
             tx_start_i=892,
             tx_end_i=971,
@@ -124,7 +124,7 @@ def nm_152263_exons():
             alt_end_i=154169383,
             alt_strand=Strand.NEGATIVE,
         ),
-        ExonCoord(
+        _ExonCoord(
             ord=9,
             tx_start_i=971,
             tx_end_i=7099,
@@ -139,7 +139,7 @@ def nm_152263_exons():
 def nm_152263_exons_genomic_coords():
     """Create test fixture for NM_152263.4 exons and genomic coordinates."""
     return [
-        ExonCoord(
+        _ExonCoord(
             ord=0,
             tx_start_i=0,
             tx_end_i=199,
@@ -147,7 +147,7 @@ def nm_152263_exons_genomic_coords():
             alt_end_i=154192100,
             alt_strand=Strand.NEGATIVE,
         ),
-        ExonCoord(
+        _ExonCoord(
             ord=1,
             tx_start_i=199,
             tx_end_i=325,
@@ -155,7 +155,7 @@ def nm_152263_exons_genomic_coords():
             alt_end_i=154191311,
             alt_strand=Strand.NEGATIVE,
         ),
-        ExonCoord(
+        _ExonCoord(
             ord=2,
             tx_start_i=325,
             tx_end_i=459,
@@ -163,7 +163,7 @@ def nm_152263_exons_genomic_coords():
             alt_end_i=154176248,
             alt_strand=Strand.NEGATIVE,
         ),
-        ExonCoord(
+        _ExonCoord(
             ord=3,
             tx_start_i=459,
             tx_end_i=577,
@@ -171,7 +171,7 @@ def nm_152263_exons_genomic_coords():
             alt_end_i=154173201,
             alt_strand=Strand.NEGATIVE,
         ),
-        ExonCoord(
+        _ExonCoord(
             ord=4,
             tx_start_i=577,
             tx_end_i=648,
@@ -179,7 +179,7 @@ def nm_152263_exons_genomic_coords():
             alt_end_i=154172978,
             alt_strand=Strand.NEGATIVE,
         ),
-        ExonCoord(
+        _ExonCoord(
             ord=5,
             tx_start_i=648,
             tx_end_i=724,
@@ -187,7 +187,7 @@ def nm_152263_exons_genomic_coords():
             alt_end_i=154171488,
             alt_strand=Strand.NEGATIVE,
         ),
-        ExonCoord(
+        _ExonCoord(
             ord=6,
             tx_start_i=724,
             tx_end_i=787,
@@ -195,7 +195,7 @@ def nm_152263_exons_genomic_coords():
             alt_end_i=154170711,
             alt_strand=Strand.NEGATIVE,
         ),
-        ExonCoord(
+        _ExonCoord(
             ord=7,
             tx_start_i=787,
             tx_end_i=857,
@@ -203,7 +203,7 @@ def nm_152263_exons_genomic_coords():
             alt_end_i=154170469,
             alt_strand=Strand.NEGATIVE,
         ),
-        ExonCoord(
+        _ExonCoord(
             ord=8,
             tx_start_i=857,
             tx_end_i=936,
@@ -211,7 +211,7 @@ def nm_152263_exons_genomic_coords():
             alt_end_i=154169383,
             alt_strand=Strand.NEGATIVE,
         ),
-        ExonCoord(
+        _ExonCoord(
             ord=9,
             tx_start_i=936,
             tx_end_i=7064,
@@ -226,7 +226,7 @@ def nm_152263_exons_genomic_coords():
 def nm_001105539_exons_genomic_coords():
     """Create test fixture for NM_001105539.3 exons and genomic coordinates."""
     return [
-        ExonCoord(
+        _ExonCoord(
             ord=0,
             tx_start_i=0,
             tx_end_i=1557,
@@ -234,7 +234,7 @@ def nm_001105539_exons_genomic_coords():
             alt_end_i=80487782,
             alt_strand=Strand.NEGATIVE,
         ),
-        ExonCoord(
+        _ExonCoord(
             ord=1,
             tx_start_i=1557,
             tx_end_i=2446,
@@ -242,7 +242,7 @@ def nm_001105539_exons_genomic_coords():
             alt_end_i=80500382,
             alt_strand=Strand.NEGATIVE,
         ),
-        ExonCoord(
+        _ExonCoord(
             ord=2,
             tx_start_i=2446,
             tx_end_i=2545,
@@ -250,7 +250,7 @@ def nm_001105539_exons_genomic_coords():
             alt_end_i=80514008,
             alt_strand=Strand.NEGATIVE,
         ),
-        ExonCoord(
+        _ExonCoord(
             ord=3,
             tx_start_i=2545,
             tx_end_i=2722,
@@ -258,7 +258,7 @@ def nm_001105539_exons_genomic_coords():
             alt_end_i=80518579,
             alt_strand=Strand.NEGATIVE,
         ),
-        ExonCoord(
+        _ExonCoord(
             ord=4,
             tx_start_i=2722,
             tx_end_i=2895,
@@ -266,7 +266,7 @@ def nm_001105539_exons_genomic_coords():
             alt_end_i=80518954,
             alt_strand=Strand.NEGATIVE,
         ),
-        ExonCoord(
+        _ExonCoord(
             ord=5,
             tx_start_i=2895,
             tx_end_i=9938,
