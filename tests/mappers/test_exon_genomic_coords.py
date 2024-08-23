@@ -1020,7 +1020,7 @@ async def test_genomic_to_transcript(test_egc_mapper, tpm3_exon1, tpm3_exon8):
         154170399,
         genomic_ac="NC_000001.11",
         transcript="NM_152263.3",
-        is_start=False,
+        is_seg_start=False,
     )
     genomic_tx_seg_checks(resp, tpm3_exon8)
 
@@ -1028,12 +1028,12 @@ async def test_genomic_to_transcript(test_egc_mapper, tpm3_exon1, tpm3_exon8):
         154170399,
         chromosome="1",
         transcript="NM_152263.3",
-        is_start=False,
+        is_seg_start=False,
     )
     genomic_tx_seg_checks(resp, tpm3_exon8)
 
     resp = await test_egc_mapper._genomic_to_tx_segment(
-        154170399, chromosome="1", transcript="NM_152263.3", is_start=False
+        154170399, chromosome="1", transcript="NM_152263.3", is_seg_start=False
     )
     genomic_tx_seg_checks(resp, tpm3_exon8)
 
