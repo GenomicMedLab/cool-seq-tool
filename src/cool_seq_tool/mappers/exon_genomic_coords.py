@@ -341,8 +341,8 @@ class ExonGenomicCoordsMapper:
         # Get aligned genomic data (hgnc gene, alt_ac, alt_start_i, alt_end_i, strand)
         # for exon(s)
         (
-            alt_ac_start_data,
-            alt_ac_end_data,
+            aligned_genomic_start,
+            aligned_genomic_end,
             err_msg,
         ) = await self._get_aligned_genomic_coords(
             transcript, tx_exon_start_coords, tx_exon_end_coords, gene=gene
@@ -351,9 +351,15 @@ class ExonGenomicCoordsMapper:
             return _return_service_errors([err_msg])
 
         # Get gene and chromosome data, check that at least one was retrieved
-        gene = alt_ac_start_data.hgnc if alt_ac_start_data else alt_ac_end_data.hgnc
+        gene = (
+            aligned_genomic_start.hgnc
+            if aligned_genomic_start
+            else aligned_genomic_end.hgnc
+        )
         genomic_ac = (
-            alt_ac_start_data.alt_ac if alt_ac_start_data else alt_ac_end_data.alt_ac
+            aligned_genomic_start.alt_ac
+            if aligned_genomic_start
+            else aligned_genomic_end.alt_ac
         )
         if gene is None or genomic_ac is None:
             return _return_service_errors(
@@ -363,9 +369,9 @@ class ExonGenomicCoordsMapper:
             )
 
         strand = (
-            Strand(alt_ac_start_data.alt_strand)
-            if alt_ac_start_data
-            else Strand(alt_ac_end_data.alt_strand)
+            Strand(aligned_genomic_start.alt_strand)
+            if aligned_genomic_start
+            else Strand(aligned_genomic_end.alt_strand)
         )
 
         if exon_start_exists:
@@ -373,7 +379,7 @@ class ExonGenomicCoordsMapper:
                 genomic_ac,
                 strand,
                 exon_start_offset,
-                alt_ac_start_data,
+                aligned_genomic_start,
                 is_seg_start=True,
             )
             if err_msg:
@@ -383,7 +389,11 @@ class ExonGenomicCoordsMapper:
 
         if exon_end_exists:
             seg_end, err_msg = self._get_tx_segment(
-                genomic_ac, strand, exon_end_offset, alt_ac_end_data, is_seg_start=False
+                genomic_ac,
+                strand,
+                exon_end_offset,
+                aligned_genomic_end,
+                is_seg_start=False,
             )
             if err_msg:
                 return _return_service_errors([err_msg])
@@ -638,11 +648,11 @@ class ExonGenomicCoordsMapper:
         aligned_coords = {"start": None, "end": None}
         for exon, key in [(tx_exon_start, "start"), (tx_exon_end, "end")]:
             if exon:
-                alt_ac_val, warning = await self.uta_db.get_alt_ac_start_or_end(
+                aligned_coord, warning = await self.uta_db.get_alt_ac_start_or_end(
                     tx_ac, exon.tx_start_i, exon.tx_end_i, gene=gene
                 )
-                if alt_ac_val:
-                    aligned_coords[key] = alt_ac_val
+                if aligned_coord:
+                    aligned_coords[key] = aligned_coord
                 else:
                     return None, None, warning
 
