@@ -955,8 +955,8 @@ async def test_genomic_to_transcript_fusion_context(
 async def test_get_alt_ac_start_and_end(
     test_egc_mapper, tpm3_1_8_start_genomic, tpm3_1_8_end_genomic
 ):
-    """Test that _get_alt_ac_start_and_end works correctly."""
-    resp = await test_egc_mapper._get_alt_ac_start_and_end(
+    """Test that _get_aligned_genomic_coords works correctly."""
+    resp = await test_egc_mapper._get_aligned_genomic_coords(
         "NM_152263.3",
         _ExonCoord(
             ord=0,
@@ -978,7 +978,7 @@ async def test_get_alt_ac_start_and_end(
     )
     assert resp == (tpm3_1_8_start_genomic, tpm3_1_8_end_genomic, None)
 
-    resp = await test_egc_mapper._get_alt_ac_start_and_end("NM_152263.3", gene="TPM3")
+    resp = await test_egc_mapper._get_aligned_genomic_coords("NM_152263.3", gene="TPM3")
     assert resp == (
         None,
         None,

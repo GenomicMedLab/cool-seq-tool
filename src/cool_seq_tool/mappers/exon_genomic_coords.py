@@ -344,7 +344,7 @@ class ExonGenomicCoordsMapper:
             alt_ac_start_data,
             alt_ac_end_data,
             err_msg,
-        ) = await self._get_alt_ac_start_and_end(
+        ) = await self._get_aligned_genomic_coords(
             transcript, tx_exon_start_coords, tx_exon_end_coords, gene=gene
         )
         if err_msg:
@@ -609,7 +609,7 @@ class ExonGenomicCoordsMapper:
         results = await self.uta_db.execute_query(query)
         return [_ExonCoord(**r) for r in results]
 
-    async def _get_alt_ac_start_and_end(
+    async def _get_aligned_genomic_coords(
         self,
         tx_ac: str,
         tx_exon_start: _ExonCoord | None = None,
@@ -618,8 +618,8 @@ class ExonGenomicCoordsMapper:
     ) -> tuple[GenomicAlnData | None, GenomicAlnData | None, str | None]:
         """Get aligned genomic coordinates for transcript exon start and end.
 
-        ``tx_exon_start`` and ``tx_exon_end`` will always have transcript and genomic
-        accession.
+        ``tx_exon_start`` and ``tx_exon_end`` is expected to reference the same
+        transcript and genomic accession.
 
         :param tx_ac: Transcript accession
         :param tx_exon_start: Transcript's exon start coordinates. If not provided,
@@ -635,18 +635,18 @@ class ExonGenomicCoordsMapper:
             _logger.warning(msg)
             return None, None, msg
 
-        alt_ac_data = {"start": None, "end": None}
+        aligned_coords = {"start": None, "end": None}
         for exon, key in [(tx_exon_start, "start"), (tx_exon_end, "end")]:
             if exon:
                 alt_ac_val, warning = await self.uta_db.get_alt_ac_start_or_end(
                     tx_ac, exon.tx_start_i, exon.tx_end_i, gene=gene
                 )
                 if alt_ac_val:
-                    alt_ac_data[key] = alt_ac_val
+                    aligned_coords[key] = alt_ac_val
                 else:
                     return None, None, warning
 
-        return *alt_ac_data.values(), None
+        return *aligned_coords.values(), None
 
     def _get_tx_segment(
         self,
