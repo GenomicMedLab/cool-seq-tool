@@ -525,46 +525,6 @@ class ExonGenomicCoordsMapper:
 
         return GenomicTxSegService(**params)
 
-    async def _get_all_exon_coords(
-        self, tx_ac: str, genomic_ac: str | None = None
-    ) -> list[_ExonCoord]:
-        """Get all exon coordinate data for a transcript.
-
-        If ``genomic_ac`` is NOT provided, this method will use the GRCh38 accession
-        associated to ``tx_ac``.
-
-        :param tx_ac: The RefSeq transcript accession to get exon data for.
-        :param genomic_ac: The RefSeq genomic accession to get exon data for.
-        :return: List of all exon coordinate data for ``tx_ac`` and ``genomic_ac``.
-            The exon coordinate data will include the exon number, transcript and
-            genomic positions for the start and end of the exon, and strand.
-            The list will be ordered by ascending exon number.
-        """
-        if genomic_ac:
-            query = f"""
-                SELECT DISTINCT ord, tx_start_i, tx_end_i, alt_start_i, alt_end_i, alt_strand
-                FROM {self.uta_db.schema}.tx_exon_aln_v
-                WHERE tx_ac = '{tx_ac}'
-                AND alt_aln_method = 'splign'
-                AND alt_ac = '{genomic_ac}'
-                ORDER BY ord ASC
-                """  # noqa: S608
-        else:
-            query = f"""
-                SELECT DISTINCT ord, tx_start_i, tx_end_i, alt_start_i, alt_end_i, alt_strand
-                FROM {self.uta_db.schema}.tx_exon_aln_v as t
-                INNER JOIN {self.uta_db.schema}._seq_anno_most_recent as s
-                ON t.alt_ac = s.ac
-                WHERE s.descr = ''
-                AND t.tx_ac = '{tx_ac}'
-                AND t.alt_aln_method = 'splign'
-                AND t.alt_ac like 'NC_000%'
-                ORDER BY ord ASC
-                """  # noqa: S608
-
-        results = await self.uta_db.execute_query(query)
-        return [_ExonCoord(**r) for r in results]
-
     async def _get_start_end_exon_coords(
         self,
         tx_ac: str,
@@ -605,6 +565,46 @@ class ExonGenomicCoordsMapper:
             start_end_exons = [None, None]
 
         return *start_end_exons, errors
+
+    async def _get_all_exon_coords(
+        self, tx_ac: str, genomic_ac: str | None = None
+    ) -> list[_ExonCoord]:
+        """Get all exon coordinate data for a transcript.
+
+        If ``genomic_ac`` is NOT provided, this method will use the GRCh38 accession
+        associated to ``tx_ac``.
+
+        :param tx_ac: The RefSeq transcript accession to get exon data for.
+        :param genomic_ac: The RefSeq genomic accession to get exon data for.
+        :return: List of all exon coordinate data for ``tx_ac`` and ``genomic_ac``.
+            The exon coordinate data will include the exon number, transcript and
+            genomic positions for the start and end of the exon, and strand.
+            The list will be ordered by ascending exon number.
+        """
+        if genomic_ac:
+            query = f"""
+                SELECT DISTINCT ord, tx_start_i, tx_end_i, alt_start_i, alt_end_i, alt_strand
+                FROM {self.uta_db.schema}.tx_exon_aln_v
+                WHERE tx_ac = '{tx_ac}'
+                AND alt_aln_method = 'splign'
+                AND alt_ac = '{genomic_ac}'
+                ORDER BY ord ASC
+                """  # noqa: S608
+        else:
+            query = f"""
+                SELECT DISTINCT ord, tx_start_i, tx_end_i, alt_start_i, alt_end_i, alt_strand
+                FROM {self.uta_db.schema}.tx_exon_aln_v as t
+                INNER JOIN {self.uta_db.schema}._seq_anno_most_recent as s
+                ON t.alt_ac = s.ac
+                WHERE s.descr = ''
+                AND t.tx_ac = '{tx_ac}'
+                AND t.alt_aln_method = 'splign'
+                AND t.alt_ac like 'NC_000%'
+                ORDER BY ord ASC
+                """  # noqa: S608
+
+        results = await self.uta_db.execute_query(query)
+        return [_ExonCoord(**r) for r in results]
 
     async def _get_alt_ac_start_and_end(
         self,
@@ -656,6 +656,80 @@ class ExonGenomicCoordsMapper:
                     )
                     return None, error
         return tuple(alt_ac_data_values), None
+
+    def _get_tx_segment(
+        self,
+        genomic_ac: str,
+        strand: Strand,
+        offset: int,
+        genomic_ac_data: _ExonCoord,
+        is_seg_start: bool = False,
+    ) -> tuple[TxSegment | None, str | None]:
+        """Get transcript segment data given ``genomic_ac`` and offset data
+
+        :param genomic_ac: Genomic RefSeq accession
+        :param strand: Strand
+        :param offset: Exon offset
+        :param genomic_ac_data: Exon coordinate data for ``genomic_ac``
+        :param is_seg_start: ``True`` if retrieving genomic data where the transcript
+            segment starts, defaults to ``False``
+        :return: Transcript segment data
+        """
+        if is_seg_start:
+            if strand == Strand.POSITIVE:
+                seg_genomic_pos = offset + genomic_ac_data.alt_start_i
+            else:
+                seg_genomic_pos = genomic_ac_data.alt_end_i - offset
+        else:
+            if strand == Strand.POSITIVE:
+                seg_genomic_pos = offset + genomic_ac_data.alt_end_i
+            else:
+                seg_genomic_pos = genomic_ac_data.alt_start_i - offset
+
+        genomic_loc, err_msg = self._get_vrs_seq_loc(
+            genomic_ac,
+            seg_genomic_pos,
+            is_start=is_seg_start,
+            strand=strand,
+        )
+        if err_msg:
+            return None, err_msg
+
+        return TxSegment(
+            exon_ord=genomic_ac_data.ord,
+            genomic_location=genomic_loc,
+            offset=offset,
+        ), None
+
+    def _get_vrs_seq_loc(
+        self, genomic_ac: str, genomic_pos: int, is_start: bool, strand: Strand
+    ) -> tuple[SequenceLocation | None, str | None]:
+        """Create VRS Sequence Location for genomic position where transcript segment
+        occurs
+
+        :param genomic_ac: RefSeq genomic accession
+        :param genomic_pos: Genomic position where the transcript segment occurs
+        :param is_start: ``True`` if ``genomic_pos`` is where the transcript segment
+            starts. ``False`` if ``genomic_pos`` is where the transcript segment ends.
+        :param strand: Strand
+        :return: Tuple containing VRS location (if successful) and error message (if
+            unable to get GA4GH identifier for ``genomic_ac``).
+        """
+        ga4gh_seq_id, err_msg = self.seqrepo_access.translate_identifier(
+            genomic_ac, "ga4gh"
+        )
+        if err_msg:
+            return None, err_msg
+
+        use_start = strand == Strand.POSITIVE if is_start else strand != Strand.POSITIVE
+
+        return SequenceLocation(
+            sequenceReference=SequenceReference(
+                refgetAccession=ga4gh_seq_id[0].split("ga4gh:")[-1]
+            ),
+            start=genomic_pos if use_start else None,
+            end=genomic_pos if not use_start else None,
+        ), None
 
     async def _genomic_to_tx_segment(
         self,
@@ -943,80 +1017,6 @@ class ExonGenomicCoordsMapper:
 
         return results[0]["hgnc"], None
 
-    def _get_tx_segment(
-        self,
-        genomic_ac: str,
-        strand: Strand,
-        offset: int,
-        genomic_ac_data: _ExonCoord,
-        is_seg_start: bool = False,
-    ) -> tuple[TxSegment | None, str | None]:
-        """Get transcript segment data given ``genomic_ac`` and offset data
-
-        :param genomic_ac: Genomic RefSeq accession
-        :param strand: Strand
-        :param offset: Exon offset
-        :param genomic_ac_data: Exon coordinate data for ``genomic_ac``
-        :param is_seg_start: ``True`` if retrieving genomic data where the transcript
-            segment starts, defaults to ``False``
-        :return: Transcript segment data
-        """
-        if is_seg_start:
-            if strand == Strand.POSITIVE:
-                seg_genomic_pos = offset + genomic_ac_data.alt_start_i
-            else:
-                seg_genomic_pos = genomic_ac_data.alt_end_i - offset
-        else:
-            if strand == Strand.POSITIVE:
-                seg_genomic_pos = offset + genomic_ac_data.alt_end_i
-            else:
-                seg_genomic_pos = genomic_ac_data.alt_start_i - offset
-
-        genomic_loc, err_msg = self._get_vrs_seq_loc(
-            genomic_ac,
-            seg_genomic_pos,
-            is_start=is_seg_start,
-            strand=strand,
-        )
-        if err_msg:
-            return None, err_msg
-
-        return TxSegment(
-            exon_ord=genomic_ac_data.ord,
-            genomic_location=genomic_loc,
-            offset=offset,
-        ), None
-
-    def _get_vrs_seq_loc(
-        self, genomic_ac: str, genomic_pos: int, is_start: bool, strand: Strand
-    ) -> tuple[SequenceLocation | None, str | None]:
-        """Create VRS Sequence Location for genomic position where transcript segment
-        occurs
-
-        :param genomic_ac: RefSeq genomic accession
-        :param genomic_pos: Genomic position where the transcript segment occurs
-        :param is_start: ``True`` if ``genomic_pos`` is where the transcript segment
-            starts. ``False`` if ``genomic_pos`` is where the transcript segment ends.
-        :param strand: Strand
-        :return: Tuple containing VRS location (if successful) and error message (if
-            unable to get GA4GH identifier for ``genomic_ac``).
-        """
-        ga4gh_seq_id, err_msg = self.seqrepo_access.translate_identifier(
-            genomic_ac, "ga4gh"
-        )
-        if err_msg:
-            return None, err_msg
-
-        use_start = strand == Strand.POSITIVE if is_start else strand != Strand.POSITIVE
-
-        return SequenceLocation(
-            sequenceReference=SequenceReference(
-                refgetAccession=ga4gh_seq_id[0].split("ga4gh:")[-1]
-            ),
-            start=genomic_pos if use_start else None,
-            end=genomic_pos if not use_start else None,
-        ), None
-
     async def _get_tx_seg_genomic_metadata(
         self,
         genomic_ac: str,
@@ -1114,42 +1114,16 @@ class ExonGenomicCoordsMapper:
         )
 
     @staticmethod
-    def _get_exon_offset(
-        start_i: int,
-        end_i: int,
-        strand: Strand,
-        use_start_i: bool = True,
-        is_in_exon: bool = True,
-        start: int | None = None,
-        end: int | None = None,
-    ) -> int:
-        """Compute offset from exon start or end index
+    def _is_exonic_breakpoint(pos: int, tx_genomic_coords: list[_ExonCoord]) -> bool:
+        """Check if a breakpoint occurs on an exon
 
-        :param start_i: Exon start index (inter-residue)
-        :param end_i: Exon end index (inter-residue)
-        :param strand: Strand
-        :param use_start_i: Whether or not ``start_i`` should be used to compute the
-            offset, defaults to ``True``. This is only used when ``is_in_exon`` is
-            ``False``.
-        :param is_in_exon: Whether or not the position occurs in an exon, defaults to
-            ``True``
-        :param start: Provided start position, defaults to ``None``. Must provide
-            ``start`` or ``end``, not both.
-        :param end: Provided end position, defaults to ``None``. Must provide ``start``
-            or ``end``, not both
-        :return: Offset from exon start or end index
+        :param pos: Genomic breakpoint
+        :param tx_genomic_coords: A list of transcript exon coordinate data
+        :return: ``True`` if the breakpoint occurs on an exon
         """
-        if is_in_exon:
-            if start is not None:
-                offset = start - start_i if strand == Strand.POSITIVE else end_i - start
-            else:
-                offset = end - end_i if strand == Strand.POSITIVE else start_i - end
-        else:
-            if strand == Strand.POSITIVE:
-                offset = start - start_i if use_start_i else end - end_i
-            else:
-                offset = start_i - end if use_start_i else end_i - start
-        return offset
+        return any(
+            exon.alt_start_i <= pos <= exon.alt_end_i for exon in tx_genomic_coords
+        )
 
     @staticmethod
     def _get_adjacent_exon(
@@ -1191,13 +1165,39 @@ class ExonGenomicCoordsMapper:
         return exon.ord if end else exon.ord + 1
 
     @staticmethod
-    def _is_exonic_breakpoint(pos: int, tx_genomic_coords: list[_ExonCoord]) -> bool:
-        """Check if a breakpoint occurs on an exon
+    def _get_exon_offset(
+        start_i: int,
+        end_i: int,
+        strand: Strand,
+        use_start_i: bool = True,
+        is_in_exon: bool = True,
+        start: int | None = None,
+        end: int | None = None,
+    ) -> int:
+        """Compute offset from exon start or end index
 
-        :param pos: Genomic breakpoint
-        :param tx_genomic_coords: A list of transcript exon coordinate data
-        :return: ``True`` if the breakpoint occurs on an exon
+        :param start_i: Exon start index (inter-residue)
+        :param end_i: Exon end index (inter-residue)
+        :param strand: Strand
+        :param use_start_i: Whether or not ``start_i`` should be used to compute the
+            offset, defaults to ``True``. This is only used when ``is_in_exon`` is
+            ``False``.
+        :param is_in_exon: Whether or not the position occurs in an exon, defaults to
+            ``True``
+        :param start: Provided start position, defaults to ``None``. Must provide
+            ``start`` or ``end``, not both.
+        :param end: Provided end position, defaults to ``None``. Must provide ``start``
+            or ``end``, not both
+        :return: Offset from exon start or end index
         """
-        return any(
-            exon.alt_start_i <= pos <= exon.alt_end_i for exon in tx_genomic_coords
-        )
+        if is_in_exon:
+            if start is not None:
+                offset = start - start_i if strand == Strand.POSITIVE else end_i - start
+            else:
+                offset = end - end_i if strand == Strand.POSITIVE else start_i - end
+        else:
+            if strand == Strand.POSITIVE:
+                offset = start - start_i if use_start_i else end - end_i
+            else:
+                offset = start_i - end if use_start_i else end_i - start
+        return offset
