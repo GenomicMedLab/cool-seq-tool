@@ -724,6 +724,82 @@ class ExonGenomicCoordsMapper:
             end=genomic_pos if not use_start else None,
         ), None
 
+    def _get_tx_segment(
+        self,
+        genomic_ac: str,
+        strand: Strand,
+        offset: int,
+        genomic_ac_data: _ExonCoord,
+        is_seg_start: bool = False,
+    ) -> tuple[TxSegment | None, str | None]:
+        """Get transcript segment data given ``genomic_ac`` and offset data
+
+        :param genomic_ac: Genomic RefSeq accession
+        :param strand: Strand
+        :param offset: Exon offset
+        :param genomic_ac_data: Exon coordinate data for ``genomic_ac``
+        :param is_seg_start: ``True`` if retrieving genomic data where the transcript
+            segment starts, defaults to ``False``
+        :return: Transcript segment data
+        """
+        if is_seg_start:
+            if strand == Strand.POSITIVE:
+                seg_genomic_pos = offset + genomic_ac_data.alt_start_i
+            else:
+                seg_genomic_pos = genomic_ac_data.alt_end_i - offset
+        else:
+            if strand == Strand.POSITIVE:
+                seg_genomic_pos = offset + genomic_ac_data.alt_end_i
+            else:
+                seg_genomic_pos = genomic_ac_data.alt_start_i - offset
+
+        genomic_loc, err_msg = self._get_vrs_seq_loc(
+            genomic_ac,
+            seg_genomic_pos,
+            is_seg_start=is_seg_start,
+            strand=strand,
+        )
+        if err_msg:
+            return None, err_msg
+
+        return TxSegment(
+            exon_ord=genomic_ac_data.ord,
+            genomic_location=genomic_loc,
+            offset=offset,
+        ), None
+
+    def _get_vrs_seq_loc(
+        self, genomic_ac: str, genomic_pos: int, is_seg_start: bool, strand: Strand
+    ) -> tuple[SequenceLocation | None, str | None]:
+        """Create VRS Sequence Location for genomic position where transcript segment
+        occurs
+
+        :param genomic_ac: RefSeq genomic accession
+        :param genomic_pos: Genomic position where the transcript segment occurs
+        :param is_seg_start: ``True`` if ``genomic_pos`` is where the transcript segment
+            starts. ``False`` if ``genomic_pos`` is where the transcript segment ends.
+        :param strand: Strand
+        :return: Tuple containing VRS location (if successful) and error message (if
+            unable to get GA4GH identifier for ``genomic_ac``).
+        """
+        ga4gh_seq_id, err_msg = self.seqrepo_access.translate_identifier(
+            genomic_ac, "ga4gh"
+        )
+        if err_msg:
+            return None, err_msg
+
+        use_start = (
+            strand == Strand.POSITIVE if is_seg_start else strand != Strand.POSITIVE
+        )
+
+        return SequenceLocation(
+            sequenceReference=SequenceReference(
+                refgetAccession=ga4gh_seq_id[0].split("ga4gh:")[-1]
+            ),
+            start=genomic_pos if use_start else None,
+            end=genomic_pos if not use_start else None,
+        ), None
+
     async def _genomic_to_tx_segment(
         self,
         genomic_pos: int,
