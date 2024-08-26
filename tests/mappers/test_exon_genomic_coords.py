@@ -213,6 +213,14 @@ def tpm3_exon8():
 
 
 @pytest.fixture(scope="module")
+def tpm3_exon8_mane(tpm3_exon8):
+    """Create test fixture for MANE GRCh38 TPM3 exon 8 (negative strand)."""
+    tpm3_exon8_copy = tpm3_exon8.model_copy(deep=True)
+    tpm3_exon8_copy.tx_ac = "NM_152263.4"
+    return tpm3_exon8_copy
+
+
+@pytest.fixture(scope="module")
 def tpm3_exon1_g(tpm3_exon1):
     """Create test fixture for GRCh38 TPM3 exon 1 as seg_start."""
     params = {
@@ -984,9 +992,70 @@ async def test_genomic_to_tx_segment_invalid(test_egc_mapper):
 
 
 @pytest.mark.asyncio()
-async def test_get_tx_seg_genomic_metadata():
+async def test_get_tx_seg_genomic_metadata(
+    test_egc_mapper, tpm3_exon8, tpm3_exon8_mane
+):
     """Test that _get_tx_seg_genomic_metadata works correctly"""
-    # TODO:
+    # GRCh37, tx_ac provided
+    resp = await test_egc_mapper._get_tx_seg_genomic_metadata(
+        genomic_ac="NC_000001.10",
+        genomic_pos=154142875,
+        is_seg_start=False,
+        gene="TPM3",
+        tx_ac="NM_152263.3",
+    )
+    assert resp == tpm3_exon8
+
+    # GRCh37, tx_ac not provided
+    resp = await test_egc_mapper._get_tx_seg_genomic_metadata(
+        genomic_ac="NC_000001.10",
+        genomic_pos=154142875,
+        is_seg_start=False,
+        gene="TPM3",
+        tx_ac=None,
+    )
+    assert resp == tpm3_exon8_mane
+
+    # GRCh38, tx_ac provided
+    resp = await test_egc_mapper._get_tx_seg_genomic_metadata(
+        genomic_ac="NC_000001.11",
+        genomic_pos=154170399,
+        is_seg_start=False,
+        gene="TPM3",
+        tx_ac="NM_152263.3",
+    )
+    assert resp == tpm3_exon8
+
+    # GRCh38, tx_ac not provided
+    resp = await test_egc_mapper._get_tx_seg_genomic_metadata(
+        genomic_ac="NC_000001.11",
+        genomic_pos=154170399,
+        is_seg_start=False,
+        gene="TPM3",
+        tx_ac=None,
+    )
+    assert resp == tpm3_exon8_mane
+
+    # Invalid gene, no tx provided
+    resp = await test_egc_mapper._get_tx_seg_genomic_metadata(
+        genomic_ac="NC_000001.11",
+        genomic_pos=154170399,
+        is_seg_start=False,
+        gene="dummy",
+        tx_ac=None,
+    )
+    assert resp.errors == [
+        "Unable to find mane data for NC_000001.11 with position 154170399 on gene dummy"
+    ]
+
+    resp = await test_egc_mapper._get_tx_seg_genomic_metadata(
+        genomic_ac="NC_000001.11",
+        genomic_pos=154170399,
+        is_seg_start=False,
+        gene="TPM3",
+        tx_ac="NM_001105539.3",
+    )
+    assert resp.errors == ["No exons found given NM_001105539.3"]
 
 
 def test_is_exonic_breakpoint(test_egc_mapper, nm_001105539_exons_genomic_coords):
@@ -1157,31 +1226,28 @@ async def test_genomic_to_transcript_fusion_context(
     tpm3_exon5_start,
 ):
     """Test that genomic to transcript works correctly for non-exonic breakpoints"""
-    inputs = {
-        "chromosome": "1",
-        "seg_end_genomic": 154171410,
-        "gene": "TPM3",
-        "get_nearest_transcript_junction": True,
-    }
-    resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
+    resp = await test_egc_mapper.genomic_to_tx_segment(
+        chromosome="1",
+        seg_end_genomic=154171410,
+        gene="TPM3",
+        get_nearest_transcript_junction=True,
+    )
     genomic_tx_seg_service_checks(resp, tpm3_exon6_end)
 
-    inputs = {
-        "chromosome": "1",
-        "seg_start_genomic": 154173080,
-        "gene": "TPM3",
-        "get_nearest_transcript_junction": True,
-    }
-    resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
+    resp = await test_egc_mapper.genomic_to_tx_segment(
+        chromosome="1",
+        seg_start_genomic=154173080,
+        gene="TPM3",
+        get_nearest_transcript_junction=True,
+    )
     genomic_tx_seg_service_checks(resp, tpm3_exon5_start)
 
-    inputs = {  # Test when gene and strand are not provided
-        "chromosome": "5",
-        "seg_start_genomic": 69645878,
-        "transcript": "NR_027386.2",
-        "get_nearest_transcript_junction": True,
-    }
-    resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
+    resp = await test_egc_mapper.genomic_to_tx_segment(
+        chromosome="5",
+        seg_end_genomic=69645878,
+        transcript="NR_027386.2",
+        get_nearest_transcript_junction=True,
+    )
     assert (
         resp.errors[0]
         == "`gene` must be provided to select the adjacent transcript junction"
@@ -1196,16 +1262,15 @@ async def test_tpm3(
     tpm3_exon1_g,
     tpm3_exon8_g,
 ):
-    """Test TPM3 genomic_to_tx_segment and
-    tx_segment_to_genomic.
+    """Test that genomic_to_tx_segment and tx_segment_to_genomic work correctly for
+    negative strand.
     """
-    inputs = {
-        "genomic_ac": "NC_000001.11",
-        "seg_start_genomic": 154192135,
-        "seg_end_genomic": 154170399,
-        "transcript": "NM_152263.3",
-    }
-    g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
+    g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(
+        genomic_ac="NC_000001.11",
+        seg_start_genomic=154192135,
+        seg_end_genomic=154170399,
+        transcript="NM_152263.3",
+    )
     genomic_tx_seg_service_checks(g_to_t_resp, tpm3_exon1_exon8)
 
     t_to_g_resp = await test_egc_mapper.tx_segment_to_genomic(
@@ -1214,13 +1279,12 @@ async def test_tpm3(
     genomic_tx_seg_service_checks(t_to_g_resp, tpm3_exon1_exon8)
 
     # Offset
-    inputs = {
-        "genomic_ac": "NC_000001.11",
-        "seg_start_genomic": 154192133,
-        "seg_end_genomic": 154170403,
-        "transcript": "NM_152263.3",
-    }
-    g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
+    g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(
+        genomic_ac="NC_000001.11",
+        seg_start_genomic=154192133,
+        seg_end_genomic=154170403,
+        transcript="NM_152263.3",
+    )
     genomic_tx_seg_service_checks(g_to_t_resp, tpm3_exon1_exon8_offset)
 
     t_to_g_resp = await test_egc_mapper.tx_segment_to_genomic(
@@ -1229,12 +1293,11 @@ async def test_tpm3(
     genomic_tx_seg_service_checks(t_to_g_resp, tpm3_exon1_exon8_offset)
 
     # Test only setting start
-    inputs = {
-        "genomic_ac": "NC_000001.11",
-        "seg_start_genomic": 154192135,
-        "transcript": "NM_152263.3",
-    }
-    g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
+    g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(
+        genomic_ac="NC_000001.11",
+        seg_start_genomic=154192135,
+        transcript="NM_152263.3",
+    )
     genomic_tx_seg_service_checks(g_to_t_resp, tpm3_exon1_g)
 
     t_to_g_resp = await test_egc_mapper.tx_segment_to_genomic(
@@ -1243,12 +1306,11 @@ async def test_tpm3(
     genomic_tx_seg_service_checks(t_to_g_resp, tpm3_exon1_g)
 
     # Test only setting end
-    inputs = {
-        "genomic_ac": "NC_000001.11",
-        "seg_end_genomic": 154170399,
-        "transcript": "NM_152263.3",
-    }
-    g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
+    g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(
+        genomic_ac="NC_000001.11",
+        seg_end_genomic=154170399,
+        transcript="NM_152263.3",
+    )
     genomic_tx_seg_service_checks(g_to_t_resp, tpm3_exon8_g)
 
     t_to_g_resp = await test_egc_mapper.tx_segment_to_genomic(
@@ -1256,22 +1318,49 @@ async def test_tpm3(
     )
     genomic_tx_seg_service_checks(t_to_g_resp, tpm3_exon8_g)
 
-    # TODO: Add MANE
-    # TODO: Add grch38 liftover example
+    expected = tpm3_exon1_exon8.model_copy(deep=True)
+    expected.seg_end.offset = -5
+    expected.seg_end.genomic_location.start = 154170404
+    g_to_t_resp = await test_egc_mapper.tx_segment_to_genomic(
+        exon_start=1, exon_end=8, exon_end_offset=-5, transcript="NM_152263.3"
+    )
+    genomic_tx_seg_service_checks(g_to_t_resp, expected)
+
+    expected.seg_start.exon_ord = 2
+    expected.seg_start.offset = 3
+    expected.seg_start.genomic_location.end = 154176245
+    resp = await test_egc_mapper.tx_segment_to_genomic(
+        exon_start=3,
+        exon_end=8,
+        exon_start_offset=3,
+        exon_end_offset=-5,
+        transcript="NM_152263.3",
+    )
+    genomic_tx_seg_service_checks(resp, expected)
+
+    expected.seg_start.offset = -3
+    expected.seg_start.genomic_location.end = 154176251
+    resp = await test_egc_mapper.tx_segment_to_genomic(
+        exon_start=3,
+        exon_end=8,
+        exon_start_offset=-3,
+        exon_end_offset=-5,
+        transcript="NM_152263.3",
+    )
+    genomic_tx_seg_service_checks(resp, expected)
 
 
 @pytest.mark.asyncio()
 async def test_wee1(test_egc_mapper, wee1_exon2_exon11, mane_wee1_exon2_exon11):
-    """Test WEE1 genomic_to_tx_segment and
-    tx_segment_to_genomic.
+    """Test that genomic_to_tx_segment and tx_segment_to_genomic work correctly for
+    positive strand.
     """
-    inputs = {
-        "genomic_ac": "NC_000011.9",
-        "seg_start_genomic": 9597639,
-        "seg_end_genomic": 9609996,
-        "transcript": "NM_003390.3",
-    }
-    g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
+    g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(
+        genomic_ac="NC_000011.9",
+        seg_start_genomic=9597639,
+        seg_end_genomic=9609996,
+        transcript="NM_003390.3",
+    )
     genomic_tx_seg_service_checks(g_to_t_resp, wee1_exon2_exon11)
 
     t_to_g_resp = await test_egc_mapper.tx_segment_to_genomic(
@@ -1280,14 +1369,13 @@ async def test_wee1(test_egc_mapper, wee1_exon2_exon11, mane_wee1_exon2_exon11):
     genomic_tx_seg_service_checks(t_to_g_resp, wee1_exon2_exon11)
 
     # add gene
-    inputs = {
-        "genomic_ac": "NC_000011.9",
-        "seg_start_genomic": 9597639,
-        "seg_end_genomic": 9609996,
-        "transcript": "NM_003390.3",
-        "gene": "wee1",
-    }
-    g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
+    g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(
+        genomic_ac="NC_000011.9",
+        seg_start_genomic=9597639,
+        seg_end_genomic=9609996,
+        transcript="NM_003390.3",
+        gene="wee1",
+    )
     genomic_tx_seg_service_checks(g_to_t_resp, wee1_exon2_exon11)
 
     t_to_g_resp = await test_egc_mapper.tx_segment_to_genomic(
@@ -1296,13 +1384,12 @@ async def test_wee1(test_egc_mapper, wee1_exon2_exon11, mane_wee1_exon2_exon11):
     genomic_tx_seg_service_checks(t_to_g_resp, wee1_exon2_exon11)
 
     # MANE since no transcript provided
-    inputs = {
-        "genomic_ac": "NC_000011.9",
-        "seg_start_genomic": 9597639,  # GRCh38 coords: 9576092
-        "seg_end_genomic": 9609996,  # GRCh38 coords: 9588449
-        "gene": "wee1",
-    }
-    g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
+    g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(
+        genomic_ac="NC_000011.9",
+        seg_start_genomic=9597639,  # GRCh38 coords: 9576092
+        seg_end_genomic=9609996,  # GRCh38 coords: 9588449
+        gene="wee1",
+    )
     genomic_tx_seg_service_checks(g_to_t_resp, mane_wee1_exon2_exon11)
 
     t_to_g_resp = await test_egc_mapper.tx_segment_to_genomic(
@@ -1312,110 +1399,41 @@ async def test_wee1(test_egc_mapper, wee1_exon2_exon11, mane_wee1_exon2_exon11):
 
 
 @pytest.mark.asyncio()
-async def test_transcript_to_genomic(
-    test_egc_mapper,
-    tpm3_exon1_g,
-    tpm3_exon8_g,
-    tpm3_exon1_exon8,
-):
-    """Test that tx_segment_to_genomic works correctly."""
-    # TPM3
-    expected = tpm3_exon8_g.model_copy(deep=True)
-    resp = await test_egc_mapper.tx_segment_to_genomic(
-        exon_start=None, exon_end=8, transcript="NM_152263.3"
-    )
-    expected.seg_end.genomic_location.start = 154170399
-    genomic_tx_seg_service_checks(resp, expected)
-
-    resp = await test_egc_mapper.tx_segment_to_genomic(
-        exon_start=1, exon_end=None, transcript="NM_152263.3"
-    )
-    genomic_tx_seg_service_checks(resp, tpm3_exon1_g)
-
-    resp = await test_egc_mapper.tx_segment_to_genomic(
-        exon_start=None, exon_end=8, gene="TPM3", transcript="NM_152263.3"
-    )
-    expected.seg_end.genomic_location.start = 154170399
-    genomic_tx_seg_service_checks(resp, expected)
-
-    resp = await test_egc_mapper.tx_segment_to_genomic(
-        exon_start=None, exon_end=8, gene="tpm3", transcript="NM_152263.3"
-    )
-    expected.seg_end.genomic_location.start = 154170399
-    genomic_tx_seg_service_checks(resp, expected)
-
-    expected = tpm3_exon1_exon8.model_copy(deep=True)
-    resp = await test_egc_mapper.tx_segment_to_genomic(
-        exon_start=1, exon_end=8, exon_end_offset=-5, transcript="NM_152263.3"
-    )
-    expected.seg_end.offset = -5
-    expected.seg_end.genomic_location.start = 154170404
-    genomic_tx_seg_service_checks(resp, expected)
-
-    resp = await test_egc_mapper.tx_segment_to_genomic(
-        exon_start=3,
-        exon_end=8,
-        exon_start_offset=3,
-        exon_end_offset=-5,
-        transcript="NM_152263.3",
-    )
-    expected.seg_start.exon_ord = 2
-    expected.seg_start.offset = 3
-    expected.seg_start.genomic_location.end = 154176245
-    genomic_tx_seg_service_checks(resp, expected)
-
-    resp = await test_egc_mapper.tx_segment_to_genomic(
-        exon_start=3,
-        exon_end=8,
-        exon_start_offset=-3,
-        exon_end_offset=-5,
-        transcript="NM_152263.3",
-    )
-    expected.seg_start.offset = -3
-    expected.seg_start.genomic_location.end = 154176251
-    genomic_tx_seg_service_checks(resp, expected)
-
-
-@pytest.mark.asyncio()
 async def test_valid_inputs(test_egc_mapper, eln_grch38_intronic):
     """Test that valid inputs don"t return any errors"""
-    inputs = {
-        "gene": "TPM3",
-        "genomic_ac": "NC_000001.11",
-        "seg_start_genomic": 154171412,
-    }
-    resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
+    resp = await test_egc_mapper.genomic_to_tx_segment(
+        gene="TPM3", genomic_ac="NC_000001.11", seg_start_genomic=154171412
+    )
     assert all((resp.gene, resp.genomic_ac, resp.tx_ac, resp.seg_start))
 
-    inputs = {
-        "gene": "WEE1",
-        "genomic_ac": "NC_000011.9",
-        "seg_end_genomic": 9609996,
-    }
-    resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
+    resp = await test_egc_mapper.genomic_to_tx_segment(
+        gene="WEE1", genomic_ac="NC_000011.9", seg_end_genomic=9609996
+    )
     assert all((resp.gene, resp.genomic_ac, resp.tx_ac, resp.seg_end))
 
-    inputs = {"gene": "WEE1", "chromosome": "11", "seg_end_genomic": 9609996}
-    resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
+    resp = await test_egc_mapper.genomic_to_tx_segment(
+        gene="WEE1", chromosome="11", seg_end_genomic=9609996
+    )
     assert all((resp.gene, resp.genomic_ac, resp.tx_ac, resp.seg_end))
 
-    inputs = {"transcript": "NM_003390.3", "exon_start": 2}
-    resp = await test_egc_mapper.tx_segment_to_genomic(**inputs)
+    resp = await test_egc_mapper.tx_segment_to_genomic(
+        transcript="NM_003390.3", exon_start=2
+    )
     assert all((resp.gene, resp.genomic_ac, resp.tx_ac, resp.seg_start))
 
     # add gene
-    inputs = {"transcript": "NM_003390.3", "exon_start": 2, "gene": "WEE1"}
-    resp = await test_egc_mapper.tx_segment_to_genomic(**inputs)
+    resp = await test_egc_mapper.tx_segment_to_genomic(
+        transcript="NM_003390.3", exon_start=2, gene="WEE1"
+    )
     assert all((resp.gene, resp.genomic_ac, resp.tx_ac, resp.seg_start))
 
     # Test X/Y chromosome bug
-    inputs = {
-        "chromosome": "X",
-        "seg_start_genomic": 154437253,
-        "seg_end_genomic": 154437299,
-        "gene": "GDI1",
-    }
-    resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
+    resp = await test_egc_mapper.genomic_to_tx_segment(
+        chromosome="X",
+        seg_start_genomic=154437253,
+        seg_end_genomic=154437299,
+        gene="GDI1",
+    )
     assert all((resp.gene, resp.genomic_ac, resp.tx_ac, resp.seg_start, resp.seg_end))
 
     resp = await test_egc_mapper.tx_segment_to_genomic(
@@ -1423,7 +1441,7 @@ async def test_valid_inputs(test_egc_mapper, eln_grch38_intronic):
     )
     assert all((resp.gene, resp.genomic_ac, resp.tx_ac, resp.seg_start, resp.seg_end))
 
-    # Liftover + intronic space
+    # Liftover + intronic space (issue-329)
     resp = await test_egc_mapper.genomic_to_tx_segment(
         genomic_ac="NC_000007.13",  # not latest AC for chr 7
         seg_start_genomic=73442503,
