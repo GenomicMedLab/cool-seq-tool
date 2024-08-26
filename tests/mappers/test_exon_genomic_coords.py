@@ -630,7 +630,7 @@ async def test_get_all_exon_coords(
 async def test_get_alt_ac_start_and_end(
     test_egc_mapper, tpm3_1_8_start_genomic, tpm3_1_8_end_genomic
 ):
-    """Test that _get_alt_ac_start_and_end works correctly."""
+    """Test that _get_genomic_aln_coords works correctly."""
     tx_ac = "NM_152263.3"
     gene = "TPM3"
     exon_start = _ExonCoord(
@@ -650,7 +650,7 @@ async def test_get_alt_ac_start_and_end(
         alt_strand=Strand.NEGATIVE,
     )
     # Provide tx_exon_start, tx_exon_end, gene
-    resp = await test_egc_mapper._get_alt_ac_start_and_end(
+    resp = await test_egc_mapper._get_genomic_aln_coords(
         tx_ac,
         tx_exon_start=exon_start,
         tx_exon_end=exon_end,
@@ -659,17 +659,17 @@ async def test_get_alt_ac_start_and_end(
     assert resp == (tpm3_1_8_start_genomic, tpm3_1_8_end_genomic, None)
 
     # Provide tx_exon_start, no gene
-    resp = await test_egc_mapper._get_alt_ac_start_and_end(
+    resp = await test_egc_mapper._get_genomic_aln_coords(
         tx_ac, tx_exon_start=exon_start
     )
     assert resp == (tpm3_1_8_start_genomic, None, None)
 
     # Provide tx_exon_end, no gene
-    resp = await test_egc_mapper._get_alt_ac_start_and_end(tx_ac, tx_exon_end=exon_end)
+    resp = await test_egc_mapper._get_genomic_aln_coords(tx_ac, tx_exon_end=exon_end)
     assert resp == (None, tpm3_1_8_end_genomic, None)
 
     # Did not provide tx_exon_start and tx_exon_end
-    resp = await test_egc_mapper._get_alt_ac_start_and_end(tx_ac, gene=gene)
+    resp = await test_egc_mapper._get_genomic_aln_coords(tx_ac, gene=gene)
     assert resp == (
         None,
         None,
@@ -677,7 +677,7 @@ async def test_get_alt_ac_start_and_end(
     )
 
     # UTA can't get value (gene is invalid given tx_ac and tx_exon_start)
-    resp = await test_egc_mapper._get_alt_ac_start_and_end(
+    resp = await test_egc_mapper._get_genomic_aln_coords(
         tx_ac, tx_exon_start=exon_start, gene="BRAF"
     )
     assert resp == (
