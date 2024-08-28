@@ -1376,7 +1376,7 @@ async def test_invalid(test_egc_mapper):
         transcript="NM_152263.3",
     )
     genomic_tx_seg_service_checks(resp, is_valid=False)
-    assert resp.errors == ["Invalid genomic accession: NC_000001.200"]
+    assert resp.errors == ["No gene(s) found given NC_000001.200 on position 154191901"]
 
     # Invalid coordinates
     resp = await test_egc_mapper.genomic_to_tx_segment(

@@ -878,20 +878,17 @@ class ExonGenomicCoordsMapper:
                 )
 
         if genomic_ac:
-            # Check if valid accession is given
-            if not await self.uta_db.validate_genomic_ac(genomic_ac):
-                return GenomicTxSeg(errors=[f"Invalid genomic accession: {genomic_ac}"])
-
             _gene, err_msg = await self._get_genomic_ac_gene(genomic_pos, genomic_ac)
-            if _gene:
-                if gene and _gene != gene:
-                    return GenomicTxSeg(
-                        errors=[f"Expected gene, {gene}, but found {_gene}"]
-                    )
 
-                gene = _gene
-            else:
+            if err_msg:
                 return GenomicTxSeg(errors=[err_msg])
+
+            if gene and _gene != gene:
+                return GenomicTxSeg(
+                    errors=[f"Expected gene, {gene}, but found {_gene}"]
+                )
+
+            gene = _gene
         elif chromosome:
             # Try GRCh38 first
             for assembly in [Assembly.GRCH38.value, Assembly.GRCH37.value]:
