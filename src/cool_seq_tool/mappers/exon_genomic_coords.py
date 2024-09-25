@@ -866,6 +866,13 @@ class ExonGenomicCoordsMapper:
                 if err_msg:
                     return GenomicTxSeg(errors=[err_msg])
 
+                # gene is not required to liftover coordinates if tx_ac and genomic_ac are given, but we should set the associated gene
+                if not gene:
+                    _gene, err_msg = await self._get_tx_ac_gene(transcript)
+                    if err_msg:
+                        return GenomicTxSeg(errors=[err_msg])
+                    gene = _gene
+
                 return GenomicTxSeg(
                     gene=gene,
                     genomic_ac=genomic_ac,
@@ -1008,6 +1015,32 @@ class ExonGenomicCoordsMapper:
         results = await self.uta_db.execute_query(query)
         if not results:
             return None, f"No gene(s) found given {genomic_ac} on position {pos}"
+
+        return results[0]["hgnc"], None
+
+    async def _get_tx_ac_gene(
+        self,
+        tx_ac: str,
+    ) -> tuple[str | None, str | None]:
+        """Get gene given a transcript and position.
+
+        If multiple genes are found for a given ``tx_ac``, only one
+        gene will be returned.
+
+        :param tx_ac: RefSeq transcript, e.g. ``"NM_004333.6"``
+        :return: HGNC gene symbol associated to transcript and
+            warning
+        """
+        query = f"""
+            SELECT DISTINCT hgnc
+            FROM {self.uta_db.schema}.tx_exon_aln_v
+            WHERE tx_ac = '{tx_ac}'
+            ORDER BY hgnc
+            LIMIT 1;
+            """  # noqa: S608
+        results = await self.uta_db.execute_query(query)
+        if not results:
+            return None, f"No gene(s) found given {tx_ac}"
 
         return results[0]["hgnc"], None
 
