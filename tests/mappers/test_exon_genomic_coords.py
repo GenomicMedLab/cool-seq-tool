@@ -928,22 +928,30 @@ async def test_genomic_to_transcript_fusion_context(
     resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
     genomic_tx_seg_service_checks(resp, gusbp3_exon5_start)
 
-    inputs = {  # Test when gene and strand are not provided
+    inputs = {  # Test when gene and transcript are not provided
         "chromosome": "5",
         "seg_start_genomic": 69645878,
-        "transcript": "NR_027386.2",
         "get_nearest_transcript_junction": True,
     }
     resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
     assert (
         resp.errors[0]
-        == "`gene` must be provided to select the adjacent transcript junction"
+        == "`gene` or `transcipt` must be provided to select the adjacent transcript junction"
     )
 
     inputs = {  # Test when transcript is provided
         "chromosome": "5",
         "seg_start_genomic": 69645878,
         "gene": "GUSBP3",
+        "transcript": "NR_027386.2",
+        "get_nearest_transcript_junction": True,
+    }
+    resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
+    genomic_tx_seg_service_checks(resp, gusbp3_exon5_start)
+
+    inputs = {  # Test when gene is not provided
+        "genomic_ac": "NC_000005.10",
+        "seg_start_genomic": 69645878,
         "transcript": "NR_027386.2",
         "get_nearest_transcript_junction": True,
     }

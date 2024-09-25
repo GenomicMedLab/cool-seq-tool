@@ -770,10 +770,10 @@ class ExonGenomicCoordsMapper:
         params = {key: None for key in GenomicTxSeg.model_fields}
 
         if get_nearest_transcript_junction:
-            if not gene:
+            if not gene and not transcript:
                 return GenomicTxSeg(
                     errors=[
-                        "`gene` must be provided to select the adjacent transcript junction"
+                        "`gene` or `transcript` must be provided to select the adjacent transcript junction"
                     ]
                 )
 
