@@ -934,7 +934,7 @@ async def test_genomic_to_transcript_fusion_context(
         "get_nearest_transcript_junction": True,
     }
     resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
-    assert resp.errors[0] == "`gene` or `transcipt` must be provided"
+    assert resp.errors[0] == "Must provide either `gene` or `transcript`"
 
     inputs = {  # Test when transcript is provided
         "chromosome": "5",
