@@ -97,19 +97,18 @@ class GenomicTxSeg(BaseModelForbidExtra):
         """Ensure that fields are (un)set depending on errors
 
         :param values: Values in model
-        :raises ValueError: If `seg`, `gene`, `genomic_ac` and `tx_ac` are not
+        :raises ValueError: If `seg`, `genomic_ac` and `tx_ac` are not
         provided when there are no errors
         :return: Values in model
         """
         if not values.get("errors") and not all(
             (
                 values.get("seg"),
-                values.get("gene"),
                 values.get("genomic_ac"),
                 values.get("tx_ac"),
             )
         ):
-            err_msg = "`seg`, `gene`, `genomic_ac` and `tx_ac` must be provided"
+            err_msg = "`seg`, `genomic_ac` and `tx_ac` must be provided"
             raise ValueError(err_msg)
         return values
 
@@ -154,20 +153,21 @@ class GenomicTxSegService(BaseModelForbidExtra):
         on errors
 
         :param values: Values in model
-        :raises ValueError: If `gene`, `genomic_ac`, `tx_ac` and `seg_start` or `seg_end`
+        :raises ValueError: If `genomic_ac`, `tx_ac` and `seg_start` or `seg_end`
             not provided when there are no errors
         :return: Values in model, including service metadata
         """
         values["service_meta"] = service_meta()
         if not values.get("errors") and not all(
             (
-                values.get("gene"),
                 values.get("genomic_ac"),
                 values.get("tx_ac"),
                 values.get("seg_start") or values.get("seg_end"),
             )
         ):
-            err_msg = "`gene`, `genomic_ac`, `tx_ac` and `seg_start` or `seg_end` must be provided"
+            err_msg = (
+                "`genomic_ac`, `tx_ac` and `seg_start` or `seg_end` must be provided"
+            )
             raise ValueError(err_msg)
 
         return values
@@ -866,6 +866,13 @@ class ExonGenomicCoordsMapper:
                 if err_msg:
                     return GenomicTxSeg(errors=[err_msg])
 
+                # gene is not required to liftover coordinates if tx_ac and genomic_ac are given, but we should set the associated gene
+                if not gene:
+                    _gene, err_msg = await self._get_tx_ac_gene(transcript)
+                    if err_msg:
+                        return GenomicTxSeg(errors=[err_msg])
+                    gene = _gene
+
                 return GenomicTxSeg(
                     gene=gene,
                     genomic_ac=genomic_ac,
@@ -1008,6 +1015,32 @@ class ExonGenomicCoordsMapper:
         results = await self.uta_db.execute_query(query)
         if not results:
             return None, f"No gene(s) found given {genomic_ac} on position {pos}"
+
+        return results[0]["hgnc"], None
+
+    async def _get_tx_ac_gene(
+        self,
+        tx_ac: str,
+    ) -> tuple[str | None, str | None]:
+        """Get gene given a transcript.
+
+        If multiple genes are found for a given ``tx_ac``, only one
+        gene will be returned.
+
+        :param tx_ac: RefSeq transcript, e.g. ``"NM_004333.6"``
+        :return: HGNC gene symbol associated to transcript and
+            warning
+        """
+        query = f"""
+            SELECT DISTINCT hgnc
+            FROM {self.uta_db.schema}.tx_exon_aln_v
+            WHERE tx_ac = '{tx_ac}'
+            ORDER BY hgnc
+            LIMIT 1;
+            """  # noqa: S608
+        results = await self.uta_db.execute_query(query)
+        if not results:
+            return None, f"No gene(s) found given {tx_ac}"
 
         return results[0]["hgnc"], None
 
