@@ -1022,7 +1022,7 @@ class ExonGenomicCoordsMapper:
         self,
         tx_ac: str,
     ) -> tuple[str | None, str | None]:
-        """Get gene given a transcript and position.
+        """Get gene given a transcript.
 
         If multiple genes are found for a given ``tx_ac``, only one
         gene will be returned.
