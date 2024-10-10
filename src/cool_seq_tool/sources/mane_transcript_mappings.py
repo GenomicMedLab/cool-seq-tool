@@ -61,7 +61,9 @@ class ManeTranscriptMappings:
             location information). The list is sorted so that a MANE Select entry comes
             first, followed by a MANE Plus Clinical entry, if available.
         """
-        data = self.df.filter(pl.col("symbol") == gene_symbol.upper())
+        data = self.df.filter(
+            pl.col("symbol").str.to_uppercase() == gene_symbol.upper()
+        )
 
         if len(data) == 0:
             _logger.warning(
