@@ -1,7 +1,6 @@
 """Provide mapping capabilities between transcript exon and genomic coordinates."""
 
 import logging
-import re
 
 from ga4gh.vrs.models import SequenceLocation, SequenceReference
 from pydantic import ConfigDict, Field, StrictInt, StrictStr, model_validator
@@ -336,9 +335,6 @@ class ExonGenomicCoordsMapper:
         if errors:
             return _return_service_errors(errors)
 
-        if gene and not re.fullmatch(r"^C\d+orf\d+$", gene):
-            gene = gene.upper()
-
         # Get aligned genomic data (hgnc gene, alt_ac, alt_start_i, alt_end_i, strand)
         # for exon(s)
         (
@@ -473,9 +469,6 @@ class ExonGenomicCoordsMapper:
             errors.append("Must provide either `gene` or `transcript`")
         if errors:
             return _return_service_errors(errors)
-
-        if gene is not None and not re.fullmatch(r"^C\d+orf\d+$", gene):
-            gene = gene.upper()
 
         params = {}
 
