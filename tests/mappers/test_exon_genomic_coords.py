@@ -1162,7 +1162,7 @@ async def test_wee1(test_egc_mapper, wee1_exon2_exon11, mane_wee1_exon2_exon11):
         "seg_start_genomic": 9597639,
         "seg_end_genomic": 9609996,
         "transcript": "NM_003390.3",
-        "gene": "wee1",
+        "gene": "WEE1",
     }
     g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
     genomic_tx_seg_service_checks(g_to_t_resp, wee1_exon2_exon11)
@@ -1177,7 +1177,7 @@ async def test_wee1(test_egc_mapper, wee1_exon2_exon11, mane_wee1_exon2_exon11):
         "genomic_ac": "NC_000011.9",
         "seg_start_genomic": 9597639,  # GRCh38 coords: 9576092
         "seg_end_genomic": 9609996,  # GRCh38 coords: 9588449
-        "gene": "wee1",
+        "gene": "WEE1",
     }
     g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
     genomic_tx_seg_service_checks(g_to_t_resp, mane_wee1_exon2_exon11)
@@ -1212,12 +1212,6 @@ async def test_transcript_to_genomic(
 
     resp = await test_egc_mapper.tx_segment_to_genomic(
         exon_start=None, exon_end=8, gene="TPM3", transcript="NM_152263.3"
-    )
-    expected.seg_end.genomic_location.start = 154170399
-    genomic_tx_seg_service_checks(resp, expected)
-
-    resp = await test_egc_mapper.tx_segment_to_genomic(
-        exon_start=None, exon_end=8, gene="tpm3", transcript="NM_152263.3"
     )
     expected.seg_end.genomic_location.start = 154170399
     genomic_tx_seg_service_checks(resp, expected)
@@ -1371,7 +1365,7 @@ async def test_invalid(test_egc_mapper):
         gene="dummy gene",
     )
     genomic_tx_seg_service_checks(resp, is_valid=False)
-    assert resp.errors == ["Expected gene, DUMMY GENE, but found TPM3"]
+    assert resp.errors == ["Expected gene, dummy gene, but found TPM3"]
 
     # Invalid accession
     resp = await test_egc_mapper.genomic_to_tx_segment(

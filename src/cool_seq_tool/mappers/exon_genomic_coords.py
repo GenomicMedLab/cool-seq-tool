@@ -87,7 +87,9 @@ class GenomicTxSeg(BaseModelForbidExtra):
     """Model for representing a boundary for a transcript segment."""
 
     seg: TxSegment | None = Field(None, description="Transcript segment.")
-    gene: StrictStr | None = Field(None, description="HGNC gene symbol.")
+    gene: StrictStr | None = Field(
+        None, description="Valid, case-sensitive HGNC gene symbol."
+    )
     genomic_ac: StrictStr | None = Field(None, description="RefSeq genomic accession.")
     tx_ac: StrictStr | None = Field(None, description="RefSeq transcript accession.")
     errors: list[StrictStr] = Field([], description="Error messages.")
@@ -139,7 +141,9 @@ class GenomicTxSeg(BaseModelForbidExtra):
 class GenomicTxSegService(BaseModelForbidExtra):
     """Service model for genomic and transcript data."""
 
-    gene: StrictStr | None = Field(None, description="HGNC gene symbol.")
+    gene: StrictStr | None = Field(
+        None, description="Valid, case-sensitive HGNC gene symbol."
+    )
     genomic_ac: StrictStr | None = Field(None, description="RefSeq genomic accession.")
     tx_ac: StrictStr | None = Field(None, description="RefSeq transcript accession.")
     seg_start: TxSegment | None = Field(None, description="Start transcript segment.")
@@ -292,7 +296,7 @@ class ExonGenomicCoordsMapper:
         ('NC_000001.11', 154192135, 154170399)
 
         :param transcript: RefSeq transcript accession
-        :param gene: HGNC gene symbol
+        :param gene: Valid, case-sensitive HGNC gene symbol
         :param exon_start: Starting transcript exon number (1-based). If not provided,
             must provide ``exon_end``
         :param exon_start_offset: Starting exon offset
@@ -452,7 +456,7 @@ class ExonGenomicCoordsMapper:
             following the breakpoint for the 3' end. For the negative strand, adjacent
             is defined as the exon following the breakpoint for the 5' end and the exon
             preceding the breakpoint for the 3' end.
-        :param gene: gene name. Ideally, HGNC symbol. Must be given if no ``transcript``
+        :param gene: gene name. A valid, case-sensitive HGNC symbol. Must be given if no ``transcript``
             value is provided.
         :param coordinate_type: Coordinate type for ``seg_start_genomic`` and
             ``seg_end_genomic``
@@ -749,7 +753,7 @@ class ExonGenomicCoordsMapper:
         :param transcript: The transcript to use. If this is not given, we will try the
             following transcripts: MANE Select, MANE Clinical Plus, Longest Remaining
             Compatible Transcript
-        :param gene: HGNC gene symbol
+        :param gene: Valid, case-sensitive HGNC gene symbol
         :param get_nearest_transcript_junction: If ``True``, this will return the
             adjacent exon if the position specified by``seg_start_genomic`` or
             ``seg_end_genomic`` does not occur on an exon. For the positive strand, adjacent
@@ -1056,7 +1060,7 @@ class ExonGenomicCoordsMapper:
         :param genomic_ac: Genomic RefSeq accession
         :param genomic_pos: Genomic position where the transcript segment occurs
         :param is_seg_start: Whether or not ``genomic_pos`` represents the start position.
-        :param gene: HGNC gene symbol
+        :param gene: Valid, case-sensitive HGNC gene symbol
         :param tx_ac: Transcript RefSeq accession. If not provided, will use MANE
             transcript
         :return: Transcript segment data and associated genomic metadata
