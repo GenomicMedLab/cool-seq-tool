@@ -456,7 +456,7 @@ class ExonGenomicCoordsMapper:
             following the breakpoint for the 3' end. For the negative strand, adjacent
             is defined as the exon following the breakpoint for the 5' end and the exon
             preceding the breakpoint for the 3' end.
-        :param gene: gene name. A valid, case-sensitive HGNC symbol. Must be given if no ``transcript``
+        :param gene: A valid, case-sensitive HGNC symbol. Must be given if no ``transcript``
             value is provided.
         :param coordinate_type: Coordinate type for ``seg_start_genomic`` and
             ``seg_end_genomic``
@@ -628,7 +628,7 @@ class ExonGenomicCoordsMapper:
             must provide ``tx_exon_end``
         :param tx_exon_end: Transcript's exon end coordinates. If not provided, must
             provide ``tx_exon_start``
-        :param gene: HGNC gene symbol
+        :param gene: A valid, case-sensitive HGNC gene symbol
         :return: Tuple containing aligned genomic data for start and end exon and
             warnings if found
         """
