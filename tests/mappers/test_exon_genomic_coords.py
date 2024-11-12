@@ -1044,6 +1044,16 @@ async def test_genomic_to_transcript(test_egc_mapper, tpm3_exon1, tpm3_exon8):
     )
     genomic_tx_seg_checks(resp, tpm3_exon8)
 
+    # Check if transcript exists in UTA. If not, return longest compatible transcript
+    resp = await test_egc_mapper._genomic_to_tx_segment(
+        22513522,
+        genomic_ac="NC_000016.10",
+        is_seg_start=False,
+        gene="NPIPB5",
+        get_nearest_transcript_junction=True,
+    )
+    assert resp.tx_ac == "NM_001135865.2"
+
 
 @pytest.mark.asyncio()
 async def test_tpm3(
