@@ -1050,7 +1050,6 @@ async def test_genomic_to_transcript(test_egc_mapper, tpm3_exon1, tpm3_exon8):
         genomic_ac="NC_000016.10",
         is_seg_start=False,
         gene="NPIPB5",
-        get_nearest_transcript_junction=True,
     )
     assert resp.tx_ac == "NM_001135865.2"
 

@@ -1073,24 +1073,56 @@ class ExonGenomicCoordsMapper:
             transcript
         :return: Transcript segment data and associated genomic metadata
         """
-        if tx_ac:
-            # We should always try to liftover
-            grch38_ac = await self.uta_db.get_newest_assembly_ac(genomic_ac)
-            if not grch38_ac:
-                return GenomicTxSeg(errors=[f"Invalid genomic accession: {genomic_ac}"])
-            grch38_ac = grch38_ac[0]
-        else:
+        # We should always try to liftover
+        grch38_ac = await self.uta_db.get_newest_assembly_ac(genomic_ac)
+        if not grch38_ac:
+            return GenomicTxSeg(errors=[f"Invalid genomic accession: {genomic_ac}"])
+        grch38_ac = grch38_ac[0]
+
+        non_mane_transcript = None
+
+        if not tx_ac:
             mane_data = self.mane_transcript_mappings.get_gene_mane_data(gene)
             if not mane_data:
                 err_msg = f"Unable to find mane data for {genomic_ac} with position {genomic_pos}"
                 if gene:
                     err_msg += f" on gene {gene}"
                 _logger.warning(err_msg)
-                return GenomicTxSeg(errors=[err_msg])
+            if not await self.uta_db.validate_mane_transcript_acc(mane_data):
+                results = await self.mane_transcript.get_longest_compatible_transcript(
+                    start_pos=genomic_pos,
+                    end_pos=genomic_pos,
+                    start_annotation_layer=AnnotationLayer.GENOMIC,
+                    gene=gene,
+                )
+                if results:
+                    non_mane_transcript = results.refseq
+                else:
+                    # Run if gene is for a noncoding transcript
+                    query = f"""
+                        SELECT DISTINCT tx_ac
+                        FROM {self.uta_db.schema}.tx_exon_aln_v
+                        WHERE hgnc = '{gene}'
+                        AND alt_ac = '{genomic_ac}'
+                        """  # noqa: S608
+                    result = await self.uta_db.execute_query(query)
 
-            mane_data = mane_data[0]
-            tx_ac = mane_data["RefSeq_nuc"]
-            grch38_ac = mane_data["GRCh38_chr"]
+                    if result:
+                        non_mane_transcript = result[0]["tx_ac"]
+                    else:
+                        return GenomicTxSeg(
+                            errors=[
+                                f"Could not find a transcript for {gene} on {genomic_ac}"
+                            ]
+                        )
+                    return GenomicTxSeg(errors=[err_msg])
+
+            if non_mane_transcript:
+                tx_ac = non_mane_transcript
+            else:
+                mane_data = mane_data[0]
+                tx_ac = mane_data["RefSeq_nuc"]
+                grch38_ac = mane_data["GRCh38_chr"]
 
         # Always liftover to GRCh38
         genomic_ac, genomic_pos, err_msg = await self._get_grch38_ac_pos(
