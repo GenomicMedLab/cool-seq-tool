@@ -378,13 +378,15 @@ class UtaDatabase:
         result = await self.execute_query(query)
         return result[0][0]
 
-    async def validate_mane_transcript_acc(self, transcript_list: list[dict]) -> bool:
-        """Return whether or not a MANE transcript exists in UTA
+    async def validate_mane_transcript_ac(self, mane_transcripts: list[dict]) -> bool:
+        """Return whether or not a MANE transcript exists in UTA. This looks at the
+        first entry in the MANE transcripts list as this is the higher priority
+        transcript.
 
         :param transcript_list: A list of MANE transcripts
         :return ``True`` if transcript accession exists in UTA. ``False`` otherwise
         """
-        transcript = transcript_list[0]["RefSeq_nuc"]
+        transcript = mane_transcripts[0]["RefSeq_nuc"]
         query = f"""
             SELECT *
             FROM {self.schema}.tx_exon_aln_v

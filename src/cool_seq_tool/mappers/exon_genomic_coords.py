@@ -260,6 +260,7 @@ class ExonGenomicCoordsMapper:
         :param seqrepo_access: SeqRepo instance to give access to query SeqRepo database
         :param uta_db: UtaDatabase instance to give access to query UTA database
         :param mane_transcript_mappings: Instance to provide access to ManeTranscriptMappings class
+        :param mane_transcript: Instance to provide access to the ManeTranscript class
         :param liftover: Instance to provide mapping between human genome assemblies
         """
         self.seqrepo_access = seqrepo_access
@@ -800,7 +801,7 @@ class ExonGenomicCoordsMapper:
                 mane_transcripts = self.mane_transcript_mappings.get_gene_mane_data(
                     gene
                 )
-                if mane_transcripts and await self.uta_db.validate_mane_transcript_acc(
+                if mane_transcripts and await self.uta_db.validate_mane_transcript_ac(
                     mane_transcripts
                 ):
                     transcript = mane_transcripts[0]["RefSeq_nuc"]
@@ -919,6 +920,9 @@ class ExonGenomicCoordsMapper:
         self, genomic_pos: int, genomic_ac: str, gene: str
     ) -> str:
         """Select the optimal transcript given a genomic position, accession, and gene.
+        In this case, optimal refers to the transcript that is the best represenative
+        transcript for this data, given that MANE data does not exist for the
+        gene or the MANE transcript for the gene does not exist in UTA
 
         :param genomic_pos: Genomic position where the transcript segment starts or ends
             (inter-residue based)
@@ -1100,7 +1104,7 @@ class ExonGenomicCoordsMapper:
                 if gene:
                     err_msg += f" on gene {gene}"
                 _logger.warning(err_msg)
-            if not await self.uta_db.validate_mane_transcript_acc(mane_data):
+            if not await self.uta_db.validate_mane_transcript_ac(mane_data):
                 non_mane_transcript = await self._select_optimal_transcript(
                     genomic_pos, genomic_ac, gene
                 )
