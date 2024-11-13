@@ -805,36 +805,9 @@ class ExonGenomicCoordsMapper:
                 ):
                     transcript = mane_transcripts[0]["RefSeq_nuc"]
                 else:
-                    # Attempt to find a coding transcript if a MANE transcript
-                    # cannot be found
-                    results = (
-                        await self.mane_transcript.get_longest_compatible_transcript(
-                            start_pos=genomic_pos,
-                            end_pos=genomic_pos,
-                            start_annotation_layer=AnnotationLayer.GENOMIC,
-                            gene=gene,
-                        )
+                    transcript = await self._select_optimal_transcript(
+                        genomic_pos, genomic_ac, gene
                     )
-                    if results:
-                        transcript = results.refseq
-                    else:
-                        # Run if gene is for a noncoding transcript
-                        query = f"""
-                            SELECT DISTINCT tx_ac
-                            FROM {self.uta_db.schema}.tx_exon_aln_v
-                            WHERE hgnc = '{gene}'
-                            AND alt_ac = '{genomic_ac}'
-                            """  # noqa: S608
-                        result = await self.uta_db.execute_query(query)
-
-                        if result:
-                            transcript = result[0]["tx_ac"]
-                        else:
-                            return GenomicTxSeg(
-                                errors=[
-                                    f"Could not find a transcript for {gene} on {genomic_ac}"
-                                ]
-                            )
             tx_exons = await self._get_all_exon_coords(
                 tx_ac=transcript, genomic_ac=genomic_ac
             )
@@ -941,6 +914,45 @@ class ExonGenomicCoordsMapper:
         return await self._get_tx_seg_genomic_metadata(
             genomic_ac, genomic_pos, is_seg_start, gene, tx_ac=transcript
         )
+
+    async def _select_optimal_transcript(
+        self, genomic_pos: int, genomic_ac: str, gene: str
+    ) -> str:
+        """Select the optimal transcript given a genomic position, accession, and gene.
+
+        :param genomic_pos: Genomic position where the transcript segment starts or ends
+            (inter-residue based)
+        :param genomic_ac: Genomic accession
+        :param gene: Valid, case-sensitive HGNC gene symbol
+        :return A string representing the optimal transcript given the above data
+        """
+        # Attempt to find a coding transcript if a MANE transcript cannot be found
+        transcript = None
+        results = await self.mane_transcript.get_longest_compatible_transcript(
+            start_pos=genomic_pos,
+            end_pos=genomic_pos,
+            start_annotation_layer=AnnotationLayer.GENOMIC,
+            gene=gene,
+        )
+        if results:
+            transcript = results.refseq
+        else:
+            # Run if gene is for a noncoding transcript
+            query = f"""
+                SELECT DISTINCT tx_ac
+                FROM {self.uta_db.schema}.tx_exon_aln_v
+                WHERE hgnc = '{gene}'
+                AND alt_ac = '{genomic_ac}'
+                """  # noqa: S608
+            result = await self.uta_db.execute_query(query)
+
+            if result:
+                transcript = result[0]["tx_ac"]
+            else:
+                return GenomicTxSeg(
+                    errors=[f"Could not find a transcript for {gene} on {genomic_ac}"]
+                )
+        return transcript
 
     async def _get_grch38_ac_pos(
         self, genomic_ac: str, genomic_pos: int, grch38_ac: str | None = None
@@ -1089,33 +1101,9 @@ class ExonGenomicCoordsMapper:
                     err_msg += f" on gene {gene}"
                 _logger.warning(err_msg)
             if not await self.uta_db.validate_mane_transcript_acc(mane_data):
-                results = await self.mane_transcript.get_longest_compatible_transcript(
-                    start_pos=genomic_pos,
-                    end_pos=genomic_pos,
-                    start_annotation_layer=AnnotationLayer.GENOMIC,
-                    gene=gene,
+                non_mane_transcript = await self._select_optimal_transcript(
+                    genomic_pos, genomic_ac, gene
                 )
-                if results:
-                    non_mane_transcript = results.refseq
-                else:
-                    # Run if gene is for a noncoding transcript
-                    query = f"""
-                        SELECT DISTINCT tx_ac
-                        FROM {self.uta_db.schema}.tx_exon_aln_v
-                        WHERE hgnc = '{gene}'
-                        AND alt_ac = '{genomic_ac}'
-                        """  # noqa: S608
-                    result = await self.uta_db.execute_query(query)
-
-                    if result:
-                        non_mane_transcript = result[0]["tx_ac"]
-                    else:
-                        return GenomicTxSeg(
-                            errors=[
-                                f"Could not find a transcript for {gene} on {genomic_ac}"
-                            ]
-                        )
-                    return GenomicTxSeg(errors=[err_msg])
 
             if non_mane_transcript:
                 tx_ac = non_mane_transcript
