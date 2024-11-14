@@ -416,6 +416,7 @@ class ExonGenomicCoordsMapper:
         seg_end_genomic: int | None = None,
         transcript: str | None = None,
         get_nearest_transcript_junction: bool = False,
+        try_longest_compatible: bool = True,
         gene: str | None = None,
     ) -> GenomicTxSegService:
         """Get transcript segment data for genomic data, lifted over to GRCh38.
@@ -461,6 +462,8 @@ class ExonGenomicCoordsMapper:
             following the breakpoint for the 3' end. For the negative strand, adjacent
             is defined as the exon following the breakpoint for the 5' end and the exon
             preceding the breakpoint for the 3' end.
+        :param try_longest_compatible: ``True`` if should try longest compatible remaining
+            if mane transcript was not compatible. ``False`` otherwise.
         :param gene: A valid, case-sensitive HGNC symbol. Must be given if no ``transcript``
             value is provided.
         :param coordinate_type: Coordinate type for ``seg_start_genomic`` and
@@ -489,6 +492,7 @@ class ExonGenomicCoordsMapper:
                 transcript=transcript,
                 gene=gene,
                 get_nearest_transcript_junction=get_nearest_transcript_junction,
+                try_longest_compatible=try_longest_compatible,
                 is_seg_start=True,
             )
             if start_tx_seg_data.errors:
@@ -509,6 +513,7 @@ class ExonGenomicCoordsMapper:
                 transcript=transcript,
                 gene=gene,
                 get_nearest_transcript_junction=get_nearest_transcript_junction,
+                try_longest_compatible=try_longest_compatible,
                 is_seg_start=False,
             )
             if end_tx_seg_data.errors:
@@ -739,6 +744,7 @@ class ExonGenomicCoordsMapper:
         transcript: str | None = None,
         gene: str | None = None,
         get_nearest_transcript_junction: bool = False,
+        try_longest_compatible: bool = True,
         is_seg_start: bool = True,
     ) -> GenomicTxSeg:
         """Given genomic data, generate a boundary for a transcript segment.
@@ -766,6 +772,8 @@ class ExonGenomicCoordsMapper:
             following the breakpoint for the 3' end. For the negative strand, adjacent
             is defined as the exon following the breakpoint for the 5' end and the exon
             preceding the breakpoint for the 3' end.
+        :param try_longest_compatible: ``True`` if should try longest compatible remaining
+            if mane transcript was not compatible. ``False`` otherwise.
         :param is_seg_start: ``True`` if ``genomic_pos`` is where the transcript segment starts.
             ``False`` if ``genomic_pos`` is where the transcript segment ends.
         :return: Data for a transcript segment boundary (inter-residue coordinates)
@@ -806,9 +814,16 @@ class ExonGenomicCoordsMapper:
                 ):
                     transcript = mane_transcripts[0]["RefSeq_nuc"]
                 else:
-                    transcript = await self._select_optimal_transcript(
-                        genomic_pos, genomic_ac, gene
-                    )
+                    if try_longest_compatible:
+                        transcript = await self._select_optimal_transcript(
+                            genomic_pos, genomic_ac, gene
+                        )
+                    else:
+                        return GenomicTxSeg(
+                            errors=[
+                                "A MANE transcript either does not exist or was not found in UTA. Please set `try_longest_compatible` to ``True`` to re-run"
+                            ]
+                        )
             tx_exons = await self._get_all_exon_coords(
                 tx_ac=transcript, genomic_ac=genomic_ac
             )
