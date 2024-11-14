@@ -499,7 +499,7 @@ def test_get_prioritized_transcripts_from_gene(
             data, schema=["pro_ac", "tx_ac", "alt_ac", "cds_start_i"], orient="row"
         )
 
-        resp = test_mane_transcript._get_prioritized_transcripts_from_gene(test_df)
+        resp = test_mane_transcript.get_prioritized_transcripts_from_gene(test_df)
         assert resp == ["NM_004333.6", "NM_001374258.2", "NM_001378472.1"]
 
 

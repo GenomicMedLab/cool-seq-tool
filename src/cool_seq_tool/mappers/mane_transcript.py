@@ -640,7 +640,7 @@ class ManeTranscript:
             )[0]
         )
 
-    def _get_prioritized_transcripts_from_gene(self, df: pl.DataFrame) -> list:
+    def get_prioritized_transcripts_from_gene(self, df: pl.DataFrame) -> list:
         """Sort and filter transcripts from gene to get priority list
 
         :param df: Data frame containing transcripts from gene
@@ -655,10 +655,7 @@ class ManeTranscript:
         copy_df = copy_df.with_columns(
             [
                 pl.col("tx_ac")
-                .str.split(".")
-                .list.get(0)
-                .str.split("NM_")
-                .list.get(1)
+                .str.extract(r"(?:NM_|NR_|NG_)(\d+)", 1)
                 .cast(pl.Int64)
                 .alias("ac_no_version_as_int"),
                 pl.col("tx_ac")
@@ -796,7 +793,7 @@ class ManeTranscript:
             _logger.warning("Unable to get transcripts from gene %s", gene)
             return lcr_result
 
-        prioritized_tx_acs = self._get_prioritized_transcripts_from_gene(df)
+        prioritized_tx_acs = self.get_prioritized_transcripts_from_gene(df)
 
         if mane_transcripts:
             # Dont check MANE transcripts since we know that are not compatible

@@ -2,6 +2,7 @@
 
 import logging
 
+import polars as pl
 from ga4gh.vrs.models import SequenceLocation, SequenceReference
 from pydantic import ConfigDict, Field, StrictInt, StrictStr, model_validator
 
@@ -952,21 +953,28 @@ class ExonGenomicCoordsMapper:
             end_pos=genomic_pos,
             start_annotation_layer=AnnotationLayer.GENOMIC,
             gene=gene,
+            alt_ac=genomic_ac,
         )
         if results:
             transcript = results.refseq
         else:
             # Run if gene is for a noncoding transcript
             query = f"""
-                SELECT DISTINCT tx_ac
+                SELECT *
                 FROM {self.uta_db.schema}.tx_exon_aln_v
                 WHERE hgnc = '{gene}'
                 AND alt_ac = '{genomic_ac}'
                 """  # noqa: S608
-            result = await self.uta_db.execute_query(query)
+            results = await self.uta_db.execute_query(query)
+            schema = ["tx_ac", "alt_ac", "hgnc"]
+            transcripts = [(r["tx_ac"], r["alt_ac"], r["hgnc"]) for r in results]
+            transcripts = pl.DataFrame(data=transcripts, schema=schema, orient="row")
+            result = self.mane_transcript.get_prioritized_transcripts_from_gene(
+                transcripts
+            )
 
             if result:
-                transcript = result[0]["tx_ac"]
+                transcript = result[0]
             else:
                 return GenomicTxSeg(
                     errors=[f"Could not find a transcript for {gene} on {genomic_ac}"]
