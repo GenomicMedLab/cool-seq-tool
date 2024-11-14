@@ -966,9 +966,11 @@ class ExonGenomicCoordsMapper:
                 AND alt_ac = '{genomic_ac}'
                 """  # noqa: S608
             results = await self.uta_db.execute_query(query)
-            schema = ["tx_ac", "alt_ac", "hgnc"]
-            transcripts = [(r["tx_ac"], r["alt_ac"], r["hgnc"]) for r in results]
-            transcripts = pl.DataFrame(data=transcripts, schema=schema, orient="row")
+            schema = ["tx_ac"]
+            transcripts = [(r["tx_ac"]) for r in results]
+            transcripts = pl.DataFrame(
+                data=transcripts, schema=schema, orient="row"
+            ).unique()
             result = self.mane_transcript.get_prioritized_transcripts_from_gene(
                 transcripts
             )

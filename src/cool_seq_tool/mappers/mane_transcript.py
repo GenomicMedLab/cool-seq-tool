@@ -651,7 +651,8 @@ class ManeTranscript:
             most recent version of a transcript associated with an assembly will be kept
         """
         copy_df = df.clone()
-        copy_df = copy_df.drop("alt_ac").unique()
+        if "alt_ac" in copy_df.columns:
+            copy_df = copy_df.drop("alt_ac").unique()
         copy_df = copy_df.with_columns(
             [
                 pl.col("tx_ac")
@@ -670,9 +671,12 @@ class ManeTranscript:
         )
         copy_df = copy_df.unique(["ac_no_version_as_int"], keep="first")
 
+        tx_ac_index = copy_df.columns.index("tx_ac")
         copy_df = copy_df.with_columns(
             copy_df.map_rows(
-                lambda x: len(self.seqrepo_access.get_reference_sequence(x[1])[0])
+                lambda x: len(
+                    self.seqrepo_access.get_reference_sequence(x[tx_ac_index])[0]
+                )
             )
             .to_series()
             .alias("len_of_tx")
