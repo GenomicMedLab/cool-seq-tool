@@ -30,7 +30,7 @@ Descriptions and examples of functions can be found in the :ref:`API Reference <
 
 .. note::
 
-   Many component classes in CoolSeqTool, including :py:class:`UtaDatabase <cool_seq_tool.sources.uta_database.UtaDatabase>`, :py:class:`ExonGenomicCoordsMapper <cool_seq_tool.mappers.exon_genomic_coords.ExonGenomicCoordsMapper>`, and :py:class:`ManeTranscript <cool_seq_tool.mappers.mane_transcript>`, define public methods as ``async``. This means that, when used inside another function, they must be called with ``await``:
+   Many component classes in Cool-Seq-Tool, including :py:class:`UtaDatabase <cool_seq_tool.sources.uta_database.UtaDatabase>`, :py:class:`ExonGenomicCoordsMapper <cool_seq_tool.mappers.exon_genomic_coords.ExonGenomicCoordsMapper>`, and :py:class:`ManeTranscript <cool_seq_tool.mappers.mane_transcript>`, define public methods as ``async``. This means that, when used inside another function, they must be called with ``await``:
 
    .. code-block:: python
 
