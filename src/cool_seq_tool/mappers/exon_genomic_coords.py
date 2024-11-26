@@ -2,12 +2,15 @@
 
 import logging
 
+import polars as pl
 from ga4gh.vrs.models import SequenceLocation, SequenceReference
 from pydantic import ConfigDict, Field, StrictInt, StrictStr, model_validator
 
 from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
 from cool_seq_tool.mappers.liftover import LiftOver
+from cool_seq_tool.mappers.mane_transcript import ManeTranscript
 from cool_seq_tool.schemas import (
+    AnnotationLayer,
     Assembly,
     BaseModelForbidExtra,
     ServiceMeta,
@@ -232,6 +235,7 @@ class ExonGenomicCoordsMapper:
         self,
         seqrepo_access: SeqRepoAccess,
         uta_db: UtaDatabase,
+        mane_transcript: ManeTranscript,
         mane_transcript_mappings: ManeTranscriptMappings,
         liftover: LiftOver,
     ) -> None:
@@ -257,10 +261,12 @@ class ExonGenomicCoordsMapper:
         :param seqrepo_access: SeqRepo instance to give access to query SeqRepo database
         :param uta_db: UtaDatabase instance to give access to query UTA database
         :param mane_transcript_mappings: Instance to provide access to ManeTranscriptMappings class
+        :param mane_transcript: Instance to provide access to the ManeTranscript class
         :param liftover: Instance to provide mapping between human genome assemblies
         """
         self.seqrepo_access = seqrepo_access
         self.uta_db = uta_db
+        self.mane_transcript = mane_transcript
         self.mane_transcript_mappings = mane_transcript_mappings
         self.liftover = liftover
 
@@ -411,6 +417,7 @@ class ExonGenomicCoordsMapper:
         seg_end_genomic: int | None = None,
         transcript: str | None = None,
         get_nearest_transcript_junction: bool = False,
+        try_longest_compatible: bool = True,
         gene: str | None = None,
     ) -> GenomicTxSegService:
         """Get transcript segment data for genomic data, lifted over to GRCh38.
@@ -456,6 +463,8 @@ class ExonGenomicCoordsMapper:
             following the breakpoint for the 3' end. For the negative strand, adjacent
             is defined as the exon following the breakpoint for the 5' end and the exon
             preceding the breakpoint for the 3' end.
+        :param try_longest_compatible: ``True`` if should try longest compatible remaining
+            if mane transcript was not compatible. ``False`` otherwise.
         :param gene: A valid, case-sensitive HGNC symbol. Must be given if no ``transcript``
             value is provided.
         :param coordinate_type: Coordinate type for ``seg_start_genomic`` and
@@ -484,6 +493,7 @@ class ExonGenomicCoordsMapper:
                 transcript=transcript,
                 gene=gene,
                 get_nearest_transcript_junction=get_nearest_transcript_junction,
+                try_longest_compatible=try_longest_compatible,
                 is_seg_start=True,
             )
             if start_tx_seg_data.errors:
@@ -504,6 +514,7 @@ class ExonGenomicCoordsMapper:
                 transcript=transcript,
                 gene=gene,
                 get_nearest_transcript_junction=get_nearest_transcript_junction,
+                try_longest_compatible=try_longest_compatible,
                 is_seg_start=False,
             )
             if end_tx_seg_data.errors:
@@ -734,6 +745,7 @@ class ExonGenomicCoordsMapper:
         transcript: str | None = None,
         gene: str | None = None,
         get_nearest_transcript_junction: bool = False,
+        try_longest_compatible: bool = True,
         is_seg_start: bool = True,
     ) -> GenomicTxSeg:
         """Given genomic data, generate a boundary for a transcript segment.
@@ -761,6 +773,8 @@ class ExonGenomicCoordsMapper:
             following the breakpoint for the 3' end. For the negative strand, adjacent
             is defined as the exon following the breakpoint for the 5' end and the exon
             preceding the breakpoint for the 3' end.
+        :param try_longest_compatible: ``True`` if should try longest compatible remaining
+            if mane transcript was not compatible. ``False`` otherwise.
         :param is_seg_start: ``True`` if ``genomic_pos`` is where the transcript segment starts.
             ``False`` if ``genomic_pos`` is where the transcript segment ends.
         :return: Data for a transcript segment boundary (inter-residue coordinates)
@@ -796,37 +810,21 @@ class ExonGenomicCoordsMapper:
                 mane_transcripts = self.mane_transcript_mappings.get_gene_mane_data(
                     gene
                 )
-
-                if mane_transcripts:
+                if mane_transcripts and await self.uta_db.validate_mane_transcript_ac(
+                    mane_transcripts
+                ):
                     transcript = mane_transcripts[0]["RefSeq_nuc"]
                 else:
-                    # Attempt to find a coding transcript if a MANE transcript
-                    # cannot be found
-                    results = await self.uta_db.get_transcripts(
-                        gene=gene, alt_ac=genomic_ac
-                    )
-
-                    if not results.is_empty():
-                        transcript = results[0]["tx_ac"][0]
+                    if try_longest_compatible:
+                        transcript = await self._select_optimal_transcript(
+                            genomic_pos, genomic_ac, gene
+                        )
                     else:
-                        # Run if gene is for a noncoding transcript
-                        query = f"""
-                            SELECT DISTINCT tx_ac
-                            FROM {self.uta_db.schema}.tx_exon_aln_v
-                            WHERE hgnc = '{gene}'
-                            AND alt_ac = '{genomic_ac}'
-                            """  # noqa: S608
-                        result = await self.uta_db.execute_query(query)
-
-                        if result:
-                            transcript = result[0]["tx_ac"]
-                        else:
-                            return GenomicTxSeg(
-                                errors=[
-                                    f"Could not find a transcript for {gene} on {genomic_ac}"
-                                ]
-                            )
-
+                        return GenomicTxSeg(
+                            errors=[
+                                "A MANE transcript either does not exist or was not found in UTA. Please set `try_longest_compatible` to ``True`` to re-run"
+                            ]
+                        )
             tx_exons = await self._get_all_exon_coords(
                 tx_ac=transcript, genomic_ac=genomic_ac
             )
@@ -933,6 +931,57 @@ class ExonGenomicCoordsMapper:
         return await self._get_tx_seg_genomic_metadata(
             genomic_ac, genomic_pos, is_seg_start, gene, tx_ac=transcript
         )
+
+    async def _select_optimal_transcript(
+        self, genomic_pos: int, genomic_ac: str, gene: str
+    ) -> str:
+        """Select the optimal transcript given a genomic position, accession, and gene.
+        In this case, optimal refers to the transcript that is the best represenative
+        transcript for this data, given that MANE data does not exist for the
+        gene or the MANE transcript for the gene does not exist in UTA
+
+        :param genomic_pos: Genomic position where the transcript segment starts or ends
+            (inter-residue based)
+        :param genomic_ac: Genomic accession
+        :param gene: Valid, case-sensitive HGNC gene symbol
+        :return A string representing the optimal transcript given the above data
+        """
+        # Attempt to find a coding transcript if a MANE transcript cannot be found
+        transcript = None
+        results = await self.mane_transcript.get_longest_compatible_transcript(
+            start_pos=genomic_pos,
+            end_pos=genomic_pos,
+            start_annotation_layer=AnnotationLayer.GENOMIC,
+            gene=gene,
+            alt_ac=genomic_ac,
+        )
+        if results:
+            transcript = results.refseq
+        else:
+            # Run if gene is for a noncoding transcript
+            query = f"""
+                SELECT *
+                FROM {self.uta_db.schema}.tx_exon_aln_v
+                WHERE hgnc = '{gene}'
+                AND alt_ac = '{genomic_ac}'
+                """  # noqa: S608
+            results = await self.uta_db.execute_query(query)
+            schema = ["tx_ac"]
+            transcripts = [(r["tx_ac"]) for r in results]
+            transcripts = pl.DataFrame(
+                data=transcripts, schema=schema, orient="row"
+            ).unique()
+            result = self.mane_transcript.get_prioritized_transcripts_from_gene(
+                transcripts
+            )
+
+            if result:
+                transcript = result[0]
+            else:
+                return GenomicTxSeg(
+                    errors=[f"Could not find a transcript for {gene} on {genomic_ac}"]
+                )
+        return transcript
 
     async def _get_grch38_ac_pos(
         self, genomic_ac: str, genomic_pos: int, grch38_ac: str | None = None
@@ -1065,24 +1114,32 @@ class ExonGenomicCoordsMapper:
             transcript
         :return: Transcript segment data and associated genomic metadata
         """
-        if tx_ac:
-            # We should always try to liftover
-            grch38_ac = await self.uta_db.get_newest_assembly_ac(genomic_ac)
-            if not grch38_ac:
-                return GenomicTxSeg(errors=[f"Invalid genomic accession: {genomic_ac}"])
-            grch38_ac = grch38_ac[0]
-        else:
+        # We should always try to liftover
+        grch38_ac = await self.uta_db.get_newest_assembly_ac(genomic_ac)
+        if not grch38_ac:
+            return GenomicTxSeg(errors=[f"Invalid genomic accession: {genomic_ac}"])
+        grch38_ac = grch38_ac[0]
+
+        non_mane_transcript = None
+
+        if not tx_ac:
             mane_data = self.mane_transcript_mappings.get_gene_mane_data(gene)
             if not mane_data:
                 err_msg = f"Unable to find mane data for {genomic_ac} with position {genomic_pos}"
                 if gene:
                     err_msg += f" on gene {gene}"
                 _logger.warning(err_msg)
-                return GenomicTxSeg(errors=[err_msg])
+            if not await self.uta_db.validate_mane_transcript_ac(mane_data):
+                non_mane_transcript = await self._select_optimal_transcript(
+                    genomic_pos, genomic_ac, gene
+                )
 
-            mane_data = mane_data[0]
-            tx_ac = mane_data["RefSeq_nuc"]
-            grch38_ac = mane_data["GRCh38_chr"]
+            if non_mane_transcript:
+                tx_ac = non_mane_transcript
+            else:
+                mane_data = mane_data[0]
+                tx_ac = mane_data["RefSeq_nuc"]
+                grch38_ac = mane_data["GRCh38_chr"]
 
         # Always liftover to GRCh38
         genomic_ac, genomic_pos, err_msg = await self._get_grch38_ac_pos(

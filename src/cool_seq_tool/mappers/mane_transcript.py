@@ -640,7 +640,7 @@ class ManeTranscript:
             )[0]
         )
 
-    def _get_prioritized_transcripts_from_gene(self, df: pl.DataFrame) -> list:
+    def get_prioritized_transcripts_from_gene(self, df: pl.DataFrame) -> list:
         """Sort and filter transcripts from gene to get priority list
 
         :param df: Data frame containing transcripts from gene
@@ -651,14 +651,12 @@ class ManeTranscript:
             most recent version of a transcript associated with an assembly will be kept
         """
         copy_df = df.clone()
-        copy_df = copy_df.drop("alt_ac").unique()
+        if "alt_ac" in copy_df.columns:
+            copy_df = copy_df.drop("alt_ac").unique()
         copy_df = copy_df.with_columns(
             [
                 pl.col("tx_ac")
-                .str.split(".")
-                .list.get(0)
-                .str.split("NM_")
-                .list.get(1)
+                .str.extract(r"(?:NM_|NR_|NG_)(\d+)", 1)
                 .cast(pl.Int64)
                 .alias("ac_no_version_as_int"),
                 pl.col("tx_ac")
@@ -673,9 +671,12 @@ class ManeTranscript:
         )
         copy_df = copy_df.unique(["ac_no_version_as_int"], keep="first")
 
+        tx_ac_index = copy_df.columns.index("tx_ac")
         copy_df = copy_df.with_columns(
             copy_df.map_rows(
-                lambda x: len(self.seqrepo_access.get_reference_sequence(x[1])[0])
+                lambda x: len(
+                    self.seqrepo_access.get_reference_sequence(x[tx_ac_index])[0]
+                )
             )
             .to_series()
             .alias("len_of_tx")
@@ -796,7 +797,7 @@ class ManeTranscript:
             _logger.warning("Unable to get transcripts from gene %s", gene)
             return lcr_result
 
-        prioritized_tx_acs = self._get_prioritized_transcripts_from_gene(df)
+        prioritized_tx_acs = self.get_prioritized_transcripts_from_gene(df)
 
         if mane_transcripts:
             # Dont check MANE transcripts since we know that are not compatible

@@ -378,6 +378,23 @@ class UtaDatabase:
         result = await self.execute_query(query)
         return result[0][0]
 
+    async def validate_mane_transcript_ac(self, mane_transcripts: list[dict]) -> bool:
+        """Return whether or not a MANE transcript exists in UTA. This looks at the
+        first entry in the MANE transcripts list as this is the higher priority
+        transcript.
+
+        :param transcript_list: A list of MANE transcripts
+        :return ``True`` if transcript accession exists in UTA. ``False`` otherwise
+        """
+        transcript = mane_transcripts[0]["RefSeq_nuc"]
+        query = f"""
+            SELECT *
+            FROM {self.schema}.tx_exon_aln_v
+            WHERE tx_ac = '{transcript}'
+        """  # noqa: S608
+        results = await self.execute_query(query)
+        return bool(results)
+
     async def get_ac_descr(self, ac: str) -> str | None:
         """Return accession description. This is typically available only for accessions
         from older (pre-GRCh38) builds.
