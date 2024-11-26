@@ -28,8 +28,9 @@ All compatible transcripts are evaluated and ordered against the below criteria.
 #. Transcript is annotated as a `MANE Select` transcript
 #. Transcript is annotated as a `MANE Plus Clinical` transcript
 #. Transcript is the longest-compatible remaining transcript
-#. Transcript is the first-published (lowest-numbered RefSeq/Ensembl accession) remaining transcript
 
-.. note::
+   #. If there is a tie, choose the first-published (lowest-numbered RefSeq/Ensembl accession) transcript
 
-   We always prefer the most recent version of a transcript associated with an assembly.
+   .. note::
+
+      We always prefer the most recent version of a transcript associated with an assembly.
