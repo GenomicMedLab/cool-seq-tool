@@ -1169,6 +1169,22 @@ class ExonGenomicCoordsMapper:
         :param end: Genomic coordinate of breakpoint
         :return: Exon number corresponding to adjacent exon. Will be 0-based
         """
+        # Check if a breakpoint occurs before/after the transcript boundaries
+        bp = start if start else end
+        if strand == Strand.POSITIVE:
+            if bp < tx_exons_genomic_coords[0].alt_start_i:
+                return 0
+            if bp > tx_exons_genomic_coords[len(tx_exons_genomic_coords) - 1].alt_end_i:
+                return len(tx_exons_genomic_coords) - 1
+        if strand == Strand.NEGATIVE:
+            if bp > tx_exons_genomic_coords[0].alt_end_i:
+                return 0
+            if (
+                bp
+                < tx_exons_genomic_coords[len(tx_exons_genomic_coords) - 1].alt_start_i
+            ):
+                return len(tx_exons_genomic_coords) - 1
+
         for i in range(len(tx_exons_genomic_coords) - 1):
             exon = tx_exons_genomic_coords[i]
             if start == exon.alt_start_i:

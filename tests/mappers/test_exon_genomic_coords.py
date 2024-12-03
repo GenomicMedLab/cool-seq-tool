@@ -840,6 +840,32 @@ async def test_get_adjacent_exon(
     )
     assert resp == 4
 
+    # Check cases where breakpoint occurs in before/after transcript boundaries
+    resp = test_egc_mapper._get_adjacent_exon(
+        tx_exons_genomic_coords=nm_001105539_exons_genomic_coords,
+        start=80486220,
+        strand=Strand.POSITIVE,
+    )
+    assert resp == 0
+    resp = test_egc_mapper._get_adjacent_exon(
+        tx_exons_genomic_coords=nm_001105539_exons_genomic_coords,
+        start=80526285,
+        strand=Strand.POSITIVE,
+    )
+    assert resp == 5
+    resp = test_egc_mapper._get_adjacent_exon(
+        tx_exons_genomic_coords=nm_152263_exons_genomic_coords,
+        end=154192110,
+        strand=Strand.NEGATIVE,
+    )
+    assert resp == 0
+    resp = test_egc_mapper._get_adjacent_exon(
+        tx_exons_genomic_coords=nm_152263_exons_genomic_coords,
+        end=154161809,
+        strand=Strand.NEGATIVE,
+    )
+    assert resp == 9
+
 
 def test_is_exonic_breakpoint(test_egc_mapper, nm_001105539_exons_genomic_coords):
     """Test is breakpoint occurs on exon"""
