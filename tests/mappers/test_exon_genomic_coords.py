@@ -10,6 +10,7 @@ from cool_seq_tool.mappers.exon_genomic_coords import (
     _ExonCoord,
 )
 from cool_seq_tool.schemas import (
+    CoordinateType,
     Strand,
 )
 
@@ -880,6 +881,21 @@ def test_is_exonic_breakpoint(test_egc_mapper, nm_001105539_exons_genomic_coords
     assert resp is True  # Breakpoint does occur on an exon
 
 
+def test_use_alt_start_i(test_egc_mapper):
+    """Test when to use alt_start_i or alt_end_i from UTA"""
+    resp = test_egc_mapper._use_alt_start_i(is_seg_start=True, strand=Strand.POSITIVE)
+    assert resp
+
+    resp = test_egc_mapper._use_alt_start_i(is_seg_start=False, strand=Strand.NEGATIVE)
+    assert resp
+
+    resp = test_egc_mapper._use_alt_start_i(is_seg_start=True, strand=Strand.NEGATIVE)
+    assert not resp
+
+    resp = test_egc_mapper._use_alt_start_i(is_seg_start=False, strand=Strand.POSITIVE)
+    assert not resp
+
+
 @pytest.mark.asyncio()
 async def test_genomic_to_transcript_fusion_context(
     test_egc_mapper,
@@ -893,15 +909,6 @@ async def test_genomic_to_transcript_fusion_context(
     """Test that genomic to transcript works correctly for non-exonic breakpoints"""
     inputs = {
         "chromosome": "8",
-        "seg_end_genomic": 80514010,
-        "gene": "ZBTB10",
-        "get_nearest_transcript_junction": True,
-    }
-    resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
-    genomic_tx_seg_service_checks(resp, zbtb10_exon3_end)
-
-    inputs = {
-        "chromosome": "chr8",
         "seg_end_genomic": 80514010,
         "gene": "ZBTB10",
         "get_nearest_transcript_junction": True,
@@ -977,6 +984,67 @@ async def test_genomic_to_transcript_fusion_context(
         "seg_start_genomic": 69645878,
         "transcript": "NR_027386.2",
         "get_nearest_transcript_junction": True,
+    }
+    resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
+    genomic_tx_seg_service_checks(resp, gusbp3_exon5_start)
+
+    # Test with residue coordinates
+    inputs = {
+        "chromosome": "8",
+        "seg_end_genomic": 80514010,
+        "gene": "ZBTB10",
+        "get_nearest_transcript_junction": True,
+        "coordinate_type": CoordinateType.RESIDUE,
+    }
+    resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
+    genomic_tx_seg_service_checks(resp, zbtb10_exon3_end)
+
+    inputs = {
+        "chromosome": "8",
+        "seg_start_genomic": 80518581,
+        "gene": "ZBTB10",
+        "get_nearest_transcript_junction": True,
+        "coordinate_type": CoordinateType.RESIDUE,
+    }
+    resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
+    genomic_tx_seg_service_checks(resp, zbtb10_exon5_start)
+
+    inputs = {
+        "chromosome": "1",
+        "seg_end_genomic": 154171411,
+        "gene": "TPM3",
+        "get_nearest_transcript_junction": True,
+        "coordinate_type": CoordinateType.RESIDUE,
+    }
+    resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
+    genomic_tx_seg_service_checks(resp, tpm3_exon6_end)
+
+    inputs = {
+        "chromosome": "1",
+        "seg_start_genomic": 154173080,
+        "gene": "TPM3",
+        "get_nearest_transcript_junction": True,
+        "coordinate_type": CoordinateType.RESIDUE,
+    }
+    resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
+    genomic_tx_seg_service_checks(resp, tpm3_exon5_start)
+
+    inputs = {
+        "chromosome": "5",
+        "seg_end_genomic": 69680765,
+        "gene": "GUSBP3",
+        "get_nearest_transcript_junction": True,
+        "coordinate_type": CoordinateType.RESIDUE,
+    }
+    resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
+    genomic_tx_seg_service_checks(resp, gusbp3_exon2_end)
+
+    inputs = {
+        "chromosome": "5",
+        "seg_start_genomic": 69645878,
+        "gene": "GUSBP3",
+        "get_nearest_transcript_junction": True,
+        "coordinate_type": CoordinateType.RESIDUE,
     }
     resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
     genomic_tx_seg_service_checks(resp, gusbp3_exon5_start)
@@ -1067,6 +1135,59 @@ async def test_genomic_to_transcript(test_egc_mapper, tpm3_exon1, tpm3_exon8):
 
     resp = await test_egc_mapper._genomic_to_tx_segment(
         154170399, chromosome="1", transcript="NM_152263.3", is_seg_start=False
+    )
+    genomic_tx_seg_checks(resp, tpm3_exon8)
+
+    # Test with residue coordinates
+    resp = await test_egc_mapper._genomic_to_tx_segment(
+        154192135,
+        genomic_ac="NC_000001.11",
+        transcript="NM_152263.3",
+        gene="TPM3",
+        coordinate_type=CoordinateType.RESIDUE,
+    )
+    genomic_tx_seg_checks(resp, tpm3_exon1)
+
+    resp = await test_egc_mapper._genomic_to_tx_segment(
+        154192135,
+        chromosome="1",
+        transcript="NM_152263.3",
+        coordinate_type=CoordinateType.RESIDUE,
+    )
+    genomic_tx_seg_checks(resp, tpm3_exon1)
+
+    resp = await test_egc_mapper._genomic_to_tx_segment(
+        154192135,
+        chromosome="1",
+        transcript="NM_152263.3",
+        coordinate_type=CoordinateType.RESIDUE,
+    )
+    genomic_tx_seg_checks(resp, tpm3_exon1)
+
+    resp = await test_egc_mapper._genomic_to_tx_segment(
+        154170400,
+        genomic_ac="NC_000001.11",
+        transcript="NM_152263.3",
+        is_seg_start=False,
+        coordinate_type=CoordinateType.RESIDUE,
+    )
+    genomic_tx_seg_checks(resp, tpm3_exon8)
+
+    resp = await test_egc_mapper._genomic_to_tx_segment(
+        154170400,
+        chromosome="1",
+        transcript="NM_152263.3",
+        is_seg_start=False,
+        coordinate_type=CoordinateType.RESIDUE,
+    )
+    genomic_tx_seg_checks(resp, tpm3_exon8)
+
+    resp = await test_egc_mapper._genomic_to_tx_segment(
+        154170400,
+        chromosome="1",
+        transcript="NM_152263.3",
+        is_seg_start=False,
+        coordinate_type=CoordinateType.RESIDUE,
     )
     genomic_tx_seg_checks(resp, tpm3_exon8)
 

@@ -10,6 +10,7 @@ from cool_seq_tool.mappers.liftover import LiftOver
 from cool_seq_tool.schemas import (
     Assembly,
     BaseModelForbidExtra,
+    CoordinateType,
     ServiceMeta,
     Strand,
 )
@@ -412,6 +413,7 @@ class ExonGenomicCoordsMapper:
         transcript: str | None = None,
         get_nearest_transcript_junction: bool = False,
         gene: str | None = None,
+        coordinate_type: CoordinateType = CoordinateType.INTER_RESIDUE,
     ) -> GenomicTxSegService:
         """Get transcript segment data for genomic data, lifted over to GRCh38.
 
@@ -485,6 +487,7 @@ class ExonGenomicCoordsMapper:
                 gene=gene,
                 get_nearest_transcript_junction=get_nearest_transcript_junction,
                 is_seg_start=True,
+                coordinate_type=coordinate_type,
             )
             if start_tx_seg_data.errors:
                 return _return_service_errors(start_tx_seg_data.errors)
@@ -505,6 +508,7 @@ class ExonGenomicCoordsMapper:
                 gene=gene,
                 get_nearest_transcript_junction=get_nearest_transcript_junction,
                 is_seg_start=False,
+                coordinate_type=coordinate_type,
             )
             if end_tx_seg_data.errors:
                 return _return_service_errors(end_tx_seg_data.errors)
@@ -735,6 +739,7 @@ class ExonGenomicCoordsMapper:
         gene: str | None = None,
         get_nearest_transcript_junction: bool = False,
         is_seg_start: bool = True,
+        coordinate_type: CoordinateType = CoordinateType.INTER_RESIDUE,
     ) -> GenomicTxSeg:
         """Given genomic data, generate a boundary for a transcript segment.
 
@@ -763,6 +768,8 @@ class ExonGenomicCoordsMapper:
             preceding the breakpoint for the 3' end.
         :param is_seg_start: ``True`` if ``genomic_pos`` is where the transcript segment starts.
             ``False`` if ``genomic_pos`` is where the transcript segment ends.
+        :param coordinate_type: Coordinate type for ``seg_start_genomic`` and
+            ``seg_end_genomic``
         :return: Data for a transcript segment boundary (inter-residue coordinates)
         """
         params = {key: None for key in GenomicTxSeg.model_fields}
@@ -835,6 +842,13 @@ class ExonGenomicCoordsMapper:
 
             strand = Strand(tx_exons[0].alt_strand)
             params["strand"] = strand
+            use_alt_start_i = self._use_alt_start_i(
+                is_seg_start=is_seg_start, strand=strand
+            )
+            if use_alt_start_i and coordinate_type == CoordinateType.RESIDUE:
+                genomic_pos = (
+                    genomic_pos - 1
+                )  # Convert residue coordinate to inter-residue
 
             # Check if breakpoint occurs on an exon.
             # If not, determine the adjacent exon given the selected transcript
@@ -847,15 +861,11 @@ class ExonGenomicCoordsMapper:
                 )
 
                 offset = self._get_exon_offset(
-                    start_i=tx_exons[exon_num].alt_start_i,
-                    end_i=tx_exons[exon_num].alt_end_i,
+                    genomic_pos=genomic_pos,
+                    exon_boundary=tx_exons[exon_num].alt_start_i
+                    if use_alt_start_i
+                    else tx_exons[exon_num].alt_end_i,
                     strand=strand,
-                    use_start_i=strand == Strand.POSITIVE
-                    if is_seg_start
-                    else strand != Strand.POSITIVE,
-                    is_in_exon=False,
-                    start=genomic_pos if is_seg_start else None,
-                    end=genomic_pos if not is_seg_start else None,
                 )
 
                 genomic_location, err_msg = self._get_vrs_seq_loc(
@@ -931,7 +941,12 @@ class ExonGenomicCoordsMapper:
                 )
 
         return await self._get_tx_seg_genomic_metadata(
-            genomic_ac, genomic_pos, is_seg_start, gene, tx_ac=transcript
+            genomic_ac,
+            genomic_pos,
+            is_seg_start,
+            gene,
+            tx_ac=transcript,
+            coordinate_type=coordinate_type,
         )
 
     async def _get_grch38_ac_pos(
@@ -1049,6 +1064,7 @@ class ExonGenomicCoordsMapper:
         is_seg_start: bool,
         gene: str,
         tx_ac: str | None,
+        coordinate_type: CoordinateType = CoordinateType.INTER_RESIDUE,
     ) -> GenomicTxSeg:
         """Get transcript segment data and associated genomic metadata.
 
@@ -1110,15 +1126,18 @@ class ExonGenomicCoordsMapper:
             )
 
         tx_exon_aln_data = tx_exon_aln_data[0]
-
+        strand = Strand(tx_exon_aln_data.alt_strand)
+        use_alt_start_i = self._use_alt_start_i(
+            is_seg_start=is_seg_start, strand=strand
+        )
+        if use_alt_start_i and coordinate_type == CoordinateType.RESIDUE:
+            genomic_pos = genomic_pos - 1  # Convert residue coordinate to inter-residue
         offset = self._get_exon_offset(
-            start_i=tx_exon_aln_data.alt_start_i,
-            end_i=tx_exon_aln_data.alt_end_i,
-            strand=Strand(tx_exon_aln_data.alt_strand),
-            use_start_i=False,  # This doesn't impact anything since we're on the exon
-            is_in_exon=True,
-            start=genomic_pos if is_seg_start else None,
-            end=genomic_pos if not is_seg_start else None,
+            genomic_pos=genomic_pos,
+            exon_boundary=tx_exon_aln_data.alt_start_i
+            if use_alt_start_i
+            else tx_exon_aln_data.alt_end_i,
+            strand=strand,
         )
 
         genomic_location, err_msg = self._get_vrs_seq_loc(
@@ -1148,6 +1167,24 @@ class ExonGenomicCoordsMapper:
         """
         return any(
             exon.alt_start_i <= pos <= exon.alt_end_i for exon in tx_genomic_coords
+        )
+
+    @staticmethod
+    def _use_alt_start_i(is_seg_start: bool, strand: Strand) -> bool:
+        """Determine whether to use alt_start_i or alt_end_i from UTA when computing
+        exon offset
+
+        :param is_seg_start: ``True`` if ``genomic_pos`` is where the transcript segment starts.
+            ``False`` if ``genomic_pos`` is where the transcript segment ends.
+        :param strand: The transcribed strand
+        :return ``True`` if alt_start_i should be used, ``False`` if alt_end_i should
+        be used
+        """
+        return bool(
+            is_seg_start
+            and strand == Strand.POSITIVE
+            or not is_seg_start
+            and strand == Strand.NEGATIVE
         )
 
     @staticmethod
@@ -1205,38 +1242,21 @@ class ExonGenomicCoordsMapper:
 
     @staticmethod
     def _get_exon_offset(
-        start_i: int,
-        end_i: int,
+        genomic_pos: int,
+        exon_boundary: int,
         strand: Strand,
-        use_start_i: bool = True,
-        is_in_exon: bool = True,
-        start: int | None = None,
-        end: int | None = None,
     ) -> int:
         """Compute offset from exon start or end index
 
-        :param start_i: Exon start index (inter-residue)
-        :param end_i: Exon end index (inter-residue)
-        :param strand: Strand
-        :param use_start_i: Whether or not ``start_i`` should be used to compute the
-            offset, defaults to ``True``. This is only used when ``is_in_exon`` is
-            ``False``.
-        :param is_in_exon: Whether or not the position occurs in an exon, defaults to
-            ``True``
-        :param start: Provided start position, defaults to ``None``. Must provide
-            ``start`` or ``end``, not both.
-        :param end: Provided end position, defaults to ``None``. Must provide ``start``
-            or ``end``, not both
+        :param genomic_pos: The supplied genomic position. This can represent, for
+            example, a fusion junction breakpoint
+        :param exon_boundary: The genomic position for the exon boundary that the offset
+            is being computed against
+        :paran strand: The transcribed strand
         :return: Offset from exon start or end index
         """
-        if is_in_exon:
-            if start is not None:
-                offset = start - start_i if strand == Strand.POSITIVE else end_i - start
-            else:
-                offset = end - end_i if strand == Strand.POSITIVE else start_i - end
-        else:
-            if strand == Strand.POSITIVE:
-                offset = start - start_i if use_start_i else end - end_i
-            else:
-                offset = start_i - end if use_start_i else end_i - start
-        return offset
+        return (
+            genomic_pos - exon_boundary
+            if strand == Strand.POSITIVE
+            else (genomic_pos - exon_boundary) * -1
+        )
