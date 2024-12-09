@@ -461,7 +461,7 @@ class ExonGenomicCoordsMapper:
         :param gene: A valid, case-sensitive HGNC symbol. Must be given if no ``transcript``
             value is provided.
         :param coordinate_type: Coordinate type for ``seg_start_genomic`` and
-            ``seg_end_genomic``
+            ``seg_end_genomic``. Expects inter-residue coordinates by default
         :return: Genomic data (inter-residue coordinates)
         """
         errors = []
@@ -747,7 +747,6 @@ class ExonGenomicCoordsMapper:
         errors.
 
         :param genomic_pos: Genomic position where the transcript segment starts or ends
-            (inter-residue based)
         :param chromosome: Chromosome. Must give chromosome without a prefix
             (i.e. ``1`` or ``X``). If not provided, must provide ``genomic_ac``. If
             position maps to both GRCh37 and GRCh38, GRCh38 assembly will be used.
@@ -769,7 +768,7 @@ class ExonGenomicCoordsMapper:
         :param is_seg_start: ``True`` if ``genomic_pos`` is where the transcript segment starts.
             ``False`` if ``genomic_pos`` is where the transcript segment ends.
         :param coordinate_type: Coordinate type for ``seg_start_genomic`` and
-            ``seg_end_genomic``
+            ``seg_end_genomic``. Expects inter-residue coordinates by default
         :return: Data for a transcript segment boundary (inter-residue coordinates)
         """
         params = {key: None for key in GenomicTxSeg.model_fields}
@@ -1180,7 +1179,7 @@ class ExonGenomicCoordsMapper:
         :return ``True`` if alt_start_i should be used, ``False`` if alt_end_i should
         be used
         """
-        return bool(
+        return (
             is_seg_start
             and strand == Strand.POSITIVE
             or not is_seg_start
@@ -1249,7 +1248,8 @@ class ExonGenomicCoordsMapper:
         """Compute offset from exon start or end index
 
         :param genomic_pos: The supplied genomic position. This can represent, for
-            example, a fusion junction breakpoint
+            example, a fusion junction breakpoint. This position is represented using
+            inter-residue coordinates
         :param exon_boundary: The genomic position for the exon boundary that the offset
             is being computed against
         :paran strand: The transcribed strand
