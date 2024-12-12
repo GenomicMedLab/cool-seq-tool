@@ -807,7 +807,10 @@ async def test_get_start_end_exon_coords(test_egc_mapper):
 
 @pytest.mark.asyncio()
 async def test_get_adjacent_exon(
-    test_egc_mapper, nm_152263_exons_genomic_coords, nm_001105539_exons_genomic_coords
+    test_egc_mapper,
+    nm_152263_exons_genomic_coords,
+    nm_001105539_exons_genomic_coords,
+    mm_001005183_1_exons,
 ):
     """Test that get_adjacent_exon works properly"""
     resp = test_egc_mapper._get_adjacent_exon(
@@ -866,6 +869,15 @@ async def test_get_adjacent_exon(
         strand=Strand.NEGATIVE,
     )
     assert resp == 9
+
+    # Check cases where transcript only has one exon and breakpoint does not occur
+    # exon
+    resp = test_egc_mapper._get_adjacent_exon(
+        tx_exons_genomic_coords=mm_001005183_1_exons,
+        start=55411058,
+        strand=Strand.POSITIVE,
+    )
+    assert resp == 0
 
 
 def test_is_exonic_breakpoint(test_egc_mapper, nm_001105539_exons_genomic_coords):
