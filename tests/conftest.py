@@ -278,6 +278,21 @@ def nm_001105539_exons_genomic_coords():
 
 
 @pytest.fixture(scope="session")
+def mm_001005183_1_exons():
+    """Create test fixture for NM_001005183.1 exons and genomic coordinates"""
+    return [
+        _ExonCoord(
+            ord=0,
+            tx_start_i=0,
+            tx_end_i=939,
+            alt_start_i=55426253,
+            alt_end_i=55427192,
+            alt_strand=Strand.POSITIVE,
+        )
+    ]
+
+
+@pytest.fixture(scope="session")
 def tpm3_1_8_start_genomic():
     """Create test fixture for genomic data for exon 1, 8"""
     return GenomicAlnData(
