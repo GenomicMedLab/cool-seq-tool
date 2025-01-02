@@ -763,13 +763,13 @@ class ExonGenomicCoordsMapper:
             )
 
         if not genomic_ac:
-            genomic_acs, err_msg = self.seqrepo_access.chromosome_to_acs(chromosome)
-
-            if not genomic_acs:
-                return GenomicTxSeg(
-                    errors=[err_msg],
+            for assembly in [Assembly.GRCH38.value, Assembly.GRCH37.value]:
+                _genomic_acs, err_msg = self.seqrepo_access.translate_identifier(
+                    f"{assembly}:chr{chromosome}", "refseq"
                 )
-            genomic_ac = genomic_acs[0]
+                if err_msg:
+                    return GenomicTxSeg(errors=[err_msg])
+            genomic_ac = _genomic_acs[0].split(":")[-1]
 
         # Validate gene symbol exists
         if gene:
