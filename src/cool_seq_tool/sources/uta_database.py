@@ -378,6 +378,38 @@ class UtaDatabase:
         result = await self.execute_query(query)
         return result[0][0]
 
+    async def validate_gene_symbol(self, gene: str) -> bool:
+        """Return whether or not a gene symbol exists in UTA gene table
+
+        :param gene: Gene symbol
+        :return ``True`` if gene symbol exists in UTA, ``False`` if not
+        """
+        query = f"""
+            SELECT EXISTS(
+                SELECT hgnc
+                FROM {self.schema}.gene
+                WHERE hgnc = '{gene}'
+            );
+            """  # noqa: S608
+        result = await self.execute_query(query)
+        return result[0][0]
+
+    async def validate_transcript(self, transcript: str) -> bool:
+        """Return whether or not a transcript exists in the UTA tx_exon_aln_v table
+
+        :param transcript: A transcript accession
+        :return ``True`` if transcript exists in UTA, ``False`` if not
+        """
+        query = f"""
+            SELECT EXISTS(
+                SELECT tx_ac
+                FROM {self.schema}.tx_exon_aln_v
+                WHERE tx_ac = '{transcript}'
+            );
+            """  # noqa: S608
+        result = await self.execute_query(query)
+        return result[0][0]
+
     async def get_ac_descr(self, ac: str) -> str | None:
         """Return accession description. This is typically available only for accessions
         from older (pre-GRCh38) builds.
