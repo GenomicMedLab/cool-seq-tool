@@ -1437,9 +1437,9 @@ async def test_valid_inputs(test_egc_mapper, eln_grch38_intronic):
     resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
     assert all((resp.gene, resp.genomic_ac, resp.tx_ac, resp.seg_end))
 
-    # inputs = {"gene": "WEE1", "chromosome": "11", "seg_end_genomic": 9609996}
-    # resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
-    # assert all((resp.gene, resp.genomic_ac, resp.tx_ac, resp.seg_end))
+    inputs = {"gene": "WEE1", "chromosome": "11", "seg_end_genomic": 9588449}
+    resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
+    assert all((resp.gene, resp.genomic_ac, resp.tx_ac, resp.seg_end))
 
     inputs = {"transcript": "NM_003390.3", "exon_start": 2}
     resp = await test_egc_mapper.tx_segment_to_genomic(**inputs)
