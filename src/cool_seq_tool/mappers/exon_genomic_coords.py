@@ -418,8 +418,6 @@ class ExonGenomicCoordsMapper:
 
         If liftover to GRCh38 is unsuccessful, will return errors.
 
-        Must provide inter-residue coordinates.
-
         MANE Transcript data will be returned if and only if ``transcript`` is not
         supplied. ``gene`` must be given in order to retrieve MANE Transcript data.
 
@@ -773,8 +771,7 @@ class ExonGenomicCoordsMapper:
             genomic_ac_validation = await self.uta_db.validate_genomic_ac(genomic_ac)
             if not genomic_ac_validation:
                 return GenomicTxSeg(errors=[f"{genomic_ac} does not exist in UTA"])
-
-        if not genomic_ac:
+        else:
             genomic_acs, err_msg = self.seqrepo_access.chromosome_to_acs(chromosome)
 
             if not genomic_acs:
