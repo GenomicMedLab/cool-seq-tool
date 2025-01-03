@@ -413,6 +413,7 @@ class ExonGenomicCoordsMapper:
         transcript: str | None = None,
         gene: str | None = None,
         coordinate_type: CoordinateType = CoordinateType.INTER_RESIDUE,
+        assembly: Assembly = Assembly.GRCH38,
     ) -> GenomicTxSegService:
         """Get transcript segment data for genomic data, lifted over to GRCh38.
 
@@ -452,6 +453,8 @@ class ExonGenomicCoordsMapper:
             value is provided.
         :param coordinate_type: Coordinate type for ``seg_start_genomic`` and
             ``seg_end_genomic``. Expects inter-residue coordinates by default
+        :param assembly: The assembly that the supplied coordinate comes from. Set to
+            GRCh38 be default
         :return: Genomic data (inter-residue coordinates)
         """
         errors = []
@@ -477,6 +480,7 @@ class ExonGenomicCoordsMapper:
                 gene=gene,
                 is_seg_start=True,
                 coordinate_type=coordinate_type,
+                assembly=assembly,
             )
             if start_tx_seg_data.errors:
                 return _return_service_errors(start_tx_seg_data.errors)
@@ -497,6 +501,7 @@ class ExonGenomicCoordsMapper:
                 gene=gene,
                 is_seg_start=False,
                 coordinate_type=coordinate_type,
+                assembly=assembly,
             )
             if end_tx_seg_data.errors:
                 return _return_service_errors(end_tx_seg_data.errors)
@@ -727,6 +732,7 @@ class ExonGenomicCoordsMapper:
         gene: str | None = None,
         is_seg_start: bool = True,
         coordinate_type: CoordinateType = CoordinateType.INTER_RESIDUE,
+        assembly: Assembly = Assembly.GRCH38,
     ) -> GenomicTxSeg:
         """Given genomic data, generate a boundary for a transcript segment.
 
@@ -749,6 +755,8 @@ class ExonGenomicCoordsMapper:
             ``False`` if ``genomic_pos`` is where the transcript segment ends.
         :param coordinate_type: Coordinate type for ``seg_start_genomic`` and
             ``seg_end_genomic``. Expects inter-residue coordinates by default
+        :param assembly: The assembly that the supplied coordinate comes from. Set to
+            GRCh38 be default
         :return: Data for a transcript segment boundary (inter-residue coordinates)
         """
         params = {key: None for key in GenomicTxSeg.model_fields}
@@ -771,6 +779,9 @@ class ExonGenomicCoordsMapper:
             genomic_ac_validation = await self.uta_db.validate_genomic_ac(genomic_ac)
             if not genomic_ac_validation:
                 return GenomicTxSeg(errors=[f"{genomic_ac} does not exist in UTA"])
+            if assembly == Assembly.GRCH37:
+                grch38_ac = await self.uta_db.get_newest_assembly_ac(genomic_ac)
+                genomic_ac = grch38_ac[0]
         else:
             genomic_acs, err_msg = self.seqrepo_access.chromosome_to_acs(chromosome)
 
@@ -780,13 +791,15 @@ class ExonGenomicCoordsMapper:
                 )
             genomic_ac = genomic_acs[0]
 
-        # Always liftover to GRCh38
-        genomic_ac, genomic_pos, err_msg = await self._get_grch38_ac_pos(
-            genomic_ac,
-            genomic_pos,
-        )
-        if err_msg:
-            return GenomicTxSeg(errors=[err_msg])
+        # Liftover to GRCh38 if the provided assembly is GRCh37
+        if assembly == Assembly.GRCH37:
+            genomic_pos = await self._get_grch38_pos(genomic_pos, genomic_ac)
+            if not genomic_pos:
+                return GenomicTxSeg(
+                    errors=[
+                        f"Lifting over {genomic_pos} on {genomic_ac} from {Assembly.GRCH37.value} to {Assembly.GRCH38.value} was unsuccessful."
+                    ]
+                )
 
         # Select a transcript if not provided
         if not transcript:
@@ -896,59 +909,23 @@ class ExonGenomicCoordsMapper:
             tx_ac=transcript,
         )
 
-    async def _get_grch38_ac_pos(
-        self,
-        genomic_ac: str,
-        genomic_pos: int,
-        grch38_ac: str | None = None,
-    ) -> tuple[str | None, int | None, str | None]:
-        """Get GRCh38 genomic representation for accession and position
+    async def _get_grch38_pos(self, genomic_pos: int, genomic_ac: str) -> int | None:
+        """Liftover a GRCh37 coordinate to GRCh38
 
-        :param genomic_ac: RefSeq genomic accession (GRCh37 or GRCh38 assembly)
-        :param genomic_pos: Genomic position on ``genomic_ac``
-        :param grch38_ac: A valid GRCh38 genomic accession for ``genomic_ac``. If not
-            provided, will attempt to retrieve associated GRCh38 accession from UTA.
-        :return: Tuple containing GRCh38 accession, GRCh38 position, and error message
-            if unable to get GRCh38 representation
+        :param genomic_pos: A genomic coordinate in GRCh37
+        :param genomic_ac: The genomic accession in GRCh38
+        :return The genomic coordinate in GRCh38
         """
-        # Validate accession exists
-        if not grch38_ac:
-            grch38_ac = await self.uta_db.get_newest_assembly_ac(genomic_ac)
-            if not grch38_ac:
-                return None, None, f"Unrecognized genomic accession: {genomic_ac}."
-
-            grch38_ac = grch38_ac[0]
-
-        if grch38_ac != genomic_ac:
-            # Ensure genomic_ac is GRCh37
-            chromosome, _ = self.seqrepo_access.translate_identifier(
-                genomic_ac, Assembly.GRCH37.value
-            )
-            if not chromosome:
-                _logger.warning(
-                    "SeqRepo could not find associated %s assembly for genomic accession %s.",
-                    Assembly.GRCH37.value,
-                    genomic_ac,
-                )
-                return (
-                    None,
-                    None,
-                    f"`genomic_ac` must use {Assembly.GRCH37.value} or {Assembly.GRCH38.value} assembly.",
-                )
-            chromosome = chromosome[-1].split(":")[-1]
-            liftover_data = self.liftover.get_liftover(
-                chromosome, genomic_pos, Assembly.GRCH38
-            )
-            if liftover_data is None:
-                return (
-                    None,
-                    None,
-                    f"Lifting over {genomic_pos} on {genomic_ac} from {Assembly.GRCH37.value} to {Assembly.GRCH38.value} was unsuccessful.",
-                )
-            genomic_pos = liftover_data[1]
-            genomic_ac = grch38_ac
-
-        return genomic_ac, genomic_pos, None
+        chromosome, _ = self.seqrepo_access.translate_identifier(
+            genomic_ac, target_namespaces=Assembly.GRCH38.value
+        )
+        chromosome = chromosome[-1].split(":")[-1]
+        liftover_data = self.liftover.get_liftover(
+            chromosome, genomic_pos, Assembly.GRCH38
+        )
+        if liftover_data is None:
+            return None
+        return liftover_data[1]
 
     async def _validate_gene_coordinates(
         self,
