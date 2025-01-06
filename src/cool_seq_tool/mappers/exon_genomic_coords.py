@@ -934,10 +934,8 @@ class ExonGenomicCoordsMapper:
         genomic_ac: str,
         gene: str,
     ) -> bool:
-        """Get gene given a genomic accession and position.
-
-        If multiple genes are found for a given ``pos`` and ``genomic_ac``, only one
-        gene will be returned.
+        """Validate that a genomic coordinate falls within the first and last exon
+            given a gene and accession
 
         :param pos: Genomic position on ``genomic_ac``
         :param genomic_ac: RefSeq genomic accession, e.g. ``"NC_000007.14"``
