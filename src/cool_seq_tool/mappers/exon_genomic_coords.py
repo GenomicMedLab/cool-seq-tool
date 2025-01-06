@@ -733,6 +733,9 @@ class ExonGenomicCoordsMapper:
         Will liftover to GRCh38 assembly. If liftover is unsuccessful, will return
         errors.
 
+        Either an HGNC gene symbol or transcript accession must be provided to this
+        method
+
         :param genomic_pos: Genomic position where the transcript segment starts or ends
         :param chromosome: Chromosome. Must give chromosome without a prefix
             (i.e. ``1`` or ``X``). If not provided, must provide ``genomic_ac``. If
@@ -753,17 +756,14 @@ class ExonGenomicCoordsMapper:
         """
         params = {key: None for key in GenomicTxSeg.model_fields}
 
-        if not gene and not transcript:
-            return GenomicTxSeg(errors=["`gene` or `transcript` must be provided"])
-
         # Validate inputs exist in UTA
         if gene:
-            gene_validation = await self.uta_db.validate_gene_symbol(gene)
+            gene_validation = await self.uta_db.gene_exists(gene)
             if not gene_validation:
                 return GenomicTxSeg(errors=[f"{gene} does not exist in UTA"])
 
         if transcript:
-            transcript_validation = await self.uta_db.validate_transcript(transcript)
+            transcript_validation = await self.uta_db.transcript_exists(transcript)
             if not transcript_validation:
                 return GenomicTxSeg(errors=[f"{transcript} does not exist in UTA"])
 
@@ -821,6 +821,13 @@ class ExonGenomicCoordsMapper:
                                 f"Could not find a transcript for {gene} on {genomic_ac}"
                             ]
                         )
+        # gene is not required to liftover coordinates if tx_ac and genomic_ac are given, but we should set the associated gene
+        if not gene:
+            _gene, err_msg = await self._get_tx_ac_gene(transcript)
+            if err_msg:
+                return GenomicTxSeg(errors=[err_msg])
+            gene = _gene
+
         tx_exons = await self._get_all_exon_coords(
             tx_ac=transcript, genomic_ac=genomic_ac
         )
@@ -834,13 +841,6 @@ class ExonGenomicCoordsMapper:
         )
         if use_alt_start_i and coordinate_type == CoordinateType.RESIDUE:
             genomic_pos = genomic_pos - 1  # Convert residue coordinate to inter-residue
-
-        # gene is not required to liftover coordinates if tx_ac and genomic_ac are given, but we should set the associated gene
-        if not gene:
-            _gene, err_msg = await self._get_tx_ac_gene(transcript)
-            if err_msg:
-                return GenomicTxSeg(errors=[err_msg])
-            gene = _gene
 
         # Validate that the breakpoint occurs on a transcript given a gene
         coordinate_check = await self._validate_gene_coordinates(
@@ -956,14 +956,12 @@ class ExonGenomicCoordsMapper:
         genomic_ac: str,
         gene: str,
     ) -> bool:
-        """Get gene given a genomic accession and position.
-
-        If multiple genes are found for a given ``pos`` and ``genomic_ac``, only one
-        gene will be returned.
+        """Validate that a genomic coordinate falls within the first and last exon
+            given a gene and accession
 
         :param pos: Genomic position on ``genomic_ac``
         :param genomic_ac: RefSeq genomic accession, e.g. ``"NC_000007.14"``
-        :param gene: A gene symbol
+        :param gene: A valid, case-sensitive HGNC gene symbol
         :return: ``True`` if the coordinate falls within the first and last exon
             for the gene, ``False`` if not
         """
