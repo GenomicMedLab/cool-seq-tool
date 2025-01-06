@@ -1102,7 +1102,7 @@ class ManeTranscript:
                     c_pos[1],
                     AnnotationLayer.CDNA,
                     ref=ref,
-                    gene=g["gene"],
+                    gene=g.gene,
                     coordinate_type=coordinate_type,
                     mane_transcripts=mane_transcripts,
                 )
