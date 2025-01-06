@@ -926,6 +926,16 @@ async def test_valid(test_mane_transcript):
     )
     assert resp
 
+    # issue-394
+    resp = await test_mane_transcript.get_mane_transcript(
+        "ENST00000496384.7",
+        1799,
+        1799,
+        AnnotationLayer.CDNA,
+        try_longest_compatible=True,
+    )
+    assert resp
+
 
 @pytest.mark.asyncio()
 async def test_no_matches(test_mane_transcript):
