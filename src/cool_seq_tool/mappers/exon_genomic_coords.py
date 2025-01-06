@@ -840,6 +840,7 @@ class ExonGenomicCoordsMapper:
         if not tx_exons:
             return GenomicTxSeg(errors=[f"No exons found given {transcript}"])
 
+        # Determine if genomic_pos needs to be modified
         strand = Strand(tx_exons[0].alt_strand)
         params["strand"] = strand
         use_alt_start_i = self._use_alt_start_i(
@@ -848,7 +849,7 @@ class ExonGenomicCoordsMapper:
         if use_alt_start_i and coordinate_type == CoordinateType.RESIDUE:
             genomic_pos = genomic_pos - 1  # Convert residue coordinate to inter-residue
 
-        # gene is not required to liftover coordinates if tx_ac and genomic_ac are given, but we should set the associated gene
+        # Extract gene symbol given transcript accession
         if not gene:
             _gene, err_msg = await self._get_tx_ac_gene(transcript)
             if err_msg:
