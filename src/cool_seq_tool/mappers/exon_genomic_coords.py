@@ -454,7 +454,7 @@ class ExonGenomicCoordsMapper:
         :param coordinate_type: Coordinate type for ``seg_start_genomic`` and
             ``seg_end_genomic``. Expects inter-residue coordinates by default
         :param starting_assembly: The assembly that the supplied coordinate comes from. Set to
-            GRCh38 by default
+            GRCh38 by default. Will attempt to liftover if starting assembly is GRCh37
         :return: Genomic data (inter-residue coordinates)
         """
         errors = []
@@ -759,7 +759,7 @@ class ExonGenomicCoordsMapper:
         :param coordinate_type: Coordinate type for ``seg_start_genomic`` and
             ``seg_end_genomic``. Expects inter-residue coordinates by default
         :param starting_assembly: The assembly that the supplied coordinate comes from. Set to
-            GRCh38 by default
+            GRCh38 by default. Will attempt to liftover if starting assembly is GRCh37
         :return: Data for a transcript segment boundary (inter-residue coordinates)
         """
         params = {key: None for key in GenomicTxSeg.model_fields}
@@ -939,9 +939,7 @@ class ExonGenomicCoordsMapper:
         liftover_data = self.liftover.get_liftover(
             chromosome, genomic_pos, Assembly.GRCH38
         )
-        if liftover_data is None:
-            return None
-        return liftover_data[1]
+        return liftover_data[1] if liftover_data else None
 
     async def _validate_gene_coordinates(
         self,
