@@ -545,7 +545,7 @@ class ExonGenomicCoordsMapper:
         """
         tx_exons = await self._get_all_exon_coords(tx_ac, genomic_ac=genomic_ac)
         if not tx_exons:
-            return None, None, [f"No exons found given {tx_ac}"]
+            return None, None, [f"Transcript does not exist in UTA: {tx_ac}"]
 
         errors = []
         start_end_exons = []
@@ -760,17 +760,21 @@ class ExonGenomicCoordsMapper:
         if gene:
             gene_validation = await self.uta_db.gene_exists(gene)
             if not gene_validation:
-                return GenomicTxSeg(errors=[f"{gene} does not exist in UTA"])
+                return GenomicTxSeg(errors=[f"Gene does not exist in UTA: {gene}"])
 
         if transcript:
             transcript_validation = await self.uta_db.transcript_exists(transcript)
             if not transcript_validation:
-                return GenomicTxSeg(errors=[f"{transcript} does not exist in UTA"])
+                return GenomicTxSeg(
+                    errors=[f"Transcript does not exist in UTA: {transcript}"]
+                )
 
         if genomic_ac:
             genomic_ac_validation = await self.uta_db.validate_genomic_ac(genomic_ac)
             if not genomic_ac_validation:
-                return GenomicTxSeg(errors=[f"{genomic_ac} does not exist in UTA"])
+                return GenomicTxSeg(
+                    errors=[f"Genomic accession does not exist in UTA: {genomic_ac}"]
+                )
         else:
             genomic_acs, err_msg = self.seqrepo_access.chromosome_to_acs(chromosome)
 
@@ -832,7 +836,9 @@ class ExonGenomicCoordsMapper:
             tx_ac=transcript, genomic_ac=genomic_ac
         )
         if not tx_exons:
-            return GenomicTxSeg(errors=[f"No exons found given {transcript}"])
+            return GenomicTxSeg(
+                errors=[f"Transcript does not exist in UTA: {transcript}"]
+            )
 
         strand = Strand(tx_exons[0].alt_strand)
         params["strand"] = strand
