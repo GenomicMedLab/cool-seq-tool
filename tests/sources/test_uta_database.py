@@ -88,6 +88,26 @@ async def test_validate_genomic_ac(test_db):
 
 
 @pytest.mark.asyncio()
+async def test_validate_gene_exists(test_db):
+    """Test validate_gene_symbol"""
+    resp = await test_db.gene_exists("TPM3")
+    assert resp is True
+
+    resp = await test_db.gene_exists("dummy gene")
+    assert resp is False
+
+
+@pytest.mark.asyncio()
+async def test_validate_transcript_exists(test_db):
+    """Tests validate_transcript"""
+    resp = await test_db.transcript_exists("NM_152263.3")
+    assert resp is True
+
+    resp = await test_db.transcript_exists("NM_152263 3")
+    assert resp is False
+
+
+@pytest.mark.asyncio()
 async def test_get_ac_descr(test_db):
     """Test that get_ac_descr works correctly."""
     resp = await test_db.get_ac_descr("NC_000007.13")

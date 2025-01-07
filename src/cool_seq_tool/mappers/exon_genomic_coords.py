@@ -10,6 +10,7 @@ from cool_seq_tool.mappers.liftover import LiftOver
 from cool_seq_tool.schemas import (
     Assembly,
     BaseModelForbidExtra,
+    CoordinateType,
     ServiceMeta,
     Strand,
 )
@@ -410,14 +411,12 @@ class ExonGenomicCoordsMapper:
         seg_start_genomic: int | None = None,
         seg_end_genomic: int | None = None,
         transcript: str | None = None,
-        get_nearest_transcript_junction: bool = False,
         gene: str | None = None,
+        coordinate_type: CoordinateType = CoordinateType.INTER_RESIDUE,
     ) -> GenomicTxSegService:
         """Get transcript segment data for genomic data, lifted over to GRCh38.
 
         If liftover to GRCh38 is unsuccessful, will return errors.
-
-        Must provide inter-residue coordinates.
 
         MANE Transcript data will be returned if and only if ``transcript`` is not
         supplied. ``gene`` must be given in order to retrieve MANE Transcript data.
@@ -449,17 +448,10 @@ class ExonGenomicCoordsMapper:
             following transcripts: MANE Select, MANE Clinical Plus, Longest Remaining
             Compatible Transcript. See the :ref:`Transcript Selection policy <transcript_selection_policy>`
             page.
-        :param get_nearest_transcript_junction: If ``True``, this will return the
-            adjacent exon if the position specified by``seg_start_genomic`` or
-            ``seg_end_genomic`` does not occur on an exon. For the positive strand, adjacent
-            is defined as the exon preceding the breakpoint for the 5' end and the exon
-            following the breakpoint for the 3' end. For the negative strand, adjacent
-            is defined as the exon following the breakpoint for the 5' end and the exon
-            preceding the breakpoint for the 3' end.
         :param gene: A valid, case-sensitive HGNC symbol. Must be given if no ``transcript``
             value is provided.
         :param coordinate_type: Coordinate type for ``seg_start_genomic`` and
-            ``seg_end_genomic``
+            ``seg_end_genomic``. Expects inter-residue coordinates by default
         :return: Genomic data (inter-residue coordinates)
         """
         errors = []
@@ -483,8 +475,8 @@ class ExonGenomicCoordsMapper:
                 genomic_ac=genomic_ac,
                 transcript=transcript,
                 gene=gene,
-                get_nearest_transcript_junction=get_nearest_transcript_junction,
                 is_seg_start=True,
+                coordinate_type=coordinate_type,
             )
             if start_tx_seg_data.errors:
                 return _return_service_errors(start_tx_seg_data.errors)
@@ -503,8 +495,8 @@ class ExonGenomicCoordsMapper:
                 genomic_ac=genomic_ac,
                 transcript=transcript,
                 gene=gene,
-                get_nearest_transcript_junction=get_nearest_transcript_junction,
                 is_seg_start=False,
+                coordinate_type=coordinate_type,
             )
             if end_tx_seg_data.errors:
                 return _return_service_errors(end_tx_seg_data.errors)
@@ -553,7 +545,7 @@ class ExonGenomicCoordsMapper:
         """
         tx_exons = await self._get_all_exon_coords(tx_ac, genomic_ac=genomic_ac)
         if not tx_exons:
-            return None, None, [f"No exons found given {tx_ac}"]
+            return None, None, [f"Transcript does not exist in UTA: {tx_ac}"]
 
         errors = []
         start_end_exons = []
@@ -733,16 +725,18 @@ class ExonGenomicCoordsMapper:
         genomic_ac: str | None = None,
         transcript: str | None = None,
         gene: str | None = None,
-        get_nearest_transcript_junction: bool = False,
         is_seg_start: bool = True,
+        coordinate_type: CoordinateType = CoordinateType.INTER_RESIDUE,
     ) -> GenomicTxSeg:
         """Given genomic data, generate a boundary for a transcript segment.
 
         Will liftover to GRCh38 assembly. If liftover is unsuccessful, will return
         errors.
 
+        Either an HGNC gene symbol or transcript accession must be provided to this
+        method
+
         :param genomic_pos: Genomic position where the transcript segment starts or ends
-            (inter-residue based)
         :param chromosome: Chromosome. Must give chromosome without a prefix
             (i.e. ``1`` or ``X``). If not provided, must provide ``genomic_ac``. If
             position maps to both GRCh37 and GRCh38, GRCh38 assembly will be used.
@@ -754,188 +748,166 @@ class ExonGenomicCoordsMapper:
             following transcripts: MANE Select, MANE Clinical Plus, Longest Remaining
             Compatible Transcript
         :param gene: Valid, case-sensitive HGNC gene symbol
-        :param get_nearest_transcript_junction: If ``True``, this will return the
-            adjacent exon if the position specified by``seg_start_genomic`` or
-            ``seg_end_genomic`` does not occur on an exon. For the positive strand, adjacent
-            is defined as the exon preceding the breakpoint for the 5' end and the exon
-            following the breakpoint for the 3' end. For the negative strand, adjacent
-            is defined as the exon following the breakpoint for the 5' end and the exon
-            preceding the breakpoint for the 3' end.
         :param is_seg_start: ``True`` if ``genomic_pos`` is where the transcript segment starts.
             ``False`` if ``genomic_pos`` is where the transcript segment ends.
+        :param coordinate_type: Coordinate type for ``seg_start_genomic`` and
+            ``seg_end_genomic``. Expects inter-residue coordinates by default
         :return: Data for a transcript segment boundary (inter-residue coordinates)
         """
         params = {key: None for key in GenomicTxSeg.model_fields}
 
-        if get_nearest_transcript_junction:
-            if not gene and not transcript:
+        # Validate inputs exist in UTA
+        if gene:
+            gene_validation = await self.uta_db.gene_exists(gene)
+            if not gene_validation:
+                return GenomicTxSeg(errors=[f"Gene does not exist in UTA: {gene}"])
+
+        if transcript:
+            transcript_validation = await self.uta_db.transcript_exists(transcript)
+            if not transcript_validation:
                 return GenomicTxSeg(
-                    errors=[
-                        "`gene` or `transcript` must be provided to select the adjacent transcript junction"
-                    ]
-                )
-
-            if not genomic_ac:
-                genomic_acs, err_msg = self.seqrepo_access.chromosome_to_acs(chromosome)
-
-                if not genomic_acs:
-                    return GenomicTxSeg(
-                        errors=[err_msg],
-                    )
-                genomic_ac = genomic_acs[0]
-
-            # Always liftover to GRCh38
-            genomic_ac, genomic_pos, err_msg = await self._get_grch38_ac_pos(
-                genomic_ac, genomic_pos
-            )
-            if err_msg:
-                return GenomicTxSeg(errors=[err_msg])
-
-            if not transcript:
-                # Select a transcript if not provided
-                mane_transcripts = self.mane_transcript_mappings.get_gene_mane_data(
-                    gene
-                )
-
-                if mane_transcripts:
-                    transcript = mane_transcripts[0]["RefSeq_nuc"]
-                else:
-                    # Attempt to find a coding transcript if a MANE transcript
-                    # cannot be found
-                    results = await self.uta_db.get_transcripts(
-                        gene=gene, alt_ac=genomic_ac
-                    )
-
-                    if not results.is_empty():
-                        transcript = results[0]["tx_ac"][0]
-                    else:
-                        # Run if gene is for a noncoding transcript
-                        query = f"""
-                            SELECT DISTINCT tx_ac
-                            FROM {self.uta_db.schema}.tx_exon_aln_v
-                            WHERE hgnc = '{gene}'
-                            AND alt_ac = '{genomic_ac}'
-                            """  # noqa: S608
-                        result = await self.uta_db.execute_query(query)
-
-                        if result:
-                            transcript = result[0]["tx_ac"]
-                        else:
-                            return GenomicTxSeg(
-                                errors=[
-                                    f"Could not find a transcript for {gene} on {genomic_ac}"
-                                ]
-                            )
-
-            tx_exons = await self._get_all_exon_coords(
-                tx_ac=transcript, genomic_ac=genomic_ac
-            )
-            if not tx_exons:
-                return GenomicTxSeg(errors=[f"No exons found given {transcript}"])
-
-            strand = Strand(tx_exons[0].alt_strand)
-            params["strand"] = strand
-
-            # Check if breakpoint occurs on an exon.
-            # If not, determine the adjacent exon given the selected transcript
-            if not self._is_exonic_breakpoint(genomic_pos, tx_exons):
-                exon_num = self._get_adjacent_exon(
-                    tx_exons_genomic_coords=tx_exons,
-                    strand=strand,
-                    start=genomic_pos if is_seg_start else None,
-                    end=genomic_pos if not is_seg_start else None,
-                )
-
-                offset = self._get_exon_offset(
-                    start_i=tx_exons[exon_num].alt_start_i,
-                    end_i=tx_exons[exon_num].alt_end_i,
-                    strand=strand,
-                    use_start_i=strand == Strand.POSITIVE
-                    if is_seg_start
-                    else strand != Strand.POSITIVE,
-                    is_in_exon=False,
-                    start=genomic_pos if is_seg_start else None,
-                    end=genomic_pos if not is_seg_start else None,
-                )
-
-                genomic_location, err_msg = self._get_vrs_seq_loc(
-                    genomic_ac, genomic_pos, is_seg_start, strand
-                )
-                if err_msg:
-                    return GenomicTxSeg(errors=[err_msg])
-
-                # gene is not required to liftover coordinates if tx_ac and genomic_ac are given, but we should set the associated gene
-                if not gene:
-                    _gene, err_msg = await self._get_tx_ac_gene(transcript)
-                    if err_msg:
-                        return GenomicTxSeg(errors=[err_msg])
-                    gene = _gene
-
-                return GenomicTxSeg(
-                    gene=gene,
-                    genomic_ac=genomic_ac,
-                    tx_ac=transcript,
-                    seg=TxSegment(
-                        exon_ord=exon_num,
-                        offset=offset,
-                        genomic_location=genomic_location,
-                    ),
+                    errors=[f"Transcript does not exist in UTA: {transcript}"]
                 )
 
         if genomic_ac:
-            _gene, err_msg = await self._get_genomic_ac_gene(genomic_pos, genomic_ac)
+            genomic_ac_validation = await self.uta_db.validate_genomic_ac(genomic_ac)
+            if not genomic_ac_validation:
+                return GenomicTxSeg(
+                    errors=[f"Genomic accession does not exist in UTA: {genomic_ac}"]
+                )
+        else:
+            genomic_acs, err_msg = self.seqrepo_access.chromosome_to_acs(chromosome)
 
+            if not genomic_acs:
+                return GenomicTxSeg(
+                    errors=[err_msg],
+                )
+            genomic_ac = genomic_acs[0]
+
+        # Always liftover to GRCh38
+        genomic_ac, genomic_pos, err_msg = await self._get_grch38_ac_pos(
+            genomic_ac,
+            genomic_pos,
+        )
+        if err_msg:
+            return GenomicTxSeg(errors=[err_msg])
+
+        # Select a transcript if not provided
+        if not transcript:
+            mane_transcripts = self.mane_transcript_mappings.get_gene_mane_data(gene)
+
+            if mane_transcripts:
+                transcript = mane_transcripts[0]["RefSeq_nuc"]
+            else:
+                # Attempt to find a coding transcript if a MANE transcript
+                # cannot be found
+                results = await self.uta_db.get_transcripts(
+                    gene=gene, alt_ac=genomic_ac
+                )
+
+                if not results.is_empty():
+                    transcript = results[0]["tx_ac"][0]
+                else:
+                    # Run if gene is for a noncoding transcript
+                    query = f"""
+                        SELECT DISTINCT tx_ac
+                        FROM {self.uta_db.schema}.tx_exon_aln_v
+                        WHERE hgnc = '{gene}'
+                        AND alt_ac = '{genomic_ac}'
+                        """  # noqa: S608
+                    result = await self.uta_db.execute_query(query)
+
+                    if result:
+                        transcript = result[0]["tx_ac"]
+                    else:
+                        return GenomicTxSeg(
+                            errors=[
+                                f"Could not find a transcript for {gene} on {genomic_ac}"
+                            ]
+                        )
+        # gene is not required to liftover coordinates if tx_ac and genomic_ac are given, but we should set the associated gene
+        if not gene:
+            _gene, err_msg = await self._get_tx_ac_gene(transcript)
             if err_msg:
                 return GenomicTxSeg(errors=[err_msg])
-
-            if gene and _gene != gene:
-                return GenomicTxSeg(
-                    errors=[f"Expected gene, {gene}, but found {_gene}"]
-                )
-
             gene = _gene
-        elif chromosome:
-            # Try GRCh38 first
-            for assembly in [Assembly.GRCH38.value, Assembly.GRCH37.value]:
-                _genomic_acs, err_msg = self.seqrepo_access.translate_identifier(
-                    f"{assembly}:chr{chromosome}", "refseq"
-                )
-                if err_msg:
-                    return GenomicTxSeg(errors=[err_msg])
-                _genomic_ac = _genomic_acs[0].split(":")[-1]
 
-                _gene, err_msg = await self._get_genomic_ac_gene(
-                    genomic_pos, _genomic_ac
-                )
-                if _gene:
-                    if gene and _gene != gene:
-                        return GenomicTxSeg(
-                            errors=[f"Expected gene, {gene}, but found {_gene}"]
-                        )
-                    gene = _gene
-                    genomic_ac = _genomic_ac
-                    break
+        tx_exons = await self._get_all_exon_coords(
+            tx_ac=transcript, genomic_ac=genomic_ac
+        )
+        if not tx_exons:
+            return GenomicTxSeg(
+                errors=[f"No exons found given transcript: {transcript}"]
+            )
 
-            if not genomic_ac:
-                return GenomicTxSeg(
-                    errors=[
-                        f"Unable to get genomic RefSeq accession for chromosome {chromosome} on position {genomic_pos}"
-                    ]
-                )
+        strand = Strand(tx_exons[0].alt_strand)
+        params["strand"] = strand
+        use_alt_start_i = self._use_alt_start_i(
+            is_seg_start=is_seg_start, strand=strand
+        )
+        if use_alt_start_i and coordinate_type == CoordinateType.RESIDUE:
+            genomic_pos = genomic_pos - 1  # Convert residue coordinate to inter-residue
 
-            if not gene:
-                return GenomicTxSeg(
-                    errors=[
-                        f"Unable to get gene given {genomic_ac} on position {genomic_pos}"
-                    ]
-                )
+        # Validate that the breakpoint occurs on a transcript given a gene
+        coordinate_check = await self._validate_gene_coordinates(
+            pos=genomic_pos, genomic_ac=genomic_ac, gene=gene
+        )
+        if not coordinate_check:
+            return GenomicTxSeg(
+                errors=[
+                    f"{genomic_pos} on {genomic_ac} does not occur within the exons for {gene}"
+                ]
+            )
 
-        return await self._get_tx_seg_genomic_metadata(
-            genomic_ac, genomic_pos, is_seg_start, gene, tx_ac=transcript
+        # Check if breakpoint occurs on an exon.
+        # If not, determine the adjacent exon given the selected transcript
+        if not self._is_exonic_breakpoint(genomic_pos, tx_exons):
+            exon_num = self._get_adjacent_exon(
+                tx_exons_genomic_coords=tx_exons,
+                strand=strand,
+                start=genomic_pos if is_seg_start else None,
+                end=genomic_pos if not is_seg_start else None,
+            )
+        else:
+            exon_data = await self.uta_db.get_tx_exon_aln_v_data(
+                transcript,
+                genomic_pos,
+                genomic_pos,
+                alt_ac=genomic_ac,
+                use_tx_pos=False,
+            )
+            exon_num = exon_data[0].ord
+
+        offset = self._get_exon_offset(
+            genomic_pos=genomic_pos,
+            exon_boundary=tx_exons[exon_num].alt_start_i
+            if use_alt_start_i
+            else tx_exons[exon_num].alt_end_i,
+            strand=strand,
+        )
+
+        genomic_location, err_msg = self._get_vrs_seq_loc(
+            genomic_ac, genomic_pos, is_seg_start, strand
+        )
+        if err_msg:
+            return GenomicTxSeg(errors=[err_msg])
+
+        return GenomicTxSeg(
+            gene=gene,
+            genomic_ac=genomic_ac,
+            tx_ac=transcript,
+            seg=TxSegment(
+                exon_ord=exon_num,
+                offset=offset,
+                genomic_location=genomic_location,
+            ),
         )
 
     async def _get_grch38_ac_pos(
-        self, genomic_ac: str, genomic_pos: int, grch38_ac: str | None = None
+        self,
+        genomic_ac: str,
+        genomic_pos: int,
+        grch38_ac: str | None = None,
     ) -> tuple[str | None, int | None, str | None]:
         """Get GRCh38 genomic representation for accession and position
 
@@ -946,6 +918,7 @@ class ExonGenomicCoordsMapper:
         :return: Tuple containing GRCh38 accession, GRCh38 position, and error message
             if unable to get GRCh38 representation
         """
+        # Validate accession exists
         if not grch38_ac:
             grch38_ac = await self.uta_db.get_newest_assembly_ac(genomic_ac)
             if not grch38_ac:
@@ -969,7 +942,6 @@ class ExonGenomicCoordsMapper:
                     None,
                     f"`genomic_ac` must use {Assembly.GRCH37.value} or {Assembly.GRCH38.value} assembly.",
                 )
-
             chromosome = chromosome[-1].split(":")[-1]
             liftover_data = self.liftover.get_liftover(
                 chromosome, genomic_pos, Assembly.GRCH38
@@ -980,41 +952,46 @@ class ExonGenomicCoordsMapper:
                     None,
                     f"Lifting over {genomic_pos} on {genomic_ac} from {Assembly.GRCH37.value} to {Assembly.GRCH38.value} was unsuccessful.",
                 )
-
             genomic_pos = liftover_data[1]
             genomic_ac = grch38_ac
 
         return genomic_ac, genomic_pos, None
 
-    async def _get_genomic_ac_gene(
+    async def _validate_gene_coordinates(
         self,
         pos: int,
         genomic_ac: str,
-    ) -> tuple[str | None, str | None]:
-        """Get gene given a genomic accession and position.
-
-        If multiple genes are found for a given ``pos`` and ``genomic_ac``, only one
-        gene will be returned.
+        gene: str,
+    ) -> bool:
+        """Validate that a genomic coordinate falls within the first and last exon
+            given a gene and accession
 
         :param pos: Genomic position on ``genomic_ac``
         :param genomic_ac: RefSeq genomic accession, e.g. ``"NC_000007.14"``
-        :return: HGNC gene symbol associated to genomic accession and position and
-            warning
+        :param gene: A valid, case-sensitive HGNC gene symbol
+        :return: ``True`` if the coordinate falls within the first and last exon
+            for the gene, ``False`` if not
         """
         query = f"""
+            WITH tx_boundaries AS (
+                    SELECT
+                    tx_ac,
+                    hgnc,
+                    MIN(alt_start_i) as min_start,
+                    MAX(alt_end_i) as max_end
+                FROM {self.uta_db.schema}.tx_exon_aln_v
+                WHERE hgnc = '{gene}'
+                AND alt_ac = '{genomic_ac}'
+                GROUP BY tx_ac, hgnc
+            )
             SELECT DISTINCT hgnc
-            FROM {self.uta_db.schema}.tx_exon_aln_v
-            WHERE alt_ac = '{genomic_ac}'
-            AND alt_aln_method = 'splign'
-            AND {pos} BETWEEN alt_start_i AND alt_end_i
+            FROM tx_boundaries
+            WHERE {pos} between tx_boundaries.min_start and tx_boundaries.max_end
             ORDER BY hgnc
             LIMIT 1;
             """  # noqa: S608
         results = await self.uta_db.execute_query(query)
-        if not results:
-            return None, f"No gene(s) found given {genomic_ac} on position {pos}"
-
-        return results[0]["hgnc"], None
+        return bool(results)
 
     async def _get_tx_ac_gene(
         self,
@@ -1042,102 +1019,6 @@ class ExonGenomicCoordsMapper:
 
         return results[0]["hgnc"], None
 
-    async def _get_tx_seg_genomic_metadata(
-        self,
-        genomic_ac: str,
-        genomic_pos: int,
-        is_seg_start: bool,
-        gene: str,
-        tx_ac: str | None,
-    ) -> GenomicTxSeg:
-        """Get transcript segment data and associated genomic metadata.
-
-        Will liftover to GRCh38 assembly. If liftover is unsuccessful, will return
-        errors.
-
-        If ``tx_ac`` is not provided, will attempt to retrieve MANE transcript.
-
-        :param genomic_ac: Genomic RefSeq accession
-        :param genomic_pos: Genomic position where the transcript segment occurs
-        :param is_seg_start: Whether or not ``genomic_pos`` represents the start position.
-        :param gene: Valid, case-sensitive HGNC gene symbol
-        :param tx_ac: Transcript RefSeq accession. If not provided, will use MANE
-            transcript
-        :return: Transcript segment data and associated genomic metadata
-        """
-        if tx_ac:
-            # We should always try to liftover
-            grch38_ac = await self.uta_db.get_newest_assembly_ac(genomic_ac)
-            if not grch38_ac:
-                return GenomicTxSeg(errors=[f"Invalid genomic accession: {genomic_ac}"])
-            grch38_ac = grch38_ac[0]
-        else:
-            mane_data = self.mane_transcript_mappings.get_gene_mane_data(gene)
-            if not mane_data:
-                err_msg = f"Unable to find mane data for {genomic_ac} with position {genomic_pos}"
-                if gene:
-                    err_msg += f" on gene {gene}"
-                _logger.warning(err_msg)
-                return GenomicTxSeg(errors=[err_msg])
-
-            mane_data = mane_data[0]
-            tx_ac = mane_data["RefSeq_nuc"]
-            grch38_ac = mane_data["GRCh38_chr"]
-
-        # Always liftover to GRCh38
-        genomic_ac, genomic_pos, err_msg = await self._get_grch38_ac_pos(
-            genomic_ac, genomic_pos, grch38_ac=grch38_ac
-        )
-        if err_msg:
-            return GenomicTxSeg(errors=[err_msg])
-
-        tx_exons = await self._get_all_exon_coords(tx_ac, genomic_ac=grch38_ac)
-        if not tx_exons:
-            return GenomicTxSeg(errors=[f"No exons found given {tx_ac}"])
-
-        tx_exon_aln_data = await self.uta_db.get_tx_exon_aln_v_data(
-            tx_ac,
-            genomic_pos,
-            genomic_pos,
-            alt_ac=genomic_ac,
-            use_tx_pos=False,
-        )
-        if len(tx_exon_aln_data) != 1:
-            return GenomicTxSeg(
-                errors=[
-                    f"Must find exactly one row for genomic data, but found: {len(tx_exon_aln_data)}"
-                ]
-            )
-
-        tx_exon_aln_data = tx_exon_aln_data[0]
-
-        offset = self._get_exon_offset(
-            start_i=tx_exon_aln_data.alt_start_i,
-            end_i=tx_exon_aln_data.alt_end_i,
-            strand=Strand(tx_exon_aln_data.alt_strand),
-            use_start_i=False,  # This doesn't impact anything since we're on the exon
-            is_in_exon=True,
-            start=genomic_pos if is_seg_start else None,
-            end=genomic_pos if not is_seg_start else None,
-        )
-
-        genomic_location, err_msg = self._get_vrs_seq_loc(
-            genomic_ac, genomic_pos, is_seg_start, tx_exon_aln_data.alt_strand
-        )
-        if err_msg:
-            return GenomicTxSeg(errors=[err_msg])
-
-        return GenomicTxSeg(
-            gene=tx_exon_aln_data.hgnc,
-            genomic_ac=genomic_ac,
-            tx_ac=tx_exon_aln_data.tx_ac,
-            seg=TxSegment(
-                exon_ord=tx_exon_aln_data.ord,
-                offset=offset,
-                genomic_location=genomic_location,
-            ),
-        )
-
     @staticmethod
     def _is_exonic_breakpoint(pos: int, tx_genomic_coords: list[_ExonCoord]) -> bool:
         """Check if a breakpoint occurs on an exon
@@ -1148,6 +1029,24 @@ class ExonGenomicCoordsMapper:
         """
         return any(
             exon.alt_start_i <= pos <= exon.alt_end_i for exon in tx_genomic_coords
+        )
+
+    @staticmethod
+    def _use_alt_start_i(is_seg_start: bool, strand: Strand) -> bool:
+        """Determine whether to use alt_start_i or alt_end_i from UTA when computing
+        exon offset
+
+        :param is_seg_start: ``True`` if ``genomic_pos`` is where the transcript segment starts.
+            ``False`` if ``genomic_pos`` is where the transcript segment ends.
+        :param strand: The transcribed strand
+        :return ``True`` if alt_start_i should be used, ``False`` if alt_end_i should
+        be used
+        """
+        return (
+            is_seg_start
+            and strand == Strand.POSITIVE
+            or not is_seg_start
+            and strand == Strand.NEGATIVE
         )
 
     @staticmethod
@@ -1210,38 +1109,22 @@ class ExonGenomicCoordsMapper:
 
     @staticmethod
     def _get_exon_offset(
-        start_i: int,
-        end_i: int,
+        genomic_pos: int,
+        exon_boundary: int,
         strand: Strand,
-        use_start_i: bool = True,
-        is_in_exon: bool = True,
-        start: int | None = None,
-        end: int | None = None,
     ) -> int:
         """Compute offset from exon start or end index
 
-        :param start_i: Exon start index (inter-residue)
-        :param end_i: Exon end index (inter-residue)
-        :param strand: Strand
-        :param use_start_i: Whether or not ``start_i`` should be used to compute the
-            offset, defaults to ``True``. This is only used when ``is_in_exon`` is
-            ``False``.
-        :param is_in_exon: Whether or not the position occurs in an exon, defaults to
-            ``True``
-        :param start: Provided start position, defaults to ``None``. Must provide
-            ``start`` or ``end``, not both.
-        :param end: Provided end position, defaults to ``None``. Must provide ``start``
-            or ``end``, not both
+        :param genomic_pos: The supplied genomic position. This can represent, for
+            example, a fusion junction breakpoint. This position is represented using
+            inter-residue coordinates
+        :param exon_boundary: The genomic position for the exon boundary that the offset
+            is being computed against
+        :paran strand: The transcribed strand
         :return: Offset from exon start or end index
         """
-        if is_in_exon:
-            if start is not None:
-                offset = start - start_i if strand == Strand.POSITIVE else end_i - start
-            else:
-                offset = end - end_i if strand == Strand.POSITIVE else start_i - end
-        else:
-            if strand == Strand.POSITIVE:
-                offset = start - start_i if use_start_i else end - end_i
-            else:
-                offset = start_i - end if use_start_i else end_i - start
-        return offset
+        return (
+            genomic_pos - exon_boundary
+            if strand == Strand.POSITIVE
+            else (genomic_pos - exon_boundary) * -1
+        )
