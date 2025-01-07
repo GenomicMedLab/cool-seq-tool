@@ -837,7 +837,7 @@ class ExonGenomicCoordsMapper:
         )
         if not tx_exons:
             return GenomicTxSeg(
-                errors=[f"Transcript does not exist in UTA: {transcript}"]
+                errors=[f"No exons found given transcript: {transcript}"]
             )
 
         strand = Strand(tx_exons[0].alt_strand)
