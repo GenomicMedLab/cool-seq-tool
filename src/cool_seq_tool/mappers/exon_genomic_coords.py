@@ -780,7 +780,9 @@ class ExonGenomicCoordsMapper:
         if genomic_ac:
             genomic_ac_validation = await self.uta_db.validate_genomic_ac(genomic_ac)
             if not genomic_ac_validation:
-                return GenomicTxSeg(errors=[f"{genomic_ac} does not exist in UTA"])
+                return GenomicTxSeg(
+                    errors=[f"Genomic accession does not exist in UTA: {genomic_ac}"]
+                )
             if starting_assembly == Assembly.GRCH37:
                 grch38_ac = await self.uta_db.get_newest_assembly_ac(genomic_ac)
                 genomic_ac = grch38_ac[0]
@@ -796,7 +798,7 @@ class ExonGenomicCoordsMapper:
         # Liftover to GRCh38 if the provided assembly is GRCh37
         if starting_assembly == Assembly.GRCH37:
             genomic_pos = await self._get_grch38_pos(
-                genomic_pos, genomic_ac, chromosome=chromosome if chromosome else None
+                genomic_ac, genomic_pos, chromosome=chromosome if chromosome else None
             )
             if not genomic_pos:
                 return GenomicTxSeg(
@@ -916,12 +918,12 @@ class ExonGenomicCoordsMapper:
             ),
         )
 
-    async def _get_grch38_ac_pos(
+    async def _get_grch38_pos(
         self,
         genomic_ac: str,
         genomic_pos: int,
         chromosome: str | None = None,
-    ) -> tuple[str | None, int | None, str | None]:
+    ) -> int | None:
         """Get GRCh38 genomic representation for accession and position
 
         :param genomic_pos: A genomic coordinate in GRCh37

@@ -707,16 +707,16 @@ def genomic_tx_seg_checks(actual, expected=None, is_valid=True):
 @pytest.mark.asyncio()
 async def test_get_grch38_pos(test_egc_mapper):
     """Test that get_grch38_pos works correctly"""
-    genomic_pos = await test_egc_mapper._get_grch38_pos(9609996, "NC_000011.10")
+    genomic_pos = await test_egc_mapper._get_grch38_pos("NC_000011.10", 9609996)
     assert genomic_pos == 9588449
 
     genomic_pos = await test_egc_mapper._get_grch38_pos(
-        9609996, "NC_000011.10", "chr11"
+        "NC_000011.10", 9609996, "chr11"
     )
     assert genomic_pos == 9588449
 
     genomic_pos = await test_egc_mapper._get_grch38_pos(
-        9609996999999999, "NC_000011.10"
+        "NC_000011.10", 9609996999999999
     )
     assert genomic_pos is None
 
