@@ -775,7 +775,7 @@ async def test_get_start_end_exon_coords(test_egc_mapper):
     resp = await test_egc_mapper._get_start_end_exon_coords(
         "NM_1234.5", exon_start=1, exon_end=11
     )
-    assert resp == (None, None, ["No exons found given NM_1234.5"])
+    assert resp == (None, None, ["Transcript does not exist in UTA: NM_1234.5"])
 
 
 @pytest.mark.asyncio()
@@ -1468,7 +1468,7 @@ async def test_invalid(test_egc_mapper):
         seg_end_genomic=154170399,
         genomic_ac="NC_000001.11",
     )
-    assert resp.errors == ["NM_152263 3 does not exist in UTA"]
+    assert resp.errors == ["Transcript does not exist in UTA: NM_152263 3"]
 
     # start and end not given
     resp = await test_egc_mapper.genomic_to_tx_segment(
@@ -1492,7 +1492,7 @@ async def test_invalid(test_egc_mapper):
         gene="dummy gene",
     )
     genomic_tx_seg_service_checks(resp, is_valid=False)
-    assert resp.errors == ["dummy gene does not exist in UTA"]
+    assert resp.errors == ["Gene does not exist in UTA: dummy gene"]
 
     # Invalid accession
     resp = await test_egc_mapper.genomic_to_tx_segment(
@@ -1502,7 +1502,7 @@ async def test_invalid(test_egc_mapper):
         transcript="NM_152263.3",
     )
     genomic_tx_seg_service_checks(resp, is_valid=False)
-    assert resp.errors == ["NC_000001.200 does not exist in UTA"]
+    assert resp.errors == ["Genomic accession does not exist in UTA: NC_000001.200"]
 
     # Invalid coordinates
     resp = await test_egc_mapper.genomic_to_tx_segment(
@@ -1544,7 +1544,7 @@ async def test_invalid(test_egc_mapper):
         exon_start=7, exon_end=None, transcript="NM_12345.6"
     )
     genomic_tx_seg_service_checks(resp, is_valid=False)
-    assert resp.errors == ["No exons found given NM_12345.6"]
+    assert resp.errors == ["Transcript does not exist in UTA: NM_12345.6"]
 
     # Index error for invalid exon
     resp = await test_egc_mapper.tx_segment_to_genomic(
