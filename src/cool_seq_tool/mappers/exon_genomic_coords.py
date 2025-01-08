@@ -442,7 +442,8 @@ class ExonGenomicCoordsMapper:
             used.
         :param genomic_ac: Genomic accession (i.e. ``NC_000001.11``). If not provided,
             must provide ``chromosome. If ``chromosome`` is also provided,
-            ``genomic_ac`` will be used.
+            ``genomic_ac`` will be used. If the genomic accession is from GRCh37, it
+            will be lifted over to GRCh38
         :param seg_start_genomic: Genomic position where the transcript segment starts
         :param seg_end_genomic: Genomic position where the transcript segment ends
         :param transcript: The transcript to use. If this is not given, we will try the
@@ -749,7 +750,8 @@ class ExonGenomicCoordsMapper:
             If ``genomic_ac`` is also provided, ``genomic_ac`` will be used.
         :param genomic_ac: Genomic accession (i.e. ``NC_000001.11``). If not provided,
             must provide ``chromosome. If ``chromosome`` is also provided, ``genomic_ac``
-            will be used.
+            will be used. If the genomic accession is from GRCh37, it will be lifted
+            over to GRCh38
         :param transcript: The transcript to use. If this is not given, we will try the
             following transcripts: MANE Select, MANE Clinical Plus, Longest Remaining
             Compatible Transcript
