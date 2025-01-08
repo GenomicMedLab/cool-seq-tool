@@ -1221,12 +1221,22 @@ async def test_braf(test_egc_mapper, mane_braf):
     """
     inputs = {
         "genomic_ac": "NC_000007.13",
-        "seg_start_genomic": 140501359,  # GRCh38 coords: 140801559
-        "seg_end_genomic": 140453136,  # GRCh38 coords: 140753336
+        "seg_start_genomic": 140501359,
+        "seg_end_genomic": 140453136,
         "gene": "BRAF",
         "starting_assembly": Assembly.GRCH37.value,
     }
     # MANE
+    g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
+    genomic_tx_seg_service_checks(g_to_t_resp, mane_braf)
+
+    inputs = {
+        "genomic_ac": "NC_000007.14",
+        "seg_start_genomic": 140801559,
+        "seg_end_genomic": 140753336,
+        "gene": "BRAF",
+        "starting_assembly": Assembly.GRCH38.value,
+    }
     g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
     genomic_tx_seg_service_checks(g_to_t_resp, mane_braf)
 
@@ -1278,10 +1288,20 @@ async def test_wee1(test_egc_mapper, wee1_exon2_exon11, mane_wee1_exon2_exon11):
     # MANE since no transcript provided
     inputs = {
         "genomic_ac": "NC_000011.9",
-        "seg_start_genomic": 9597639,  # GRCh38 coords: 9576092
-        "seg_end_genomic": 9609996,  # GRCh38 coords: 9588449
+        "seg_start_genomic": 9597639,
+        "seg_end_genomic": 9609996,
         "gene": "WEE1",
         "starting_assembly": Assembly.GRCH37.value,
+    }
+    g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
+    genomic_tx_seg_service_checks(g_to_t_resp, mane_wee1_exon2_exon11)
+
+    inputs = {
+        "genomic_ac": "NC_000011.10",
+        "seg_start_genomic": 9576092,
+        "seg_end_genomic": 9588449,
+        "gene": "WEE1",
+        "starting_assembly": Assembly.GRCH38.value,
     }
     g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
     genomic_tx_seg_service_checks(g_to_t_resp, mane_wee1_exon2_exon11)
