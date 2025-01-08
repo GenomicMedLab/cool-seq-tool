@@ -10,6 +10,7 @@ from cool_seq_tool.mappers.exon_genomic_coords import (
     _ExonCoord,
 )
 from cool_seq_tool.schemas import (
+    Assembly,
     CoordinateType,
     Strand,
 )
@@ -704,51 +705,6 @@ def genomic_tx_seg_checks(actual, expected=None, is_valid=True):
 
 
 @pytest.mark.asyncio()
-async def test_get_grch38_ac_pos(test_egc_mapper):
-    """Test that _get_grch38_ac_pos works correctly"""
-    grch38_ac = "NC_000001.11"
-    grch38_pos = 154192135
-    expected = grch38_ac, grch38_pos, None
-
-    # GRCh37 provided
-    grch38_data = await test_egc_mapper._get_grch38_ac_pos("NC_000001.10", 154164611)
-    assert grch38_data == expected
-
-    # GRCh38 provided, no grch38_ac
-    grch38_data = await test_egc_mapper._get_grch38_ac_pos(grch38_ac, grch38_pos)
-    assert grch38_data == expected
-
-    # GRCh38 and grch38_ac provided
-    grch38_data = await test_egc_mapper._get_grch38_ac_pos(
-        grch38_ac, grch38_pos, grch38_ac=grch38_ac
-    )
-    assert grch38_data == expected
-
-    # Unrecognized accession
-    invalid_ac = "NC_0000026.10"
-    grch38_data = await test_egc_mapper._get_grch38_ac_pos(invalid_ac, 154164611)
-    assert grch38_data == (None, None, f"Unrecognized genomic accession: {invalid_ac}.")
-
-    # GRCh36 used
-    grch38_data = await test_egc_mapper._get_grch38_ac_pos("NC_000001.9", 154164611)
-    assert grch38_data == (
-        None,
-        None,
-        "`genomic_ac` must use GRCh37 or GRCh38 assembly.",
-    )
-
-    # Unsuccessful liftover
-    grch38_data = await test_egc_mapper._get_grch38_ac_pos(
-        "NC_000001.10", 9999999999999999999
-    )
-    assert grch38_data == (
-        None,
-        None,
-        "Lifting over 9999999999999999999 on NC_000001.10 from GRCh37 to GRCh38 was unsuccessful.",
-    )
-
-
-@pytest.mark.asyncio()
 async def test_get_all_exon_coords(
     test_egc_mapper, nm_152263_exons, nm_152263_exons_genomic_coords
 ):
@@ -891,6 +847,21 @@ def test_is_exonic_breakpoint(test_egc_mapper, nm_001105539_exons_genomic_coords
         80499495, nm_001105539_exons_genomic_coords
     )
     assert resp is True  # Breakpoint does occur on an exon
+
+
+def test_use_alt_start_i(test_egc_mapper):
+    """Test when to use alt_start_i or alt_end_i from UTA"""
+    resp = test_egc_mapper._use_alt_start_i(is_seg_start=True, strand=Strand.POSITIVE)
+    assert resp
+
+    resp = test_egc_mapper._use_alt_start_i(is_seg_start=False, strand=Strand.NEGATIVE)
+    assert resp
+
+    resp = test_egc_mapper._use_alt_start_i(is_seg_start=True, strand=Strand.NEGATIVE)
+    assert not resp
+
+    resp = test_egc_mapper._use_alt_start_i(is_seg_start=False, strand=Strand.POSITIVE)
+    assert not resp
 
 
 @pytest.mark.asyncio()
@@ -1250,11 +1221,22 @@ async def test_braf(test_egc_mapper, mane_braf):
     """
     inputs = {
         "genomic_ac": "NC_000007.13",
-        "seg_start_genomic": 140501359,  # GRCh38 coords: 140801559
-        "seg_end_genomic": 140453136,  # GRCh38 coords: 140753336
+        "seg_start_genomic": 140501359,
+        "seg_end_genomic": 140453136,
         "gene": "BRAF",
+        "starting_assembly": Assembly.GRCH37.value,
     }
     # MANE
+    g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
+    genomic_tx_seg_service_checks(g_to_t_resp, mane_braf)
+
+    inputs = {
+        "genomic_ac": "NC_000007.14",
+        "seg_start_genomic": 140801559,
+        "seg_end_genomic": 140753336,
+        "gene": "BRAF",
+        "starting_assembly": Assembly.GRCH38.value,
+    }
     g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
     genomic_tx_seg_service_checks(g_to_t_resp, mane_braf)
 
@@ -1276,6 +1258,7 @@ async def test_wee1(test_egc_mapper, wee1_exon2_exon11, mane_wee1_exon2_exon11):
         "seg_start_genomic": 9597639,
         "seg_end_genomic": 9609996,
         "transcript": "NM_003390.3",
+        "starting_assembly": Assembly.GRCH37.value,
     }
     g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
     genomic_tx_seg_service_checks(g_to_t_resp, wee1_exon2_exon11)
@@ -1292,6 +1275,7 @@ async def test_wee1(test_egc_mapper, wee1_exon2_exon11, mane_wee1_exon2_exon11):
         "seg_end_genomic": 9609996,
         "transcript": "NM_003390.3",
         "gene": "WEE1",
+        "starting_assembly": Assembly.GRCH37.value,
     }
     g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
     genomic_tx_seg_service_checks(g_to_t_resp, wee1_exon2_exon11)
@@ -1304,9 +1288,20 @@ async def test_wee1(test_egc_mapper, wee1_exon2_exon11, mane_wee1_exon2_exon11):
     # MANE since no transcript provided
     inputs = {
         "genomic_ac": "NC_000011.9",
-        "seg_start_genomic": 9597639,  # GRCh38 coords: 9576092
-        "seg_end_genomic": 9609996,  # GRCh38 coords: 9588449
+        "seg_start_genomic": 9597639,
+        "seg_end_genomic": 9609996,
         "gene": "WEE1",
+        "starting_assembly": Assembly.GRCH37.value,
+    }
+    g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
+    genomic_tx_seg_service_checks(g_to_t_resp, mane_wee1_exon2_exon11)
+
+    inputs = {
+        "genomic_ac": "NC_000011.10",
+        "seg_start_genomic": 9576092,
+        "seg_end_genomic": 9588449,
+        "gene": "WEE1",
+        "starting_assembly": Assembly.GRCH38.value,
     }
     g_to_t_resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
     genomic_tx_seg_service_checks(g_to_t_resp, mane_wee1_exon2_exon11)
@@ -1418,13 +1413,19 @@ async def test_valid_inputs(test_egc_mapper, eln_grch38_intronic):
         "gene": "WEE1",
         "genomic_ac": "NC_000011.9",
         "seg_end_genomic": 9609996,
+        "starting_assembly": Assembly.GRCH37.value,
     }
     resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
     assert all((resp.gene, resp.genomic_ac, resp.tx_ac, resp.seg_end))
 
-    # inputs = {"gene": "WEE1", "chromosome": "11", "seg_end_genomic": 9588449}
-    # resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
-    # assert all((resp.gene, resp.genomic_ac, resp.tx_ac, resp.seg_end))
+    inputs = {
+        "gene": "WEE1",
+        "chromosome": "11",
+        "seg_end_genomic": 9609996,
+        "starting_assembly": Assembly.GRCH37.value,
+    }
+    resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
+    assert all((resp.gene, resp.genomic_ac, resp.tx_ac, resp.seg_end))
 
     inputs = {"transcript": "NM_003390.3", "exon_start": 2}
     resp = await test_egc_mapper.tx_segment_to_genomic(**inputs)
@@ -1456,6 +1457,7 @@ async def test_valid_inputs(test_egc_mapper, eln_grch38_intronic):
         seg_start_genomic=73442503,
         seg_end_genomic=73457929,  # not on an exon
         gene="ELN",
+        starting_assembly=Assembly.GRCH37.value,
     )
     genomic_tx_seg_service_checks(resp, eln_grch38_intronic)
 
@@ -1497,13 +1499,13 @@ async def test_invalid(test_egc_mapper):
 
     # Invalid accession
     resp = await test_egc_mapper.genomic_to_tx_segment(
-        genomic_ac="NC_000001.200",
+        genomic_ac="NC_000035.200",
         seg_start_genomic=154191901,
         seg_end_genomic=154192135,
         transcript="NM_152263.3",
     )
     genomic_tx_seg_service_checks(resp, is_valid=False)
-    assert resp.errors == ["Genomic accession does not exist in UTA: NC_000001.200"]
+    assert resp.errors == ["Genomic accession does not exist in UTA: NC_000035.200"]
 
     # Invalid coordinates
     resp = await test_egc_mapper.genomic_to_tx_segment(
