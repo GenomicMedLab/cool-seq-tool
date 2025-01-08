@@ -778,14 +778,13 @@ class ExonGenomicCoordsMapper:
                 )
 
         if genomic_ac:
-            genomic_ac_validation = await self.uta_db.validate_genomic_ac(genomic_ac)
-            if not genomic_ac_validation:
+            grch38_ac = await self.uta_db.get_newest_assembly_ac(genomic_ac)
+            if grch38_ac:
+                genomic_ac = grch38_ac[0]
+            else:
                 return GenomicTxSeg(
                     errors=[f"Genomic accession does not exist in UTA: {genomic_ac}"]
                 )
-            if starting_assembly == Assembly.GRCH37:
-                grch38_ac = await self.uta_db.get_newest_assembly_ac(genomic_ac)
-                genomic_ac = grch38_ac[0]
         else:
             genomic_acs, err_msg = self.seqrepo_access.chromosome_to_acs(chromosome)
 

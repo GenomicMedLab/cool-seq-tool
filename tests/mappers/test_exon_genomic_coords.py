@@ -1499,13 +1499,13 @@ async def test_invalid(test_egc_mapper):
 
     # Invalid accession
     resp = await test_egc_mapper.genomic_to_tx_segment(
-        genomic_ac="NC_000001.200",
+        genomic_ac="NC_000035.200",
         seg_start_genomic=154191901,
         seg_end_genomic=154192135,
         transcript="NM_152263.3",
     )
     genomic_tx_seg_service_checks(resp, is_valid=False)
-    assert resp.errors == ["Genomic accession does not exist in UTA: NC_000001.200"]
+    assert resp.errors == ["Genomic accession does not exist in UTA: NC_000035.200"]
 
     # Invalid coordinates
     resp = await test_egc_mapper.genomic_to_tx_segment(
