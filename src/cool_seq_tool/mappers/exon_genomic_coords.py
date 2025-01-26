@@ -865,14 +865,14 @@ class ExonGenomicCoordsMapper:
         if use_alt_start_i and coordinate_type == CoordinateType.RESIDUE:
             genomic_pos = genomic_pos - 1  # Convert residue coordinate to inter-residue
 
-        # Validate that the breakpoint occurs on a transcript given a gene
+        # Validate that the breakpoint between the first and last exon for the selected transcript
         coordinate_check = await self._validate_genomic_breakpoint(
             pos=genomic_pos, genomic_ac=genomic_ac, tx_ac=transcript
         )
         if not coordinate_check:
             return GenomicTxSeg(
                 errors=[
-                    f"{genomic_pos} on {genomic_ac} does not occur within the exons for {gene}"
+                    f"{genomic_pos} on {genomic_ac} does not occur within the exons for {transcript}"
                 ]
             )
 
