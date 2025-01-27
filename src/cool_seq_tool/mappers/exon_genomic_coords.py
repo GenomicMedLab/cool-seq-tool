@@ -956,7 +956,7 @@ class ExonGenomicCoordsMapper:
         :param genomic_ac: RefSeq genomic accession, e.g. ``"NC_000007.14"``
         :param transcript: A transcript accession
         :return: ``True`` if the coordinate falls within the first and last exon
-            for the gene, ``False`` if not
+            for the transcript, ``False`` if not
         """
         query = f"""
             WITH tx_boundaries AS (

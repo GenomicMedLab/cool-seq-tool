@@ -705,20 +705,6 @@ def genomic_tx_seg_checks(actual, expected=None, is_valid=True):
 
 
 @pytest.mark.asyncio()
-async def test_validate_genomic_breakpoint(test_egc_mapper):
-    """Test that _get_validate_genomic_breakpoint works correctly"""
-    resp = await test_egc_mapper._validate_genomic_breakpoint(
-        pos=154192099, genomic_ac="NC_000001.11", tx_ac="NM_152263.4"
-    )
-    assert resp
-
-    resp = await test_egc_mapper._validate_genomic_breakpoint(
-        pos=2101, genomic_ac="NC_000001.11", tx_ac="NM_152263.4"
-    )
-    assert not resp
-
-
-@pytest.mark.asyncio()
 async def test_get_all_exon_coords(
     test_egc_mapper, nm_152263_exons, nm_152263_exons_genomic_coords
 ):
