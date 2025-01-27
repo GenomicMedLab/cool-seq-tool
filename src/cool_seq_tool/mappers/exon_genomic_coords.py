@@ -865,14 +865,14 @@ class ExonGenomicCoordsMapper:
         if use_alt_start_i and coordinate_type == CoordinateType.RESIDUE:
             genomic_pos = genomic_pos - 1  # Convert residue coordinate to inter-residue
 
-        # Validate that the breakpoint occurs on a transcript given a gene
-        coordinate_check = await self._validate_gene_coordinates(
-            pos=genomic_pos, genomic_ac=genomic_ac, gene=gene
+        # Validate that the breakpoint between the first and last exon for the selected transcript
+        coordinate_check = await self._validate_genomic_breakpoint(
+            pos=genomic_pos, genomic_ac=genomic_ac, tx_ac=transcript
         )
         if not coordinate_check:
             return GenomicTxSeg(
                 errors=[
-                    f"{genomic_pos} on {genomic_ac} does not occur within the exons for {gene}"
+                    f"{genomic_pos} on {genomic_ac} does not occur within the exons for {transcript}"
                 ]
             )
 
@@ -943,38 +943,32 @@ class ExonGenomicCoordsMapper:
         )
         return liftover_data[1] if liftover_data else None
 
-    async def _validate_gene_coordinates(
+    async def _validate_genomic_breakpoint(
         self,
         pos: int,
         genomic_ac: str,
-        gene: str,
+        tx_ac: str,
     ) -> bool:
         """Validate that a genomic coordinate falls within the first and last exon
-            given a gene and accession
+            for a transcript on a given accession
 
         :param pos: Genomic position on ``genomic_ac``
         :param genomic_ac: RefSeq genomic accession, e.g. ``"NC_000007.14"``
-        :param gene: A valid, case-sensitive HGNC gene symbol
+        :param transcript: A transcript accession
         :return: ``True`` if the coordinate falls within the first and last exon
-            for the gene, ``False`` if not
+            for the transcript, ``False`` if not
         """
         query = f"""
             WITH tx_boundaries AS (
-                    SELECT
-                    tx_ac,
-                    hgnc,
-                    MIN(alt_start_i) as min_start,
-                    MAX(alt_end_i) as max_end
+                SELECT
+                MIN(alt_start_i) AS min_start,
+                MAX(alt_end_i) AS max_end
                 FROM {self.uta_db.schema}.tx_exon_aln_v
-                WHERE hgnc = '{gene}'
+                WHERE tx_ac = '{tx_ac}'
                 AND alt_ac = '{genomic_ac}'
-                GROUP BY tx_ac, hgnc
             )
-            SELECT DISTINCT hgnc
-            FROM tx_boundaries
+            SELECT * FROM tx_boundaries
             WHERE {pos} between tx_boundaries.min_start and tx_boundaries.max_end
-            ORDER BY hgnc
-            LIMIT 1;
             """  # noqa: S608
         results = await self.uta_db.execute_query(query)
         return bool(results)

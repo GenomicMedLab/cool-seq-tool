@@ -1516,7 +1516,7 @@ async def test_invalid(test_egc_mapper):
     )
     genomic_tx_seg_service_checks(resp, is_valid=False)
     assert resp.errors == [
-        "9999999999998 on NC_000001.11 does not occur within the exons for TPM3"
+        "9999999999998 on NC_000001.11 does not occur within the exons for NM_152263.3"
     ]
 
     # Must supply either gene or transcript
