@@ -115,7 +115,7 @@ class ManeTranscriptMappings:
         :param ac: RefSeq genomic accession
         :param start: Genomic start position. Assumes residue coordinates.
         :param end: Genomic end position. Assumes residue coordinates.
-        :return: MANE gene(s) found for a genomic location
+        :return: Unique MANE gene(s) found for a genomic location
         """
         mane_rows = self.df.filter(
             (start >= pl.col("chr_start"))
