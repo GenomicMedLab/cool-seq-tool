@@ -43,11 +43,18 @@ class Assembly(str, Enum):
         return [item.value for item in cls]
 
 
+class ManeStatus(str, Enum):
+    """Define constraints for mane status"""
+
+    SELECT = "mane_select"
+    PLUS_CLINICAL = "mane_plus_clinical"
+
+
 class TranscriptPriority(str, Enum):
     """Create Enum for Transcript Priority labels"""
 
-    MANE_SELECT = "mane_select"
-    MANE_PLUS_CLINICAL = "mane_plus_clinical"
+    MANE_SELECT = ManeStatus.SELECT.value
+    MANE_PLUS_CLINICAL = ManeStatus.PLUS_CLINICAL.value
     LONGEST_COMPATIBLE_REMAINING = "longest_compatible_remaining"
     GRCH38 = "grch38"
 
@@ -137,6 +144,7 @@ class ManeGeneData(BaseModel, extra="forbid"):
     ncbi_gene_id: StrictInt
     hgnc_id: StrictInt | None
     symbol: StrictStr
+    status: list[ManeStatus]
 
 
 class ServiceMeta(BaseModelForbidExtra):

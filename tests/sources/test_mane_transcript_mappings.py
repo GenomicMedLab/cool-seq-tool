@@ -209,7 +209,7 @@ def test_get_mane_data_from_chr_pos(
 
 
 def test_get_genomic_mane_genes(
-    test_mane_transcript_mappings, braf_mane_gene, egfr_mane_gene
+    test_mane_transcript_mappings, braf_mane_genes, egfr_mane_gene
 ):
     """Test that get_genomic_mane_genes method works correctly"""
     new_df = pl.DataFrame(
@@ -231,6 +231,12 @@ def test_get_genomic_mane_genes(
             ],
             "chr_start": [140719337, 140730665, 55019017, 55019017],
             "chr_end": [140924929, 140924929, 55211628, 55211628],
+            "MANE_status": [
+                "MANE Plus Clinical",
+                "MANE Select",
+                "MANE Select",
+                "MANE Select",
+            ],
         }
     )
 
@@ -238,14 +244,19 @@ def test_get_genomic_mane_genes(
         mane_genes = test_mane_transcript_mappings.get_genomic_mane_genes(
             "NC_000007.14", 140753336, 140753336
         )
-        assert mane_genes == [braf_mane_gene]
+        assert mane_genes == braf_mane_genes
 
         mane_genes = test_mane_transcript_mappings.get_genomic_mane_genes(
             "NC_000007.14", 55191822, 55191822
         )
         assert len(mane_genes) == 2
         assert egfr_mane_gene in mane_genes
-        assert ManeGeneData(ncbi_gene_id=1, hgnc_id=2, symbol="Dummy") in mane_genes
+        assert (
+            ManeGeneData(
+                ncbi_gene_id=1, hgnc_id=2, symbol="Dummy", status=["mane_select"]
+            )
+            in mane_genes
+        )
 
         # No MANE genes found for given genomic location
         mane_genes = test_mane_transcript_mappings.get_genomic_mane_genes(
