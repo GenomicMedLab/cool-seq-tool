@@ -117,6 +117,7 @@ class ManeTranscriptMappings:
         :param end: Genomic end position. Assumes residue coordinates.
         :return: Unique MANE gene(s) found for a genomic location
         """
+        # Only interested in rows where genomic location lives
         mane_rows = self.df.filter(
             (start >= pl.col("chr_start"))
             & (end <= pl.col("chr_end"))
@@ -126,6 +127,8 @@ class ManeTranscriptMappings:
         if mane_rows.is_empty():
             return []
 
+        # Group rows by NCBI ID, transform values to representation we want, MANE status
+        # will be converted to list with DESC order
         mane_rows = mane_rows.group_by("#NCBI_GeneID").agg(
             [
                 pl.col("#NCBI_GeneID")
@@ -149,5 +152,23 @@ class ManeTranscriptMappings:
                 pl.col("symbol").first(),
             ]
         )
-        mane_rows = mane_rows.drop("#NCBI_GeneID")
+
+        # Sort final rows based on MANE status
+        # First by length (which means gene has both select and plus clinical)
+        # Then by DESC order
+        # Then by NCBI ID ASC order
+        mane_rows = (
+            mane_rows.with_columns(
+                [
+                    pl.col("status").list.len().alias("status_count"),
+                    pl.col("status").list.join("_").alias("status_str"),
+                    pl.col("ncbi_gene_id"),
+                ]
+            )
+            .sort(
+                ["status_count", "status_str", "ncbi_gene_id"],
+                descending=[True, True, False],
+            )
+            .drop(["status_count", "status_str", "#NCBI_GeneID"])
+        )
         return [ManeGeneData(**mane_gene) for mane_gene in mane_rows.to_dicts()]

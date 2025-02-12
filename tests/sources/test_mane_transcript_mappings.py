@@ -214,27 +214,68 @@ def test_get_genomic_mane_genes(
     """Test that get_genomic_mane_genes method works correctly"""
     new_df = pl.DataFrame(
         {
-            "#NCBI_GeneID": ["GeneID:673", "GeneID:673", "GeneID:1956", "GeneID:1"],
+            "#NCBI_GeneID": [
+                "GeneID:673",
+                "GeneID:673",
+                "GeneID:1956",
+                "GeneID:1",
+                "GeneID:2",
+                "GeneID:2",
+                "GeneID:3",
+            ],
             "Ensembl_Gene": [
                 "ENSG00000157764.14",
                 "ENSG00000157764.14",
                 "ENSG00000146648.21",
                 "ENSG1.1",
+                "ENSG1.1",
+                "ENSG1.1",
+                "ENSG1.1",
             ],
-            "HGNC_ID": ["HGNC:1097", "HGNC:1097", "HGNC:3236", "HGNC:2"],
-            "symbol": ["BRAF", "BRAF", "EGFR", "Dummy"],
+            "HGNC_ID": [
+                "HGNC:1097",
+                "HGNC:1097",
+                "HGNC:3236",
+                "HGNC:1",
+                "HGNC:2",
+                "HGNC:2",
+                "HGNC:3",
+            ],
+            "symbol": ["BRAF", "BRAF", "EGFR", "Dummy1", "Dummy2", "Dummy2", "Dummy3"],
             "GRCh38_chr": [
                 "NC_000007.14",
                 "NC_000007.14",
                 "NC_000007.14",
                 "NC_000007.14",
+                "NC_000007.14",
+                "NC_000007.14",
+                "NC_000007.14",
             ],
-            "chr_start": [140719337, 140730665, 55019017, 55019017],
-            "chr_end": [140924929, 140924929, 55211628, 55211628],
+            "chr_start": [
+                140719337,
+                140730665,
+                55019017,
+                55019017,
+                55019017,
+                55019017,
+                55019017,
+            ],
+            "chr_end": [
+                140924929,
+                140924929,
+                55211628,
+                55211628,
+                55211628,
+                55211628,
+                55211628,
+            ],
             "MANE_status": [
                 "MANE Plus Clinical",
                 "MANE Select",
                 "MANE Select",
+                "MANE Plus Clinical",
+                "MANE Select",
+                "MANE Plus Clinical",
                 "MANE Select",
             ],
         }
@@ -249,14 +290,24 @@ def test_get_genomic_mane_genes(
         mane_genes = test_mane_transcript_mappings.get_genomic_mane_genes(
             "NC_000007.14", 55191822, 55191822
         )
-        assert len(mane_genes) == 2
-        assert egfr_mane_gene in mane_genes
-        assert (
+        assert mane_genes == [
             ManeGeneData(
-                ncbi_gene_id=1, hgnc_id=2, symbol="Dummy", status=["mane_select"]
-            )
-            in mane_genes
-        )
+                ncbi_gene_id=2,
+                hgnc_id=2,
+                symbol="Dummy2",
+                status=["mane_select", "mane_plus_clinical"],
+            ),
+            ManeGeneData(
+                ncbi_gene_id=3, hgnc_id=3, symbol="Dummy3", status=["mane_select"]
+            ),
+            egfr_mane_gene,
+            ManeGeneData(
+                ncbi_gene_id=1,
+                hgnc_id=1,
+                symbol="Dummy1",
+                status=["mane_plus_clinical"],
+            ),
+        ]
 
         # No MANE genes found for given genomic location
         mane_genes = test_mane_transcript_mappings.get_genomic_mane_genes(
