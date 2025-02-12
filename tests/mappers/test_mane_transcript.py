@@ -143,13 +143,13 @@ def grch38_egfr(egfr_mane_gene):
 
 
 @pytest.fixture(scope="module")
-def grch38_braf(braf_mane_gene):
+def grch38_braf(braf_mane_genes):
     """Create a test fixture for grch38 responses BRAF V600E (genomic)."""
     params = {
         "pos": (140753335, 140753336),
         "status": TranscriptPriority.GRCH38.value,
         "ac": "NC_000007.14",
-        "mane_genes": [braf_mane_gene],
+        "mane_genes": braf_mane_genes,
     }
     return GenomicRepresentation(**params)
 
