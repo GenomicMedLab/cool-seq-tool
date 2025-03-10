@@ -69,7 +69,7 @@ While this should no longer occur with the latest SeqRepo release, some users in
 
 .. code-block::
 
-   PermissionError: [Error 13] Permission denied: '/usr/local/share/seqrepo/2024-12-20._fkuefgd' -> '/usr/local/share/seqrepo/2021-01-29'
+   PermissionError: [Error 13] Permission denied: '/usr/local/share/seqrepo/2024-12-20._fkuefgd' -> '/usr/local/share/seqrepo/2024-12-20'
 
 Try moving data manually with ``sudo``:
 
