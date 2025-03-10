@@ -40,7 +40,7 @@ Cool-Seq-Tool requires an available instance of the Universal Transcript Archive
    createuser -U postgres anonymous
    createdb -U postgres -O uta_admin uta
 
-   export UTA_VERSION=uta_20241220.pgd.gz  # most recent as of 2023/12/05
+   export UTA_VERSION=uta_20241220.pgd.gz  # most recent as of 2025/05/10
    curl -O https://dl.biocommons.org/uta/$UTA_VERSION
    gzip -cdq ${UTA_VERSION} | psql -h localhost -U uta_admin --echo-errors --single-transaction -v ON_ERROR_STOP=1 -d uta -p 5432
 
