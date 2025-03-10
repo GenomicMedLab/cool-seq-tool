@@ -40,11 +40,11 @@ Cool-Seq-Tool requires an available instance of the Universal Transcript Archive
    createuser -U postgres anonymous
    createdb -U postgres -O uta_admin uta
 
-   export UTA_VERSION=uta_20210129b.pgd.gz  # most recent as of 2023/12/05
+   export UTA_VERSION=uta_20241220.pgd.gz  # most recent as of 2023/12/05
    curl -O https://dl.biocommons.org/uta/$UTA_VERSION
    gzip -cdq ${UTA_VERSION} | psql -h localhost -U uta_admin --echo-errors --single-transaction -v ON_ERROR_STOP=1 -d uta -p 5432
 
-By default, Cool-Seq-Tool expects to connect to the UTA database via a PostgreSQL connection served local on port 5432, under the PostgreSQL username ``uta_admin`` and the schema ``uta_20210129b``.
+By default, Cool-Seq-Tool expects to connect to the UTA database via a PostgreSQL connection served local on port 5432, under the PostgreSQL username ``uta_admin`` and the schema ``uta_20241220``.
 
 Set up SeqRepo
 --------------
@@ -56,20 +56,20 @@ Cool-Seq-Tool requires access to `SeqRepo <https://github.com/biocommons/biocomm
 .. code-block::
 
    pip install seqrepo
-   export SEQREPO_VERSION=2024-02-20
+   export SEQREPO_VERSION=2024-12-20
    sudo mkdir /usr/local/share/seqrepo
    sudo chown $USER /usr/local/share/seqrepo
    seqrepo pull -i $SEQREPO_VERSION
 
 .. note::
 
-   Our lab typically uses the latest SeqRepo release, which is ``2024-02-20`` as of this commit. To check for the presence of newer snapshots, use the ``seqrepo list-remote-instances`` CLI command.
+   Our lab typically uses the latest SeqRepo release, which is ``2024-12-20`` as of this commit. To check for the presence of newer snapshots, use the ``seqrepo list-remote-instances`` CLI command.
 
 While this should no longer occur with the latest SeqRepo release, some users in the past have reported experiencing the following error:
 
 .. code-block::
 
-   PermissionError: [Error 13] Permission denied: '/usr/local/share/seqrepo/2024-02-20._fkuefgd' -> '/usr/local/share/seqrepo/2021-01-29'
+   PermissionError: [Error 13] Permission denied: '/usr/local/share/seqrepo/2024-12-20._fkuefgd' -> '/usr/local/share/seqrepo/2021-01-29'
 
 Try moving data manually with ``sudo``:
 
