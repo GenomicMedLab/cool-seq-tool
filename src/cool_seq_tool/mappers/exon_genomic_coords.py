@@ -1022,11 +1022,8 @@ class ExonGenomicCoordsMapper:
         :return ``True`` if alt_start_i should be used, ``False`` if alt_end_i should
         be used
         """
-        return (
-            is_seg_start
-            and strand == Strand.POSITIVE
-            or not is_seg_start
-            and strand == Strand.NEGATIVE
+        return (is_seg_start and strand == Strand.POSITIVE) or (
+            not is_seg_start and strand == Strand.NEGATIVE
         )
 
     @staticmethod

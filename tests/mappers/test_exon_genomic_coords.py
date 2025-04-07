@@ -704,7 +704,7 @@ def genomic_tx_seg_checks(actual, expected=None, is_valid=True):
         assert len(actual.errors) > 0
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_all_exon_coords(
     test_egc_mapper, nm_152263_exons, nm_152263_exons_genomic_coords
 ):
@@ -724,7 +724,7 @@ async def test_get_all_exon_coords(
     assert resp == []
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_start_end_exon_coords(test_egc_mapper):
     """Test that _get_start_end_exon_coords works correctly."""
     resp = await test_egc_mapper._get_start_end_exon_coords(
@@ -761,7 +761,7 @@ async def test_get_start_end_exon_coords(test_egc_mapper):
     assert resp == (None, None, ["Transcript does not exist in UTA: NM_1234.5"])
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_adjacent_exon(
     test_egc_mapper,
     nm_152263_exons_genomic_coords,
@@ -864,7 +864,7 @@ def test_use_alt_start_i(test_egc_mapper):
     assert not resp
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_genomic_to_transcript_fusion_context(
     test_egc_mapper,
     zbtb10_exon3_end,
@@ -1003,7 +1003,7 @@ async def test_genomic_to_transcript_fusion_context(
     genomic_tx_seg_service_checks(resp, gusbp3_exon5_start)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_alt_ac_start_and_end(
     test_egc_mapper, tpm3_1_8_start_genomic, tpm3_1_8_end_genomic
 ):
@@ -1038,7 +1038,7 @@ async def test_get_alt_ac_start_and_end(
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_get_exons_coords(test_egc_mapper, nm_152263_exons_genomic_coords):
     """Test that _get_all_exon_coords works correctly."""
     resp = await test_egc_mapper._get_all_exon_coords("NM_152263.4", "NC_000001.11")
@@ -1049,7 +1049,7 @@ async def test_get_get_exons_coords(test_egc_mapper, nm_152263_exons_genomic_coo
     assert resp == []
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_genomic_to_transcript(test_egc_mapper, tpm3_exon1, tpm3_exon8):
     """Test that _genomic_to_tx_segment method works correctly."""
     resp = await test_egc_mapper._genomic_to_tx_segment(
@@ -1145,7 +1145,7 @@ async def test_genomic_to_transcript(test_egc_mapper, tpm3_exon1, tpm3_exon8):
     genomic_tx_seg_checks(resp, tpm3_exon8)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_tpm3(
     test_egc_mapper,
     tpm3_exon1_exon8,
@@ -1214,7 +1214,7 @@ async def test_tpm3(
     genomic_tx_seg_service_checks(t_to_g_resp, tpm3_exon8_g)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_braf(test_egc_mapper, mane_braf):
     """Test BRAF genomic_to_tx_segment and
     tx_segment_to_genomic.
@@ -1248,7 +1248,7 @@ async def test_braf(test_egc_mapper, mane_braf):
     genomic_tx_seg_service_checks(t_to_g_resp, expected)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_wee1(test_egc_mapper, wee1_exon2_exon11, mane_wee1_exon2_exon11):
     """Test WEE1 genomic_to_tx_segment and
     tx_segment_to_genomic.
@@ -1312,7 +1312,7 @@ async def test_wee1(test_egc_mapper, wee1_exon2_exon11, mane_wee1_exon2_exon11):
     genomic_tx_seg_service_checks(t_to_g_resp, mane_wee1_exon2_exon11)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_transcript_to_genomic(
     test_egc_mapper,
     tpm3_exon1_g,
@@ -1398,7 +1398,7 @@ async def test_transcript_to_genomic(
     genomic_tx_seg_service_checks(resp, expected)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_valid_inputs(test_egc_mapper, eln_grch38_intronic):
     """Test that valid inputs don"t return any errors"""
     inputs = {
@@ -1462,7 +1462,7 @@ async def test_valid_inputs(test_egc_mapper, eln_grch38_intronic):
     genomic_tx_seg_service_checks(resp, eln_grch38_intronic)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_invalid(test_egc_mapper):
     """Test that invalid queries return `None`."""
     resp = await test_egc_mapper.genomic_to_tx_segment(
