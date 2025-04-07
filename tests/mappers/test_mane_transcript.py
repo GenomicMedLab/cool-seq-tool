@@ -232,7 +232,7 @@ def test_p_to_c_pos(test_mane_transcript):
     assert c_pos == (2241, 2252)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_p_to_c(test_mane_transcript):
     """Test that _p_to_c method works correctly."""
     # Amino Acid Substitution
@@ -271,7 +271,7 @@ async def test_p_to_c(test_mane_transcript):
     assert pos == expected_pos
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_c_to_g(test_mane_transcript, nm_004333v6_g):
     """Test that _c_to_g method works correctly."""
     tx_ac = "NM_004333.6"
@@ -279,7 +279,7 @@ async def test_c_to_g(test_mane_transcript, nm_004333v6_g):
     assert g == nm_004333v6_g
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_g_to_c(
     test_mane_transcript, braf_mane_data, nm_004333v6_g, braf_v600e_mane_c
 ):
@@ -308,7 +308,7 @@ def test_set_liftover(test_mane_transcript, genomic_tx_data):
     assert cpy == expected
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_liftover_to_38(test_mane_transcript, genomic_tx_data):
     """Test that liftover_to_38 works correctly."""
     cpy = genomic_tx_data.copy(deep=True)
@@ -326,7 +326,7 @@ def test_get_mane_p(test_mane_transcript, braf_mane_data, braf_v600e_mane_p):
     assert mane_p == braf_v600e_mane_p
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_p_to_mane_p(test_mane_transcript, braf_v600e_mane_p, egfr_l858r_mane_p):
     """Test that p_to_mane_p method works correctly."""
     # BRAF V600E RefSeq Accessions
@@ -404,7 +404,7 @@ async def test_p_to_mane_p(test_mane_transcript, braf_v600e_mane_p, egfr_l858r_m
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_c_to_mane_c(test_mane_transcript, braf_v600e_mane_c, egfr_l858r_mane_c):
     """Test that c_to_mane_p method works correctly."""
     # BRAF V600E RefSeq Accessions
@@ -503,7 +503,7 @@ def test_get_prioritized_transcripts_from_gene(
         assert resp == ["NM_004333.6", "NM_001374258.2", "NM_001378472.1"]
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_longest_compatible_transcript(test_mane_transcript):
     """Test that get_longest_compatible_transcript method works as expected"""
     mane_transcripts = {
@@ -669,7 +669,7 @@ async def test_get_longest_compatible_transcript(test_mane_transcript):
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_g_to_grch38(test_mane_transcript, grch38_egfr, grch38_braf):
     """Test that g_to_grch38 method works correctly."""
     resp = await test_mane_transcript.g_to_grch38(
@@ -705,7 +705,7 @@ async def test_g_to_grch38(test_mane_transcript, grch38_egfr, grch38_braf):
     assert resp == grch38_braf
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_g_to_mane_c(test_mane_transcript, egfr_l858r_mane_c, braf_v600e_mane_c):
     """Test that g_to_mane_c method works correctly."""
     mane_c = await test_mane_transcript.g_to_mane_c(
@@ -789,7 +789,7 @@ async def test_g_to_mane_c(test_mane_transcript, egfr_l858r_mane_c, braf_v600e_m
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_grch38_to_mane_c_p(
     test_mane_transcript,
     braf_v600e_mane_p,
@@ -913,7 +913,7 @@ async def test_grch38_to_mane_c_p(
     assert resp is None
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_valid(test_mane_transcript):
     """Test that valid queries do not raise any exceptions"""
     resp = await test_mane_transcript.get_mane_transcript(
@@ -937,7 +937,7 @@ async def test_valid(test_mane_transcript):
     assert resp
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_no_matches(test_mane_transcript):
     """Test that invalid queries return None."""
     # Invalid ENST version

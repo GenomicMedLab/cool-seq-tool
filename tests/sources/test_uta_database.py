@@ -44,7 +44,7 @@ def data_from_result():
     return GenomicTxData(**params)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_cds_start_end(test_db):
     """Test that get_cds_start_end works correctly."""
     expected = (61, 2362)
@@ -58,7 +58,7 @@ async def test_get_cds_start_end(test_db):
     assert resp is None
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_newest_assembly_ac(test_db):
     """Test that get_newest_assembly_ac works correctly."""
     resp = await test_db.get_newest_assembly_ac("NC_000007.13")
@@ -77,7 +77,7 @@ async def test_get_newest_assembly_ac(test_db):
     assert resp == []
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_validate_genomic_ac(test_db):
     """Test that validate_genomic_ac"""
     resp = await test_db.validate_genomic_ac("NC_000007.13")
@@ -87,7 +87,7 @@ async def test_validate_genomic_ac(test_db):
     assert resp is False
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_validate_gene_exists(test_db):
     """Test validate_gene_symbol"""
     resp = await test_db.gene_exists("TPM3")
@@ -97,7 +97,7 @@ async def test_validate_gene_exists(test_db):
     assert resp is False
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_validate_transcript_exists(test_db):
     """Tests validate_transcript"""
     resp = await test_db.transcript_exists("NM_152263.3")
@@ -107,7 +107,7 @@ async def test_validate_transcript_exists(test_db):
     assert resp is False
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_ac_descr(test_db):
     """Test that get_ac_descr works correctly."""
     resp = await test_db.get_ac_descr("NC_000007.13")
@@ -117,7 +117,7 @@ async def test_get_ac_descr(test_db):
     assert resp is None
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_tx_exon_aln_v_data(test_db, tx_exon_aln_v_data):
     """Test that get_tx_exon_aln_v_data"""
     resp = await test_db.get_tx_exon_aln_v_data(
@@ -165,14 +165,14 @@ async def test_get_tx_exon_aln_v_data(test_db, tx_exon_aln_v_data):
     ]
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_data_from_result(test_db, tx_exon_aln_v_data, data_from_result):
     """Test that data_from_result works correctly."""
     resp = test_db.data_from_result(tx_exon_aln_v_data)
     assert resp == data_from_result
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_mane_c_genomic_data(test_db):
     """Test that get_mane_c_genomic_data works correctly."""
     resp = await test_db.get_mane_c_genomic_data(
@@ -196,7 +196,7 @@ async def test_mane_c_genomic_data(test_db):
     assert resp == GenomicTxMetadata(**expected_params)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_genomic_tx_data(test_db, genomic_tx_data):
     """Test that get_genomic_tx_data works correctly."""
     resp = await test_db.get_genomic_tx_data("NM_004333.4", (2145, 2145))
@@ -216,7 +216,7 @@ async def test_get_genomic_tx_data(test_db, genomic_tx_data):
     assert resp == GenomicTxMetadata(**expected_params)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_ac_from_gene(test_db):
     """Test that get_ac_from_gene works correctly."""
     resp = await test_db.get_ac_from_gene("BRAF")
@@ -229,7 +229,7 @@ async def test_get_ac_from_gene(test_db):
     assert resp == []
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_gene_from_ac(test_db):
     """Tet that get_gene_from_ac works correctly."""
     resp = await test_db.get_gene_from_ac("NC_000007.13", 140453136, None)
@@ -245,7 +245,7 @@ async def test_get_gene_from_ac(test_db):
     assert resp is None
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_transcripts_from_gene(test_db):
     """Test that get_transcripts works correctly."""
     resp = await test_db.get_transcripts(start_pos=2145, end_pos=2145, gene="BRAF")
@@ -281,7 +281,7 @@ async def test_get_transcripts_from_gene(test_db):
     assert len(resp) == 0
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_chr_assembly(test_db):
     """Test that get_chr_assembly works correctly."""
     resp = await test_db.get_chr_assembly("NC_000007.13")
@@ -295,7 +295,7 @@ async def test_get_chr_assembly(test_db):
     assert resp is None
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_p_to_c_ac(test_db):
     """Test that p_to_c_ac works correctly."""
     resp = await test_db.p_to_c_ac("NP_004324.2")
@@ -308,7 +308,7 @@ async def test_p_to_c_ac(test_db):
     assert resp == []
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_alt_ac_start_or_end(
     test_db, tpm3_1_8_start_genomic, tpm3_1_8_end_genomic
 ):
@@ -330,7 +330,7 @@ async def test_get_alt_ac_start_or_end(
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_mane_transcripts_from_genomic_pos(test_db):
     """Test that get_mane_transcripts_from_genomic_pos works correctly"""
     resp = await test_db.get_transcripts_from_genomic_pos("NC_000007.14", 140753336)

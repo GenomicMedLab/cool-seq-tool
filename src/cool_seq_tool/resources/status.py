@@ -88,11 +88,11 @@ async def check_status(
         try:
             get_data_file(r)
         except FileNotFoundError:
-            _logger.error(
+            _logger.exception(
                 "%s does not exist at configured location %s", name_lower, declared_path
             )
         except ValueError:
-            _logger.error(
+            _logger.exception(
                 "%s configured at %s is not a valid file.", name_lower, declared_path
             )
         except Exception as e:
@@ -107,8 +107,8 @@ async def check_status(
             chain_file_37_to_38=chain_file_37_to_38,
             chain_file_38_to_37=chain_file_38_to_37,
         )
-    except (FileNotFoundError, ChainfileError) as e:
-        _logger.error("agct converter setup failed: %s", e)
+    except (FileNotFoundError, ChainfileError):
+        _logger.exception("agct converter setup failed")
     except Exception as e:
         _logger.critical("Encountered unexpected error setting up agct: %s", e)
     else:
@@ -116,10 +116,8 @@ async def check_status(
 
     try:
         await UtaDatabase.create(db_url)
-    except (OSError, InvalidCatalogNameError, UndefinedTableError) as e:
-        _logger.error(
-            "Encountered error instantiating UTA at URI %s: %s", UTA_DB_URL, e
-        )
+    except (OSError, InvalidCatalogNameError, UndefinedTableError):
+        _logger.exception("Encountered error instantiating UTA at URI %s", UTA_DB_URL)
     except Exception as e:
         _logger.critical(
             "Encountered unexpected error instantiating UTA from URI %s: %s",
@@ -134,10 +132,10 @@ async def check_status(
             sr = SeqRepo(root_dir=SEQREPO_ROOT_DIR)
         sra = SeqRepoAccess(sr)
         sra.sr["NC_000001.11"][1000:1001]
-    except OSError as e:
-        _logger.error("Encountered error while instantiating SeqRepo: %s", e)
+    except OSError:
+        _logger.exception("Encountered error while instantiating SeqRepo")
     except KeyError:
-        _logger.error("SeqRepo data fetch test failed -- is it populated?")
+        _logger.exception("SeqRepo data fetch test failed -- is it populated?")
     except Exception as e:
         _logger.critical("Encountered unexpected error setting up SeqRepo: %s", e)
     else:
