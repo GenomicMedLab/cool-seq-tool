@@ -340,10 +340,19 @@ def genomic_tx_data():
 @pytest.fixture(scope="session")
 def egfr_mane_gene():
     """Create test fixture for EGFR MANE gene"""
-    return ManeGeneData(ncbi_gene_id=1956, hgnc_id=3236, symbol="EGFR")
+    return ManeGeneData(
+        ncbi_gene_id=1956, hgnc_id=3236, symbol="EGFR", status=["mane_select"]
+    )
 
 
 @pytest.fixture(scope="session")
-def braf_mane_gene():
+def braf_mane_genes():
     """Create test fixture for BRAF MANE gene"""
-    return ManeGeneData(ncbi_gene_id=673, hgnc_id=1097, symbol="BRAF")
+    return [
+        ManeGeneData(
+            ncbi_gene_id=673,
+            hgnc_id=1097,
+            symbol="BRAF",
+            status=["mane_select", "mane_plus_clinical"],
+        ),
+    ]
