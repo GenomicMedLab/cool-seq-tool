@@ -865,17 +865,6 @@ class ExonGenomicCoordsMapper:
         if use_alt_start_i and coordinate_type == CoordinateType.RESIDUE:
             genomic_pos = genomic_pos - 1  # Convert residue coordinate to inter-residue
 
-        # Validate that the breakpoint between the first and last exon for the selected transcript
-        coordinate_check = await self._validate_genomic_breakpoint(
-            pos=genomic_pos, genomic_ac=genomic_ac, tx_ac=transcript
-        )
-        if not coordinate_check:
-            return GenomicTxSeg(
-                errors=[
-                    f"{genomic_pos} on {genomic_ac} does not occur within the exons for {transcript}"
-                ]
-            )
-
         # Check if breakpoint occurs on an exon.
         # If not, determine the adjacent exon given the selected transcript
         if not self._is_exonic_breakpoint(genomic_pos, tx_exons):
@@ -942,36 +931,6 @@ class ExonGenomicCoordsMapper:
             chromosome, genomic_pos, Assembly.GRCH38
         )
         return liftover_data[1] if liftover_data else None
-
-    async def _validate_genomic_breakpoint(
-        self,
-        pos: int,
-        genomic_ac: str,
-        tx_ac: str,
-    ) -> bool:
-        """Validate that a genomic coordinate falls within the first and last exon
-            for a transcript on a given accession
-
-        :param pos: Genomic position on ``genomic_ac``
-        :param genomic_ac: RefSeq genomic accession, e.g. ``"NC_000007.14"``
-        :param transcript: A transcript accession
-        :return: ``True`` if the coordinate falls within the first and last exon
-            for the transcript, ``False`` if not
-        """
-        query = f"""
-            WITH tx_boundaries AS (
-                SELECT
-                MIN(alt_start_i) AS min_start,
-                MAX(alt_end_i) AS max_end
-                FROM {self.uta_db.schema}.tx_exon_aln_v
-                WHERE tx_ac = '{tx_ac}'
-                AND alt_ac = '{genomic_ac}'
-            )
-            SELECT * FROM tx_boundaries
-            WHERE {pos} between tx_boundaries.min_start and tx_boundaries.max_end
-            """  # noqa: S608
-        results = await self.uta_db.execute_query(query)
-        return bool(results)
 
     async def _get_tx_ac_gene(
         self,
