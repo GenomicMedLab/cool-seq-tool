@@ -27,7 +27,7 @@ from cool_seq_tool.schemas import (
 UTADatabaseType = TypeVar("UTADatabaseType", bound="UtaDatabase")
 
 UTA_DB_URL = environ.get(
-    "UTA_DB_URL", "postgresql://uta_admin:uta@localhost:5432/uta/uta_20210129b"
+    "UTA_DB_URL", "postgresql://uta_admin:uta@localhost:5432/uta/uta_20241220"
 )
 
 _logger = logging.getLogger(__name__)
@@ -162,11 +162,11 @@ class UtaDatabase:
                     database=self.args.database,
                 )
             except InterfaceError as e:
-                _logger.error(
-                    "While creating connection pool, encountered exception %s", e
+                _logger.exception(
+                    "While creating connection pool, encountered exception"
                 )
                 msg = "Could not create connection pool"
-                raise Exception(msg) from e
+                raise Exception(msg) from e  # noqa: TRY002
 
     @classmethod
     async def create(
@@ -221,7 +221,7 @@ class UtaDatabase:
                WHERE table_schema = '{self.schema}'
                AND table_name = 'genomic'
             );
-            """  # noqa: S608
+            """
         genomic_table_exists = await self.execute_query(check_table_exists)
         genomic_table_exists = genomic_table_exists[0].get("exists")
         if genomic_table_exists is None:
@@ -250,7 +250,7 @@ class UtaDatabase:
                         LEFT JOIN {self.schema}.exon_aln ea ON
                             (((te.exon_id = ea.tx_exon_id) AND
                             (ae.exon_id = ea.alt_exon_id))));
-                """  # noqa: S608
+                """
             await self.execute_query(create_genomic_table)
 
             indexes = [
@@ -499,7 +499,7 @@ class UtaDatabase:
             AND {start_pos} BETWEEN {pos_q}
             AND {end_pos} BETWEEN {pos_q}
             {order_by_cond}
-            """  # noqa: S608
+            """
         result = await self.execute_query(query)
         if not result:
             _logger.warning("Unable to find transcript alignment for query: %s", query)
@@ -852,8 +852,8 @@ class UtaDatabase:
 
         try:
             assembly = Assembly(assembly)
-        except ValueError as e:
-            _logger.error(e)
+        except ValueError:
+            _logger.exception("Unable to parse %s as an Assembly", assembly)
             return None
 
         return chromosome, assembly
@@ -924,11 +924,11 @@ class UtaDatabase:
 
         try:
             get_secret_value_response = client.get_secret_value(SecretId=secret_name)
-        except ClientError as e:
+        except ClientError:
             # For a list of exceptions thrown, see
             # https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
-            _logger.error(e)
-            raise e
+            _logger.exception("Encountered AWS client error fetching UTA DB secret")
+            raise
         else:
             return get_secret_value_response["SecretString"]
 
