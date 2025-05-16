@@ -865,7 +865,8 @@ class ExonGenomicCoordsMapper:
         if use_alt_start_i and coordinate_type == CoordinateType.RESIDUE:
             genomic_pos = genomic_pos - 1  # Convert residue coordinate to inter-residue
 
-        # Validate that the breakpoint between the first and last exon for the selected transcript
+        # Validate that the breakpoint occurs within 150 bp of the first and last exon for the selected transcript.
+        # A breakpoint beyond this range is likely erroneous.
         coordinate_check = await self._validate_genomic_breakpoint(
             pos=genomic_pos, genomic_ac=genomic_ac, tx_ac=transcript
         )
@@ -955,8 +956,9 @@ class ExonGenomicCoordsMapper:
         :param pos: Genomic position on ``genomic_ac``
         :param genomic_ac: RefSeq genomic accession, e.g. ``"NC_000007.14"``
         :param transcript: A transcript accession
-        :return: ``True`` if the coordinate falls within the first and last exon
-            for the transcript, ``False`` if not
+        :return: ``True`` if the coordinate falls within 150bp of the first and last exon
+            for the transcript, ``False`` if not. Breakpoints past this threshold
+            are likely erroneous.
         """
         query = f"""
             WITH tx_boundaries AS (
@@ -968,7 +970,7 @@ class ExonGenomicCoordsMapper:
                 AND alt_ac = '{genomic_ac}'
             )
             SELECT * FROM tx_boundaries
-            WHERE {pos} between tx_boundaries.min_start and tx_boundaries.max_end
+            WHERE {pos} between (tx_boundaries.min_start - 150) and (tx_boundaries.max_end + 150)
             """  # noqa: S608
         results = await self.uta_db.execute_query(query)
         return bool(results)
