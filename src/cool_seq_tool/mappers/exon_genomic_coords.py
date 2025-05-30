@@ -871,11 +871,8 @@ class ExonGenomicCoordsMapper:
             pos=genomic_pos, genomic_ac=genomic_ac, tx_ac=transcript
         )
         if not coordinate_check:
-            return GenomicTxSeg(
-                errors=[
-                    f"{genomic_pos} on {genomic_ac} does not occur within the exons for {transcript}"
-                ]
-            )
+            msg = f"{genomic_pos} on {genomic_ac} does not occur within the exons for {transcript}"
+            _logger.warning(msg)
 
         # Check if breakpoint occurs on an exon.
         # If not, determine the adjacent exon given the selected transcript
