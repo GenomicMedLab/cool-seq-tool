@@ -1,5 +1,6 @@
 """Module for testing that Cool Seq Tool works correctly."""
 
+import logging
 from datetime import datetime
 
 import pytest
@@ -1463,7 +1464,7 @@ async def test_valid_inputs(test_egc_mapper, eln_grch38_intronic):
 
 
 @pytest.mark.asyncio
-async def test_invalid(test_egc_mapper):
+async def test_invalid(test_egc_mapper, caplog):
     """Test that invalid queries return `None`."""
     resp = await test_egc_mapper.genomic_to_tx_segment(
         transcript="NM_152263 3",
@@ -1513,6 +1514,20 @@ async def test_invalid(test_egc_mapper):
     )
     genomic_tx_seg_service_checks(resp, is_valid=False)
     assert resp.errors == ["Must provide either `gene` or `transcript`"]
+
+    # Check 150 bp warning statement
+    with caplog.at_level(logging.WARNING):
+        await test_egc_mapper.genomic_to_tx_segment(
+            genomic_ac="NC_000001.11",
+            seg_start_genomic=9999999999998,
+            seg_end_genomic=9999999999999,
+            transcript="NM_152263.3",
+        )
+    assert any(
+        "9999999999998 on NC_000001.11 does not occur within the exons for NM_152263.3"
+        in record.message
+        for record in caplog.records
+    )
 
     # Exon 22 does not exist
     resp = await test_egc_mapper.tx_segment_to_genomic(
