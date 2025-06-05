@@ -871,7 +871,7 @@ class ExonGenomicCoordsMapper:
             pos=genomic_pos, genomic_ac=genomic_ac, tx_ac=transcript
         )
         if not coordinate_check:
-            msg = f"{genomic_pos} on {genomic_ac} does not occur within the exons for {transcript}"
+            msg = f"{genomic_pos} on {genomic_ac} occurs more than 150 bp outside the exon boundaries of the {transcript} transcript, indicating this may not be a chimeric transcript junction and is unlikely to represent a contiguous coding sequence. Confirm that the genomic position {genomic_pos} is being used to represent transcript junction and not DNA breakpoint."
             _logger.warning(msg)
 
         # Check if breakpoint occurs on an exon.

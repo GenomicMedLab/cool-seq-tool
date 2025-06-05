@@ -1524,7 +1524,12 @@ async def test_invalid(test_egc_mapper, caplog):
             transcript="NM_152263.3",
         )
     assert any(
-        "9999999999998 on NC_000001.11 does not occur within the exons for NM_152263.3"
+        "9999999999998 on NC_000001.11 occurs more than 150 bp outside the exon boundaries of the NM_152263.3 transcript, indicating this may not be a chimeric transcript junction and is unlikely to represent a contiguous coding sequence. Confirm that the genomic position 9999999999998 is being used to represent transcript junction and not DNA breakpoint."
+        in record.message
+        for record in caplog.records
+    )
+    assert any(
+        "9999999999999 on NC_000001.11 occurs more than 150 bp outside the exon boundaries of the NM_152263.3 transcript, indicating this may not be a chimeric transcript junction and is unlikely to represent a contiguous coding sequence. Confirm that the genomic position 9999999999999 is being used to represent transcript junction and not DNA breakpoint."
         in record.message
         for record in caplog.records
     )
