@@ -93,6 +93,9 @@ class GenomicTxSeg(BaseModelForbidExtra):
     )
     genomic_ac: StrictStr | None = Field(None, description="RefSeq genomic accession.")
     tx_ac: StrictStr | None = Field(None, description="RefSeq transcript accession.")
+    strand: Strand | None = Field(
+        None, description="The strand that the transcript accession exists on."
+    )
     errors: list[StrictStr] = Field([], description="Error messages.")
 
     @model_validator(mode="before")
@@ -121,6 +124,7 @@ class GenomicTxSeg(BaseModelForbidExtra):
                 "gene": "TPM3",
                 "genomic_ac": "NC_000001.11",
                 "tx_ac": "NM_152263.3",
+                "strand": -1,
                 "seg": {
                     "exon_ord": 0,
                     "offset": 0,
@@ -147,6 +151,9 @@ class GenomicTxSegService(BaseModelForbidExtra):
     )
     genomic_ac: StrictStr | None = Field(None, description="RefSeq genomic accession.")
     tx_ac: StrictStr | None = Field(None, description="RefSeq transcript accession.")
+    strand: Strand | None = Field(
+        None, description="The strand that the transcript exists on."
+    )
     seg_start: TxSegment | None = Field(None, description="Start transcript segment.")
     seg_end: TxSegment | None = Field(None, description="End transcript segment.")
     errors: list[StrictStr] = Field([], description="Error messages.")
@@ -183,6 +190,7 @@ class GenomicTxSegService(BaseModelForbidExtra):
                 "gene": "TPM3",
                 "genomic_ac": "NC_000001.11",
                 "tx_ac": "NM_152263.3",
+                "strand": -1,
                 "seg_start": {
                     "exon_ord": 0,
                     "offset": 0,
@@ -400,6 +408,7 @@ class ExonGenomicCoordsMapper:
             gene=gene,
             genomic_ac=genomic_ac,
             tx_ac=transcript,
+            strand=strand,
             seg_start=seg_start,
             seg_end=seg_end,
         )
@@ -490,6 +499,7 @@ class ExonGenomicCoordsMapper:
             params["gene"] = start_tx_seg_data.gene
             params["genomic_ac"] = start_tx_seg_data.genomic_ac
             params["tx_ac"] = start_tx_seg_data.tx_ac
+            params["strand"] = start_tx_seg_data.strand
             params["seg_start"] = start_tx_seg_data.seg
         else:
             start_tx_seg_data = None
@@ -524,6 +534,7 @@ class ExonGenomicCoordsMapper:
                 params["gene"] = end_tx_seg_data.gene
                 params["genomic_ac"] = end_tx_seg_data.genomic_ac
                 params["tx_ac"] = end_tx_seg_data.tx_ac
+                params["strand"] = end_tx_seg_data.strand
 
             params["seg_end"] = end_tx_seg_data.seg
 
@@ -918,6 +929,7 @@ class ExonGenomicCoordsMapper:
             gene=gene,
             genomic_ac=genomic_ac,
             tx_ac=transcript,
+            strand=strand,
             seg=TxSegment(
                 exon_ord=exon_num,
                 offset=offset,
