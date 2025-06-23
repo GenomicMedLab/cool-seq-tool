@@ -172,6 +172,7 @@ def tpm3_exon1():
         "gene": "TPM3",
         "genomic_ac": "NC_000001.11",
         "tx_ac": "NM_152263.3",
+        "strand": -1,
         "seg": {
             "exon_ord": 0,
             "offset": 0,
@@ -195,6 +196,7 @@ def tpm3_exon8():
         "gene": "TPM3",
         "genomic_ac": "NC_000001.11",
         "tx_ac": "NM_152263.3",
+        "strand": -1,
         "seg": {
             "exon_ord": 7,
             "offset": 0,
@@ -218,6 +220,7 @@ def tpm3_exon1_g(tpm3_exon1):
         "gene": tpm3_exon1.gene,
         "genomic_ac": tpm3_exon1.genomic_ac,
         "tx_ac": tpm3_exon1.tx_ac,
+        "strand": tpm3_exon1.strand,
         "seg_start": tpm3_exon1.seg,
     }
     return GenomicTxSegService(**params)
@@ -230,6 +233,7 @@ def tpm3_exon8_g(tpm3_exon8):
         "gene": tpm3_exon8.gene,
         "genomic_ac": tpm3_exon8.genomic_ac,
         "tx_ac": tpm3_exon8.tx_ac,
+        "strand": tpm3_exon8.strand,
         "seg_end": tpm3_exon8.seg,
     }
     return GenomicTxSegService(**params)
@@ -242,6 +246,7 @@ def tpm3_exon1_exon8(tpm3_exon1, tpm3_exon8):
         "gene": tpm3_exon8.gene,
         "genomic_ac": tpm3_exon8.genomic_ac,
         "tx_ac": tpm3_exon8.tx_ac,
+        "strand": tpm3_exon8.strand,
         "seg_start": tpm3_exon1.seg,
         "seg_end": tpm3_exon8.seg,
     }
@@ -262,6 +267,7 @@ def tpm3_exon1_exon8_offset(tpm3_exon1, tpm3_exon8):
         "gene": "TPM3",
         "genomic_ac": "NC_000001.11",
         "tx_ac": "NM_152263.3",
+        "strand": -1,
         "seg_start": tpm3_exon1_cpy.seg,
         "seg_end": tpm3_exon8_cpy.seg,
     }
@@ -275,6 +281,7 @@ def mane_braf():
         "gene": "BRAF",
         "genomic_ac": "NC_000007.14",
         "tx_ac": "NM_004333.6",
+        "strand": -1,
         "seg_start": {
             "exon_ord": 5,
             "offset": 1,
@@ -310,6 +317,7 @@ def wee1_exon2_exon11():
         "gene": "WEE1",
         "genomic_ac": "NC_000011.10",
         "tx_ac": "NM_003390.3",
+        "strand": 1,
         "seg_start": {
             "exon_ord": 1,
             "offset": 205,
@@ -345,6 +353,7 @@ def mane_wee1_exon2_exon11():
         "gene": "WEE1",
         "genomic_ac": "NC_000011.10",
         "tx_ac": "NM_003390.4",
+        "strand": 1,
         "seg_start": {
             "exon_ord": 1,
             "offset": 205,
@@ -380,6 +389,7 @@ def ntrk1_exon10_exon17():
         "gene": "NTRK1",
         "genomic_ac": "NC_000001.11",
         "tx_ac": "NM_002529.3",
+        "strand": 1,
         "seg_start": {
             "exon_ord": 9,
             "offset": 0,
@@ -415,6 +425,7 @@ def zbtb10_exon3_end():
         "gene": "ZBTB10",
         "genomic_ac": "NC_000008.11",
         "tx_ac": "NM_001105539.3",
+        "strand": 1,
         "seg_start": None,
         "seg_end": {
             "exon_ord": 2,
@@ -439,6 +450,7 @@ def zbtb10_exon5_start():
         "gene": "ZBTB10",
         "genomic_ac": "NC_000008.11",
         "tx_ac": "NM_001105539.3",
+        "strand": 1,
         "seg_start": {
             "exon_ord": 4,
             "offset": -201,
@@ -463,6 +475,7 @@ def tpm3_exon6_end():
         "gene": "TPM3",
         "genomic_ac": "NC_000001.11",
         "tx_ac": "NM_152263.4",
+        "strand": -1,
         "seg_start": None,
         "seg_end": {
             "exon_ord": 5,
@@ -487,6 +500,7 @@ def tpm3_exon5_start():
         "gene": "TPM3",
         "genomic_ac": "NC_000001.11",
         "tx_ac": "NM_152263.4",
+        "strand": -1,
         "seg_start": {
             "exon_ord": 4,
             "offset": -102,
@@ -511,6 +525,7 @@ def gusbp3_exon2_end():
         "gene": "GUSBP3",
         "genomic_ac": "NC_000005.10",
         "tx_ac": "NR_027386.2",
+        "strand": -1,
         "seg_start": None,
         "seg_end": {
             "exon_ord": 1,
@@ -535,6 +550,7 @@ def eln_grch38_intronic():
         "gene": "ELN",
         "genomic_ac": "NC_000007.14",
         "tx_ac": "NM_000501.4",
+        "strand": 1,
         "seg_start": {
             "exon_ord": 0,
             "offset": 1,
@@ -570,6 +586,7 @@ def gusbp3_exon5_start():
         "gene": "GUSBP3",
         "genomic_ac": "NC_000005.10",
         "tx_ac": "NR_027386.2",
+        "strand": -1,
         "seg_start": {
             "exon_ord": 4,
             "offset": -3589,
@@ -610,6 +627,7 @@ def genomic_tx_seg_service_checks(actual, expected=None, is_valid=True):
         assert actual.gene == expected.gene
         assert actual.genomic_ac == expected.genomic_ac
         assert actual.tx_ac == expected.tx_ac
+        assert actual.strand == expected.strand
 
         for seg_attr in ["seg_start", "seg_end"]:
             expected_seg = getattr(expected, seg_attr)
@@ -636,6 +654,7 @@ def genomic_tx_seg_service_checks(actual, expected=None, is_valid=True):
         assert actual.gene is None
         assert actual.genomic_ac is None
         assert actual.tx_ac is None
+        assert actual.strand is None
         assert actual.seg_start is None
         assert actual.seg_end is None
         assert len(actual.errors) > 0
@@ -679,6 +698,7 @@ def genomic_tx_seg_checks(actual, expected=None, is_valid=True):
         assert actual.gene == expected.gene
         assert actual.genomic_ac == expected.genomic_ac
         assert actual.tx_ac == expected.tx_ac
+        assert actual.strand == expected.strand
 
         expected_seg = expected.seg
         if expected_seg:
@@ -701,6 +721,7 @@ def genomic_tx_seg_checks(actual, expected=None, is_valid=True):
         assert actual.gene is None
         assert actual.genomic_ac is None
         assert actual.tx_ac is None
+        assert actual.strand is None
         assert actual.seg is None
         assert len(actual.errors) > 0
 
