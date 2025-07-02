@@ -268,7 +268,7 @@ class ManeTranscript:
         query = f"""
             SELECT alt_ac
             FROM {self.uta_db.schema}.genomic
-            WHERE alt_ac LIKE '{genomic_tx_data.alt_ac.split('.')[0]}%'
+            WHERE alt_ac LIKE '{genomic_tx_data.alt_ac.split(".")[0]}%'
             {order_by_cond}
             """  # noqa: S608
         nc_acs = await self.uta_db.execute_query(query)

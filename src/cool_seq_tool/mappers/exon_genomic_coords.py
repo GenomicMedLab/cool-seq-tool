@@ -776,7 +776,7 @@ class ExonGenomicCoordsMapper:
             GRCh38 by default. Will attempt to liftover if starting assembly is GRCh37
         :return: Data for a transcript segment boundary (inter-residue coordinates)
         """
-        params = {key: None for key in GenomicTxSeg.model_fields}
+        params = dict.fromkeys(GenomicTxSeg.model_fields)
 
         # Validate inputs exist in UTA
         if gene:

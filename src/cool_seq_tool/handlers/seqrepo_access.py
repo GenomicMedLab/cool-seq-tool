@@ -75,9 +75,7 @@ class SeqRepoAccess(SeqRepoDataProxy):
                     f"Start inter-residue coordinate ({start}) is out of index on {ac}"
                 )
             elif error.startswith("stop out of range"):
-                msg = (
-                    f"End inter-residue coordinate ({end}) is out of " f"index on {ac}"
-                )
+                msg = f"End inter-residue coordinate ({end}) is out of index on {ac}"
             else:
                 msg = f"{e}"
             _logger.warning(msg)

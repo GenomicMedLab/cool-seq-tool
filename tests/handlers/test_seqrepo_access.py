@@ -89,7 +89,7 @@ def test_translate_identifier(test_seqrepo_access):
     resp = test_seqrepo_access.translate_identifier("refseq_152263.3")
     assert resp == (
         [],
-        "SeqRepo unable to get translated identifiers for" " refseq_152263.3",
+        "SeqRepo unable to get translated identifiers for refseq_152263.3",
     )
 
 
