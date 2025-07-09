@@ -221,7 +221,7 @@ class UtaDatabase:
                WHERE table_schema = '{self.schema}'
                AND table_name = 'genomic'
             );
-            """
+            """  # noqa: S608
         genomic_table_exists = await self.execute_query(check_table_exists)
         genomic_table_exists = genomic_table_exists[0].get("exists")
         if genomic_table_exists is None:
@@ -250,7 +250,7 @@ class UtaDatabase:
                         LEFT JOIN {self.schema}.exon_aln ea ON
                             (((te.exon_id = ea.tx_exon_id) AND
                             (ae.exon_id = ea.alt_exon_id))));
-                """
+                """  # noqa: S608
             await self.execute_query(create_genomic_table)
 
             indexes = [
@@ -325,13 +325,13 @@ class UtaDatabase:
         cds_start_end = await self.execute_query(query)
         if cds_start_end:
             cds_start_end = cds_start_end[0]
-            if cds_start_end[0] is not None and cds_start_end[1] is not None:  # noqa: RET503
+            if cds_start_end[0] is not None and cds_start_end[1] is not None:
                 return cds_start_end[0], cds_start_end[1]
         else:
             _logger.warning(
                 "Unable to get coding start/end site for accession: %s", tx_ac
             )
-            return None
+        return None
 
     async def get_newest_assembly_ac(self, ac: str) -> list[str]:
         """Find accession associated to latest genomic assembly
@@ -352,7 +352,7 @@ class UtaDatabase:
         query = f"""
             SELECT ac
             FROM {self.schema}._seq_anno_most_recent
-            WHERE ac LIKE '{ac.split('.')[0]}%'
+            WHERE ac LIKE '{ac.split(".")[0]}%'
             AND ((descr IS NULL) OR (descr = ''))
             {order_by_cond}
             """  # noqa: S608
@@ -499,7 +499,7 @@ class UtaDatabase:
             AND {start_pos} BETWEEN {pos_q}
             AND {end_pos} BETWEEN {pos_q}
             {order_by_cond}
-            """
+            """  # noqa: S608
         result = await self.execute_query(query)
         if not result:
             _logger.warning("Unable to find transcript alignment for query: %s", query)
