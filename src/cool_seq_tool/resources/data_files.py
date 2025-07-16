@@ -6,7 +6,11 @@ from importlib import resources
 from os import environ
 from pathlib import Path
 
-from wags_tails import NcbiLrgRefSeqGeneData, NcbiManeSummaryData
+from wags_tails import (
+    NcbiLrgRefSeqGeneData,
+    NcbiManeRefSeqGenomicData,
+    NcbiManeSummaryData,
+)
 
 _logger = logging.getLogger(__name__)
 
@@ -16,6 +20,7 @@ class DataFile(str, Enum):
 
     TRANSCRIPT_MAPPINGS = "transcript_mappings"
     MANE_SUMMARY = "mane_summary"
+    MANE_REFSEQ_GENOMIC = "mane_refseq_genomic"
     LRG_REFSEQGENE = "lrg_refseqgene"
 
     def lower(self) -> str:
@@ -37,6 +42,12 @@ _resource_acquisition_params = {
             from_local=from_local
         )[0],
     ),
+    DataFile.MANE_REFSEQ_GENOMIC: (
+        "MANE_REFSEQ_GENOMIC_PATH",
+        lambda from_local: NcbiManeRefSeqGenomicData(silent=True).get_latest(
+            from_local=from_local
+        )[0],
+    ),
     DataFile.LRG_REFSEQGENE: (
         "LRG_REFSEQGENE_PATH",
         lambda from_local: NcbiLrgRefSeqGeneData(silent=True).get_latest(
@@ -53,6 +64,7 @@ def get_data_file(resource: DataFile, from_local: bool = False) -> Path:
 
     * ``Resource.TRANSCRIPT_MAPPINGS`` -> ``TRANSCRIPT_MAPPINGS_PATH``
     * ``Resource.MANE_SUMMARY`` -> ``MANE_SUMMARY_PATH``
+    * ``Resource.MANE_REFSEQ_GENOMIC`` -> ``MANE_REFSEQ_GENOMIC_PATH``
     * ``Resource.LRG_REFSEQGENE`` -> ``LRG_REFSEQGENE_PATH``
 
     Otherwise, this function falls back on default expected locations:
