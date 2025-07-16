@@ -4,6 +4,7 @@ import datetime
 from enum import Enum, IntEnum
 from typing import Literal
 
+from ga4gh.vrs.models import SequenceLocation
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -164,6 +165,40 @@ class ServiceMeta(BaseModelForbidExtra):
                 "version": __version__,
                 "response_datetime": _now,
                 "url": "https://github.com/GenomicMedLab/cool-seq-tool",
+            }
+        }
+    )
+
+
+class CdsOverlap(BaseModelForbidExtra):
+    """Create model for representing CDS start/stop and Overlap start/stop"""
+
+    cds: SequenceLocation
+    overlap: SequenceLocation
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "cds": {
+                    "id": "ga4gh:SL.fYRYzNIAoe6UQF9MT1XaYsFscoU68ZJv",
+                    "type": "SequenceLocation",
+                    "sequenceReference": {
+                        "refgetAccession": "SQ.F-LrLMe1SRpfUZHkQmvkVKFEGaoDeHul",
+                        "type": "SequenceReference",
+                    },
+                    "start": 140726493,
+                    "end": 140726516,
+                },
+                "overlap": {
+                    "id": "ga4gh:SL.fYRYzNIAoe6UQF9MT1XaYsFscoU68ZJv",
+                    "type": "SequenceLocation",
+                    "sequenceReference": {
+                        "refgetAccession": "SQ.F-LrLMe1SRpfUZHkQmvkVKFEGaoDeHul",
+                        "type": "SequenceReference",
+                    },
+                    "start": 140726493,
+                    "end": 140726516,
+                },
             }
         }
     )

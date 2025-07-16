@@ -33,8 +33,9 @@ dependencies = [
     "biocommons.seqrepo",
     "pydantic >=2.0,<3.0",
     "ga4gh.vrs >=2.1.3,<3.0",
-    "wags-tails ~= 0.3.2",
+    "wags-tails ~= 0.4.0",
     "bioutils",
+    "polars"
 ]
 dynamic = ["version"]
 
