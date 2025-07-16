@@ -298,8 +298,8 @@ async def test_g_to_c(
 
 def test_set_liftover(test_mane_transcript, genomic_tx_data):
     """Test that _set_liftover works correctly."""
-    cpy = genomic_tx_data.copy(deep=True)
-    expected = genomic_tx_data.copy(deep=True)
+    cpy = genomic_tx_data.model_copy(deep=True)
+    expected = genomic_tx_data.model_copy(deep=True)
     test_mane_transcript._set_liftover(cpy, "alt_pos_range", "chr7", "GRCh38")
     expected.alt_pos_range = (140739811, 140739946)
     assert cpy == expected
@@ -311,8 +311,8 @@ def test_set_liftover(test_mane_transcript, genomic_tx_data):
 @pytest.mark.asyncio
 async def test_liftover_to_38(test_mane_transcript, genomic_tx_data):
     """Test that liftover_to_38 works correctly."""
-    cpy = genomic_tx_data.copy(deep=True)
-    expected = genomic_tx_data.copy(deep=True)
+    cpy = genomic_tx_data.model_copy(deep=True)
+    expected = genomic_tx_data.model_copy(deep=True)
     await test_mane_transcript._liftover_to_38(cpy)
     expected.alt_ac = "NC_000007.14"
     expected.alt_pos_change_range = (140739903, 140739903)
@@ -675,7 +675,7 @@ async def test_g_to_grch38(test_mane_transcript, grch38_egfr, grch38_braf):
     resp = await test_mane_transcript.g_to_grch38(
         "NC_000007.13", 55259515, 55259515, get_mane_genes=False
     )
-    grch38_egfr_no_genes = grch38_egfr.copy()
+    grch38_egfr_no_genes = grch38_egfr.model_copy()
     grch38_egfr_no_genes.mane_genes = []
     assert resp == grch38_egfr_no_genes
 
