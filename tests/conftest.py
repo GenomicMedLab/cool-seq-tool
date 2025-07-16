@@ -1,21 +1,11 @@
 """Provide utilities for test cases."""
 
-import asyncio
-
 import pytest
 
 from cool_seq_tool import CoolSeqTool
 from cool_seq_tool.mappers.exon_genomic_coords import _ExonCoord
 from cool_seq_tool.schemas import ManeGeneData, Strand
 from cool_seq_tool.sources.uta_database import GenomicAlnData, GenomicTxMetadata
-
-
-@pytest.fixture(scope="session")
-def event_loop(request):
-    """Create an instance of the default event loop for each test case."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
 
 
 @pytest.fixture(scope="session")
