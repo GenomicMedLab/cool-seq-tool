@@ -24,6 +24,7 @@ ResourceStatus = namedtuple(
         DataFile.TRANSCRIPT_MAPPINGS.lower(),
         DataFile.MANE_SUMMARY.lower(),
         DataFile.LRG_REFSEQGENE.lower(),
+        DataFile.MANE_REFSEQ_GENOMIC.lower(),
         "liftover",
     ),
 )
@@ -81,7 +82,7 @@ async def check_status(
     }
     for r in list(DataFile):
         name_lower = r.lower()
-        declared_path = file_path_params[name_lower]
+        declared_path = file_path_params.get(name_lower)
         if declared_path and declared_path.exists() and declared_path.is_file():
             status[name_lower] = True
             continue
