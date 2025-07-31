@@ -24,6 +24,7 @@ ResourceStatus = namedtuple(
         DataFile.TRANSCRIPT_MAPPINGS.lower(),
         DataFile.MANE_SUMMARY.lower(),
         DataFile.LRG_REFSEQGENE.lower(),
+        DataFile.MANE_REFSEQ_GENOMIC.lower(),
         "liftover",
     ),
 )
@@ -37,6 +38,7 @@ async def check_status(
     sr: SeqRepo | None = None,
     chain_file_37_to_38: str | None = None,
     chain_file_38_to_37: str | None = None,
+    mane_refseq_genomic_path: str | None = None,
 ) -> ResourceStatus:
     """Perform basic status checks on availability of required data resources.
 
@@ -62,6 +64,7 @@ async def check_status(
         is used for ``agct``. If this is not provided, will check to see if
         ``LIFTOVER_CHAIN_38_TO_37`` env var is set. If neither is provided, will allow
         ``agct`` to download a chain file from UCSC
+    :param mane_refseq_genomic_path: Optional path to MANE RefSeq Genomic GFF data
     :return: boolean description of availability of each resource, given current
         environment configurations
     """
@@ -69,19 +72,21 @@ async def check_status(
         DataFile.TRANSCRIPT_MAPPINGS.lower(): transcript_file_path,
         DataFile.LRG_REFSEQGENE.lower(): lrg_refseqgene_path,
         DataFile.MANE_SUMMARY.lower(): mane_data_path,
+        DataFile.MANE_REFSEQ_GENOMIC.lower(): mane_refseq_genomic_path,
     }
 
     status = {
         DataFile.TRANSCRIPT_MAPPINGS.lower(): False,
         DataFile.LRG_REFSEQGENE.lower(): False,
         DataFile.MANE_SUMMARY.lower(): False,
+        DataFile.MANE_REFSEQ_GENOMIC.lower(): False,
         "liftover": False,
         "uta": False,
         "seqrepo": False,
     }
     for r in list(DataFile):
         name_lower = r.lower()
-        declared_path = file_path_params[name_lower]
+        declared_path = file_path_params.get(name_lower)
         if declared_path and declared_path.exists() and declared_path.is_file():
             status[name_lower] = True
             continue
