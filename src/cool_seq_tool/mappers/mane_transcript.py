@@ -55,7 +55,7 @@ class DataRepresentation(BaseModel):
     """Define object model for final output representation"""
 
     gene: str | None = None
-    refseq: str
+    refseq: str | None = None
     ensembl: str | None = None
     pos: tuple[int, int]
     strand: Strand
@@ -447,7 +447,7 @@ class ManeTranscript:
 
     async def _g_to_c(
         self,
-        g: dict,
+        g: GenomicTxMetadata,
         refseq_c_ac: str,
         status: TranscriptPriority,
         ensembl_c_ac: str | None = None,
@@ -590,16 +590,23 @@ class ManeTranscript:
         if mane_transcript:
             mane_start_pos = mane_transcript.pos[0]
             mane_end_pos = mane_transcript.pos[1]
-            if anno == AnnotationLayer.CDNA:
+            if anno == AnnotationLayer.CDNA and isinstance(
+                mane_transcript, CdnaRepresentation
+            ):
                 mane_cds = mane_transcript.coding_start_site
                 mane_start_pos += mane_cds
                 mane_end_pos += mane_cds
-            mane_ref, _ = self.seqrepo_access.get_reference_sequence(
-                mane_transcript.refseq,
-                start=mane_start_pos,
-                end=mane_end_pos if mane_start_pos != mane_end_pos else None,
-                coordinate_type=coordinate_type,
-            )
+
+            if mane_transcript.refseq:
+                mane_ref, _ = self.seqrepo_access.get_reference_sequence(
+                    mane_transcript.refseq,
+                    start=mane_start_pos,
+                    end=mane_end_pos if mane_start_pos != mane_end_pos else None,
+                    coordinate_type=coordinate_type,
+                )
+            else:
+                mane_ref = None
+
             if not mane_ref:
                 _logger.info("Unable to validate reference for MANE Transcript")
 
@@ -1330,7 +1337,7 @@ class ManeTranscript:
         gene: str | None = None,
         coordinate_type: CoordinateType = CoordinateType.RESIDUE,
         try_longest_compatible: bool = False,
-    ) -> dict | None:
+    ) -> ProteinAndCdnaRepresentation | None:
         """Given GRCh38 genomic representation, return protein representation.
 
         Will try MANE Select and then MANE Plus Clinical. If neither is found and

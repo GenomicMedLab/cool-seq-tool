@@ -212,14 +212,15 @@ class FeatureOverlap:
 
             ga4gh_seq_id = ga4gh_aliases[0]
 
-        def _get_seq_loc(start_pos: int, stop_pos: int, refget_ac: str) -> dict:
-            """Get VRS Sequence Location represented as a dict
+        def _get_seq_loc(
+            start_pos: int, stop_pos: int, refget_ac: str
+        ) -> SequenceLocation:
+            """Get VRS Sequence Location
 
             :param start_pos: Start position
             :param stop_pos: Stop position
             :param refget_ac: Refget Accession (SQ.)
-            :return: VRS Sequence Location represented as dictionary with the ga4gh ID
-                included
+            :return: VRS Sequence Location
             """
             _sl = SequenceLocation(
                 sequenceReference=SequenceReference(
@@ -229,7 +230,7 @@ class FeatureOverlap:
                 end=stop_pos,
             )
             ga4gh_identify(_sl)
-            return _sl.model_dump(exclude_none=True)
+            return _sl
 
         resp = {}
         refget_ac = ga4gh_seq_id.split("ga4gh:")[-1]
