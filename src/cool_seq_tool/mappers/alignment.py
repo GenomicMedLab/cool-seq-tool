@@ -106,7 +106,7 @@ class AlignmentMapper:
         c_end_pos: int,
         cds_start: int | None = None,
         coordinate_type: CoordinateType = CoordinateType.RESIDUE,
-        target_genome_assembly: bool = Assembly.GRCH38,
+        target_genome_assembly: Assembly = Assembly.GRCH38,
     ) -> tuple[dict | None, str | None]:
         """Translate cDNA representation to genomic representation
 
