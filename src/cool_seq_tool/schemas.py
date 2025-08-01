@@ -14,7 +14,7 @@ from pydantic import (
 
 from cool_seq_tool import __version__
 
-_now = str(datetime.datetime.now(tz=datetime.timezone.utc))
+_now = str(datetime.datetime.now(tz=datetime.UTC))
 
 
 class AnnotationLayer(str, Enum):
