@@ -571,7 +571,7 @@ def eln_grch38_intronic():
                 },
                 "start": 74028173,
             },
-            "is_exonic": True
+            "is_exonic": True,
         },
         "seg_end": {
             "exon_ord": 7,
@@ -584,7 +584,7 @@ def eln_grch38_intronic():
                 },
                 "end": 74043599,
             },
-            "is_exonic": False
+            "is_exonic": False,
         },
     }
     return GenomicTxSegService(**params)
@@ -609,7 +609,7 @@ def gusbp3_exon5_start():
                 },
                 "end": 69645878,
             },
-            "is_exonic": False
+            "is_exonic": False,
         },
         "seg_end": None,
     }

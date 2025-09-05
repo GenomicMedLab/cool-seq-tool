@@ -65,7 +65,9 @@ class TxSegment(BaseModelForbidExtra):
     genomic_location: SequenceLocation = Field(
         ..., description="The genomic position of a transcript segment."
     )
-    is_exonic: bool = Field(default=True, description="If the position occurs on an exon")
+    is_exonic: bool = Field(
+        default=True, description="If the position occurs on an exon"
+    )
 
     model_config = ConfigDict(
         json_schema_extra={
