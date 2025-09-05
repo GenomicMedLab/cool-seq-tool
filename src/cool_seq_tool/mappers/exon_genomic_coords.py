@@ -932,7 +932,6 @@ class ExonGenomicCoordsMapper:
         if err_msg:
             return GenomicTxSeg(errors=[err_msg])
 
-        #print(is_exonic)
         return GenomicTxSeg(
             gene=gene,
             genomic_ac=genomic_ac,
