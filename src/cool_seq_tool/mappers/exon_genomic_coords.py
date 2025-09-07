@@ -901,7 +901,6 @@ class ExonGenomicCoordsMapper:
 
         # Check if breakpoint occurs on an exon.
         # If not, determine the adjacent exon given the selected transcript
-        is_exonic = True
         if not self._is_exonic_breakpoint(genomic_pos, tx_exons):
             is_exonic = False
             exon_num = self._get_adjacent_exon(
@@ -911,6 +910,7 @@ class ExonGenomicCoordsMapper:
                 end=genomic_pos if not is_seg_start else None,
             )
         else:
+            is_exonic = True
             exon_data = await self.uta_db.get_tx_exon_aln_v_data(
                 transcript,
                 genomic_pos,
