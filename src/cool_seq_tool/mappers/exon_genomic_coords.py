@@ -65,6 +65,9 @@ class TxSegment(BaseModelForbidExtra):
     genomic_location: SequenceLocation = Field(
         ..., description="The genomic position of a transcript segment."
     )
+    is_exonic: bool = Field(
+        default=True, description="If the position occurs on an exon"
+    )
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -79,6 +82,7 @@ class TxSegment(BaseModelForbidExtra):
                     },
                     "end": 154192135,
                 },
+                "is_exonic": True,
             }
         }
     )
@@ -136,6 +140,7 @@ class GenomicTxSeg(BaseModelForbidExtra):
                         },
                         "end": 154192135,
                     },
+                    "is_exonic": True,
                 },
                 "errors": [],
             }
@@ -202,6 +207,7 @@ class GenomicTxSegService(BaseModelForbidExtra):
                         },
                         "end": 154192135,
                     },
+                    "is_exonic": True,
                 },
                 "seg_end": {
                     "exon_ord": 7,
@@ -214,6 +220,7 @@ class GenomicTxSegService(BaseModelForbidExtra):
                         },
                         "start": 154170399,
                     },
+                    "is_exonic": True,
                 },
             }
         }
@@ -895,6 +902,7 @@ class ExonGenomicCoordsMapper:
         # Check if breakpoint occurs on an exon.
         # If not, determine the adjacent exon given the selected transcript
         if not self._is_exonic_breakpoint(genomic_pos, tx_exons):
+            is_exonic = False
             exon_num = self._get_adjacent_exon(
                 tx_exons_genomic_coords=tx_exons,
                 strand=strand,
@@ -902,6 +910,7 @@ class ExonGenomicCoordsMapper:
                 end=genomic_pos if not is_seg_start else None,
             )
         else:
+            is_exonic = True
             exon_data = await self.uta_db.get_tx_exon_aln_v_data(
                 transcript,
                 genomic_pos,
@@ -934,6 +943,7 @@ class ExonGenomicCoordsMapper:
                 exon_ord=exon_num,
                 offset=offset,
                 genomic_location=genomic_location,
+                is_exonic=is_exonic,
             ),
         )
 

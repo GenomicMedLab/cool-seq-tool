@@ -184,6 +184,7 @@ def tpm3_exon1():
                 },
                 "end": 154192135,
             },
+            "is_exonic": True,
         },
     }
     return GenomicTxSeg(**params)
@@ -208,6 +209,7 @@ def tpm3_exon8():
                 },
                 "start": 154170399,
             },
+            "is_exonic": True,
         },
     }
     return GenomicTxSeg(**params)
@@ -293,6 +295,7 @@ def mane_braf():
                 },
                 "end": 140801559,
             },
+            "is_exonic": True,
         },
         "seg_end": {
             "exon_ord": 14,
@@ -305,6 +308,7 @@ def mane_braf():
                 },
                 "start": 140753336,
             },
+            "is_exonic": True,
         },
     }
     return GenomicTxSegService(**params)
@@ -438,6 +442,7 @@ def zbtb10_exon3_end():
                 },
                 "end": 80514010,
             },
+            "is_exonic": False,
         },
     }
     return GenomicTxSegService(**params)
@@ -462,6 +467,7 @@ def zbtb10_exon5_start():
                 },
                 "start": 80518580,
             },
+            "is_exonic": False,
         },
         "seg_end": None,
     }
@@ -488,6 +494,7 @@ def tpm3_exon6_end():
                 },
                 "start": 154171410,
             },
+            "is_exonic": False,
         },
     }
     return GenomicTxSegService(**params)
@@ -512,6 +519,7 @@ def tpm3_exon5_start():
                 },
                 "end": 154173080,
             },
+            "is_exonic": False,
         },
         "seg_end": None,
     }
@@ -538,6 +546,7 @@ def gusbp3_exon2_end():
                 },
                 "start": 69680764,
             },
+            "is_exonic": False,
         },
     }
     return GenomicTxSegService(**params)
@@ -562,6 +571,7 @@ def eln_grch38_intronic():
                 },
                 "start": 74028173,
             },
+            "is_exonic": True,
         },
         "seg_end": {
             "exon_ord": 7,
@@ -574,6 +584,7 @@ def eln_grch38_intronic():
                 },
                 "end": 74043599,
             },
+            "is_exonic": False,
         },
     }
     return GenomicTxSegService(**params)
@@ -598,6 +609,7 @@ def gusbp3_exon5_start():
                 },
                 "end": 69645878,
             },
+            "is_exonic": False,
         },
         "seg_end": None,
     }
@@ -648,6 +660,7 @@ def genomic_tx_seg_service_checks(actual, expected=None, is_valid=True):
                 assert (
                     actual_seg.genomic_location.end == expected_seg.genomic_location.end
                 )
+                assert actual_seg.is_exonic == expected_seg.is_exonic
 
         assert actual.errors == expected.errors
     else:
@@ -715,6 +728,7 @@ def genomic_tx_seg_checks(actual, expected=None, is_valid=True):
                 actual_seg.genomic_location.start == expected_seg.genomic_location.start
             )
             assert actual_seg.genomic_location.end == expected_seg.genomic_location.end
+            assert actual_seg.is_exonic == expected_seg.is_exonic
 
         assert actual.errors == expected.errors
     else:
