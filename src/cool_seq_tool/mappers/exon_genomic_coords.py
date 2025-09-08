@@ -70,7 +70,7 @@ class TxSegment(BaseModelForbidExtra):
     )
 
     @model_validator(mode="before")
-    def check_seg_pos(cls, values: dict) -> dict: # noqa: N805
+    def check_seg_pos(cls, values: dict) -> dict:  # noqa: N805
         """Ensure that only one of `start` or `end` is set in the
         genomic_location field
 
@@ -86,7 +86,6 @@ class TxSegment(BaseModelForbidExtra):
             err_msg = "Only one of `start` or `end` may be set as this describes the start or end of a transcript segment"
             raise ValueError(err_msg)
         return values
-
 
     model_config = ConfigDict(
         json_schema_extra={
