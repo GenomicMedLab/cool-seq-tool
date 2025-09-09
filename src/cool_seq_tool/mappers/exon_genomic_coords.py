@@ -69,6 +69,24 @@ class TxSegment(BaseModelForbidExtra):
         default=True, description="If the position occurs on an exon"
     )
 
+    @model_validator(mode="before")
+    def check_seg_pos(cls, values: dict) -> dict:  # noqa: N805
+        """Ensure that only one of `start` or `end` is set in the
+        genomic_location field
+
+        :param values: The values in the TxSegment class
+        :raises ValueError: If `start` and `end` are both set in
+            `genomic_location`
+        :return: Values in model
+        """
+        loc = values.get("genomic_location")
+        start = getattr(loc, "start", None)
+        end = getattr(loc, "end", None)
+        if start and end:
+            err_msg = "Only one of `start` or `end` may be set as this describes the start or end of a transcript segment"
+            raise ValueError(err_msg)
+        return values
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
