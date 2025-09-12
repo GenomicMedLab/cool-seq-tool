@@ -2,6 +2,7 @@
 
 import logging
 
+from ga4gh.core.models import Extension
 from ga4gh.vrs.models import SequenceLocation, SequenceReference
 from pydantic import ConfigDict, Field, StrictInt, StrictStr, model_validator
 
@@ -65,9 +66,6 @@ class TxSegment(BaseModelForbidExtra):
     genomic_location: SequenceLocation = Field(
         ..., description="The genomic position of a transcript segment."
     )
-    is_exonic: bool = Field(
-        default=True, description="If the position occurs on an exon"
-    )
 
     @model_validator(mode="before")
     def check_seg_pos(cls, values: dict) -> dict:  # noqa: N805
@@ -99,8 +97,8 @@ class TxSegment(BaseModelForbidExtra):
                         "refgetAccession": "SQ.Ya6Rs7DHhDeg7YaOSg1EoNi3U_nQ9SvO",
                     },
                     "end": 154192135,
+                    "extensions": [{"name": "is_exonic", "value": True}],
                 },
-                "is_exonic": True,
             }
         }
     )
@@ -157,8 +155,8 @@ class GenomicTxSeg(BaseModelForbidExtra):
                             "refgetAccession": "SQ.Ya6Rs7DHhDeg7YaOSg1EoNi3U_nQ9SvO",
                         },
                         "end": 154192135,
+                        "extensions": [{"name": "is_exonic", "value": True}],
                     },
-                    "is_exonic": True,
                 },
                 "errors": [],
             }
@@ -224,8 +222,8 @@ class GenomicTxSegService(BaseModelForbidExtra):
                             "refgetAccession": "SQ.Ya6Rs7DHhDeg7YaOSg1EoNi3U_nQ9SvO",
                         },
                         "end": 154192135,
+                        "extensions": [{"name": "is_exonic", "value": True}],
                     },
-                    "is_exonic": True,
                 },
                 "seg_end": {
                     "exon_ord": 7,
@@ -237,8 +235,8 @@ class GenomicTxSegService(BaseModelForbidExtra):
                             "refgetAccession": "SQ.Ya6Rs7DHhDeg7YaOSg1EoNi3U_nQ9SvO",
                         },
                         "start": 154170399,
+                        "extensions": [{"name": "is_exonic", "value": True}],
                     },
-                    "is_exonic": True,
                 },
             }
         }
@@ -730,7 +728,12 @@ class ExonGenomicCoordsMapper:
         ), None
 
     def _get_vrs_seq_loc(
-        self, genomic_ac: str, genomic_pos: int, is_seg_start: bool, strand: Strand
+        self,
+        genomic_ac: str,
+        genomic_pos: int,
+        is_seg_start: bool,
+        strand: Strand,
+        is_exonic: bool = True,
     ) -> tuple[SequenceLocation | None, str | None]:
         """Create VRS Sequence Location for genomic position where transcript segment
         occurs
@@ -740,6 +743,8 @@ class ExonGenomicCoordsMapper:
         :param is_seg_start: ``True`` if ``genomic_pos`` is where the transcript segment
             starts. ``False`` if ``genomic_pos`` is where the transcript segment ends.
         :param strand: Strand
+        :param is_exonic: A boolean indicating if the genomic breakpoint occurs
+            on an exon. By default, this is set to ``True``.
         :return: Tuple containing VRS location (if successful) and error message (if
             unable to get GA4GH identifier for ``genomic_ac``).
         """
@@ -759,6 +764,7 @@ class ExonGenomicCoordsMapper:
             ),
             start=genomic_pos if use_start else None,
             end=genomic_pos if not use_start else None,
+            extensions=[Extension(name="is_exonic", value=is_exonic)],
         ), None
 
     async def _genomic_to_tx_segment(
@@ -947,7 +953,7 @@ class ExonGenomicCoordsMapper:
         )
 
         genomic_location, err_msg = self._get_vrs_seq_loc(
-            genomic_ac, genomic_pos, is_seg_start, strand
+            genomic_ac, genomic_pos, is_seg_start, strand, is_exonic
         )
         if err_msg:
             return GenomicTxSeg(errors=[err_msg])
@@ -961,7 +967,6 @@ class ExonGenomicCoordsMapper:
                 exon_ord=exon_num,
                 offset=offset,
                 genomic_location=genomic_location,
-                is_exonic=is_exonic,
             ),
         )
 

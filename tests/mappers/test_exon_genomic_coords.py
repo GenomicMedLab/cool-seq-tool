@@ -183,8 +183,8 @@ def tpm3_exon1():
                     "refgetAccession": "SQ.Ya6Rs7DHhDeg7YaOSg1EoNi3U_nQ9SvO",
                 },
                 "end": 154192135,
+                "extensions": [{"name": "is_exonic", "value": True}],
             },
-            "is_exonic": True,
         },
     }
     return GenomicTxSeg(**params)
@@ -208,8 +208,8 @@ def tpm3_exon8():
                     "refgetAccession": "SQ.Ya6Rs7DHhDeg7YaOSg1EoNi3U_nQ9SvO",
                 },
                 "start": 154170399,
+                "extensions": [{"name": "is_exonic", "value": True}],
             },
-            "is_exonic": True,
         },
     }
     return GenomicTxSeg(**params)
@@ -294,8 +294,8 @@ def mane_braf():
                     "refgetAccession": "SQ.F-LrLMe1SRpfUZHkQmvkVKFEGaoDeHul",
                 },
                 "end": 140801559,
+                "extensions": [{"name": "is_exonic", "value": True}],
             },
-            "is_exonic": True,
         },
         "seg_end": {
             "exon_ord": 14,
@@ -307,8 +307,8 @@ def mane_braf():
                     "refgetAccession": "SQ.F-LrLMe1SRpfUZHkQmvkVKFEGaoDeHul",
                 },
                 "start": 140753336,
+                "extensions": [{"name": "is_exonic", "value": True}],
             },
-            "is_exonic": True,
         },
     }
     return GenomicTxSegService(**params)
@@ -332,6 +332,7 @@ def wee1_exon2_exon11():
                     "refgetAccession": "SQ.2NkFm8HK88MqeNkCgj78KidCAXgnsfV1",
                 },
                 "start": 9576092,
+                "extensions": [{"name": "is_exonic", "value": True}],
             },
         },
         "seg_end": {
@@ -344,6 +345,7 @@ def wee1_exon2_exon11():
                     "refgetAccession": "SQ.2NkFm8HK88MqeNkCgj78KidCAXgnsfV1",
                 },
                 "end": 9588449,
+                "extensions": [{"name": "is_exonic", "value": True}],
             },
         },
     }
@@ -368,6 +370,7 @@ def mane_wee1_exon2_exon11():
                     "refgetAccession": "SQ.2NkFm8HK88MqeNkCgj78KidCAXgnsfV1",
                 },
                 "start": 9576092,
+                "extensions": [{"name": "is_exonic", "value": True}],
             },
         },
         "seg_end": {
@@ -380,6 +383,7 @@ def mane_wee1_exon2_exon11():
                     "refgetAccession": "SQ.2NkFm8HK88MqeNkCgj78KidCAXgnsfV1",
                 },
                 "end": 9588449,
+                "extensions": [{"name": "is_exonic", "value": True}],
             },
         },
     }
@@ -404,6 +408,7 @@ def ntrk1_exon10_exon17():
                     "refgetAccession": "SQ.Ya6Rs7DHhDeg7YaOSg1EoNi3U_nQ9SvO",
                 },
                 "start": 156874570,
+                "extensions": [{"name": "is_exonic", "value": True}],
             },
         },
         "seg_end": {
@@ -416,6 +421,7 @@ def ntrk1_exon10_exon17():
                     "refgetAccession": "SQ.Ya6Rs7DHhDeg7YaOSg1EoNi3U_nQ9SvO",
                 },
                 "end": 156881850,
+                "extensions": [{"name": "is_exonic", "value": True}],
             },
         },
     }
@@ -441,8 +447,8 @@ def zbtb10_exon3_end():
                     "refgetAccession": "SQ.209Z7zJ-mFypBEWLk4rNC6S_OxY5p7bs",
                 },
                 "end": 80514010,
+                "extensions": [{"name": "is_exonic", "value": False}],
             },
-            "is_exonic": False,
         },
     }
     return GenomicTxSegService(**params)
@@ -466,8 +472,8 @@ def zbtb10_exon5_start():
                     "refgetAccession": "SQ.209Z7zJ-mFypBEWLk4rNC6S_OxY5p7bs",
                 },
                 "start": 80518580,
+                "extensions": [{"name": "is_exonic", "value": False}],
             },
-            "is_exonic": False,
         },
         "seg_end": None,
     }
@@ -493,8 +499,8 @@ def tpm3_exon6_end():
                     "refgetAccession": "SQ.Ya6Rs7DHhDeg7YaOSg1EoNi3U_nQ9SvO",
                 },
                 "start": 154171410,
+                "extensions": [{"name": "is_exonic", "value": False}],
             },
-            "is_exonic": False,
         },
     }
     return GenomicTxSegService(**params)
@@ -518,8 +524,8 @@ def tpm3_exon5_start():
                     "refgetAccession": "SQ.Ya6Rs7DHhDeg7YaOSg1EoNi3U_nQ9SvO",
                 },
                 "end": 154173080,
+                "extensions": [{"name": "is_exonic", "value": False}],
             },
-            "is_exonic": False,
         },
         "seg_end": None,
     }
@@ -545,8 +551,8 @@ def gusbp3_exon2_end():
                     "refgetAccession": "SQ.aUiQCzCPZ2d0csHbMSbh2NzInhonSXwI",
                 },
                 "start": 69680764,
+                "extensions": [{"name": "is_exonic", "value": False}],
             },
-            "is_exonic": False,
         },
     }
     return GenomicTxSegService(**params)
@@ -570,8 +576,8 @@ def eln_grch38_intronic():
                     "refgetAccession": "SQ.F-LrLMe1SRpfUZHkQmvkVKFEGaoDeHul",
                 },
                 "start": 74028173,
+                "extensions": [{"name": "is_exonic", "value": True}],
             },
-            "is_exonic": True,
         },
         "seg_end": {
             "exon_ord": 7,
@@ -583,8 +589,8 @@ def eln_grch38_intronic():
                     "refgetAccession": "SQ.F-LrLMe1SRpfUZHkQmvkVKFEGaoDeHul",
                 },
                 "end": 74043599,
+                "extensions": [{"name": "is_exonic", "value": False}],
             },
-            "is_exonic": False,
         },
     }
     return GenomicTxSegService(**params)
@@ -608,8 +614,8 @@ def gusbp3_exon5_start():
                     "refgetAccession": "SQ.aUiQCzCPZ2d0csHbMSbh2NzInhonSXwI",
                 },
                 "end": 69645878,
+                "extensions": [{"name": "is_exonic", "value": False}],
             },
-            "is_exonic": False,
         },
         "seg_end": None,
     }
@@ -660,7 +666,10 @@ def genomic_tx_seg_service_checks(actual, expected=None, is_valid=True):
                 assert (
                     actual_seg.genomic_location.end == expected_seg.genomic_location.end
                 )
-                assert actual_seg.is_exonic == expected_seg.is_exonic
+                assert (
+                    actual_seg.genomic_location.extensions
+                    == expected_seg.genomic_location.extensions
+                )
 
         assert actual.errors == expected.errors
     else:
@@ -728,7 +737,10 @@ def genomic_tx_seg_checks(actual, expected=None, is_valid=True):
                 actual_seg.genomic_location.start == expected_seg.genomic_location.start
             )
             assert actual_seg.genomic_location.end == expected_seg.genomic_location.end
-            assert actual_seg.is_exonic == expected_seg.is_exonic
+            assert (
+                actual_seg.genomic_location.extensions
+                == expected_seg.genomic_location.extensions
+            )
 
         assert actual.errors == expected.errors
     else:
