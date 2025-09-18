@@ -954,3 +954,8 @@ class ParseResult(UrlLibParseResult):
         """Create schema property."""
         path_elems = self.path.split("/")
         return path_elems[2] if len(path_elems) > 2 else None
+
+    @property
+    def sanitized_url(self) -> str:
+        """Sanitized DB URL with the password masked"""
+        return f"{self.scheme}://{self.username}:****@{self.hostname}:{self.port}/{self.database}/{self.schema}"
