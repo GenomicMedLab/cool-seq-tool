@@ -5,7 +5,7 @@ import logging
 from os import environ
 from typing import Any, Literal, TypeVar
 from urllib.parse import ParseResult as UrlLibParseResult
-from urllib.parse import quote, unquote, urlparse
+from urllib.parse import quote, unquote, urlparse, urlunparse
 
 import asyncpg
 import boto3
@@ -958,4 +958,13 @@ class ParseResult(UrlLibParseResult):
     @property
     def sanitized_url(self) -> str:
         """Sanitized DB URL with the password masked"""
-        return f"{self.scheme}://{self.username}:****@{self.hostname}:{self.port}/{self.database}/{self.schema}"
+        return urlunparse(
+            (
+                self.scheme,
+                self.username,
+                self.hostname,
+                self.port,
+                self.database,
+                self.schema,
+            )
+        )
