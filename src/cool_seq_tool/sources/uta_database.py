@@ -958,13 +958,24 @@ class ParseResult(UrlLibParseResult):
     @property
     def sanitized_url(self) -> str:
         """Sanitized DB URL with the password masked"""
+        netloc = ""
+        if self.username:
+            netloc += self.username
+            if self.password is not None and self.password != "":
+                netloc += ":***"
+            netloc += "@"
+        if self.hostname:
+            netloc += f"{self.hostname}"
+        if self.port:
+            netloc += f":{self.port}"
+
         return urlunparse(
             (
                 self.scheme,
-                self.username,
-                self.hostname,
-                self.port,
-                self.database,
-                self.schema,
+                netloc,
+                self.path,
+                self.params,
+                self.query,
+                self.fragment,
             )
         )
