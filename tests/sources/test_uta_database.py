@@ -1,11 +1,14 @@
 """Test UTA data source."""
 
+from urllib.parse import urlparse
+
 import pytest
 
 from cool_seq_tool.schemas import Strand
 from cool_seq_tool.sources.uta_database import (
     GenomicTxData,
     GenomicTxMetadata,
+    ParseResult,
     TxExonAlnData,
 )
 
@@ -360,3 +363,98 @@ async def test_get_mane_transcripts_from_genomic_pos(test_db):
     # invalid ac
     resp = await test_db.get_transcripts_from_genomic_pos("NC_000007.14232", 140753336)
     assert resp == []
+
+
+@pytest.mark.parametrize(
+    ("raw_url", "expected"),
+    [
+        # Username + password
+        (
+            "postgresql://user:pass@localhost:5432/dbname",
+            {
+                "scheme": "postgresql",
+                "username": "user",
+                "password": "pass",
+                "hostname": "localhost",
+                "port": 5432,
+                "database": "dbname",
+                "sanitized_url": "postgresql://user:***@localhost:5432/dbname",
+            },
+        ),
+        # Username with null password
+        (
+            "postgresql://user@localhost/dbname",
+            {
+                "scheme": "postgresql",
+                "username": "user",
+                "password": None,
+                "hostname": "localhost",
+                "port": None,
+                "database": "dbname",
+                "sanitized_url": "postgresql://user@localhost/dbname",
+            },
+        ),
+        # Password is "0"
+        (
+            "postgresql://user:0@localhost/dbname",
+            {
+                "scheme": "postgresql",
+                "username": "user",
+                "password": "0",
+                "hostname": "localhost",
+                "port": None,
+                "database": "dbname",
+                "sanitized_url": "postgresql://user:***@localhost/dbname",
+            },
+        ),
+        # Empty password
+        (
+            "postgresql://user:@localhost/dbname",
+            {
+                "scheme": "postgresql",
+                "username": "user",
+                "password": "",
+                "hostname": "localhost",
+                "port": None,
+                "database": "dbname",
+                "sanitized_url": "postgresql://user@localhost/dbname",
+            },
+        ),
+        # No username
+        (
+            "postgresql://localhost:5432/dbname",
+            {
+                "scheme": "postgresql",
+                "username": None,
+                "password": None,
+                "hostname": "localhost",
+                "port": 5432,
+                "database": "dbname",
+                "sanitized_url": "postgresql://localhost:5432/dbname",
+            },
+        ),
+        # With query params
+        (
+            "postgresql://user:secret@localhost/dbname?query#fragment",
+            {
+                "scheme": "postgresql",
+                "username": "user",
+                "password": "secret",
+                "hostname": "localhost",
+                "port": None,
+                "database": "dbname",
+                "sanitized_url": "postgresql://user:***@localhost/dbname?query#fragment",
+            },
+        ),
+    ],
+)
+async def test_parsed_url(raw_url, expected):
+    parsed_result = ParseResult(urlparse(raw_url))
+
+    assert parsed_result.scheme == expected["scheme"]
+    assert parsed_result.username == expected["username"]
+    assert parsed_result.password == expected["password"]
+    assert parsed_result.hostname == expected["hostname"]
+    assert parsed_result.port == expected["port"]
+    assert parsed_result.database == expected["database"]
+    assert parsed_result.sanitized_url == expected["sanitized_url"]

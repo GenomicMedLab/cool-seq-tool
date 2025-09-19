@@ -5,7 +5,7 @@ import logging
 from os import environ
 from typing import Any, Literal, TypeVar
 from urllib.parse import ParseResult as UrlLibParseResult
-from urllib.parse import quote, unquote, urlparse
+from urllib.parse import quote, unquote, urlparse, urlunparse
 
 import asyncpg
 import boto3
@@ -954,3 +954,28 @@ class ParseResult(UrlLibParseResult):
         """Create schema property."""
         path_elems = self.path.split("/")
         return path_elems[2] if len(path_elems) > 2 else None
+
+    @property
+    def sanitized_url(self) -> str:
+        """Sanitized DB URL with the password masked"""
+        netloc = ""
+        if self.username:
+            netloc += self.username
+            if self.password is not None and self.password != "":
+                netloc += ":***"
+            netloc += "@"
+        if self.hostname:
+            netloc += f"{self.hostname}"
+        if self.port:
+            netloc += f":{self.port}"
+
+        return urlunparse(
+            (
+                self.scheme,
+                netloc,
+                self.path,
+                self.params,
+                self.query,
+                self.fragment,
+            )
+        )

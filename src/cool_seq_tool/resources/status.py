@@ -3,16 +3,16 @@
 import logging
 from collections import namedtuple
 from pathlib import Path
+from urllib.parse import urlparse
 
 from agct._core import ChainfileError
 from asyncpg import InvalidCatalogNameError, UndefinedTableError
 from biocommons.seqrepo import SeqRepo
-from pip._internal.utils.misc import redact_auth_from_url
 
 from cool_seq_tool.handlers.seqrepo_access import SEQREPO_ROOT_DIR, SeqRepoAccess
 from cool_seq_tool.mappers.liftover import LiftOver
 from cool_seq_tool.resources.data_files import DataFile, get_data_file
-from cool_seq_tool.sources.uta_database import UTA_DB_URL, UtaDatabase
+from cool_seq_tool.sources.uta_database import UTA_DB_URL, ParseResult, UtaDatabase
 
 _logger = logging.getLogger(__name__)
 
@@ -120,9 +120,12 @@ async def check_status(
     else:
         status["liftover"] = True
 
-    sanitized_url = redact_auth_from_url(UTA_DB_URL)
+    parsed_result = ParseResult(urlparse(db_url))
+    sanitized_url = parsed_result.sanitized_url
     try:
         await UtaDatabase.create(db_url)
+    except ValueError:
+        _logger.exception("Database URL is not valid")
     except (OSError, InvalidCatalogNameError, UndefinedTableError):
         _logger.exception(
             "Encountered error instantiating UTA at URI %s", sanitized_url
