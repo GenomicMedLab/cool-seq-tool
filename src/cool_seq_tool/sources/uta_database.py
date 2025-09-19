@@ -5,7 +5,7 @@ import logging
 from os import environ
 from typing import Any, Literal, TypeVar
 from urllib.parse import ParseResult as UrlLibParseResult
-from urllib.parse import quote, unquote, urlparse, urlunparse
+from urllib.parse import unquote, urlparse, urlunparse
 
 import asyncpg
 import boto3
