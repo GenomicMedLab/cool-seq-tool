@@ -101,8 +101,7 @@ class UtaDatabase:
         """
         self.schema = None
         self._connection_pool = None
-        original_pwd = db_url.split("//")[-1].split("@")[0].split(":")[-1]
-        self.db_url = db_url.replace(original_pwd, quote(original_pwd))
+        self.db_url = db_url
         self.args = self._get_conn_args()
 
     def _get_conn_args(self) -> DbConnectionArgs:
