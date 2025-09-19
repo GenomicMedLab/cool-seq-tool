@@ -120,9 +120,9 @@ async def check_status(
     else:
         status["liftover"] = True
 
+    parsed_result = ParseResult(urlparse(db_url))
+    sanitized_url = parsed_result.sanitized_url
     try:
-        parsed_result = ParseResult(urlparse(db_url))
-        sanitized_url = parsed_result.sanitized_url
         await UtaDatabase.create(db_url)
     except ValueError:
         _logger.exception("Database URL is not valid")
