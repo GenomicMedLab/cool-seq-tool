@@ -285,6 +285,18 @@ async def test_get_transcripts_from_gene(test_db):
 
 
 @pytest.mark.asyncio
+async def test_get_consistent_transcripts_from_gene(test_db):
+    gene = "MIR9-1HG"
+    results = await test_db.get_transcripts(gene=gene)
+    expected = list(results["tx_ac"])
+    # Do the same query 30 times and ensure it gives consistent results each time
+    for _i in range(30):
+        results = await test_db.get_transcripts(gene=gene)
+        actual = list(results["tx_ac"])
+        assert actual == expected
+
+
+@pytest.mark.asyncio
 async def test_get_chr_assembly(test_db):
     """Test that get_chr_assembly works correctly."""
     resp = await test_db.get_chr_assembly("NC_000007.13")
