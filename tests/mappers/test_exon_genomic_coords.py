@@ -1071,6 +1071,17 @@ async def test_genomic_to_transcript_fusion_context(
     resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
     genomic_tx_seg_service_checks(resp, gusbp3_exon5_start)
 
+    # Test case where gene does not have a MANE transcript. We are looking
+    # to check that the same transcript accession is returned across runs
+    inputs = {
+        "genomic_ac": "NC_000001.11",
+        "seg_end_genomic": 156421555,
+        "gene": "MIR9-1HG",
+    }
+    resp = await test_egc_mapper.genomic_to_tx_segment(**inputs)
+    assert resp.tx_ac == "NM_001320454.2"
+    assert resp.tx_status == "longest_compatible_remaining"
+
 
 @pytest.mark.asyncio
 async def test_get_alt_ac_start_and_end(
