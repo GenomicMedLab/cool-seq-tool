@@ -14,6 +14,7 @@ from cool_seq_tool.schemas import (
     CoordinateType,
     ServiceMeta,
     Strand,
+    TranscriptPriority,
 )
 from cool_seq_tool.sources.mane_transcript_mappings import ManeTranscriptMappings
 from cool_seq_tool.sources.uta_database import GenomicAlnData, UtaDatabase
@@ -113,6 +114,9 @@ class GenomicTxSeg(BaseModelForbidExtra):
     )
     genomic_ac: StrictStr | None = Field(None, description="RefSeq genomic accession.")
     tx_ac: StrictStr | None = Field(None, description="RefSeq transcript accession.")
+    tx_status: TranscriptPriority | None = Field(
+        None, description="Transcript priority for RefSeq transcript accession"
+    )
     strand: Strand | None = Field(
         None, description="The strand that the transcript accession exists on."
     )
@@ -144,6 +148,7 @@ class GenomicTxSeg(BaseModelForbidExtra):
                 "gene": "TPM3",
                 "genomic_ac": "NC_000001.11",
                 "tx_ac": "NM_152263.3",
+                "tx_status": "longest_compatible_remaining",
                 "strand": -1,
                 "seg": {
                     "exon_ord": 0,
@@ -172,6 +177,9 @@ class GenomicTxSegService(BaseModelForbidExtra):
     )
     genomic_ac: StrictStr | None = Field(None, description="RefSeq genomic accession.")
     tx_ac: StrictStr | None = Field(None, description="RefSeq transcript accession.")
+    tx_status: TranscriptPriority | None = Field(
+        None, description="Transcript priority for RefSeq transcript accession"
+    )
     strand: Strand | None = Field(
         None, description="The strand that the transcript exists on."
     )
@@ -211,6 +219,7 @@ class GenomicTxSegService(BaseModelForbidExtra):
                 "gene": "TPM3",
                 "genomic_ac": "NC_000001.11",
                 "tx_ac": "NM_152263.3",
+                "tx_status": "longest_compatible_remaining",
                 "strand": -1,
                 "seg_start": {
                     "exon_ord": 0,
@@ -431,6 +440,7 @@ class ExonGenomicCoordsMapper:
             gene=gene,
             genomic_ac=genomic_ac,
             tx_ac=transcript,
+            tx_status=self.mane_transcript_mappings.get_transcript_status(transcript),
             strand=strand,
             seg_start=seg_start,
             seg_end=seg_end,
@@ -522,6 +532,7 @@ class ExonGenomicCoordsMapper:
             params["gene"] = start_tx_seg_data.gene
             params["genomic_ac"] = start_tx_seg_data.genomic_ac
             params["tx_ac"] = start_tx_seg_data.tx_ac
+            params["tx_status"] = start_tx_seg_data.tx_status
             params["strand"] = start_tx_seg_data.strand
             params["seg_start"] = start_tx_seg_data.seg
         else:
@@ -557,6 +568,7 @@ class ExonGenomicCoordsMapper:
                 params["gene"] = end_tx_seg_data.gene
                 params["genomic_ac"] = end_tx_seg_data.genomic_ac
                 params["tx_ac"] = end_tx_seg_data.tx_ac
+                params["tx_status"] = end_tx_seg_data.tx_status
                 params["strand"] = end_tx_seg_data.strand
 
             params["seg_end"] = end_tx_seg_data.seg
@@ -962,6 +974,7 @@ class ExonGenomicCoordsMapper:
             gene=gene,
             genomic_ac=genomic_ac,
             tx_ac=transcript,
+            tx_status=self.mane_transcript_mappings.get_transcript_status(transcript),
             strand=strand,
             seg=TxSegment(
                 exon_ord=exon_num,

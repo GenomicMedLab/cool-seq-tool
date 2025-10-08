@@ -5,7 +5,7 @@ from unittest.mock import patch
 import polars as pl
 import pytest
 
-from cool_seq_tool.schemas import ManeGeneData
+from cool_seq_tool.schemas import ManeGeneData, TranscriptPriority
 
 
 @pytest.fixture(scope="module")
@@ -166,6 +166,15 @@ def test_get_mane_from_transcripts(
     # Invalid transcripts
     resp = test_mane_transcript_mappings.get_mane_from_transcripts(["NM_012334.34"])
     assert resp == []
+
+
+def test_get_transcript_status(test_mane_transcript_mappings):
+    """Test that get_transcript_status works correctly"""
+    actual = test_mane_transcript_mappings.get_transcript_status("NM_152263.4")
+    assert actual == TranscriptPriority.MANE_SELECT
+
+    actual = test_mane_transcript_mappings.get_transcript_status("NM_152263.3")
+    assert actual == TranscriptPriority.LONGEST_COMPATIBLE_REMAINING
 
 
 def test_get_mane_data_from_chr_pos(
