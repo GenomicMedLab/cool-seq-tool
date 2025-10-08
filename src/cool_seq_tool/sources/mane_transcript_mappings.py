@@ -8,7 +8,7 @@ from pathlib import Path
 import polars as pl
 
 from cool_seq_tool.resources.data_files import DataFile, get_data_file
-from cool_seq_tool.schemas import ManeGeneData
+from cool_seq_tool.schemas import ManeGeneData, TranscriptPriority
 
 _logger = logging.getLogger(__name__)
 
@@ -84,6 +84,22 @@ class ManeTranscriptMappings:
         if len(mane_rows) == 0:
             return []
         return mane_rows.to_dicts()
+
+    def get_transcript_status(self, tx_ac: str) -> TranscriptPriority:
+        """Get MANE status for a transcript
+
+        :param tx_ac: A RefSeq transcript accession
+        :return: A TranscriptPriority object
+        """
+        mane_info = self.get_mane_from_transcripts([tx_ac])
+        if not mane_info:
+            return TranscriptPriority.LONGEST_COMPATIBLE_REMAINING
+        mane_info = mane_info[0]["MANE_status"]
+        return (
+            TranscriptPriority.MANE_SELECT
+            if mane_info == "MANE Select"
+            else TranscriptPriority.MANE_PLUS_CLINICAL
+        )
 
     def get_mane_data_from_chr_pos(
         self, alt_ac: str, start: int, end: int

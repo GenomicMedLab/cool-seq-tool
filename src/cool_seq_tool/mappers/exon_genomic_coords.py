@@ -305,22 +305,6 @@ class ExonGenomicCoordsMapper:
         self.mane_transcript_mappings = mane_transcript_mappings
         self.liftover = liftover
 
-    def _get_mane_status_transcript(self, tx_ac: str) -> TranscriptPriority:
-        """Get MANE status for a transcript
-
-        :param tx_ac: A RefSeq transcript accession
-        :return: A TranscriptPriority object
-        """
-        mane_info = self.mane_transcript_mappings.get_mane_from_transcripts([tx_ac])
-        if not mane_info:
-            return TranscriptPriority.LONGEST_COMPATIBLE_REMAINING
-        mane_info = mane_info[0]["MANE_status"]
-        return (
-            TranscriptPriority.MANE_SELECT
-            if mane_info == "MANE Select"
-            else TranscriptPriority.MANE_PLUS_CLINICAL
-        )
-
     async def tx_segment_to_genomic(
         self,
         transcript: str,
@@ -456,7 +440,7 @@ class ExonGenomicCoordsMapper:
             gene=gene,
             genomic_ac=genomic_ac,
             tx_ac=transcript,
-            tx_status=self._get_mane_status_transcript(transcript),
+            tx_status=self.mane_transcript_mappings.get_transcript_status(transcript),
             strand=strand,
             seg_start=seg_start,
             seg_end=seg_end,
@@ -990,7 +974,7 @@ class ExonGenomicCoordsMapper:
             gene=gene,
             genomic_ac=genomic_ac,
             tx_ac=transcript,
-            tx_status=self._get_mane_status_transcript(transcript),
+            tx_status=self.mane_transcript_mappings.get_transcript_status(transcript),
             strand=strand,
             seg=TxSegment(
                 exon_ord=exon_num,
