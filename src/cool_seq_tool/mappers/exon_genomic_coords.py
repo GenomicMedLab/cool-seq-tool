@@ -8,7 +8,9 @@ from pydantic import ConfigDict, Field, StrictInt, StrictStr, model_validator
 
 from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
 from cool_seq_tool.mappers.liftover import LiftOver
+from cool_seq_tool.mappers.mane_transcript import ManeTranscript
 from cool_seq_tool.schemas import (
+    AnnotationLayer,
     Assembly,
     BaseModelForbidExtra,
     CoordinateType,
@@ -273,6 +275,7 @@ class ExonGenomicCoordsMapper:
         self,
         seqrepo_access: SeqRepoAccess,
         uta_db: UtaDatabase,
+        mane_transcript: ManeTranscript,
         mane_transcript_mappings: ManeTranscriptMappings,
         liftover: LiftOver,
     ) -> None:
@@ -297,11 +300,13 @@ class ExonGenomicCoordsMapper:
 
         :param seqrepo_access: SeqRepo instance to give access to query SeqRepo database
         :param uta_db: UtaDatabase instance to give access to query UTA database
+        :param mane_transcript: ManeTranscript instance to give access to ManeTranscript class
         :param mane_transcript_mappings: Instance to provide access to ManeTranscriptMappings class
         :param liftover: Instance to provide mapping between human genome assemblies
         """
         self.seqrepo_access = seqrepo_access
         self.uta_db = uta_db
+        self.mane_transcript = mane_transcript
         self.mane_transcript_mappings = mane_transcript_mappings
         self.liftover = liftover
 
@@ -870,14 +875,18 @@ class ExonGenomicCoordsMapper:
             if mane_transcripts:
                 transcript = mane_transcripts[0]["RefSeq_nuc"]
             else:
-                # Attempt to find a coding transcript if a MANE transcript
+                # Attempt to find longest compatible transcript if a MANE transcript
                 # cannot be found
-                results = await self.uta_db.get_transcripts(
-                    gene=gene, alt_ac=genomic_ac
+                results = await self.mane_transcript.get_longest_compatible_transcript(
+                    start_pos=genomic_pos,
+                    end_pos=genomic_pos,
+                    gene=gene,
+                    alt_ac=genomic_ac,
+                    start_annotation_layer=AnnotationLayer.GENOMIC,
                 )
 
-                if not results.is_empty():
-                    transcript = results[0]["tx_ac"][0]
+                if results:
+                    transcript = results.refseq
                 else:
                     # Run if gene is for a noncoding transcript
                     query = f"""
