@@ -6,7 +6,8 @@ Currently only supports GRCh37 <-> GRCh38
 import logging
 from os import environ
 
-from agct import Converter, Genome
+from agct import Assembly as AgctAssembly
+from agct import Converter
 
 from cool_seq_tool.schemas import Assembly
 from cool_seq_tool.utils import process_chromosome_input
@@ -43,13 +44,13 @@ class LiftOver:
         """
         self.from_37_to_38 = Converter(
             chainfile=chain_file_37_to_38 or LIFTOVER_CHAIN_37_TO_38,
-            from_db=Genome.HG19,
-            to_db=Genome.HG38,
+            from_assembly=AgctAssembly.HG19,
+            to_assembly=AgctAssembly.HG38,
         )
         self.from_38_to_37 = Converter(
             chainfile=chain_file_38_to_37 or LIFTOVER_CHAIN_38_TO_37,
-            from_db=Genome.HG38,
-            to_db=Genome.HG19,
+            from_assembly=AgctAssembly.HG38,
+            to_assembly=AgctAssembly.HG19,
         )
 
     def get_liftover(
@@ -77,9 +78,9 @@ class LiftOver:
         """
         chromosome = process_chromosome_input(chromosome, "LiftOver.get_liftover()")
         if liftover_to_assembly == Assembly.GRCH38:
-            liftover = self.from_37_to_38.convert_coordinate(chromosome, pos)
+            liftover = self.from_37_to_38.convert_coordinate(chromosome, pos, pos)
         elif liftover_to_assembly == Assembly.GRCH37:
-            liftover = self.from_38_to_37.convert_coordinate(chromosome, pos)
+            liftover = self.from_38_to_37.convert_coordinate(chromosome, pos, pos)
         else:
             _logger.warning("%s assembly not supported", liftover_to_assembly)
             liftover = None

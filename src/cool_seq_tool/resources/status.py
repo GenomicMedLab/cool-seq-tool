@@ -114,9 +114,9 @@ async def check_status(
             chain_file_38_to_37=chain_file_38_to_37,
         )
     except (FileNotFoundError, ChainfileError):
-        _logger.exception("agct converter setup failed")
+        _logger.exception("`agct` converter setup failed")
     except Exception as e:
-        _logger.critical("Encountered unexpected error setting up agct: %s", e)
+        _logger.critical("Encountered unexpected error setting up `agct`: %s", e)
     else:
         status["liftover"] = True
 
