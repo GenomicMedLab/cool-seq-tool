@@ -32,7 +32,7 @@ def braf_mane_data():
     """Create test fixture for BRAF MANE data."""
     return {
         "#NCBI_GeneID": "GeneID:673",
-        "Ensembl_Gene": "ENSG00000157764.14",
+        "Ensembl_Gene": "ENSG00000157764.16",
         "HGNC_ID": "HGNC:1097",
         "symbol": "BRAF",
         "name": "B-Raf proto-oncogene, serine/threonine kinase",

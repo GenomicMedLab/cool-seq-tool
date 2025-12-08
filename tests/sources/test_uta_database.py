@@ -202,7 +202,25 @@ async def test_mane_c_genomic_data(test_db):
 @pytest.mark.asyncio
 async def test_get_genomic_tx_data(test_db, genomic_tx_data):
     """Test that get_genomic_tx_data works correctly."""
-    resp = await test_db.get_genomic_tx_data("NM_004333.4", (2145, 2145))
+    # Positive strand transcript
+    resp = await test_db.get_genomic_tx_data("NM_004327.3", (3595, 3596))
+    expected_params = {
+        "gene": "BCR",
+        "strand": Strand.POSITIVE,
+        "tx_pos_range": (3476, 3608),
+        "alt_pos_range": (23295023, 23295155),
+        "alt_aln_method": "splign",
+        "tx_exon_id": 956565,
+        "alt_exon_id": 6619783,
+        "tx_ac": "NM_004327.3",
+        "alt_ac": "NC_000022.11",
+        "pos_change": (119, 12),
+        "alt_pos_change_range": (23295142, 23295143),
+    }
+    assert resp == GenomicTxMetadata(**expected_params)
+
+    # Negative strand transcript
+    resp = await test_db.get_genomic_tx_data("NM_004333.4", (2144, 2145))
     expected_params = {
         "gene": "BRAF",
         "strand": Strand.NEGATIVE,
@@ -213,8 +231,8 @@ async def test_get_genomic_tx_data(test_db, genomic_tx_data):
         "alt_exon_id": 6619852,
         "tx_ac": "NM_004333.4",
         "alt_ac": "NC_000007.14",
-        "pos_change": (92, 43),
-        "alt_pos_change_range": (140739854, 140739854),
+        "pos_change": (91, 43),
+        "alt_pos_change_range": (140739855, 140739854),
     }
     assert resp == GenomicTxMetadata(**expected_params)
 

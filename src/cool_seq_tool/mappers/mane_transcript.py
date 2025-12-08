@@ -324,7 +324,7 @@ class ManeTranscript:
         """Get and validate genomic_tx_data
 
         :param tx_ac: Accession on c. coordinate
-        :param pos: (start pos, end pos)
+        :param pos: (start pos, end pos). These are inter-residue coordinates
         :param annotation_layer: Annotation layer for ``ac`` and ``pos``
         :param coding_start_site: Coding start site
         :param alt_ac: Accession on g. coordinate

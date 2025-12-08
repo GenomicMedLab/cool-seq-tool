@@ -621,7 +621,8 @@ class UtaDatabase:
         """Get transcript mapping to genomic data.
 
         :param tx_ac: Accession on c. coordinate
-        :param pos: (start pos, end pos)
+        :param pos: (start pos, end pos). These must describe the inter-residue
+            coordinates that are being examined.
         :param annotation_layer: Annotation layer for ``ac`` and ``pos``
         :param alt_ac: Accession on g. coordinate
         :param target_genome_assembly: Genome assembly to get genomic data for.
