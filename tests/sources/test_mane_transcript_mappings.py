@@ -13,7 +13,7 @@ def braf_select():
     """Create test fixture for BRAF MANE Select Transcript data."""
     return {
         "#NCBI_GeneID": "GeneID:673",
-        "Ensembl_Gene": "ENSG00000157764.14",
+        "Ensembl_Gene": "ENSG00000157764.16",
         "HGNC_ID": "HGNC:1097",
         "symbol": "BRAF",
         "name": "B-Raf proto-oncogene, serine/threonine kinase",
@@ -34,7 +34,7 @@ def braf_plus_clinical():
     """Create test fixture for BRAF MANE Plus Clinical data."""
     return {
         "#NCBI_GeneID": "GeneID:673",
-        "Ensembl_Gene": "ENSG00000157764.14",
+        "Ensembl_Gene": "ENSG00000157764.16",
         "HGNC_ID": "HGNC:1097",
         "symbol": "BRAF",
         "name": "B-Raf proto-oncogene, serine/threonine kinase",
@@ -55,7 +55,7 @@ def ercc6_plus_clinical():
     """Create test fixture for ERCC6 MANE Plus Clinical Transcript data."""
     return {
         "#NCBI_GeneID": "GeneID:2074",
-        "Ensembl_Gene": "ENSG00000225830.16",
+        "Ensembl_Gene": "ENSG00000225830.18",
         "HGNC_ID": "HGNC:3438",
         "symbol": "ERCC6",
         "name": "ERCC excision repair 6, chromatin remodeling factor",
@@ -76,7 +76,7 @@ def ercc6_select():
     """Create test fixture for ERCC6 MANE Select Transcript data."""
     return {
         "#NCBI_GeneID": "GeneID:2074",
-        "Ensembl_Gene": "ENSG00000225830.16",
+        "Ensembl_Gene": "ENSG00000225830.18",
         "HGNC_ID": "HGNC:3438",
         "symbol": "ERCC6",
         "name": "ERCC excision repair 6, chromatin remodeling factor",
