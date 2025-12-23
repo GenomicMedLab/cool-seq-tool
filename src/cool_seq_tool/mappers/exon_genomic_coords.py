@@ -723,11 +723,10 @@ class ExonGenomicCoordsMapper:
                 seg_genomic_pos = offset + genomic_ac_data.alt_start_i
             else:
                 seg_genomic_pos = genomic_ac_data.alt_end_i - offset
+        elif strand == Strand.POSITIVE:
+            seg_genomic_pos = offset + genomic_ac_data.alt_end_i
         else:
-            if strand == Strand.POSITIVE:
-                seg_genomic_pos = offset + genomic_ac_data.alt_end_i
-            else:
-                seg_genomic_pos = genomic_ac_data.alt_start_i - offset
+            seg_genomic_pos = genomic_ac_data.alt_start_i - offset
 
         genomic_loc, err_msg = self._get_vrs_seq_loc(
             genomic_ac,

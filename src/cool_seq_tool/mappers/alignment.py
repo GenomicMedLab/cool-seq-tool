@@ -68,11 +68,10 @@ class AlignmentMapper:
         # codon. We want to return inter-residue (0-based), so we subtract 1 from this.
         if coordinate_type == CoordinateType.RESIDUE:
             c_pos = (p_start_pos * 3) - 3, p_end_pos * 3
+        elif p_start_pos == p_end_pos:
+            c_pos = ((p_start_pos + 1) * 3) - 3, (p_end_pos + 1) * 3
         else:
-            if p_start_pos == p_end_pos:
-                c_pos = ((p_start_pos + 1) * 3) - 3, (p_end_pos + 1) * 3
-            else:
-                c_pos = ((p_start_pos + 1) * 3) - 3, p_end_pos * 3
+            c_pos = ((p_start_pos + 1) * 3) - 3, p_end_pos * 3
 
         return {
             "c_ac": c_ac,

@@ -58,9 +58,8 @@ class SeqRepoAccess(SeqRepoDataProxy):
             start, end = get_inter_residue_pos(start, end, coordinate_type)
             if start == end:
                 end += 1
-        else:
-            if start is not None and coordinate_type == CoordinateType.RESIDUE:
-                start -= 1
+        elif start is not None and coordinate_type == CoordinateType.RESIDUE:
+            start -= 1
 
         try:
             sequence = self.sr.fetch(ac, start=start, end=end)

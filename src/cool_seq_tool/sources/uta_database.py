@@ -664,11 +664,10 @@ class UtaDatabase:
                     genomic_tx_data.alt_pos_range[0] + pos_change[0],
                     genomic_tx_data.alt_pos_range[1] - pos_change[1],
                 )
+        elif genomic_tx_data.strand == Strand.NEGATIVE:
+            alt_pos_change_range = (pos[1], pos[0])
         else:
-            if genomic_tx_data.strand == Strand.NEGATIVE:
-                alt_pos_change_range = (pos[1], pos[0])
-            else:
-                alt_pos_change_range = pos
+            alt_pos_change_range = pos
 
         return GenomicTxMetadata(
             **genomic_tx_data.model_dump(),
@@ -953,7 +952,7 @@ class ParseResult(UrlLibParseResult):
     def schema(self) -> str | None:
         """Create schema property."""
         path_elems = self.path.split("/")
-        return path_elems[2] if len(path_elems) > 2 else None
+        return path_elems[2] if len(path_elems) > 2 else None  # noqa: PLR2004
 
     @property
     def sanitized_url(self) -> str:
