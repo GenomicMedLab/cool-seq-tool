@@ -14,7 +14,6 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Intended Audience :: Developers",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -22,7 +21,8 @@ classifiers = [
 ]
 requires-python = ">=3.11"
 description = "Common Operation on Lots of Sequences Tool"
-license = {file = "LICENSE"}
+license = "MIT"
+license-files = ["LICENSE"]
 dependencies = [
     "asyncpg",
     "boto3",
@@ -38,7 +38,7 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 dev = [
-    "pre-commit>=4.2.0",
+    "prek>=0.2.23",
     "ipython",
     "ipykernel",
     "psycopg2-binary",
@@ -67,13 +67,6 @@ requires = ["setuptools>=64", "setuptools_scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
-
-# Scanning for namespace packages in the ``src`` directory is true by
-# default in pyproject.toml, so you do NOT need to include the
-# `tool.setuptools.packages.find` if it looks like the following:
-# [tool.setuptools.packages.find]
-# namespaces = true
-# where = ["src"]
 
 [tool.setuptools.package-data]
 "cool_seq_tool.resources" = ["transcript_mapping.tsv"]
