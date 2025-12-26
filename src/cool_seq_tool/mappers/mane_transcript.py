@@ -545,10 +545,9 @@ class ManeTranscript:
                         new_rf,
                     )
                     return False
-            else:
-                if pos_index == 0:
-                    _logger.warning("%s must having start position", ac)
-                    return False
+            elif pos_index == 0:
+                _logger.warning("%s must having start position", ac)
+                return False
         return True
 
     def _validate_references(

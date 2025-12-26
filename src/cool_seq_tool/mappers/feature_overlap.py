@@ -158,14 +158,13 @@ class FeatureOverlap:
             if not re.match(f"^{CHR_PATTERN}$", chromosome):
                 error_msg = "`chromosome` must be 1, ..., 22, X, or Y"
                 raise FeatureOverlapError(error_msg)
+        elif identifier:
+            chromosome = self._get_chr_from_alt_ac(identifier)
+            if identifier.startswith("ga4gh:SQ."):
+                ga4gh_seq_id = identifier
         else:
-            if identifier:
-                chromosome = self._get_chr_from_alt_ac(identifier)
-                if identifier.startswith("ga4gh:SQ."):
-                    ga4gh_seq_id = identifier
-            else:
-                error_msg = "Must provide either `chromosome` or `identifier`"
-                raise FeatureOverlapError(error_msg)
+            error_msg = "Must provide either `chromosome` or `identifier`"
+            raise FeatureOverlapError(error_msg)
 
         # Convert residue to inter-residue
         if coordinate_type == CoordinateType.RESIDUE:
@@ -234,8 +233,8 @@ class FeatureOverlap:
 
         resp = {}
         refget_ac = ga4gh_seq_id.split("ga4gh:")[-1]
-        for gene, group in feature_df.group_by("gene"):
-            gene = gene[0]
+        for gene_l, group in feature_df.group_by("gene"):
+            gene = gene_l[0]
             _gene_overlap_data = [
                 CdsOverlap(
                     cds=_get_seq_loc(
