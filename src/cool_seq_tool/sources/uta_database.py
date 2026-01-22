@@ -573,6 +573,13 @@ class UtaDatabase:
         )
         if not results:
             return None
+        results.sort(
+            key=lambda r: (
+                int(r.alt_ac.split(".")[-1]),
+                r.tx_ac,
+            ),
+            reverse=True,
+        )
         result = results[0]
 
         genomic_tx_data = self.data_from_result(result)
