@@ -577,6 +577,9 @@ class UtaDatabase:
         )
         if not results:
             return None
+
+        # Sort by most recent chromosomal accession if this information is
+        # provided by the user
         result = results[-1] if alt_ac else results[0]
 
         genomic_tx_data = self.data_from_result(result)
