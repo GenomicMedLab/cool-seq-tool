@@ -569,11 +569,15 @@ class UtaDatabase:
             successful
         """
         results = await self.get_tx_exon_aln_v_data(
-            ac, start_pos, end_pos, alt_ac=alt_ac, use_tx_pos=False
+            tx_ac=ac,
+            start_pos=start_pos,
+            end_pos=end_pos,
+            alt_ac=alt_ac,
+            use_tx_pos=False,
         )
         if not results:
             return None
-        result = results[0]
+        result = results[-1] if alt_ac else results[0]
 
         genomic_tx_data = self.data_from_result(result)
         if not genomic_tx_data:

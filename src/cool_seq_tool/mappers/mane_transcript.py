@@ -1374,11 +1374,12 @@ class ManeTranscript:
         mane_transcripts = set()  # Used if getting longest compatible remaining
         for current_mane_data in mane_data:
             mane_c_ac = current_mane_data["RefSeq_nuc"]
+            mane_alt_ac = current_mane_data["GRCh38_chr"]
             mane_transcripts |= {mane_c_ac, current_mane_data["Ensembl_nuc"]}
 
             # GRCh38 -> MANE C
             mane_tx_genomic_data = await self.uta_db.get_mane_c_genomic_data(
-                mane_c_ac, None, start_pos, end_pos
+                ac=mane_c_ac, alt_ac=mane_alt_ac, start_pos=start_pos, end_pos=end_pos
             )
             if not mane_tx_genomic_data:
                 continue
