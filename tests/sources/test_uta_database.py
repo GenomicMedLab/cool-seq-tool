@@ -219,6 +219,12 @@ async def test_mane_c_genomic_data(test_db):
     }
     assert resp == GenomicTxMetadata(**expected_params)
 
+    # Test case where chromosomal accession is not provided
+    resp = await test_db.get_mane_c_genomic_data(
+        "NM_000077.5", None, 21971186, 21971187
+    )
+    assert resp == GenomicTxMetadata(**expected_params)
+
 
 @pytest.mark.asyncio
 async def test_get_genomic_tx_data(test_db, genomic_tx_data):

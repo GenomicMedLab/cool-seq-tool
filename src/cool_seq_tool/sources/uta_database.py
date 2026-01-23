@@ -579,8 +579,7 @@ class UtaDatabase:
         if not results:
             return None
 
-        # Sort by most recent chromosomal accession if this information is
-        # provided by the user
+        # Sort by most recent chromosomal accession
         result = results[-1]
 
         genomic_tx_data = self.data_from_result(result)
