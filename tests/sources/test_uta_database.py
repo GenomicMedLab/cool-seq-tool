@@ -198,6 +198,27 @@ async def test_mane_c_genomic_data(test_db):
     }
     assert resp == GenomicTxMetadata(**expected_params)
 
+    # Test example where sorting of tx_exon_aln_v is needed
+    resp = await test_db.get_mane_c_genomic_data(
+        "NM_000077.5", "NC_000009.12", 21971186, 21971187
+    )
+    expected_params = {
+        "gene": "CDKN2A",
+        "strand": Strand.NEGATIVE,
+        "tx_pos_range": (180, 487),
+        "alt_pos_range": (21970901, 21971208),
+        "alt_aln_method": "splign",
+        "tx_exon_id": 8314723,
+        "alt_exon_id": 8960507,
+        "coding_start_site": 30,
+        "coding_end_site": 501,
+        "pos_change": (21, 285),
+        "alt_pos_change_range": (21971187, 21971186),
+        "tx_ac": "NM_000077.5",
+        "alt_ac": "NC_000009.12",
+    }
+    assert resp == GenomicTxMetadata(**expected_params)
+
 
 @pytest.mark.asyncio
 async def test_get_genomic_tx_data(test_db, genomic_tx_data):

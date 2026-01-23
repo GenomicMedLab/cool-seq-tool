@@ -543,7 +543,8 @@ class UtaDatabase:
         self, ac: str, alt_ac: str | None, start_pos: int, end_pos: int
     ) -> GenomicTxMetadata | None:
         """Get MANE transcript and genomic data. Used when going from g. to MANE c.
-        representation.
+        representation. This function parses queried data from the tx_exon_aln_v
+        table, and sorts the queried data by the most recent genomic build
 
         >>> import asyncio
         >>> from cool_seq_tool.sources import UtaDatabase
@@ -580,7 +581,7 @@ class UtaDatabase:
 
         # Sort by most recent chromosomal accession if this information is
         # provided by the user
-        result = results[-1] if alt_ac else results[0]
+        result = results[-1]
 
         genomic_tx_data = self.data_from_result(result)
         if not genomic_tx_data:
