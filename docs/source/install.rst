@@ -27,25 +27,6 @@ Install Cool-Seq-Tool from `PyPI <https://pypi.org/project/cool-seq-tool/>`_:
    * ``tests`` includes packages for running tests
    * ``docs`` includes packages for writing and building documentation
 
-Set up UTA
-----------
-
-Cool-Seq-Tool requires an available instance of the Universal Transcript Archive (UTA) database. Complete installation instructions (via Docker or a local server) are available at the `UTA GitHub repository <https://github.com/biocommons/uta>`_. For local usage, we recommend the following:
-
-.. long-term, it would be best to move this over to the UTA repo to avoid duplication
-
-.. code-block::
-
-   createuser -U postgres uta_admin
-   createuser -U postgres anonymous
-   createdb -U postgres -O uta_admin uta
-
-   export UTA_VERSION=uta_20241220.pgd.gz  # most recent as of 2025/03/10
-   curl -O https://dl.biocommons.org/uta/$UTA_VERSION
-   gzip -cdq ${UTA_VERSION} | psql -h localhost -U uta_admin --echo-errors --single-transaction -v ON_ERROR_STOP=1 -d uta -p 5432
-
-By default, Cool-Seq-Tool expects to connect to the UTA database via a PostgreSQL connection served local on port 5432, under the PostgreSQL username ``uta_admin`` and the schema ``uta_20241220``.
-
 Set up SeqRepo
 --------------
 
@@ -78,6 +59,50 @@ Try moving data manually with ``sudo``:
    sudo mv /usr/local/share/seqrepo/$SEQREPO_VERSION.* /usr/local/share/seqrepo/$SEQREPO_VERSION
 
 See `mirroring documentation <https://github.com/biocommons/biocommons.seqrepo/blob/main/docs/mirror.rst>`_ on the SeqRepo GitHub repo for instructions and additional troubleshooting.
+
+Set up using Docker
+----------
+
+FUSOR's dependencies can be installed using a Docker container.
+
+.. important::
+
+   This section assumes you have a local
+   `SeqRepo <https://github.com/biocommons/biocommons.seqrepo>`_
+   installed at ``/usr/local/share/seqrepo/2024-12-20``.
+   If you have it installed elsewhere, please add a
+   ``SEQREPO_ROOT_DIR`` environment variable in ``.env.shared``.
+
+   You must download `uta_20241220.pgd.gz` from
+   <https://dl.biocommons.org/uta/> using a web browser and
+   move it to the root of the repository.
+
+   If you're using Docker Desktop, you must go to
+   **Settings → Resources → File sharing** and add
+   ``/usr/local/share/seqrepo`` under the *Virtual file shares*
+   section. Otherwise, you will get the following error::
+
+      OSError: Unable to open SeqRepo directory /usr/local/share/seqrepo/2024-12-20
+
+To build, (re)create, and start containers:
+
+.. code-block:: shell
+
+   docker volume create uta_vol
+   docker compose up
+
+.. tip::
+
+   If you want a clean slate, run ``docker compose down -v`` to remove
+   containers and volumes, then run
+   ``docker compose up --build`` to rebuild and start fresh containers.
+
+In Docker Desktop, you should see the following for a successful setup:
+
+.. figure:: ../../docker-desktop-container.png
+   :alt: Docker Desktop Container
+   :align: center
+
 
 Check data availability
 -----------------------
