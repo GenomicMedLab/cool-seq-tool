@@ -61,11 +61,13 @@ Try moving data manually with ``sudo``:
 See `mirroring documentation <https://github.com/biocommons/biocommons.seqrepo/blob/main/docs/mirror.rst>`_ on the SeqRepo GitHub repo for instructions and additional troubleshooting.
 
 Set up using Docker
-----------
+-------------------
 
-FUSOR's dependencies can be installed using a Docker container.
+Cool-Seq-Tool's dependencies can be installed using a Docker container. We only provide guidance on setting up external dependencies using Docker.
 
 .. important::
+
+   Please see :ref:`setup-seqrepo` to follow the SeqRepo setup instructions.
 
    This section assumes you have a local
    `SeqRepo <https://github.com/biocommons/biocommons.seqrepo>`_
