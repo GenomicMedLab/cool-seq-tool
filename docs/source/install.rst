@@ -67,13 +67,12 @@ Cool-Seq-Tool's dependencies can be installed using a Docker container. We only 
 
 .. important::
 
-   Please see :ref:`setup-seqrepo` to follow the SeqRepo setup instructions.
-
    This section assumes you have a local
    `SeqRepo <https://github.com/biocommons/biocommons.seqrepo>`_
    installed at ``/usr/local/share/seqrepo/2024-12-20``.
    If you have it installed elsewhere, please add a
    ``SEQREPO_ROOT_DIR`` environment variable in ``.env.shared``.
+   See the `SeqRepo setup section <#set-up-seqrepo>`_ for additional information.
 
    You must download `uta_20241220.pgd.gz` from
    <https://dl.biocommons.org/uta/> using a web browser and
