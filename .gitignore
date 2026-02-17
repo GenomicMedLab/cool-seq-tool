@@ -138,3 +138,6 @@ tpm3.fasta
 
 # VSCode
 .vscode
+
+# UTA download
+uta_*pgd.gz

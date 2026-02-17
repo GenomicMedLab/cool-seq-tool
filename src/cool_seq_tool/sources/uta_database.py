@@ -27,7 +27,7 @@ from cool_seq_tool.schemas import (
 UTADatabaseType = TypeVar("UTADatabaseType", bound="UtaDatabase")
 
 UTA_DB_URL = environ.get(
-    "UTA_DB_URL", "postgresql://uta_admin:uta@localhost:5432/uta/uta_20241220"
+    "UTA_DB_URL", "postgresql://anonymous@localhost:5432/uta/uta_20241220"
 )
 
 _logger = logging.getLogger(__name__)
