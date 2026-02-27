@@ -193,7 +193,7 @@ class TranscriptMappings:
             gene_symbol = self.ensembl_protein_to_gene_symbol.get(q)
         return gene_symbol
 
-    def get_gene_symbol_from_refeq_protein(self, q: str) -> str | None:
+    def get_gene_symbol_from_refseq_protein(self, q: str) -> str | None:
         """Return the gene symbol for a Refseq Protein.
 
         :param q: RefSeq protein accession
