@@ -234,7 +234,7 @@ class ManeTranscript:
 
         query = f"""
             SELECT DISTINCT alt_ac
-            FROM {self.uta_db.schema}.tx_exon_aln_v
+            FROM {self.uta_db.schema}.tx_exon_aln_mv
             WHERE tx_ac = '{genomic_tx_data.tx_ac}';
             """  # noqa: S608
         nc_acs = await self.uta_db.execute_query(query)
@@ -462,15 +462,15 @@ class ManeTranscript:
         :param ensembl_c_ac: Ensembl transcript accession
         :param alt_ac: Genomic accession
         :param found_result: ``True`` if found result, so do not need to query
-            tx_exon_aln_v table. This is because the user did not need to liftover.
-            ``False`` if need to get result from tx_exon_aln_v table.
+            tx_exon_aln_mv table. This is because the user did not need to liftover.
+            ``False`` if need to get result from tx_exon_aln_mv table.
         :return: Transcript data
         """
         if found_result:
             tx_g_pos = g.alt_pos_range
             tx_pos_range = g.tx_pos_range
         else:
-            result = await self.uta_db.get_tx_exon_aln_v_data(
+            result = await self.uta_db.get_tx_exon_aln_data(
                 refseq_c_ac,
                 g.alt_pos_change_range[0],
                 g.alt_pos_change_range[1],
@@ -820,7 +820,7 @@ class ManeTranscript:
             if alt_ac is None:
                 alt_ac = row["alt_ac"]
 
-            found_tx_exon_aln_v_result = False
+            found_tx_exon_aln_result = False
             if is_p_or_c_start_anno:
                 # Go from c -> g annotation (liftover as well)
                 g = await self._c_to_g(tx_ac, (c_start_pos, c_end_pos))
@@ -832,7 +832,7 @@ class ManeTranscript:
                     annotation_layer=AnnotationLayer.GENOMIC,
                     alt_ac=alt_ac,
                 )
-                found_tx_exon_aln_v_result = True
+                found_tx_exon_aln_result = True
             if not g:
                 continue
 
@@ -842,7 +842,7 @@ class ManeTranscript:
                 g=g,
                 refseq_c_ac=tx_ac,
                 status=TranscriptPriority.LONGEST_COMPATIBLE_REMAINING,
-                found_result=found_tx_exon_aln_v_result,
+                found_result=found_tx_exon_aln_result,
             )
 
             if not lcr_c_data:

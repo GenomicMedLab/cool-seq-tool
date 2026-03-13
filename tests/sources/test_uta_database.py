@@ -14,8 +14,8 @@ from cool_seq_tool.sources.uta_database import (
 
 
 @pytest.fixture(scope="module")
-def tx_exon_aln_v_data():
-    """Create test fixture for tx_aln_v_data test."""
+def tx_exon_aln_data():
+    """Create test fixture for tx_exon_aln_data test."""
     return TxExonAlnData(
         hgnc="BRAF",
         ord=14,
@@ -121,19 +121,19 @@ async def test_get_ac_descr(test_db):
 
 
 @pytest.mark.asyncio
-async def test_get_tx_exon_aln_v_data(test_db, tx_exon_aln_v_data):
-    """Test that get_tx_exon_aln_v_data"""
-    resp = await test_db.get_tx_exon_aln_v_data(
+async def test_get_tx_exon_aln_data(test_db, tx_exon_aln_data):
+    """Test that get_tx_exon_aln_data"""
+    resp = await test_db.get_tx_exon_aln_data(
         "NM_004333.4", 140453136, 140453136, alt_ac="NC_000007.13", use_tx_pos=False
     )
-    assert resp == [tx_exon_aln_v_data]
+    assert resp == [tx_exon_aln_data]
 
-    resp = await test_db.get_tx_exon_aln_v_data(
+    resp = await test_db.get_tx_exon_aln_data(
         "NM_004333.4", 140453136, 140453136, alt_ac=None, use_tx_pos=False
     )
-    assert resp == [tx_exon_aln_v_data]
+    assert resp == [tx_exon_aln_data]
 
-    resp = await test_db.get_tx_exon_aln_v_data(
+    resp = await test_db.get_tx_exon_aln_data(
         "NM_004333.4", 1860, 1860, alt_ac=None, use_tx_pos=True
     )
     assert resp == [
@@ -169,9 +169,9 @@ async def test_get_tx_exon_aln_v_data(test_db, tx_exon_aln_v_data):
 
 
 @pytest.mark.asyncio
-async def test_data_from_result(test_db, tx_exon_aln_v_data, data_from_result):
+async def test_data_from_result(test_db, tx_exon_aln_data, data_from_result):
     """Test that data_from_result works correctly."""
-    resp = test_db.data_from_result(tx_exon_aln_v_data)
+    resp = test_db.data_from_result(tx_exon_aln_data)
     assert resp == data_from_result
 
 
@@ -198,7 +198,7 @@ async def test_mane_c_genomic_data(test_db):
     }
     assert resp == GenomicTxMetadata(**expected_params)
 
-    # Test example where sorting of tx_exon_aln_v is needed
+    # Test example where sorting of tx_exon_aln_mv is needed
     resp = await test_db.get_mane_c_genomic_data(
         "NM_000077.5", "NC_000009.12", 21971186, 21971187
     )

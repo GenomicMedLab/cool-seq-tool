@@ -44,7 +44,7 @@ class DbConnectionArgs(BaseModelForbidExtra):
 
 
 class GenomicAlnData(BaseModelForbidExtra):
-    """Represent genomic alignment data from UTA tx_exon_aln_v view"""
+    """Represent genomic alignment data from UTA tx_exon_aln_mv view"""
 
     hgnc: StrictStr = Field(..., description="HGNC gene symbol.")
     ord: StrictInt = Field(..., description="Exon number. 0-based.")
@@ -61,7 +61,7 @@ class GenomicAlnData(BaseModelForbidExtra):
 
 
 class TxExonAlnData(GenomicAlnData):
-    """Represent data from UTA tx_exon_aln_v view"""
+    """Represent data from UTA tx_exon_aln_mv view"""
 
     tx_ac: StrictStr = Field(..., description="Transcript accession.")
     tx_start_i: StrictInt = Field(
@@ -285,7 +285,7 @@ class UtaDatabase:
         query = f"""
             SELECT T.hgnc, T.alt_ac, T.alt_start_i, T.alt_end_i, T.alt_strand, T.ord
             FROM {self.schema}._cds_exons_fp_v as C
-            JOIN {self.schema}.tx_exon_aln_v as T ON T.tx_ac = C.tx_ac
+            JOIN {self.schema}.tx_exon_aln_mv as T ON T.tx_ac = C.tx_ac
             WHERE T.tx_ac = '{tx_ac}'
             {gene_query}
             AND {tx_exon_start} BETWEEN T.tx_start_i AND T.tx_end_i
@@ -394,7 +394,7 @@ class UtaDatabase:
         return result[0][0]
 
     async def transcript_exists(self, transcript: str) -> bool:
-        """Return whether or not a transcript exists in the UTA ``tx_exon_aln_v`` table
+        """Return whether or not a transcript exists in the UTA ``tx_exon_aln_mv`` table
 
         :param transcript: A transcript accession
         :return: ``True`` if transcript exists in UTA, ``False`` if not
@@ -402,7 +402,7 @@ class UtaDatabase:
         query = f"""
             SELECT EXISTS(
                 SELECT tx_ac
-                FROM {self.schema}.tx_exon_aln_v
+                FROM {self.schema}.tx_exon_aln_mv
                 WHERE tx_ac = '{transcript}'
             );
             """  # noqa: S608
@@ -439,7 +439,7 @@ class UtaDatabase:
             result = None
         return result
 
-    async def get_tx_exon_aln_v_data(
+    async def get_tx_exon_aln_data(
         self,
         tx_ac: str,
         start_pos: int,
@@ -448,7 +448,9 @@ class UtaDatabase:
         use_tx_pos: bool = True,
         like_tx_ac: bool = False,
     ) -> list[TxExonAlnData]:
-        """Return queried data from tx_exon_aln_v table.
+        """Get alignments between exons and reference sequences.
+
+        This is a direct query against the UTA ``tx_exon_aln_mv`` view.
 
         :param tx_ac: accession on c. coordinate
         :param start_pos: Start position change
@@ -491,7 +493,7 @@ class UtaDatabase:
         query = f"""
             SELECT hgnc, tx_ac, tx_start_i, tx_end_i, alt_ac, alt_start_i,
                 alt_end_i, alt_strand, alt_aln_method, ord, tx_exon_id, alt_exon_id
-            FROM {self.schema}.tx_exon_aln_v
+            FROM {self.schema}.tx_exon_aln_mv
             {tx_q}
             {alt_ac_q}
             {aln_method}
@@ -543,7 +545,7 @@ class UtaDatabase:
         self, ac: str, alt_ac: str | None, start_pos: int, end_pos: int
     ) -> GenomicTxMetadata | None:
         """Get MANE transcript and genomic data. Used when going from g. to MANE c.
-        representation. This function parses queried data from the tx_exon_aln_v
+        representation. This function parses queried data from the tx_exon_aln_mv
         table, and sorts the queried data by the most recent genomic build
 
         >>> import asyncio
@@ -569,7 +571,7 @@ class UtaDatabase:
         :return: Metadata for MANE genomic and transcript accessions results if
             successful
         """
-        results = await self.get_tx_exon_aln_v_data(
+        results = await self.get_tx_exon_aln_data(
             tx_ac=ac,
             start_pos=start_pos,
             end_pos=end_pos,
@@ -636,7 +638,7 @@ class UtaDatabase:
             If ``alt_ac`` is provided, it will return the associated assembly.
         :return: Metadata for genomic and transcript accessions
         """
-        results = await self.get_tx_exon_aln_v_data(
+        results = await self.get_tx_exon_aln_data(
             tx_ac,
             pos[0],
             pos[1],
@@ -816,7 +818,7 @@ class UtaDatabase:
             SELECT AA.pro_ac, AA.tx_ac, ALIGN.alt_ac, T.cds_start_i
             FROM {self.schema}.associated_accessions as AA
             JOIN {self.schema}.transcript as T ON T.ac = AA.tx_ac
-            JOIN {self.schema}.tx_exon_aln_v as ALIGN ON T.ac = ALIGN.tx_ac
+            JOIN {self.schema}.tx_exon_aln_mv as ALIGN ON T.ac = ALIGN.tx_ac
             WHERE ALIGN.alt_aln_method = 'splign'
             {gene_cond}
             {alt_ac_cond}
@@ -903,7 +905,7 @@ class UtaDatabase:
         """
         query = f"""
                SELECT distinct tx_ac
-               FROM {self.schema}.tx_exon_aln_v
+               FROM {self.schema}.tx_exon_aln_mv
                WHERE alt_ac = '{alt_ac}'
                AND {g_pos} BETWEEN alt_start_i AND alt_end_i
                AND tx_ac LIKE 'NM_%';
