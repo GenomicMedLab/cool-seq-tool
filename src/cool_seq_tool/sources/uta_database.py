@@ -394,10 +394,10 @@ class UtaDatabase:
         return result[0][0]
 
     async def transcript_exists(self, transcript: str) -> bool:
-        """Return whether or not a transcript exists in the UTA tx_exon_aln_v table
+        """Return whether or not a transcript exists in the UTA ``tx_exon_aln_v`` table
 
         :param transcript: A transcript accession
-        :return ``True`` if transcript exists in UTA, ``False`` if not
+        :return: ``True`` if transcript exists in UTA, ``False`` if not
         """
         query = f"""
             SELECT EXISTS(
