@@ -639,7 +639,7 @@ class ExonGenomicCoordsMapper:
         if genomic_ac:
             query = f"""
                 SELECT DISTINCT ord, tx_start_i, tx_end_i, alt_start_i, alt_end_i, alt_strand
-                FROM {self.uta_db.schema}.tx_exon_aln_v
+                FROM {self.uta_db.schema}.tx_exon_aln_mv
                 WHERE tx_ac = '{tx_ac}'
                 AND alt_aln_method = 'splign'
                 AND alt_ac = '{genomic_ac}'
@@ -648,7 +648,7 @@ class ExonGenomicCoordsMapper:
         else:
             query = f"""
                 SELECT DISTINCT ord, tx_start_i, tx_end_i, alt_start_i, alt_end_i, alt_strand
-                FROM {self.uta_db.schema}.tx_exon_aln_v as t
+                FROM {self.uta_db.schema}.tx_exon_aln_mv as t
                 INNER JOIN {self.uta_db.schema}._seq_anno_most_recent as s
                 ON t.alt_ac = s.ac
                 WHERE s.descr = ''
@@ -890,7 +890,7 @@ class ExonGenomicCoordsMapper:
                     # Run if gene is for a noncoding transcript
                     query = f"""
                         SELECT DISTINCT tx_ac
-                        FROM {self.uta_db.schema}.tx_exon_aln_v
+                        FROM {self.uta_db.schema}.tx_exon_aln_mv
                         WHERE hgnc = '{gene}'
                         AND alt_ac = '{genomic_ac}'
                         """  # noqa: S608
@@ -955,7 +955,7 @@ class ExonGenomicCoordsMapper:
             )
         else:
             is_exonic = True
-            exon_data = await self.uta_db.get_tx_exon_aln_v_data(
+            exon_data = await self.uta_db.get_tx_exon_aln_data(
                 transcript,
                 genomic_pos,
                 genomic_pos,
@@ -1035,7 +1035,7 @@ class ExonGenomicCoordsMapper:
                 SELECT
                 MIN(alt_start_i) AS min_start,
                 MAX(alt_end_i) AS max_end
-                FROM {self.uta_db.schema}.tx_exon_aln_v
+                FROM {self.uta_db.schema}.tx_exon_aln_mv
                 WHERE tx_ac = '{tx_ac}'
                 AND alt_ac = '{genomic_ac}'
             )
@@ -1060,7 +1060,7 @@ class ExonGenomicCoordsMapper:
         """
         query = f"""
             SELECT DISTINCT hgnc
-            FROM {self.uta_db.schema}.tx_exon_aln_v
+            FROM {self.uta_db.schema}.tx_exon_aln_mv
             WHERE tx_ac = '{tx_ac}'
             ORDER BY hgnc
             LIMIT 1;
