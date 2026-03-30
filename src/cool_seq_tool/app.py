@@ -2,10 +2,10 @@
 data handler and mapping resources for straightforward access.
 """
 
-import logging
 from pathlib import Path
 
 from biocommons.seqrepo import SeqRepo
+from psycopg_pool import AsyncConnectionPool
 
 from cool_seq_tool.handlers.seqrepo_access import SEQREPO_ROOT_DIR, SeqRepoAccess
 from cool_seq_tool.mappers import (
@@ -16,9 +16,7 @@ from cool_seq_tool.mappers import (
 )
 from cool_seq_tool.sources.mane_transcript_mappings import ManeTranscriptMappings
 from cool_seq_tool.sources.transcript_mappings import TranscriptMappings
-from cool_seq_tool.sources.uta_database import UTA_DB_URL, UtaDatabase
-
-_logger = logging.getLogger(__name__)
+from cool_seq_tool.sources.uta_database import UtaDatabase
 
 
 class CoolSeqTool:
@@ -40,7 +38,7 @@ class CoolSeqTool:
         transcript_file_path: Path | None = None,
         lrg_refseqgene_path: Path | None = None,
         mane_data_path: Path | None = None,
-        db_url: str = UTA_DB_URL,
+        uta_connection_pool: AsyncConnectionPool | None = None,
         sr: SeqRepo | None = None,
         force_local_files: bool = False,
     ) -> None:
@@ -75,8 +73,7 @@ class CoolSeqTool:
         :param transcript_file_path: The path to ``transcript_mapping.tsv``
         :param lrg_refseqgene_path: The path to the LRG_RefSeqGene file
         :param mane_data_path: Path to RefSeq MANE summary data
-        :param db_url: PostgreSQL connection URL
-            Format: ``driver://user:password@host/database/schema``
+        :param uta_connection_pool: pyscopg connection pool to UTA instance
         :param sr: SeqRepo instance. If this is not provided, will create a new instance
         :param force_local_files: if ``True``, don't check for or try to acquire latest
             versions of static data files -- just use most recently available, if any
@@ -92,7 +89,7 @@ class CoolSeqTool:
         self.mane_transcript_mappings = ManeTranscriptMappings(
             mane_data_path=mane_data_path, from_local=force_local_files
         )
-        self.uta_db = UtaDatabase(db_url=db_url)
+        self.uta_db = UtaDatabase(uta_connection_pool)
         self.alignment_mapper = AlignmentMapper(
             self.seqrepo_access, self.transcript_mappings, self.uta_db
         )

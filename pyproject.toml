@@ -24,7 +24,7 @@ description = "Common Operation on Lots of Sequences Tool"
 license = "MIT"
 license-files = ["LICENSE"]
 dependencies = [
-    "asyncpg",
+    "psycopg",
     "boto3",
     "agct >= 0.2.0rc1",
     "polars ~= 1.0",
@@ -37,6 +37,9 @@ dependencies = [
 dynamic = ["version"]
 
 [project.optional-dependencies]
+pg_binary = [
+    "psycopg[binary, pool]",
+]
 dev = [
     "prek>=0.2.23",
     "ipython",
