@@ -970,7 +970,7 @@ async def create_uta_connection_pool(
 
     1. If the ``UTA_DB_PROD`` environment variable is set, credentials and schema
        are retrieved from a secret manager via ``_get_secret_args()``.
-    2. Otherwise, explicitly provided ``db_uri`` and ``uta_schema`` arguments are used.
+    2. Otherwise, any explicitly provided ``db_uri`` and ``uta_schema`` arguments are used.
     3. If not provided, fall back to environment variables (``UTA_DB_URI``,
        ``UTA_DB_SCHEMA``), then to default constants.
 
@@ -999,11 +999,18 @@ async def create_uta_connection_pool(
         ParseResult(urlparse(db_uri)).sanitized_url,
         uta_schema,
     )
-    dsn = f"{db_uri}?options=-csearch_path%3D{uta_schema},public"
+    separator = "&" if "?" in db_uri else "?"
+    dsn = f"{db_uri}{separator}options=-csearch_path%3D{uta_schema},public"
     pool = AsyncConnectionPool(conninfo=dsn, open=False)
     await pool.open()
-    async with pool.connection() as conn:
-        await UtaRepository(conn).create_genomic_table()
+    try:
+        async with pool.connection() as conn:
+            await UtaRepository(conn).create_genomic_table()
+    # catch all exceptions, this is probably a critical error, it's important to
+    # close the pool first
+    except:
+        await pool.close()
+        raise
     return pool
 
 
