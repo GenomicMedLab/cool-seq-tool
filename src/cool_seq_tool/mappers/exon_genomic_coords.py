@@ -647,7 +647,7 @@ class ExonGenomicCoordsMapper:
                 WHERE tx_ac = %(tx_ac)s
                 AND alt_aln_method = 'splign'
                 AND alt_ac = %(genomic_ac)s
-                ORDER BY ord ASC
+                ORDER BY ord ASC;
                 """
         else:
             query = """
@@ -656,10 +656,10 @@ class ExonGenomicCoordsMapper:
                 INNER JOIN _seq_anno_most_recent as s
                 ON t.alt_ac = s.ac
                 WHERE s.descr = ''
-                AND t.tx_ac = %{tx_ac}s
+                AND t.tx_ac = %(tx_ac)s
                 AND t.alt_aln_method = 'splign'
-                AND t.alt_ac like 'NC_000%'
-                ORDER BY ord ASC
+                AND t.alt_ac like 'NC_000%%'
+                ORDER BY ord ASC;
                 """
 
         async with self.uta_db.repository() as uta:
@@ -667,7 +667,17 @@ class ExonGenomicCoordsMapper:
                 query, {"tx_ac": tx_ac, "genomic_ac": genomic_ac}
             )
             results = await cursor.fetchall()
-        return [_ExonCoord(**r) for r in results]
+        return [
+            _ExonCoord(
+                ord=r[0],
+                tx_start_i=r[1],
+                tx_end_i=r[2],
+                alt_start_i=r[3],
+                alt_end_i=r[4],
+                alt_strand=r[5],
+            )
+            for r in results
+        ]
 
     async def _get_genomic_aln_coords(
         self,
@@ -904,7 +914,7 @@ class ExonGenomicCoordsMapper:
                         SELECT DISTINCT tx_ac
                         FROM tx_exon_aln_mv
                         WHERE hgnc = %(gene)s
-                        AND alt_ac = %(genomic_ac)s
+                        AND alt_ac = %(genomic_ac)s;
                         """
                     async with self.uta_db.repository() as uta:
                         cursor = await uta.execute_query(
@@ -1057,7 +1067,7 @@ class ExonGenomicCoordsMapper:
                 AND alt_ac = %(genomic_ac)s
             )
             SELECT * FROM tx_boundaries
-            WHERE %(pos)s between (tx_boundaries.min_start - 150) and (tx_boundaries.max_end + 150)
+            WHERE %(pos)s between (tx_boundaries.min_start - 150) and (tx_boundaries.max_end + 150);
             """
         async with self.uta_db.repository() as uta:
             cursor = await uta.execute_query(
@@ -1087,7 +1097,7 @@ class ExonGenomicCoordsMapper:
             LIMIT 1;
             """
         async with self.uta_db.repository() as uta:
-            cursor = await uta.execute_query(query)
+            cursor = await uta.execute_query(query, {"tx_ac": tx_ac})
             result = await cursor.fetchone()
         if not result:
             return None, f"No gene(s) found given {tx_ac}"

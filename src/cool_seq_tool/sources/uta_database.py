@@ -1006,12 +1006,16 @@ async def create_uta_connection_pool(
     try:
         async with pool.connection() as conn:
             await UtaRepository(conn).create_genomic_table()
-    # catch all exceptions, this is probably a critical error, it's important to
+    # catch all exceptions -- this is probably a critical error, it's good to
     # close the pool first
     except:
         await pool.close()
         raise
     return pool
+
+
+class ClosedUtaConnectionError(Exception):
+    """Raise for attempts to access a UTA connection when it's been closed/deleted"""
 
 
 class UtaDatabase:
@@ -1021,19 +1025,13 @@ class UtaDatabase:
     ``UtaRepository`` instances bound to checked-out connections.
     """
 
-    def __init__(self, pool: AsyncConnectionPool | None = None) -> None:
+    def __init__(self, pool: AsyncConnectionPool) -> None:
         """Initialize access wrapper.
 
         :param pool: Existing async connection pool to use. If omitted, a default
             pool is created lazily on first use.
         """
         self._connection_pool = pool
-
-    async def open(self) -> None:
-        """Initialize connection"""
-        if self._connection_pool is None:
-            # TODO not sure i like this here
-            self._connection_pool = await create_uta_connection_pool()
 
     @asynccontextmanager
     async def repository(self) -> AsyncIterator[UtaRepository]:
@@ -1042,9 +1040,11 @@ class UtaDatabase:
         If no pool has been provided yet, a default one is created on first use.
 
         :yield: Repository bound to an active pooled connection
+        :raise ClosedUtaConnectionError: if connection associated w/ this instance is closed
+            or nullified
         """
-        await self.open()
-
+        if self._connection_pool is None:
+            raise ClosedUtaConnectionError
         async with self._connection_pool.connection() as conn:
             yield UtaRepository(conn)
 
@@ -1056,3 +1056,53 @@ class UtaDatabase:
 
         await self._connection_pool.close()
         self._connection_pool = None
+
+
+class LazyUtaDatabase(UtaDatabase):
+    """UTA access wrapper with lazy connection pool initialization.
+
+    This variant defers creation of the underlying connection pool until first use.
+    It exists primarily for backward compatibility with earlier APIs that did not
+    require explicit pool construction.
+
+    Because configuration is resolved at runtime (via environment variables or
+    defaults), this class can introduce implicit behavior and is not recommended
+    for applications that require explicit control over database connections.
+    """
+
+    def __init__(self, pool: AsyncConnectionPool | None = None) -> None:
+        """Initialize the lazy access wrapper.
+
+        :param pool: Optional existing async connection pool. If not provided,
+            a pool will be created on first use using environment variables
+            or default configuration.
+        """
+        if pool is None:
+            _logger.info(
+                "LazyUtaDatabase initialized without a connection pool; "
+                "a pool will be created on first use from environment/default settings."
+            )
+        self._connection_pool = pool
+
+    async def open(self) -> None:
+        """Ensure that a connection pool has been initialized.
+
+        If no pool is currently set, one is created using default configuration.
+        """
+        if self._connection_pool is None:
+            _logger.debug("Creating UTA connection pool lazily on first use")
+            self._connection_pool = await create_uta_connection_pool()
+
+    @asynccontextmanager
+    async def repository(self) -> AsyncIterator[UtaRepository]:
+        """Yield a repository backed by a pooled UTA connection.
+
+        This method ensures that a connection pool exists, creating one if
+        necessary, and then yields a ``UtaRepository`` bound to a checked-out
+        connection.
+
+        :yield: Repository bound to an active pooled connection
+        """
+        await self.open()
+        async with self._connection_pool.connection() as conn:
+            yield UtaRepository(conn)

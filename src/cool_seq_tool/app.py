@@ -16,7 +16,7 @@ from cool_seq_tool.mappers import (
 )
 from cool_seq_tool.sources.mane_transcript_mappings import ManeTranscriptMappings
 from cool_seq_tool.sources.transcript_mappings import TranscriptMappings
-from cool_seq_tool.sources.uta_database import UtaDatabase
+from cool_seq_tool.sources.uta_database import LazyUtaDatabase, UtaDatabase
 
 
 class CoolSeqTool:
@@ -73,7 +73,10 @@ class CoolSeqTool:
         :param transcript_file_path: The path to ``transcript_mapping.tsv``
         :param lrg_refseqgene_path: The path to the LRG_RefSeqGene file
         :param mane_data_path: Path to RefSeq MANE summary data
-        :param uta_connection_pool: pyscopg connection pool to UTA instance
+        :param uta_connection_pool: pyscopg connection pool to UTA instance. If not
+            provided, a lazy UTA connection will be used, meaning the connection won't
+            be initiated until the first attempted UTA query, and will use environment
+            configs/library defaults
         :param sr: SeqRepo instance. If this is not provided, will create a new instance
         :param force_local_files: if ``True``, don't check for or try to acquire latest
             versions of static data files -- just use most recently available, if any
@@ -89,7 +92,10 @@ class CoolSeqTool:
         self.mane_transcript_mappings = ManeTranscriptMappings(
             mane_data_path=mane_data_path, from_local=force_local_files
         )
-        self.uta_db = UtaDatabase(uta_connection_pool)
+        if uta_connection_pool:
+            self.uta_db = UtaDatabase(uta_connection_pool)
+        else:
+            self.uta_db = LazyUtaDatabase()
         self.alignment_mapper = AlignmentMapper(
             self.seqrepo_access, self.transcript_mappings, self.uta_db
         )
