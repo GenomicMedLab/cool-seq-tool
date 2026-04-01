@@ -215,11 +215,7 @@ class UtaRepository:
         row = await cur.fetchone()
 
         if not row:
-            msg = (
-                f"Unable to find a result where {tx_ac} has transcript "
-                f"coordinates {tx_exon_start} and {tx_exon_end} between "
-                f"an exon's start and end coordinates"
-            )
+            msg = f"Unable to find a result where {tx_ac} has transcript coordinates ({tx_exon_start=}, {tx_exon_end=}) between an exon's start and end coordinates on {gene=}"
             _logger.warning(msg)
             raise NoMatchingAlignmentError(msg)
 

@@ -1671,9 +1671,7 @@ async def test_invalid(test_egc_mapper, caplog):
     )
     genomic_tx_seg_service_checks(resp, is_valid=False)
     assert resp.errors == [
-        "Unable to find a result where NM_152263.3 has transcript coordinates"
-        " 0 and 234 between an exon's start and end coordinates on gene "
-        "NTKR1"
+        "Unable to find a result where NM_152263.3 has transcript coordinates (tx_exon_start=0, tx_exon_end=234) between an exon's start and end coordinates on gene='NTKR1'"
     ]
 
     # No exons given
