@@ -9,8 +9,8 @@ In an asyncio runtime:
     ... )
     >>> pool = await create_uta_connection_pool()
     >>> uta_db = UtaDatabase(pool)
-    >>> async with uta_db.repository() as repo:
-    ...     braf_exists = await repo.gene_exists("BRAF")
+    >>> async with uta_db.repository() as uta:
+    ...     braf_exists = await uta.gene_exists("BRAF")
     >>> braf_exists
     True
 
@@ -355,8 +355,8 @@ class UtaRepository:
 
         This is typically available only for accessions from older (pre-GRCh38) builds.
 
-        >>> async with uta.repository() as repo:
-        ...     result = await repo.get_ac_descr("NC_000001.10")
+        >>> async with uta.repository() as uta:
+        ...     result = await uta.get_ac_descr("NC_000001.10")
         >>> result
         'Homo sapiens chromosome 1, GRCh37.p13 Primary Assembly'
 
@@ -507,8 +507,8 @@ class UtaRepository:
         representation. This function parses queried data from the tx_exon_aln_mv
         table, and sorts the queried data by the most recent genomic build
 
-        >>> async with uta_db.repository() as repo:
-        ...     result = await repo.get_mane_c_genomic_data(
+        >>> async with uta_db.repository() as uta:
+        ...     result = await uta.get_mane_c_genomic_data(
         ...         "NM_004333.6",
         ...         None,
         ...         140753335,
@@ -665,8 +665,8 @@ class UtaRepository:
     ) -> list[str] | None:
         """Get gene(s) within the provided coordinate range
 
-        >>> async with uta_db.repository() as repo:
-        ...     result = await repo.get_gene_from_ac("NC_000017.11", 43044296, 43045802)
+        >>> async with uta_db.repository() as uta:
+        ...     result = await uta.get_gene_from_ac("NC_000017.11", 43044296, 43045802)
         >>> result
         ['BRCA1']
 
@@ -793,8 +793,8 @@ class UtaRepository:
     async def get_chr_assembly(self, ac: str) -> tuple[str, Assembly] | None:
         """Get chromosome and assembly for NC accession if not in GRCh38.
 
-        >>> async with uta_db.repository() as repo:
-        ...     result = await repo.get_chr_assembly("NC_000007.13")
+        >>> async with uta_db.repository() as uta:
+        ...     result = await uta.get_chr_assembly("NC_000007.13")
         >>> result
         ('chr7', <Assembly.GRCH37: 'GRCh37'>)
 
@@ -871,7 +871,7 @@ class UtaRepository:
 class ParseResult(UrlLibParseResult):
     """Subclass of url.ParseResult that adds database and schema methods, and provides stringification.
 
-    Source: https://github.com/biocommons/hgvs
+    Inspired by: https://github.com/biocommons/hgvs
     """
 
     def __new__(cls, pr):  # noqa: ANN001, ANN204
@@ -1025,6 +1025,7 @@ class UtaDatabase:
     async def open(self) -> None:
         """Initialize connection"""
         if self._connection_pool is None:
+            # TODO not sure i like this here
             self._connection_pool = await create_uta_connection_pool()
 
     @asynccontextmanager

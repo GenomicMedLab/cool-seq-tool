@@ -48,7 +48,8 @@ class AlignmentMapper:
         * Warning, if unable to translate to cDNA representation. Else ``None``
         """
         # Get cDNA accession
-        temp_c_ac = await self.uta_db.p_to_c_ac(p_ac)
+        async with self.uta_db.repository() as uta:
+            temp_c_ac = await uta.p_to_c_ac(p_ac)
         if temp_c_ac:
             c_ac = temp_c_ac[-1]
         else:
@@ -89,7 +90,8 @@ class AlignmentMapper:
             - CDS start site if found. Else ``None``
             - Warning, if unable to get CDS start. Else ``None``
         """
-        cds_start_end = await self.uta_db.get_cds_start_end(c_ac)
+        async with self.uta_db.repository() as uta:
+            cds_start_end = await uta.get_cds_start_end(c_ac)
         if not cds_start_end:
             cds_start = None
             warning = f"Accession {c_ac} not found in UTA db"
@@ -149,12 +151,13 @@ class AlignmentMapper:
             c_start_pos -= 1
 
         # Get aligned genomic and transcript data
-        genomic_tx_data = await self.uta_db.get_genomic_tx_data(
-            c_ac,
-            (c_start_pos + cds_start, c_end_pos + cds_start),
-            AnnotationLayer.CDNA,
-            target_genome_assembly=target_genome_assembly,
-        )
+        async with self.uta_db.repository() as uta:
+            genomic_tx_data = await uta.get_genomic_tx_data(
+                c_ac,
+                (c_start_pos + cds_start, c_end_pos + cds_start),
+                AnnotationLayer.CDNA,
+                target_genome_assembly=target_genome_assembly,
+            )
 
         if not genomic_tx_data:
             warning = (

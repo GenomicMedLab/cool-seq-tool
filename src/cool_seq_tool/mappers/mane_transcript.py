@@ -164,7 +164,8 @@ class ManeTranscript:
         :return: [cDNA transcript accession, [cDNA pos start, cDNA pos end]]
         """
         # TODO: Check version mappings 1 to 1 relationship
-        temp_ac = await self.uta_db.p_to_c_ac(ac)
+        async with self.uta_db.repository() as uta:
+            temp_ac = await uta.p_to_c_ac(ac)
         if temp_ac:
             ac = temp_ac[-1]
         else:
@@ -209,7 +210,8 @@ class ManeTranscript:
             temp_ac = ac
 
         # c. coordinate does not contain cds start, so we need to add it
-        cds_start_end = await self.uta_db.get_cds_start_end(temp_ac)
+        async with self.uta_db.repository() as uta:
+            cds_start_end = await uta.get_cds_start_end(temp_ac)
         if not cds_start_end:
             _logger.warning("Accession %s not found in UTA", temp_ac)
             return None
@@ -226,18 +228,22 @@ class ManeTranscript:
         :param genomic_tx_data: Metadata for genomic and transcript accessions. This
             will be mutated in-place if not GRCh38 assembly.
         """
-        descr = await self.uta_db.get_chr_assembly(genomic_tx_data.alt_ac)
+        async with self.uta_db.repository() as uta:
+            descr = await uta.get_chr_assembly(genomic_tx_data.alt_ac)
         if descr is None:
             # already grch38
             return
         chromosome, _ = descr
 
-        query = f"""
-            SELECT DISTINCT alt_ac
-            FROM {self.uta_db.schema}.tx_exon_aln_mv
-            WHERE tx_ac = '{genomic_tx_data.tx_ac}';
-            """  # noqa: S608
-        nc_acs = await self.uta_db.execute_query(query)
+        async with self.uta_db.repository() as uta:
+            cursor = await uta.execute_query(
+                """SELECT DISTINCT alt_ac
+                FROM tx_exon_aln_mv
+                WHERE tx_ac = %(tx_ac)s;
+                """,
+                {"tx_ac": genomic_tx_data.tx_ac},
+            )
+            nc_acs = await cursor.fetchall()
         nc_acs = [nc_ac[0] for nc_ac in nc_acs]
         if nc_acs == [genomic_tx_data.alt_ac]:
             _logger.warning(
@@ -267,11 +273,15 @@ class ManeTranscript:
             """
         query = f"""
             SELECT alt_ac
-            FROM {self.uta_db.schema}.genomic
-            WHERE alt_ac LIKE '{genomic_tx_data.alt_ac.split(".")[0]}%'
+            FROM genomic
+            WHERE alt_ac LIKE %(ac_pattern)s
             {order_by_cond}
             """  # noqa: S608
-        nc_acs = await self.uta_db.execute_query(query)
+        async with self.uta_db.repository() as uta:
+            cursor = await uta.execute_query(
+                query, {"ac_pattern": f"{genomic_tx_data.alt_ac.split('.')[0]}%"}
+            )
+            nc_acs = await cursor.fetchall()
         genomic_tx_data.alt_ac = nc_acs[0][0]
 
     def _set_liftover(
@@ -331,9 +341,10 @@ class ManeTranscript:
         :return: Metadata for genomic and transcript accessions if found and validated,
             else None
         """
-        genomic_tx_data = await self.uta_db.get_genomic_tx_data(
-            tx_ac, pos, annotation_layer, alt_ac=alt_ac
-        )
+        async with self.uta_db.repository() as uta:
+            genomic_tx_data = await uta.get_genomic_tx_data(
+                tx_ac, pos, annotation_layer, alt_ac=alt_ac
+            )
         if not genomic_tx_data:
             _logger.warning(
                 "Unable to find genomic_tx_data for %s at position %s on annotation layer %s",
@@ -470,13 +481,14 @@ class ManeTranscript:
             tx_g_pos = g.alt_pos_range
             tx_pos_range = g.tx_pos_range
         else:
-            result = await self.uta_db.get_tx_exon_aln_data(
-                refseq_c_ac,
-                g.alt_pos_change_range[0],
-                g.alt_pos_change_range[1],
-                alt_ac=alt_ac if alt_ac else g.alt_ac,
-                use_tx_pos=False,
-            )
+            async with self.uta_db.repository() as uta:
+                result = await uta.get_tx_exon_aln_data(
+                    refseq_c_ac,
+                    g.alt_pos_change_range[0],
+                    g.alt_pos_change_range[1],
+                    alt_ac=alt_ac or g.alt_ac,
+                    use_tx_pos=False,
+                )
 
             if not result:
                 _logger.warning(
@@ -487,7 +499,8 @@ class ManeTranscript:
             tx_g_pos = result.alt_start_i, result.alt_end_i
             tx_pos_range = result.tx_start_i, result.tx_end_i
 
-        cds_start_end = await self.uta_db.get_cds_start_end(refseq_c_ac)
+        async with self.uta_db.repository() as uta:
+            cds_start_end = await uta.get_cds_start_end(refseq_c_ac)
         if not cds_start_end:
             return None
         coding_start_site = cds_start_end[0]
@@ -790,13 +803,15 @@ class ManeTranscript:
 
         # Data Frame that contains transcripts associated to a gene
         if is_p_or_c_start_anno:
-            df = await self.uta_db.get_transcripts(
-                c_start_pos, c_end_pos, gene=gene, use_tx_pos=True, alt_ac=alt_ac
-            )
+            async with self.uta_db.repository() as uta:
+                df = await uta.get_transcripts(
+                    c_start_pos, c_end_pos, gene=gene, use_tx_pos=True, alt_ac=alt_ac
+                )
         else:
-            df = await self.uta_db.get_transcripts(
-                start_pos, end_pos, gene=gene, use_tx_pos=False, alt_ac=alt_ac
-            )
+            async with self.uta_db.repository() as uta:
+                df = await uta.get_transcripts(
+                    start_pos, end_pos, gene=gene, use_tx_pos=False, alt_ac=alt_ac
+                )
 
         if df.is_empty():
             _logger.warning("Unable to get transcripts from gene %s", gene)
@@ -1151,7 +1166,8 @@ class ManeTranscript:
         start_pos, end_pos = get_inter_residue_pos(start_pos, end_pos, coordinate_type)
 
         # Checking to see what chromosome and assembly we're on
-        descr = await self.uta_db.get_chr_assembly(ac)
+        async with self.uta_db.repository() as uta:
+            descr = await uta.get_chr_assembly(ac)
         if not descr:
             # Already GRCh38 assembly
             if self.validate_index(ac, (start_pos, end_pos), 0):
@@ -1190,7 +1206,8 @@ class ManeTranscript:
         else:
             end_pos = start_pos
 
-        newest_ac = await self.uta_db.get_newest_assembly_ac(ac)
+        async with self.uta_db.repository() as uta:
+            newest_ac = await uta.get_newest_assembly_ac(ac)
         if newest_ac:
             ac = newest_ac[0]
             if self.validate_index(ac, (start_pos, end_pos), 0):
@@ -1262,7 +1279,9 @@ class ManeTranscript:
         start_pos, end_pos = get_inter_residue_pos(start_pos, end_pos, coordinate_type)
         coordinate_type = CoordinateType.INTER_RESIDUE
 
-        if not await self.uta_db.validate_genomic_ac(ac):
+        async with self.uta_db.repository() as uta:
+            validation_result = uta.validate_genomic_ac(ac)
+        if not validation_result:
             _logger.warning("Genomic accession does not exist: %s", ac)
             return None
 
@@ -1284,15 +1303,17 @@ class ManeTranscript:
             mane_tx_genomic_data = None
             if grch38:
                 # GRCh38 -> MANE C
-                mane_tx_genomic_data = await self.uta_db.get_mane_c_genomic_data(
-                    mane_c_ac, grch38.ac, grch38.pos[0], grch38.pos[1]
-                )
+                async with self.uta_db.repository() as uta:
+                    mane_tx_genomic_data = await uta.get_mane_c_genomic_data(
+                        mane_c_ac, grch38.ac, grch38.pos[0], grch38.pos[1]
+                    )
 
             if not grch38 or not mane_tx_genomic_data:
                 # GRCh38 did not work, so let's try original assembly (37)
-                mane_tx_genomic_data = await self.uta_db.get_mane_c_genomic_data(
-                    mane_c_ac, ac, start_pos, end_pos
-                )
+                async with self.uta_db.repository() as uta:
+                    mane_tx_genomic_data = await uta.get_mane_c_genomic_data(
+                        mane_c_ac, ac, start_pos, end_pos
+                    )
                 if not mane_tx_genomic_data:
                     continue
                 _logger.info("Not using most recent assembly")
@@ -1378,9 +1399,13 @@ class ManeTranscript:
             mane_transcripts |= {mane_c_ac, current_mane_data["Ensembl_nuc"]}
 
             # GRCh38 -> MANE C
-            mane_tx_genomic_data = await self.uta_db.get_mane_c_genomic_data(
-                ac=mane_c_ac, alt_ac=mane_alt_ac, start_pos=start_pos, end_pos=end_pos
-            )
+            async with self.uta_db.repository() as uta:
+                mane_tx_genomic_data = await uta.get_mane_c_genomic_data(
+                    ac=mane_c_ac,
+                    alt_ac=mane_alt_ac,
+                    start_pos=start_pos,
+                    end_pos=end_pos,
+                )
             if not mane_tx_genomic_data:
                 continue
 
