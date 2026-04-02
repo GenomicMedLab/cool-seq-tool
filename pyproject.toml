@@ -24,7 +24,7 @@ description = "Common Operation on Lots of Sequences Tool"
 license = "MIT"
 license-files = ["LICENSE"]
 dependencies = [
-    "psycopg",
+    "psycopg[pool]",
     "boto3",
     "agct >= 0.2.0rc1",
     "polars ~= 1.0",
