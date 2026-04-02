@@ -19,7 +19,11 @@ from cool_seq_tool.schemas import (
     TranscriptPriority,
 )
 from cool_seq_tool.sources.mane_transcript_mappings import ManeTranscriptMappings
-from cool_seq_tool.sources.uta_database import GenomicAlnData, UtaDatabase
+from cool_seq_tool.sources.uta_database import (
+    GenomicAlnData,
+    NoMatchingAlignmentError,
+    UtaDatabase,
+)
 from cool_seq_tool.utils import service_meta
 
 _logger = logging.getLogger(__name__)
@@ -637,29 +641,43 @@ class ExonGenomicCoordsMapper:
             The list will be ordered by ascending exon number.
         """
         if genomic_ac:
-            query = f"""
+            query = """
                 SELECT DISTINCT ord, tx_start_i, tx_end_i, alt_start_i, alt_end_i, alt_strand
-                FROM {self.uta_db.schema}.tx_exon_aln_mv
-                WHERE tx_ac = '{tx_ac}'
+                FROM tx_exon_aln_mv
+                WHERE tx_ac = %(tx_ac)s
                 AND alt_aln_method = 'splign'
-                AND alt_ac = '{genomic_ac}'
-                ORDER BY ord ASC
-                """  # noqa: S608
+                AND alt_ac = %(genomic_ac)s
+                ORDER BY ord ASC;
+                """
         else:
-            query = f"""
+            query = """
                 SELECT DISTINCT ord, tx_start_i, tx_end_i, alt_start_i, alt_end_i, alt_strand
-                FROM {self.uta_db.schema}.tx_exon_aln_mv as t
-                INNER JOIN {self.uta_db.schema}._seq_anno_most_recent as s
+                FROM tx_exon_aln_mv as t
+                INNER JOIN _seq_anno_most_recent as s
                 ON t.alt_ac = s.ac
                 WHERE s.descr = ''
-                AND t.tx_ac = '{tx_ac}'
+                AND t.tx_ac = %(tx_ac)s
                 AND t.alt_aln_method = 'splign'
-                AND t.alt_ac like 'NC_000%'
-                ORDER BY ord ASC
-                """  # noqa: S608
+                AND t.alt_ac like 'NC_000%%'
+                ORDER BY ord ASC;
+                """
 
-        results = await self.uta_db.execute_query(query)
-        return [_ExonCoord(**r) for r in results]
+        async with self.uta_db.repository() as uta:
+            cursor = await uta.execute_query(
+                query, {"tx_ac": tx_ac, "genomic_ac": genomic_ac}
+            )
+            results = await cursor.fetchall()
+        return [
+            _ExonCoord(
+                ord=r[0],
+                tx_start_i=r[1],
+                tx_end_i=r[2],
+                alt_start_i=r[3],
+                alt_end_i=r[4],
+                alt_strand=r[5],
+            )
+            for r in results
+        ]
 
     async def _get_genomic_aln_coords(
         self,
@@ -690,13 +708,14 @@ class ExonGenomicCoordsMapper:
         aligned_coords = {"start": None, "end": None}
         for exon, key in [(tx_exon_start, "start"), (tx_exon_end, "end")]:
             if exon:
-                aligned_coord, warning = await self.uta_db.get_alt_ac_start_or_end(
-                    tx_ac, exon.tx_start_i, exon.tx_end_i, gene=gene
-                )
-                if aligned_coord:
+                async with self.uta_db.repository() as uta:
+                    try:
+                        aligned_coord = await uta.get_alt_ac_start_or_end(
+                            tx_ac, exon.tx_start_i, exon.tx_end_i, gene=gene
+                        )
+                    except NoMatchingAlignmentError as e:
+                        return None, None, str(e)
                     aligned_coords[key] = aligned_coord
-                else:
-                    return None, None, warning
 
         return *aligned_coords.values(), None
 
@@ -827,19 +846,22 @@ class ExonGenomicCoordsMapper:
 
         # Validate inputs exist in UTA
         if gene:
-            gene_validation = await self.uta_db.gene_exists(gene)
+            async with self.uta_db.repository() as uta:
+                gene_validation = await uta.gene_exists(gene)
             if not gene_validation:
                 return GenomicTxSeg(errors=[f"Gene does not exist in UTA: {gene}"])
 
         if transcript:
-            transcript_validation = await self.uta_db.transcript_exists(transcript)
+            async with self.uta_db.repository() as uta:
+                transcript_validation = await uta.transcript_exists(transcript)
             if not transcript_validation:
                 return GenomicTxSeg(
                     errors=[f"Transcript does not exist in UTA: {transcript}"]
                 )
 
         if genomic_ac:
-            grch38_ac = await self.uta_db.get_newest_assembly_ac(genomic_ac)
+            async with self.uta_db.repository() as uta:
+                grch38_ac = await uta.get_newest_assembly_ac(genomic_ac)
             if grch38_ac:
                 genomic_ac = grch38_ac[0]
             else:
@@ -888,16 +910,20 @@ class ExonGenomicCoordsMapper:
                     transcript = results.refseq
                 else:
                     # Run if gene is for a noncoding transcript
-                    query = f"""
+                    query = """
                         SELECT DISTINCT tx_ac
-                        FROM {self.uta_db.schema}.tx_exon_aln_mv
-                        WHERE hgnc = '{gene}'
-                        AND alt_ac = '{genomic_ac}'
-                        """  # noqa: S608
-                    result = await self.uta_db.execute_query(query)
+                        FROM tx_exon_aln_mv
+                        WHERE hgnc = %(gene)s
+                        AND alt_ac = %(genomic_ac)s;
+                        """
+                    async with self.uta_db.repository() as uta:
+                        cursor = await uta.execute_query(
+                            query, {"gene": gene, "genomic_ac": genomic_ac}
+                        )
+                        result = await cursor.fetchone()
 
                     if result:
-                        transcript = result[0]["tx_ac"]
+                        transcript = result[0]
                     else:
                         return GenomicTxSeg(
                             errors=[
@@ -955,13 +981,14 @@ class ExonGenomicCoordsMapper:
             )
         else:
             is_exonic = True
-            exon_data = await self.uta_db.get_tx_exon_aln_data(
-                transcript,
-                genomic_pos,
-                genomic_pos,
-                alt_ac=genomic_ac,
-                use_tx_pos=False,
-            )
+            async with self.uta_db.repository() as uta:
+                exon_data = await uta.get_tx_exon_aln_data(
+                    transcript,
+                    genomic_pos,
+                    genomic_pos,
+                    alt_ac=genomic_ac,
+                    use_tx_pos=False,
+                )
             exon_num = exon_data[0].ord
 
         offset = self._get_exon_offset(
@@ -1030,20 +1057,24 @@ class ExonGenomicCoordsMapper:
             for the transcript, ``False`` if not. Breakpoints past this threshold
             are likely erroneous.
         """
-        query = f"""
+        query = """
             WITH tx_boundaries AS (
                 SELECT
                 MIN(alt_start_i) AS min_start,
                 MAX(alt_end_i) AS max_end
-                FROM {self.uta_db.schema}.tx_exon_aln_mv
-                WHERE tx_ac = '{tx_ac}'
-                AND alt_ac = '{genomic_ac}'
+                FROM tx_exon_aln_mv
+                WHERE tx_ac = %(tx_ac)s
+                AND alt_ac = %(genomic_ac)s
             )
             SELECT * FROM tx_boundaries
-            WHERE {pos} between (tx_boundaries.min_start - 150) and (tx_boundaries.max_end + 150)
-            """  # noqa: S608
-        results = await self.uta_db.execute_query(query)
-        return bool(results)
+            WHERE %(pos)s between (tx_boundaries.min_start - 150) and (tx_boundaries.max_end + 150);
+            """
+        async with self.uta_db.repository() as uta:
+            cursor = await uta.execute_query(
+                query, {"tx_ac": tx_ac, "genomic_ac": genomic_ac, "pos": pos}
+            )
+            result = await cursor.fetchone()
+        return bool(result)
 
     async def _get_tx_ac_gene(
         self,
@@ -1058,18 +1089,20 @@ class ExonGenomicCoordsMapper:
         :return: HGNC gene symbol associated to transcript and
             warning
         """
-        query = f"""
+        query = """
             SELECT DISTINCT hgnc
-            FROM {self.uta_db.schema}.tx_exon_aln_mv
-            WHERE tx_ac = '{tx_ac}'
+            FROM tx_exon_aln_mv
+            WHERE tx_ac = %(tx_ac)s
             ORDER BY hgnc
             LIMIT 1;
-            """  # noqa: S608
-        results = await self.uta_db.execute_query(query)
-        if not results:
+            """
+        async with self.uta_db.repository() as uta:
+            cursor = await uta.execute_query(query, {"tx_ac": tx_ac})
+            result = await cursor.fetchone()
+        if not result:
             return None, f"No gene(s) found given {tx_ac}"
 
-        return results[0]["hgnc"], None
+        return result[0], None
 
     @staticmethod
     def _is_exonic_breakpoint(pos: int, tx_genomic_coords: list[_ExonCoord]) -> bool:
