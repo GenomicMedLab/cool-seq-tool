@@ -134,52 +134,50 @@ class UtaRepository:
             raise
 
     async def create_genomic_table(self) -> None:
-        """Create table containing genomic accession information."""
-        check_table_exists = """
-            SELECT EXISTS (
-               SELECT FROM information_schema.tables
-               WHERE table_name = 'genomic'
-            );
-            """
-        genomic_table_exists = await (
-            await self.execute_query(check_table_exists)
-        ).fetchone()
-        if genomic_table_exists is None:
-            _logger.critical(
-                "SELECT EXISTS query in UtaDatabase._create_genomic_table "
-                "returned invalid response"
-            )
-            msg = "SELECT EXISTS query returned invalid response"
-            raise ValueError(msg)
-        if not genomic_table_exists[0]:
-            create_genomic_table = """
-                CREATE TABLE genomic AS
-                    SELECT t.hgnc, aes.alt_ac, aes.alt_aln_method,
-                        aes.alt_strand, ae.start_i AS alt_start_i,
-                        ae.end_i AS alt_end_i
-                    FROM (((((transcript t
-                        JOIN exon_set tes ON (((t.ac = tes.tx_ac)
-                            AND (tes.alt_aln_method = 'transcript'::text))))
-                        JOIN exon_set aes ON (((t.ac = aes.tx_ac)
-                            AND (aes.alt_aln_method <> 'transcript'::text))))
-                        JOIN exon te ON
-                            ((tes.exon_set_id = te.exon_set_id)))
-                        JOIN exon ae ON
-                            (((aes.exon_set_id = ae.exon_set_id)
-                            AND (te.ord = ae.ord))))
-                        LEFT JOIN exon_aln ea ON
-                            (((te.exon_id = ea.tx_exon_id) AND
-                            (ae.exon_id = ea.alt_exon_id))));
-                """
-            await self.execute_query(create_genomic_table)
+        """Create the derived ``genomic`` table in the current schema if needed."""
+        create_genomic_table = """
+            CREATE TABLE IF NOT EXISTS genomic AS
+                SELECT
+                    t.hgnc,
+                    aes.alt_ac,
+                    aes.alt_aln_method,
+                    aes.alt_strand,
+                    ae.start_i AS alt_start_i,
+                    ae.end_i AS alt_end_i
+                FROM transcript t
+                JOIN exon_set tes
+                    ON t.ac = tes.tx_ac
+                   AND tes.alt_aln_method = 'transcript'
+                JOIN exon_set aes
+                    ON t.ac = aes.tx_ac
+                   AND aes.alt_aln_method <> 'transcript'
+                JOIN exon te
+                    ON tes.exon_set_id = te.exon_set_id
+                JOIN exon ae
+                    ON aes.exon_set_id = ae.exon_set_id
+                   AND te.ord = ae.ord
+                LEFT JOIN exon_aln ea
+                    ON te.exon_id = ea.tx_exon_id
+                   AND ae.exon_id = ea.alt_exon_id;
+        """
+        await self.execute_query(create_genomic_table)
 
-            indexes = [
-                "CREATE INDEX alt_pos_index ON genomic (alt_ac, alt_start_i, alt_end_i);",
-                "CREATE INDEX gene_alt_index ON genomic (hgnc, alt_ac);",
-                "CREATE INDEX alt_ac_index ON genomic (alt_ac);",
-            ]
-            for create_index in indexes:
-                await self.execute_query(create_index)
+        indexes = [
+            """
+            CREATE INDEX IF NOT EXISTS alt_pos_index
+            ON genomic (alt_ac, alt_start_i, alt_end_i);
+            """,
+            """
+            CREATE INDEX IF NOT EXISTS gene_alt_index
+            ON genomic (hgnc, alt_ac);
+            """,
+            """
+            CREATE INDEX IF NOT EXISTS alt_ac_index
+            ON genomic (alt_ac);
+            """,
+        ]
+        for create_index in indexes:
+            await self.execute_query(create_index)
 
     async def get_alt_ac_start_or_end(
         self, tx_ac: str, tx_exon_start: int, tx_exon_end: int, gene: str | None
@@ -967,7 +965,7 @@ DEFAULT_UTA_DB_URL = "postgresql://uta_admin@localhost:5432/uta?options=-csearch
 
 
 async def create_uta_connection_pool(
-    db_url: str | None = None,
+    db_url: str | None = None, initialize_genomic_table: bool = True
 ) -> AsyncConnectionPool:
     """Create and initialize a UTA connection pool.
 
@@ -984,6 +982,8 @@ async def create_uta_connection_pool(
 
     :param db_url: PostgreSQL connection URI (e.g., ``postgresql://user@host:port/db?options=-csearch_path%3Duta_schema,public``).
         If not provided, resolved from environment or defaults.
+    :param initialize_genomic_table: whether to attempt initialization of the ``genomic``
+        table which is used/managed by coolseqtool.
     :return: An open ``AsyncConnectionPool`` configured for the UTA database
     """
     if "UTA_DB_PROD" in os.environ:
@@ -996,14 +996,15 @@ async def create_uta_connection_pool(
     )
     pool = AsyncConnectionPool(conninfo=db_url, open=False)
     await pool.open()
-    try:
-        async with pool.connection() as conn:
-            await UtaRepository(conn).create_genomic_table()
-    # catch all exceptions -- this is probably a critical error, it's good to
-    # close the pool first
-    except:
-        await pool.close()
-        raise
+    if initialize_genomic_table:
+        try:
+            async with pool.connection() as conn:
+                await UtaRepository(conn).create_genomic_table()
+        # catch all exceptions -- this is probably a critical error, it's good to
+        # close the pool first
+        except:
+            await pool.close()
+            raise
     return pool
 
 
