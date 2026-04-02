@@ -30,6 +30,7 @@ import boto3
 import polars as pl
 from botocore.exceptions import ClientError
 from psycopg import AsyncConnection, AsyncCursor
+from psycopg.errors import UndefinedTable
 from psycopg_pool import AsyncConnectionPool
 from pydantic import Field, StrictInt, StrictStr
 
@@ -111,13 +112,26 @@ class UtaRepository:
 
         This method is marked as public so that downstream applications can run custom
         queries using the same DB connection. However, that means they are responsible
-        for managing the cursor themselves
+        for managing the cursor themselves.
 
         :param q: raw query. May need to specify schema depending on connection context.
         :param params: query variables, if needed. These should not be hard-coded into the query.
         :return: query result cursor
+        :raise UndefinedTable: if queried table isn't in the search_path -- this likely
+            indicates a UTA schema/search path config issue
         """
-        return await self._conn.execute(q, params)
+        try:
+            return await self._conn.execute(q, params)
+        except UndefinedTable:
+            search_path = await (
+                await self._conn.execute("SHOW search_path;")
+            ).fetchone()
+            _logger.exception(
+                "Query '%s' raised UndefinedTable error. Is search_path set to include correct UTA schema? Current search_path value is '%s'",
+                q,
+                search_path,
+            )
+            raise
 
     async def create_genomic_table(self) -> None:
         """Create table containing genomic accession information."""
@@ -309,8 +323,6 @@ class UtaRepository:
         cursor = await self.execute_query(query, {"ac": ac})
         result = await cursor.fetchone()
         return result[0]
-
-    ### working here
 
     async def gene_exists(self, gene: str) -> bool:
         """Return whether or not a gene symbol exists in UTA gene table
@@ -912,18 +924,19 @@ class ParseResult(UrlLibParseResult):
         )
 
 
-def _get_secret_args() -> tuple[str, str]:
+def _get_secret_args() -> str:
     """Get secrets connection args for UTA DB instances. Used for deployment on AWS.
 
     This function is tightly coupled to our internal deployment policies;
-    it is subject to change or removal in the future.
+    it is subject to change or removal in the (distant) future.
 
+    :return: connection URL consisting of params from secrets
     :raises ClientError: If unable to retrieve secret value due to decryption
         decryption failure, internal service error, invalid parameter, invalid
         request, or resource not found.
     """
     warnings.warn(
-        "Deprecated; subject to change in future releases",
+        "Deprecated; subject to change in future releases, someday",
         DeprecationWarning,
         stacklevel=2,
     )
@@ -947,18 +960,14 @@ def _get_secret_args() -> tuple[str, str]:
     port, host = secret["port"], secret["host"]
     database = secret["dbname"]
     schema = secret["schema"]
-    db_uri = f"postgresql://{username}{':' + password if password else ''}@{host}:{port}/{database}"
-
-    return db_uri, schema
+    return f"postgresql://{username}{':' + password if password else ''}@{host}:{port}/{database}?options=-csearch_path%3D{schema},public"
 
 
-DEFAULT_UTA_DB_URI = "postgresql://uta_admin@localhost:5432/uta"
-DEFAULT_UTA_SCHEMA = "uta_20241220"
+DEFAULT_UTA_DB_URL = "postgresql://uta_admin@localhost:5432/uta?options=-csearch_path%3Duta_20241220,public"
 
 
 async def create_uta_connection_pool(
-    db_uri: str | None = None,
-    uta_schema: str | None = None,
+    db_url: str | None = None,
 ) -> AsyncConnectionPool:
     """Create and initialize a UTA connection pool.
 
@@ -966,38 +975,26 @@ async def create_uta_connection_pool(
 
     1. If the ``UTA_DB_PROD`` environment variable is set, credentials and schema
        are retrieved from a secret manager via ``_get_secret_args()``.
-    2. Otherwise, any explicitly provided ``db_uri`` and ``uta_schema`` arguments are used.
-    3. If not provided, fall back to environment variables (``UTA_DB_URI``,
-       ``UTA_DB_SCHEMA``), then to default constants.
-
-    The resulting connection string is augmented with a ``search_path`` option so that
-    all connections automatically target the specified UTA schema.
+    2. Otherwise, if the ``db_url`` arg is defined, it's used
+    3. If not provided, fall back to environment variable ``UTA_DB_URL``
+    4. If not declared, then use default value
 
     After opening the pool, a one-time initialization step is performed to ensure that
     required genomic tables are present.
 
-    :param db_uri: PostgreSQL connection URI (e.g., ``postgresql://user@host:port/db``).
+    :param db_url: PostgreSQL connection URI (e.g., ``postgresql://user@host:port/db?options=-csearch_path%3Duta_schema,public``).
         If not provided, resolved from environment or defaults.
-    :param uta_schema: Target UTA schema name (e.g., ``uta_20241220``). Used to set
-        the PostgreSQL ``search_path``. If not provided, resolved from environment
-        or defaults.
     :return: An open ``AsyncConnectionPool`` configured for the UTA database
     """
     if "UTA_DB_PROD" in os.environ:
-        db_uri, uta_schema = _get_secret_args()
-    else:
-        if db_uri is None:
-            db_uri = os.environ.get("UTA_DB_URI", DEFAULT_UTA_DB_URI)
-        if uta_schema is None:
-            uta_schema = os.environ.get("UTA_DB_SCHEMA", DEFAULT_UTA_SCHEMA)
+        db_url = _get_secret_args()
+    elif db_url is None:
+        db_url = os.environ.get("UTA_DB_URL", DEFAULT_UTA_DB_URL)
     _logger.info(
-        "Creating connection pool with db_uri=%s and schema=%s",
-        ParseResult(urlparse(db_uri)).sanitized_url,
-        uta_schema,
+        "Creating connection pool with db_uri '%s'",
+        ParseResult(urlparse(db_url)).sanitized_url,
     )
-    separator = "&" if "?" in db_uri else "?"
-    dsn = f"{db_uri}{separator}options=-csearch_path%3D{uta_schema},public"
-    pool = AsyncConnectionPool(conninfo=dsn, open=False)
+    pool = AsyncConnectionPool(conninfo=db_url, open=False)
     await pool.open()
     try:
         async with pool.connection() as conn:

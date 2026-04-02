@@ -79,9 +79,8 @@ Individual classes will accept arguments upon initialization to set parameters r
      - Path to MANE Summary file. Used in :py:class:`ManeTranscriptMappings <cool_seq_tool.sources.mane_transcript_mappings.ManeTranscriptMappings>` to provide MANE transcript annotations. If not defined, uses `wags-tails <https://wags-tails.readthedocs.io/stable/usage.html#configuration>`_ to fetch the latest version, downloading it from the NCBI server if necessary.
    * - ``SEQREPO_ROOT_DIR``
      - Path to SeqRepo directory (i.e. contains ``aliases.sqlite3`` database file, and ``sequences`` directory). Used by :py:class:`SeqRepoAccess <cool_seq_tool.handlers.seqrepo_access.SeqRepoAccess>`. If not defined, defaults to ``/usr/local/share/seqrepo/latest``.
-        # TODO update this stuff
    * - ``UTA_DB_URL``
-     - A `libpq connection string <https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING>`_, i.e. of the form ``postgresql://<user>:<password>@<host>:<port>/<database>/<schema>``, used by the :py:class:`UtaDatabase <cool_seq_tool.sources.uta_database.UtaDatabase>` class. By default, it is set to ``postgresql://anonymous@localhost:5432/uta/uta_20241220``.
+     - A `libpq connection URI <https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING-URIS>`_, i.e. of the form ``postgresql://<user>:<password>@<host>:<port>/<database>?options=search_path%3D<schema>,public``, used by the :py:class:`UtaDatabase <cool_seq_tool.sources.uta_database.UtaDatabase>` class. By default, it is set to ``postgresql://anonymous@localhost:5432/uta?options=-csearch_path%3Duta_20241220,public``.
    * - ``LIFTOVER_CHAIN_37_TO_38``
      - A path to a `chainfile <https://genome.ucsc.edu/goldenPath/help/chain.html>`_ for lifting from GRCh37 to GRCh38. Used by the :py:class:`LiftOver <cool_seq_tool.mappers.liftover.LiftOver>` class as input to `agct <https://pypi.org/project/agct/>`_. If not provided, agct will fetch it automatically from UCSC.
    * - ``LIFTOVER_CHAIN_38_TO_37``
