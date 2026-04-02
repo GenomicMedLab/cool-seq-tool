@@ -17,7 +17,7 @@ from cool_seq_tool.sources.uta_database import (
 )
 
 
-@pytest_asyncio.fixture(scope="function")
+@pytest_asyncio.fixture
 async def uta_repo():
     pool = await create_uta_connection_pool()
     async with pool.connection() as conn:
