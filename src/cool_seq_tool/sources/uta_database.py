@@ -5,7 +5,6 @@ In an asyncio runtime:
     >>> from cool_seq_tool.sources.uta_database import (
     ...     create_uta_connection_pool,
     ...     UtaDatabase,
-    ...     UtaRepository,
     ... )
     >>> pool = await create_uta_connection_pool()
     >>> uta_db = UtaDatabase(pool)
