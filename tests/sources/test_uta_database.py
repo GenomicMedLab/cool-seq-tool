@@ -1,5 +1,6 @@
 """Test UTA data source."""
 
+import re
 from urllib.parse import urlparse
 
 import pytest
@@ -356,7 +357,12 @@ async def test_get_alt_ac_start_or_end(
     resp = await uta_repo.get_alt_ac_start_or_end("NM_152263.3", 822, 892, None)
     assert resp == tpm3_1_8_end_genomic
 
-    with pytest.raises(NoMatchingAlignmentError):
+    with pytest.raises(
+        NoMatchingAlignmentError,
+        match=re.escape(
+            "Unable to find a result where NM_152263.63 has transcript coordinates (tx_exon_start=822, tx_exon_end=892) between an exon's start and end coordinates on gene=None"
+        ),
+    ):
         await uta_repo.get_alt_ac_start_or_end("NM_152263.63", 822, 892, None)
 
 
