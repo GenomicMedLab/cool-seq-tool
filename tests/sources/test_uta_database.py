@@ -7,7 +7,6 @@ import pytest_asyncio
 
 from cool_seq_tool.schemas import Strand
 from cool_seq_tool.sources.uta_database import (
-    GenomicTxData,
     GenomicTxMetadata,
     NoMatchingAlignmentError,
     ParseResult,
@@ -42,21 +41,6 @@ def tx_exon_aln_data():
         tx_exon_id=780494,
         alt_exon_id=1927263,
     )
-
-
-@pytest.fixture(scope="module")
-def data_from_result():
-    """Create test fixture for data from result"""
-    params = {
-        "gene": "BRAF",
-        "strand": Strand.NEGATIVE,
-        "tx_pos_range": (1802, 1921),
-        "alt_pos_range": (140453074, 140453193),
-        "alt_aln_method": "splign",
-        "tx_exon_id": 780494,
-        "alt_exon_id": 1927263,
-    }
-    return GenomicTxData(**params)
 
 
 @pytest.mark.asyncio
