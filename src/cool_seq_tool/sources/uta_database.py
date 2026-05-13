@@ -19,7 +19,7 @@ import ast
 import logging
 import os
 import warnings
-from collections.abc import AsyncIterator, Mapping, Sequence
+from collections.abc import AsyncGenerator, Mapping, Sequence
 from contextlib import asynccontextmanager
 from typing import Literal
 from urllib.parse import ParseResult as UrlLibParseResult
@@ -478,7 +478,7 @@ class UtaRepository:
         ]
 
     @staticmethod
-    def data_from_result(result: TxExonAlnData) -> GenomicTxData | None:
+    def _process_aln_data(result: TxExonAlnData) -> GenomicTxData | None:
         """Return data found from result.
 
         :param result: Transcript exon alignment data
@@ -543,7 +543,7 @@ class UtaRepository:
         # Sort by most recent chromosomal accession
         result = results[-1]
 
-        genomic_tx_data = self.data_from_result(result)
+        genomic_tx_data = self._process_aln_data(result)
         if not genomic_tx_data:
             return None
 
@@ -612,7 +612,7 @@ class UtaRepository:
         else:
             result = results[0]
 
-        genomic_tx_data = self.data_from_result(result)
+        genomic_tx_data = self._process_aln_data(result)
         if not genomic_tx_data:
             return None
 
@@ -960,7 +960,7 @@ def _get_secret_args() -> str:
     return f"postgresql://{username}{':' + password if password else ''}@{host}:{port}/{database}?options=-csearch_path%3D{schema},public"
 
 
-DEFAULT_UTA_DB_URL = "postgresql://uta_admin@localhost:5432/uta?options=-csearch_path%3Duta_20241220,public"
+DEFAULT_UTA_DB_URL = "postgresql://anonymous@localhost:5432/uta?options=-csearch_path%3Duta_20241220,public"
 
 
 def _normalize_uta_db_url(db_url: str) -> str:
@@ -986,13 +986,7 @@ def _normalize_uta_db_url(db_url: str) -> str:
         raise ValueError(msg)
 
     warnings.warn(
-        (
-            "UTA DB URLs of the form "
-            "'postgresql://user:password@host:port/database/schema' are deprecated. "
-            "Use "
-            "'postgresql://user:password@host:port/database"
-            "?options=-csearch_path%3Dschema,public' instead."
-        ),
+        "UTA DB URLs of the form 'postgresql://user:password@host:port/database/schema' are deprecated. Use 'postgresql://user:password@host:port/database?options=-csearch_path%3Dschema,public' instead.",
         DeprecationWarning,
         stacklevel=2,
     )
@@ -1054,6 +1048,11 @@ async def create_uta_connection_pool(
     pool = AsyncConnectionPool(conninfo=db_url, open=False)
     await pool.open()
     if initialize_genomic_table:
+        warnings.warn(
+            "Genomic table initialization during connection pool construction is deprecated and subject to deletion in future releases. Users should perform this operation manually using `UtaRepository.create_genomic_table()`.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         try:
             async with pool.connection() as conn:
                 await UtaRepository(conn).create_genomic_table()
@@ -1085,7 +1084,7 @@ class UtaDatabase:
         self._connection_pool = pool
 
     @asynccontextmanager
-    async def repository(self) -> AsyncIterator[UtaRepository]:
+    async def repository(self) -> AsyncGenerator[UtaRepository]:
         """Yield a ``UtaRepository`` backed by a pooled connection.
 
         If no pool has been provided yet, a default one is created on first use.
@@ -1145,7 +1144,7 @@ class LazyUtaDatabase(UtaDatabase):
             self._connection_pool = await create_uta_connection_pool()
 
     @asynccontextmanager
-    async def repository(self) -> AsyncIterator[UtaRepository]:
+    async def repository(self) -> AsyncGenerator[UtaRepository]:
         """Yield a repository backed by a pooled UTA connection.
 
         This method ensures that a connection pool exists, creating one if
