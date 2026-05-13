@@ -23,7 +23,7 @@ from collections.abc import AsyncIterator, Mapping, Sequence
 from contextlib import asynccontextmanager
 from typing import Literal
 from urllib.parse import ParseResult as UrlLibParseResult
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 import boto3
 import polars as pl
@@ -963,6 +963,63 @@ def _get_secret_args() -> str:
 DEFAULT_UTA_DB_URL = "postgresql://uta_admin@localhost:5432/uta?options=-csearch_path%3Duta_20241220,public"
 
 
+def _normalize_uta_db_url(db_url: str) -> str:
+    """Normalize supported UTA DB URLs to psycopg-compatible URI form.
+
+    Deprecated legacy form:
+        postgresql://user@host:5432/uta/uta_20241220
+
+    Preferred form:
+        postgresql://user@host:5432/uta?options=-csearch_path%3Duta_20241220,public
+    """
+    parsed = urlparse(db_url)
+    path_parts = [part for part in parsed.path.split("/") if part]
+
+    if len(path_parts) <= 1:
+        return db_url
+
+    database = path_parts[0]
+    schema = path_parts[1]
+
+    if len(path_parts) > 2:  # noqa: PLR2004
+        msg = f"Unsupported DB URL path: {parsed.path!r}"
+        raise ValueError(msg)
+
+    warnings.warn(
+        (
+            "UTA DB URLs of the form "
+            "'postgresql://user:password@host:port/database/schema' are deprecated. "
+            "Use "
+            "'postgresql://user:password@host:port/database"
+            "?options=-csearch_path%3Dschema,public' instead."
+        ),
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
+    query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+
+    if "options" in query:
+        msg = (
+            "Legacy UTA DB URL includes both a schema path segment and existing "
+            "'options' query parameter. Please use only the modern search_path form."
+        )
+        raise ValueError(msg)
+
+    query["options"] = f"-csearch_path={schema},public"
+
+    return urlunparse(
+        (
+            parsed.scheme,
+            parsed.netloc,
+            f"/{database}",
+            parsed.params,
+            urlencode(query),
+            parsed.fragment,
+        )
+    )
+
+
 async def create_uta_connection_pool(
     db_url: str | None = None, initialize_genomic_table: bool = True
 ) -> AsyncConnectionPool:
@@ -989,6 +1046,7 @@ async def create_uta_connection_pool(
         db_url = _get_secret_args()
     elif db_url is None:
         db_url = os.environ.get("UTA_DB_URL", DEFAULT_UTA_DB_URL)
+    db_url = _normalize_uta_db_url(db_url)
     _logger.info(
         "Creating connection pool with db_uri '%s'",
         ParseResult(urlparse(db_url)).sanitized_url,
