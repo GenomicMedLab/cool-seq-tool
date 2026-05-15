@@ -14,7 +14,6 @@ services:
         read_only: true
         bind:
           create_host_path: false
-      - ./uta-setup.sql:/docker-entrypoint-initdb.d/uta-setup.sql
     ports:
       - 127.0.0.1:5432:5432
 
