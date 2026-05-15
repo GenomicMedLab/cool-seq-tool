@@ -652,11 +652,14 @@ class UtaRepository:
         :return: List of genomic accessions, sorted in desc order
         """
         query = """
-            SELECT DISTINCT alt_ac
-            FROM genomic
-            WHERE hgnc = %(gene)s
-            AND alt_ac LIKE 'NC_00%%'
-            ORDER BY alt_ac;
+            SELECT DISTINCT aes.alt_ac
+            FROM transcript AS t
+            JOIN exon_set AS aes
+              ON t.ac = aes.tx_ac
+            WHERE t.hgnc = %(gene)s
+              AND aes.alt_aln_method <> 'transcript'
+              AND aes.alt_ac LIKE 'NC_00%%'
+            ORDER BY aes.alt_ac;
             """
 
         cursor = await self.execute_query(query, {"gene": gene})
@@ -683,11 +686,22 @@ class UtaRepository:
         if end_pos is None:
             end_pos = start_pos
         query = """
-            SELECT DISTINCT hgnc
-            FROM genomic
-            WHERE alt_ac = %(ac)s
-            AND %(start_pos)s BETWEEN alt_start_i AND alt_end_i
-            AND %(end_pos)s BETWEEN alt_start_i AND alt_end_i;
+                SELECT DISTINCT t.hgnc
+                FROM transcript AS t
+                JOIN exon_set AS tes
+                  ON t.ac = tes.tx_ac
+                 AND tes.alt_aln_method = 'transcript'
+                JOIN exon_set AS aes
+                  ON t.ac = aes.tx_ac
+                 AND aes.alt_aln_method <> 'transcript'
+                JOIN exon AS te
+                  ON tes.exon_set_id = te.exon_set_id
+                JOIN exon AS ae
+                  ON aes.exon_set_id = ae.exon_set_id
+                 AND te.ord = ae.ord
+                WHERE aes.alt_ac = %(ac)s
+                  AND %(start_pos)s BETWEEN ae.start_i AND ae.end_i
+                  AND %(end_pos)s BETWEEN ae.start_i AND ae.end_i;
         """
         cursor = await self.execute_query(
             query, {"ac": ac, "start_pos": start_pos, "end_pos": end_pos}
