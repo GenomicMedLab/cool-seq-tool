@@ -81,6 +81,26 @@ class TxExonAlnData(GenomicAlnData):
     alt_exon_id: StrictInt = Field(..., description="`alt_ac` exon identifier.")
 
 
+class ExonCoord(BaseModelForbidExtra):
+    """Model for representing exon coordinate data"""
+
+    ord: StrictInt = Field(..., description="Exon number. 0-based.")
+    tx_start_i: StrictInt = Field(
+        ...,
+        description="Transcript start index of the exon. Inter-residue coordinates.",
+    )
+    tx_end_i: StrictInt = Field(
+        ..., description="Transcript end index of the exon. Inter-residue coordinates."
+    )
+    alt_start_i: StrictInt = Field(
+        ..., description="Genomic start index of the exon. Inter-residue coordinates."
+    )
+    alt_end_i: StrictInt = Field(
+        ..., description="Genomic end index of the exon. Inter-residue coordinates."
+    )
+    alt_strand: Strand = Field(..., description="Strand.")
+
+
 class NoMatchingAlignmentError(Exception):
     """Raise for failure to find alignment matching user parameters"""
 
@@ -915,6 +935,59 @@ class UtaRepository:
         )
         result = await cursor.fetchone()
         return bool(result)
+
+    async def get_all_exon_coords(
+        self, tx_ac: str, genomic_ac: str | None = None
+    ) -> list[ExonCoord]:
+        """Get all exon coordinate data for a transcript.
+
+        If ``genomic_ac`` is NOT provided, this method will use the GRCh38 accession
+        associated to ``tx_ac``.
+
+        :param tx_ac: The RefSeq transcript accession to get exon data for.
+        :param genomic_ac: The RefSeq genomic accession to get exon data for.
+        :return: List of all exon coordinate data for ``tx_ac`` and ``genomic_ac``.
+            The exon coordinate data will include the exon number, transcript and
+            genomic positions for the start and end of the exon, and strand.
+            The list will be ordered by ascending exon number.
+        """
+        if genomic_ac:
+            query = """
+                SELECT DISTINCT ord, tx_start_i, tx_end_i, alt_start_i, alt_end_i, alt_strand
+                FROM tx_exon_aln_mv
+                WHERE tx_ac = %(tx_ac)s
+                AND alt_aln_method = 'splign'
+                AND alt_ac = %(genomic_ac)s
+                ORDER BY ord ASC;
+                """
+        else:
+            query = """
+                SELECT DISTINCT ord, tx_start_i, tx_end_i, alt_start_i, alt_end_i, alt_strand
+                FROM tx_exon_aln_mv as t
+                INNER JOIN _seq_anno_most_recent as s
+                ON t.alt_ac = s.ac
+                WHERE s.descr = ''
+                AND t.tx_ac = %(tx_ac)s
+                AND t.alt_aln_method = 'splign'
+                AND t.alt_ac like 'NC_000%%'
+                ORDER BY ord ASC;
+                """
+
+        cursor = await self.execute_query(
+            query, {"tx_ac": tx_ac, "genomic_ac": genomic_ac}
+        )
+        results = await cursor.fetchall()
+        return [
+            ExonCoord(
+                ord=r[0],
+                tx_start_i=r[1],
+                tx_end_i=r[2],
+                alt_start_i=r[3],
+                alt_end_i=r[4],
+                alt_strand=r[5],
+            )
+            for r in results
+        ]
 
 
 class ParseResult(UrlLibParseResult):

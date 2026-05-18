@@ -418,7 +418,30 @@ async def test_get_gene_from_tx_ac(uta_repo: UtaRepository):
 
 @pytest.mark.asyncio
 async def test_validate_genomic_breakpoint(uta_repo: UtaRepository):
-    raise NotImplementedError
+    resp = await uta_repo.validate_genomic_breakpoint(
+        80514010, "NC_000008.11", "NM_001105539.3"
+    )
+    assert resp is True
+
+
+@pytest.mark.asyncio
+async def test_get_all_exon_coords(
+    uta_repo: UtaRepository, nm_152263_exons, nm_152263_exons_genomic_coords
+):
+    """Test that _get_all_exon_coords works correctly."""
+    resp = await uta_repo.get_all_exon_coords("NM_152263.3")
+    assert resp == nm_152263_exons
+
+    # Invalid transcript accession
+    resp = await uta_repo.get_all_exon_coords("NM_152263.36")
+    assert resp == []
+
+    resp = await uta_repo.get_all_exon_coords("NM_152263.4", "NC_000001.11")
+    assert resp == nm_152263_exons_genomic_coords
+
+    # Invalid transcript accession given chromosome accession
+    resp = await uta_repo.get_all_exon_coords("NM_001105539.3", "NC_000001.11")
+    assert resp == []
 
 
 @pytest.mark.parametrize(
