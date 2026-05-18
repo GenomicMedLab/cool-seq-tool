@@ -367,6 +367,15 @@ async def test_get_alt_ac_start_or_end(
 
 
 @pytest.mark.asyncio
+async def test_get_alt_acs_for_tx(uta_repo: UtaRepository):
+    resp = await uta_repo.get_alt_acs_for_tx("NM_004333.6")
+    assert set(resp) == {"NC_000007.13", "NC_000007.14", "NC_060931.1"}
+
+    resp = await uta_repo.get_alt_acs_for_tx("NM_99999999.99")
+    assert resp == []
+
+
+@pytest.mark.asyncio
 async def test_get_mane_transcripts_from_genomic_pos(uta_repo: UtaRepository):
     """Test that get_mane_transcripts_from_genomic_pos works correctly"""
     resp = await uta_repo.get_transcripts_from_genomic_pos("NC_000007.14", 140753336)
@@ -396,6 +405,20 @@ async def test_get_mane_transcripts_from_genomic_pos(uta_repo: UtaRepository):
     # invalid ac
     resp = await uta_repo.get_transcripts_from_genomic_pos("NC_000007.14232", 140753336)
     assert resp == []
+
+
+@pytest.mark.asyncio
+async def test_get_gene_from_tx_ac(uta_repo: UtaRepository):
+    resp = await uta_repo.get_gene_from_tx_ac("NM_002529.3")
+    assert resp == "NTRK1"
+
+    resp = await uta_repo.get_gene_from_tx_ac("NM_99999999.99")
+    assert resp is None
+
+
+@pytest.mark.asyncio
+async def test_validate_genomic_breakpoint(uta_repo: UtaRepository):
+    raise NotImplementedError
 
 
 @pytest.mark.parametrize(

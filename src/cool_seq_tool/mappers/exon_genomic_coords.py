@@ -944,10 +944,10 @@ class ExonGenomicCoordsMapper:
                         )
         # gene is not required to liftover coordinates if tx_ac and genomic_ac are given, but we should set the associated gene
         if not gene:
-            _gene, err_msg = await self._get_tx_ac_gene(transcript)
-            if err_msg:
-                return GenomicTxSeg(errors=[err_msg])
-            gene = _gene
+            async with self.uta_db.repository() as uta:
+                gene = await uta.get_gene_from_tx_ac(transcript)
+            if not gene:
+                return GenomicTxSeg(errors=[f"No gene(s) found given {transcript}"])
 
         tx_exons = await self._get_all_exon_coords(
             tx_ac=transcript, genomic_ac=genomic_ac
@@ -967,9 +967,10 @@ class ExonGenomicCoordsMapper:
 
         # Validate that the breakpoint occurs within 150 bp of the first and last exon for the selected transcript.
         # A breakpoint beyond this range is likely erroneous.
-        coordinate_check = await self._validate_genomic_breakpoint(
-            pos=genomic_pos, genomic_ac=genomic_ac, tx_ac=transcript
-        )
+        async with self.uta_db.repository() as uta:
+            coordinate_check = await uta.validate_genomic_breakpoint(
+                pos=genomic_pos, genomic_ac=genomic_ac, tx_ac=transcript
+            )
         if not coordinate_check:
             msg = (
                 f"{genomic_pos} on {genomic_ac} occurs more than 150 bp outside the "
@@ -1052,69 +1053,6 @@ class ExonGenomicCoordsMapper:
             chromosome, genomic_pos, Assembly.GRCH38
         )
         return liftover_data[1] if liftover_data else None
-
-    async def _validate_genomic_breakpoint(
-        self,
-        pos: int,
-        genomic_ac: str,
-        tx_ac: str,
-    ) -> bool:
-        """Validate that a genomic coordinate falls within the first and last exon
-            for a transcript on a given accession
-
-        :param pos: Genomic position on ``genomic_ac``
-        :param genomic_ac: RefSeq genomic accession, e.g. ``"NC_000007.14"``
-        :param transcript: A transcript accession
-        :return: ``True`` if the coordinate falls within 150bp of the first and last exon
-            for the transcript, ``False`` if not. Breakpoints past this threshold
-            are likely erroneous.
-        """
-        query = """
-            WITH tx_boundaries AS (
-                SELECT
-                MIN(alt_start_i) AS min_start,
-                MAX(alt_end_i) AS max_end
-                FROM tx_exon_aln_mv
-                WHERE tx_ac = %(tx_ac)s
-                AND alt_ac = %(genomic_ac)s
-            )
-            SELECT * FROM tx_boundaries
-            WHERE %(pos)s between (tx_boundaries.min_start - 150) and (tx_boundaries.max_end + 150);
-            """
-        async with self.uta_db.repository() as uta:
-            cursor = await uta.execute_query(
-                query, {"tx_ac": tx_ac, "genomic_ac": genomic_ac, "pos": pos}
-            )
-            result = await cursor.fetchone()
-        return bool(result)
-
-    async def _get_tx_ac_gene(
-        self,
-        tx_ac: str,
-    ) -> tuple[str | None, str | None]:
-        """Get gene given a transcript.
-
-        If multiple genes are found for a given ``tx_ac``, only one
-        gene will be returned.
-
-        :param tx_ac: RefSeq transcript, e.g. ``"NM_004333.6"``
-        :return: HGNC gene symbol associated to transcript and
-            warning
-        """
-        query = """
-            SELECT DISTINCT hgnc
-            FROM tx_exon_aln_mv
-            WHERE tx_ac = %(tx_ac)s
-            ORDER BY hgnc
-            LIMIT 1;
-            """
-        async with self.uta_db.repository() as uta:
-            cursor = await uta.execute_query(query, {"tx_ac": tx_ac})
-            result = await cursor.fetchone()
-        if not result:
-            return None, f"No gene(s) found given {tx_ac}"
-
-        return result[0], None
 
     @staticmethod
     def _is_exonic_breakpoint(pos: int, tx_genomic_coords: list[_ExonCoord]) -> bool:

@@ -236,15 +236,7 @@ class ManeTranscript:
         chromosome, _ = descr
 
         async with self.uta_db.repository() as uta:
-            cursor = await uta.execute_query(
-                """SELECT DISTINCT alt_ac
-                FROM tx_exon_aln_mv
-                WHERE tx_ac = %(tx_ac)s;
-                """,
-                {"tx_ac": genomic_tx_data.tx_ac},
-            )
-            nc_acs = await cursor.fetchall()
-        nc_acs = [nc_ac[0] for nc_ac in nc_acs]
+            nc_acs = await uta.get_alt_acs_for_tx(genomic_tx_data.tx_ac)
         if nc_acs == [genomic_tx_data.alt_ac]:
             _logger.warning(
                 "UTA does not have GRCh38 assembly for %s",
@@ -263,26 +255,9 @@ class ManeTranscript:
             genomic_tx_data, "alt_pos_change_range", chromosome, Assembly.GRCH38
         )
 
-        # Change alt_ac to most recent
-        if genomic_tx_data.alt_ac.startswith("EN"):
-            order_by_cond = "ORDER BY alt_ac DESC;"
-        else:
-            order_by_cond = """
-            ORDER BY CAST(SUBSTR(alt_ac, position('.' in alt_ac) + 1,
-            LENGTH(alt_ac)) AS INT) DESC;
-            """
-        query = f"""
-            SELECT alt_ac
-            FROM genomic
-            WHERE alt_ac LIKE %(ac_pattern)s
-            {order_by_cond}
-            """  # noqa: S608
         async with self.uta_db.repository() as uta:
-            cursor = await uta.execute_query(
-                query, {"ac_pattern": f"{genomic_tx_data.alt_ac.split('.')[0]}%"}
-            )
-            nc_acs = await cursor.fetchall()
-        genomic_tx_data.alt_ac = nc_acs[0][0]
+            alt_ac = await uta.get_newest_assembly_ac(genomic_tx_data.alt_ac)
+            genomic_tx_data.alt_ac = alt_ac[0]
 
     def _set_liftover(
         self,
@@ -1280,7 +1255,7 @@ class ManeTranscript:
         coordinate_type = CoordinateType.INTER_RESIDUE
 
         async with self.uta_db.repository() as uta:
-            validation_result = uta.validate_genomic_ac(ac)
+            validation_result = await uta.validate_genomic_ac(ac)
         if not validation_result:
             _logger.warning("Genomic accession does not exist: %s", ac)
             return None

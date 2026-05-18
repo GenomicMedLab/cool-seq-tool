@@ -113,6 +113,10 @@ class UtaRepository:
         queries using the same DB connection. However, that means they are responsible
         for managing the cursor themselves.
 
+        For the sake of compactness and separation of concerns, other modules in CoolSeqTool
+        should avoid use of this method, and should instead add new methods to the repository
+        class itself.
+
         :param q: raw query. May need to specify schema depending on connection context.
         :param params: query variables, if needed. These should not be hard-coded into the query.
         :return: query result cursor
@@ -844,6 +848,73 @@ class UtaRepository:
         cursor = await self.execute_query(query, {"alt_ac": alt_ac, "g_pos": g_pos})
         results = await cursor.fetchall()
         return [item for sublist in results for item in sublist]
+
+    async def get_alt_acs_for_tx(self, tx_ac: str) -> list[str]:
+        """Return genomic reference sequences associated with transcript accession
+
+        :param tx_ac: transcript accession
+        :return: list of genomic accessions for which alignments exist to ``tx_ac``
+        """
+        query = """
+            SELECT DISTINCT alt_ac
+            FROM exon_set
+            WHERE tx_ac = %(tx_ac)s
+              AND alt_aln_method != 'transcript';
+        """
+        cursor = await self.execute_query(query, {"tx_ac": tx_ac})
+        results = await cursor.fetchall()
+        return [r[0] for r in results]
+
+    async def get_gene_from_tx_ac(self, tx_ac: str) -> str | None:
+        """Return HGNC gene name for a transcript accession
+
+        :param tx_ac: transcript accession
+        :return: gene name, if found
+        """
+        query = """
+            SELECT hgnc
+            FROM tx_exon_aln_mv
+            WHERE tx_ac = %(tx_ac)s;
+        """
+        cursor = await self.execute_query(query, {"tx_ac": tx_ac})
+        result = await cursor.fetchone()
+        if result:
+            return result[0]
+        return None
+
+    async def validate_genomic_breakpoint(
+        self,
+        pos: int,
+        genomic_ac: str,
+        tx_ac: str,
+    ) -> bool:
+        """Validate that a genomic coordinate falls within the first and last exon
+            for a transcript on a given accession
+
+        :param pos: Genomic position on ``genomic_ac``
+        :param genomic_ac: RefSeq genomic accession, e.g. ``"NC_000007.14"``
+        :param transcript: A transcript accession
+        :return: ``True`` if the coordinate falls within 150bp of the first and last exon
+            for the transcript, ``False`` if not. Breakpoints past this threshold
+            are likely erroneous.
+        """
+        query = """
+            WITH tx_boundaries AS (
+                SELECT
+                MIN(alt_start_i) AS min_start,
+                MAX(alt_end_i) AS max_end
+                FROM tx_exon_aln_mv
+                WHERE tx_ac = %(tx_ac)s
+                AND alt_ac = %(genomic_ac)s
+            )
+            SELECT * FROM tx_boundaries
+            WHERE %(pos)s between (tx_boundaries.min_start - 150) and (tx_boundaries.max_end + 150);
+            """
+        cursor = await self.execute_query(
+            query, {"tx_ac": tx_ac, "genomic_ac": genomic_ac, "pos": pos}
+        )
+        result = await cursor.fetchone()
+        return bool(result)
 
 
 class ParseResult(UrlLibParseResult):
