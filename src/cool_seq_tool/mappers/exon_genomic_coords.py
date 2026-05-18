@@ -63,7 +63,7 @@ class TxSegment(BaseModelForbidExtra):
 
     exon_ord: StrictInt = Field(..., description="Exon number. 0-based.")
     offset: StrictInt = Field(
-        0,
+        default=0,
         description="The value added to or subtracted from the `genomic_location` to find the start or end of an exon.",
     )
     genomic_location: SequenceLocation = Field(
@@ -110,19 +110,23 @@ class TxSegment(BaseModelForbidExtra):
 class GenomicTxSeg(BaseModelForbidExtra):
     """Model for representing a boundary for a transcript segment."""
 
-    seg: TxSegment | None = Field(None, description="Transcript segment.")
+    seg: TxSegment | None = Field(default=None, description="Transcript segment.")
     gene: StrictStr | None = Field(
-        None, description="Valid, case-sensitive HGNC gene symbol."
+        default=None, description="Valid, case-sensitive HGNC gene symbol."
     )
-    genomic_ac: StrictStr | None = Field(None, description="RefSeq genomic accession.")
-    tx_ac: StrictStr | None = Field(None, description="RefSeq transcript accession.")
+    genomic_ac: StrictStr | None = Field(
+        default=None, description="RefSeq genomic accession."
+    )
+    tx_ac: StrictStr | None = Field(
+        default=None, description="RefSeq transcript accession."
+    )
     tx_status: TranscriptPriority | None = Field(
-        None, description="Transcript priority for RefSeq transcript accession"
+        default=None, description="Transcript priority for RefSeq transcript accession"
     )
     strand: Strand | None = Field(
-        None, description="The strand that the transcript accession exists on."
+        default=None, description="The strand that the transcript accession exists on."
     )
-    errors: list[StrictStr] = Field([], description="Error messages.")
+    errors: list[StrictStr] = Field(default=[], description="Error messages.")
 
     @model_validator(mode="before")
     def check_errors(cls, values: dict) -> dict:  # noqa: N805
@@ -175,19 +179,27 @@ class GenomicTxSegService(BaseModelForbidExtra):
     """Service model for genomic and transcript data."""
 
     gene: StrictStr | None = Field(
-        None, description="Valid, case-sensitive HGNC gene symbol."
+        default=None, description="Valid, case-sensitive HGNC gene symbol."
     )
-    genomic_ac: StrictStr | None = Field(None, description="RefSeq genomic accession.")
-    tx_ac: StrictStr | None = Field(None, description="RefSeq transcript accession.")
+    genomic_ac: StrictStr | None = Field(
+        default=None, description="RefSeq genomic accession."
+    )
+    tx_ac: StrictStr | None = Field(
+        default=None, description="RefSeq transcript accession."
+    )
     tx_status: TranscriptPriority | None = Field(
-        None, description="Transcript priority for RefSeq transcript accession"
+        default=None, description="Transcript priority for RefSeq transcript accession"
     )
     strand: Strand | None = Field(
-        None, description="The strand that the transcript exists on."
+        default=None, description="The strand that the transcript exists on."
     )
-    seg_start: TxSegment | None = Field(None, description="Start transcript segment.")
-    seg_end: TxSegment | None = Field(None, description="End transcript segment.")
-    errors: list[StrictStr] = Field([], description="Error messages.")
+    seg_start: TxSegment | None = Field(
+        default=None, description="Start transcript segment."
+    )
+    seg_end: TxSegment | None = Field(
+        default=None, description="End transcript segment."
+    )
+    errors: list[StrictStr] = Field(default=[], description="Error messages.")
     service_meta: ServiceMeta = Field(..., description="Service metadata.")
 
     @model_validator(mode="before")
