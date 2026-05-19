@@ -14,8 +14,10 @@ In an asyncio runtime:
     True
 
 The class breakdown in this module is intended to reflect a *repository pattern*, where
-query/data transformation logic is separated from connection lifespan management. See the
-following example for how you might employ this in a FastAPI app:
+query/data transformation logic is defined in :py:class:`~cool_seq_tool.uta_database.UtaRepository`,
+and connection management/state/etc is defined in :py:class:`~cool_seq_tool.uta_database.UtaDatabase`.
+
+The following is an example of how you might employ this in a FastAPI app:
 
 .. code-block:: python
 
@@ -51,6 +53,15 @@ following example for how you might employ this in a FastAPI app:
        gene: str, uta: Annotated[UtaRepository, Depends(get_uta)]
    ):
        return await uta.gene_exists(gene)
+
+The connection class also provides a ``repository()`` method, which returns a context
+manager, for convenience:
+
+.. code-block:: python
+
+   uta_db: UtaDatabase  # assume this exists
+   async with uta_db.repository() as uta:
+       print(await uta.gene_exists("BRAF"))
 
 """
 
@@ -342,7 +353,7 @@ class UtaRepository:
         """Return whether or not a gene symbol exists in UTA gene table
 
         :param gene: Gene symbol
-        :return ``True`` if gene symbol exists in UTA, ``False`` if not
+        :return: ``True`` if gene symbol exists in UTA, ``False`` if not
         """
         query = """
             SELECT EXISTS(

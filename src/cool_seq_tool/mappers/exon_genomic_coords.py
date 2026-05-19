@@ -105,8 +105,7 @@ class GenomicTxSeg(BaseModelForbidExtra):
         """Ensure that fields are (un)set depending on errors
 
         :param values: Values in model
-        :raises ValueError: If `seg`, `genomic_ac` and `tx_ac` are not
-        provided when there are no errors
+        :raises ValueError: If `seg`, `genomic_ac` and `tx_ac` are not provided when there are no errors
         :return: Values in model
         """
         if not values.get("errors") and not all(

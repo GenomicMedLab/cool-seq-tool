@@ -12,7 +12,12 @@ from biocommons.seqrepo import SeqRepo
 from cool_seq_tool.handlers.seqrepo_access import SEQREPO_ROOT_DIR, SeqRepoAccess
 from cool_seq_tool.mappers.liftover import LiftOver
 from cool_seq_tool.resources.data_files import DataFile, get_data_file
-from cool_seq_tool.sources.uta_database import UTA_DB_URL, ParseResult, UtaDatabase
+from cool_seq_tool.sources.uta_database import (
+    DEFAULT_UTA_DB_URL,
+    ParseResult,
+    UtaDatabase,
+    create_uta_connection_pool,
+)
 
 _logger = logging.getLogger(__name__)
 
@@ -35,7 +40,7 @@ async def check_status(
     transcript_file_path: Path | None = None,
     lrg_refseqgene_path: Path | None = None,
     mane_data_path: Path | None = None,
-    db_url: str = UTA_DB_URL,
+    db_url: str | None = None,
     sr: SeqRepo | None = None,
     chain_file_37_to_38: str | None = None,
     chain_file_38_to_37: str | None = None,
@@ -120,24 +125,31 @@ async def check_status(
     else:
         status["liftover"] = True
 
-    parsed_result = ParseResult(urlparse(db_url))
-    sanitized_url = parsed_result.sanitized_url
-    try:
-        await UtaDatabase.create(db_url)
-    except ValueError:
-        _logger.exception("Database URL is not valid")
-    except (OSError, InvalidCatalogNameError, UndefinedTableError):
-        _logger.exception(
-            "Encountered error instantiating UTA at URI %s", sanitized_url
-        )
-    except Exception as e:
-        _logger.critical(
-            "Encountered unexpected error instantiating UTA from URI %s: %s",
-            sanitized_url,
-            e,
-        )
+    uta_pool = await create_uta_connection_pool(db_url)
+    uta_db = UtaDatabase(uta_pool)
+    if db_url:
+        sanitized_url = ParseResult(urlparse(db_url)).sanitized_url
     else:
-        status["uta"] = True
+        sanitized_url = DEFAULT_UTA_DB_URL
+
+    async with uta_db.repository() as uta:
+        try:
+            cursor = await uta.execute_query("SELECT 1 FROM transcript LIMIT 1;")
+            await cursor.fetchone()
+        except ValueError:
+            _logger.exception("Database URL is not valid: %s", sanitized_url)
+        except (OSError, InvalidCatalogNameError, UndefinedTableError):
+            _logger.exception(
+                "Encountered error instantiating UTA at URI %s", sanitized_url
+            )
+        except Exception as e:
+            _logger.critical(
+                "Encountered unexpected error instantiating UTA from URI %s: %s",
+                sanitized_url,
+                e,
+            )
+        else:
+            status["uta"] = True
 
     try:
         if not sr:
