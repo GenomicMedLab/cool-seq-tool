@@ -13,6 +13,45 @@ In an asyncio runtime:
     >>> braf_exists
     True
 
+The class breakdown in this module is intended to reflect a *repository pattern*, where
+query/data transformation logic is separated from connection lifespan management. See the
+following example for how you might employ this in a FastAPI app:
+
+.. code-block:: python
+
+   from collections.abc import AsyncGenerator, Generator
+   from contextlib import asynccontextmanager
+   from typing import Annotated
+
+   from fastapi import FastAPI, Request, Depends
+   from cool_seq_tool.sources.uta_database import (
+       UtaRepository,
+       create_uta_connection_pool,
+   )
+
+   app = FastAPI()
+
+
+   @asynccontextmanager
+   async def lifespan(app: FastAPI) -> AsyncGenerator:
+       uta_pool = await create_uta_connection_pool()
+       app.state.uta_pool = uta_pool
+       yield
+       await uta_pool.close()
+
+
+   # dependency function
+   async def get_uta(request: Request) -> AsyncGenerator[UtaRepository, None, None]:
+       async with request.app.state.uta_pool.connection() as conn:
+           yield UtaRepository(conn)
+
+
+   @app.get("/check_gene_exists")
+   async def check_gene_exists(
+       gene: str, uta: Annotated[UtaRepository, Depends(get_uta)]
+   ):
+       return await uta.gene_exists(gene)
+
 """
 
 import ast
