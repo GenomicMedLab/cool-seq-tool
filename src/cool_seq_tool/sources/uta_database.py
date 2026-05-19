@@ -14,8 +14,8 @@ In an asyncio runtime:
     True
 
 The class breakdown in this module is intended to reflect a *repository pattern*, where
-query/data transformation logic is defined in :py:class:`~cool_seq_tool.uta_database.UtaRepository`,
-and connection management/state/etc is defined in :py:class:`~cool_seq_tool.uta_database.UtaDatabase`.
+query/data transformation logic is defined in :py:class:`~cool_seq_tool.sources.uta_database.UtaRepository`,
+and connection management/state/etc is constructed with :py:meth:`~cool_seq_tool.sources.uta_database.create_uta_connection_pool`.
 
 The following is an example of how you might employ this in a FastAPI app:
 
@@ -54,14 +54,30 @@ The following is an example of how you might employ this in a FastAPI app:
    ):
        return await uta.gene_exists(gene)
 
-The connection class also provides a ``repository()`` method, which returns a context
-manager, for convenience:
+To reflect the old pattern of constructing/managing connection state, the :py:class:`~cool_seq_tool.sources.uta_database.UtaDatabase`
+class is provided. Its construction will look more like our previous UTA access patterns did,
+but individual queries should still be issued within a context manager. The
+:py:meth:`~cool_seq_tool.sources.uta_database.UtaDatabase.repository` method is provided as
+a convenient means of doing so.
 
 .. code-block:: python
 
-   uta_db: UtaDatabase  # assume this exists
-   async with uta_db.repository() as uta:
-       print(await uta.gene_exists("BRAF"))
+   import asyncio
+
+   from cool_seq_tool.sources.uta_database import (
+       create_uta_connection_pool,
+       UtaDatabase,
+   )
+
+
+   async def example(gene: str):
+       uta_db = UtaDatabase(connection)
+       async with uta_db.repository() as uta:
+           print(await uta.gene_exists("BRAF"))
+       await uta_db.close()
+
+
+   asyncio.run(example("BRAF"))
 
 """
 
