@@ -1,17 +1,102 @@
-"""Provide transcript lookup and metadata tools via the UTA database."""
+"""Provide transcript lookup and metadata tools via the UTA database.
+
+In an asyncio runtime:
+
+    >>> from cool_seq_tool.sources.uta_database import (
+    ...     create_uta_connection_pool,
+    ...     UtaDatabase,
+    ... )
+    >>> pool = await create_uta_connection_pool()
+    >>> uta_db = UtaDatabase(pool)
+    >>> async with uta_db.repository() as uta:
+    ...     braf_exists = await uta.gene_exists("BRAF")
+    >>> braf_exists
+    True
+
+The class breakdown in this module is intended to reflect a *repository pattern*, where
+query/data transformation logic is defined in :py:class:`~cool_seq_tool.sources.uta_database.UtaRepository`,
+and connection management/state/etc is constructed with :py:meth:`~cool_seq_tool.sources.uta_database.create_uta_connection_pool`.
+
+The following is an example of how you might employ this in a FastAPI app:
+
+.. code-block:: python
+
+   from collections.abc import AsyncGenerator, Generator
+   from contextlib import asynccontextmanager
+   from typing import Annotated
+
+   from fastapi import FastAPI, Request, Depends
+   from cool_seq_tool.sources.uta_database import (
+       UtaRepository,
+       create_uta_connection_pool,
+   )
+
+   app = FastAPI()
+
+
+   @asynccontextmanager
+   async def lifespan(app: FastAPI) -> AsyncGenerator:
+       uta_pool = await create_uta_connection_pool()
+       app.state.uta_pool = uta_pool
+       yield
+       await uta_pool.close()
+
+
+   # dependency function
+   async def get_uta(request: Request) -> AsyncGenerator[UtaRepository, None, None]:
+       async with request.app.state.uta_pool.connection() as conn:
+           yield UtaRepository(conn)
+
+
+   @app.get("/check_gene_exists")
+   async def check_gene_exists(
+       gene: str, uta: Annotated[UtaRepository, Depends(get_uta)]
+   ):
+       return await uta.gene_exists(gene)
+
+To reflect the old pattern of constructing/managing connection state, the :py:class:`~cool_seq_tool.sources.uta_database.UtaDatabase`
+class is provided. Its construction will look more like our previous UTA access patterns did,
+but individual queries should still be issued within a context manager. The
+:py:meth:`~cool_seq_tool.sources.uta_database.UtaDatabase.repository` method is provided as
+a convenient means of doing so.
+
+.. code-block:: python
+
+   import asyncio
+
+   from cool_seq_tool.sources.uta_database import (
+       create_uta_connection_pool,
+       UtaDatabase,
+   )
+
+
+   async def example(gene: str):
+       uta_db = UtaDatabase(connection)
+       async with uta_db.repository() as uta:
+           print(await uta.gene_exists("BRAF"))
+       await uta_db.close()
+
+
+   asyncio.run(example("BRAF"))
+
+"""
 
 import ast
 import logging
-from os import environ
-from typing import Any, Literal, TypeVar
+import os
+import warnings
+from collections.abc import AsyncGenerator, Mapping, Sequence
+from contextlib import asynccontextmanager
+from typing import Literal
 from urllib.parse import ParseResult as UrlLibParseResult
-from urllib.parse import unquote, urlparse, urlunparse
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
-import asyncpg
 import boto3
 import polars as pl
-from asyncpg.exceptions import InterfaceError, InvalidAuthorizationSpecificationError
 from botocore.exceptions import ClientError
+from psycopg import AsyncConnection, AsyncCursor
+from psycopg.errors import UndefinedTable
+from psycopg_pool import AsyncConnectionPool
 from pydantic import Field, StrictInt, StrictStr
 
 from cool_seq_tool.schemas import (
@@ -23,24 +108,7 @@ from cool_seq_tool.schemas import (
     Strand,
 )
 
-# use `bound` to upper-bound UtaDatabase or child classes
-UTADatabaseType = TypeVar("UTADatabaseType", bound="UtaDatabase")
-
-UTA_DB_URL = environ.get(
-    "UTA_DB_URL", "postgresql://anonymous@localhost:5432/uta/uta_20241220"
-)
-
 _logger = logging.getLogger(__name__)
-
-
-class DbConnectionArgs(BaseModelForbidExtra):
-    """Represent database connection arguments"""
-
-    host: str
-    port: int
-    user: str
-    password: str
-    database: str
 
 
 class GenomicAlnData(BaseModelForbidExtra):
@@ -79,251 +147,163 @@ class TxExonAlnData(GenomicAlnData):
     alt_exon_id: StrictInt = Field(..., description="`alt_ac` exon identifier.")
 
 
-class UtaDatabase:
-    """Provide transcript lookup and metadata tools via the Universal Transcript Archive
-    (UTA) database.
+class ExonCoord(BaseModelForbidExtra):
+    """Model for representing exon coordinate data"""
 
-    Users should use the ``create()`` method to construct a new instance. Note that
-    almost all public methods are defined as ``async`` -- see the :ref:`Usage section <async_note>`
-    for more information.
+    ord: StrictInt = Field(..., description="Exon number. 0-based.")
+    tx_start_i: StrictInt = Field(
+        ...,
+        description="Transcript start index of the exon. Inter-residue coordinates.",
+    )
+    tx_end_i: StrictInt = Field(
+        ..., description="Transcript end index of the exon. Inter-residue coordinates."
+    )
+    alt_start_i: StrictInt = Field(
+        ..., description="Genomic start index of the exon. Inter-residue coordinates."
+    )
+    alt_end_i: StrictInt = Field(
+        ..., description="Genomic end index of the exon. Inter-residue coordinates."
+    )
+    alt_strand: Strand = Field(..., description="Strand.")
 
-    >>> import asyncio
-    >>> from cool_seq_tool.sources.uta_database import UtaDatabase
-    >>> uta_db = asyncio.run(UtaDatabase.create())
+
+class NoMatchingAlignmentError(Exception):
+    """Raise for failure to find alignment matching user parameters"""
+
+
+class UtaRepository:
+    """Connection-scoped repository for issuing queries against UTA.
+
+    This class encapsulates predefined UTA queries and related result parsing.
+    It operates on an active psycopg async connection provided at initialization
+    time and does not manage connection lifecycle or pooling.
+
+    Instances are intended to be short-lived and used within the scope of a
+    checked-out connection (e.g., from a connection pool).
     """
 
-    def __init__(self, db_url: str = UTA_DB_URL) -> None:
-        """Initialize DB class. Should only be used by ``create()`` method, and not
-        be called directly by a user.
+    def __init__(self, conn: AsyncConnection) -> None:
+        """Initialize the repository with an active database connection.
 
-        :param db_url: PostgreSQL connection URL
-            Format: ``driver://user:password@host/database/schema``
+        :param conn: Active psycopg async connection to a UTA database.
+            The caller is responsible for connection lifecycle management.
         """
-        self.schema = None
-        self._connection_pool = None
-        self.db_url = db_url
-        self.args = self._get_conn_args()
+        self._conn = conn
 
-    def _get_conn_args(self) -> DbConnectionArgs:
-        """Return connection arguments.
+    async def execute_query(
+        self, q: str, params: Sequence | Mapping | None = None
+    ) -> AsyncCursor:
+        """Execute an arbitrary query against the UTA DB
 
-        :param db_url: raw connection URL
-        :return: Database connection arguments
+        This method is marked as public so that downstream applications can run custom
+        queries using the same DB connection. However, that means they are responsible
+        for managing the cursor themselves.
+
+        For the sake of compactness and separation of concerns, other modules in CoolSeqTool
+        should avoid use of this method, and should instead add new methods to the repository
+        class itself.
+
+        :param q: raw query. May need to specify schema depending on connection context.
+        :param params: query variables, if needed. These should not be hard-coded into the query.
+        :return: query result cursor
+        :raise UndefinedTable: if queried table isn't in the search_path -- this likely
+            indicates a UTA schema/search path config issue
         """
-        if "UTA_DB_PROD" in environ:
-            secret = ast.literal_eval(self.get_secret())
-
-            password = secret["password"]
-            username = secret["username"]
-            port = secret["port"]
-            host = secret["host"]
-            database = secret["dbname"]
-            schema = secret["schema"]
-            self.schema = schema
-
-            environ["PGPASSWORD"] = password
-            environ["UTA_DB_URL"] = (
-                f"postgresql://{username}@{host}:{port}/{database}/{schema}"
-            )
-            return DbConnectionArgs(
-                host=host,
-                port=int(port),
-                database=database,
-                user=username,
-                password=password,
-            )
-
-        url = ParseResult(urlparse(self.db_url))
-        self.schema = url.schema
-        password = unquote(url.password) if url.password else ""
-        return DbConnectionArgs(
-            host=url.hostname,
-            port=url.port,
-            database=url.database,
-            user=url.username,
-            password=password,
-        )
-
-    async def create_pool(self) -> None:
-        """Create connection pool if not already created."""
-        if not self._connection_pool:
-            self.args = self._get_conn_args()
-            try:
-                self._connection_pool = await asyncpg.create_pool(
-                    min_size=1,
-                    max_size=10,
-                    max_inactive_connection_lifetime=3,
-                    command_timeout=60,
-                    host=self.args.host,
-                    port=self.args.port,
-                    user=self.args.user,
-                    password=self.args.password,
-                    database=self.args.database,
-                )
-            except InterfaceError as e:
-                _logger.exception(
-                    "While creating connection pool, encountered exception"
-                )
-                msg = "Could not create connection pool"
-                raise Exception(msg) from e  # noqa: TRY002
-
-    @classmethod
-    async def create(
-        cls: type[UTADatabaseType], db_url: str = UTA_DB_URL
-    ) -> UTADatabaseType:
-        """Manufacture a fully-initialized class instance (a la factory pattern). This
-        method should be used instead of calling the class directly to create a new
-        instance.
-
-        >>> import asyncio
-        >>> from cool_seq_tool.sources.uta_database import UtaDatabase
-        >>> uta_db = asyncio.run(UtaDatabase.create())
-
-        :param cls: supplied implicitly
-        :param db_url: PostgreSQL connection URL
-            Format: ``driver://user:password@host/database/schema``
-        :return: UTA DB access class instance
-        """
-        self = cls(db_url)
-        await self._create_genomic_table()
-        await self.create_pool()
-        return self
-
-    async def execute_query(self, query: str) -> Any:  # noqa: ANN401
-        """Execute a query and return its result.
-
-        :param query: Query to make on database
-        :return: Query's result
-        """
-
-        async def _execute_query(q: str) -> Any:  # noqa: ANN401
-            async with (
-                self._connection_pool.acquire() as connection,
-                connection.transaction(),
-            ):
-                return await connection.fetch(q)
-
-        if not self._connection_pool:
-            await self.create_pool()
         try:
-            return await _execute_query(query)
-        except InvalidAuthorizationSpecificationError:
-            self._connection_pool = None
-            await self.create_pool()
-            return await _execute_query(query)
-
-    async def _create_genomic_table(self) -> None:
-        """Create table containing genomic accession information."""
-        check_table_exists = f"""
-            SELECT EXISTS (
-               SELECT FROM information_schema.tables
-               WHERE table_schema = '{self.schema}'
-               AND table_name = 'genomic'
-            );
-            """  # noqa: S608
-        genomic_table_exists = await self.execute_query(check_table_exists)
-        genomic_table_exists = genomic_table_exists[0].get("exists")
-        if genomic_table_exists is None:
-            _logger.critical(
-                "SELECT EXISTS query in UtaDatabase._create_genomic_table "
-                "returned invalid response"
+            return await self._conn.execute(q, params)
+        except UndefinedTable:
+            search_path = await (
+                await self._conn.execute("SHOW search_path;")
+            ).fetchone()
+            _logger.exception(
+                "Query '%s' raised UndefinedTable error. Is search_path set to include correct UTA schema? Current search_path value is '%s'",
+                q,
+                search_path,
             )
-            msg = "SELECT EXISTS query returned invalid response"
-            raise ValueError(msg)
-        if not genomic_table_exists:
-            create_genomic_table = f"""
-                CREATE TABLE {self.schema}.genomic AS
-                    SELECT t.hgnc, aes.alt_ac, aes.alt_aln_method,
-                        aes.alt_strand, ae.start_i AS alt_start_i,
-                        ae.end_i AS alt_end_i
-                    FROM ((((({self.schema}.transcript t
-                        JOIN {self.schema}.exon_set tes ON (((t.ac = tes.tx_ac)
-                            AND (tes.alt_aln_method = 'transcript'::text))))
-                        JOIN {self.schema}.exon_set aes ON (((t.ac = aes.tx_ac)
-                            AND (aes.alt_aln_method <> 'transcript'::text))))
-                        JOIN {self.schema}.exon te ON
-                            ((tes.exon_set_id = te.exon_set_id)))
-                        JOIN {self.schema}.exon ae ON
-                            (((aes.exon_set_id = ae.exon_set_id)
-                            AND (te.ord = ae.ord))))
-                        LEFT JOIN {self.schema}.exon_aln ea ON
-                            (((te.exon_id = ea.tx_exon_id) AND
-                            (ae.exon_id = ea.alt_exon_id))));
-                """  # noqa: S608
-            await self.execute_query(create_genomic_table)
-
-            indexes = [
-                f"""CREATE INDEX alt_pos_index ON {self.schema}.genomic (alt_ac, alt_start_i, alt_end_i);""",
-                f"""CREATE INDEX gene_alt_index ON {self.schema}.genomic (hgnc, alt_ac);""",
-                f"""CREATE INDEX alt_ac_index ON {self.schema}.genomic (alt_ac);""",
-            ]
-            for create_index in indexes:
-                await self.execute_query(create_index)
-
-    @staticmethod
-    def _transform_list(li: list) -> list[list[Any]]:
-        """Transform list to only contain field values
-
-        :param li: List of asyncpg.Record objects
-        :return: List of list of objects
-        """
-        return [list(i) for i in li]
+            raise
 
     async def get_alt_ac_start_or_end(
         self, tx_ac: str, tx_exon_start: int, tx_exon_end: int, gene: str | None
-    ) -> tuple[GenomicAlnData | None, str | None]:
+    ) -> GenomicAlnData:
         """Get genomic data for related transcript exon start or end.
 
         :param tx_ac: Transcript accession
         :param tx_exon_start: Transcript's exon start coordinate
         :param tx_exon_end: Transcript's exon end coordinate
-        :param gene: HGNC gene symbol
-        :return: Genomic alignment data and warnings if found
+        :param gene: HGNC gene symbol, if available
+        :return: Genomic alignment data if match found
+        :raise NoMatchingAlignmentError: if unable to find alignment matching given params
         """
-        gene_query = f"AND T.hgnc = '{gene}'" if gene else ""
+        query = """
+            SELECT
+                T.hgnc,
+                T.alt_ac,
+                T.alt_start_i,
+                T.alt_end_i,
+                T.alt_strand,
+                T.ord
+            FROM _cds_exons_fp_v AS C
+            JOIN tx_exon_aln_mv AS T ON T.tx_ac = C.tx_ac
+            WHERE T.tx_ac = %(tx_ac)s
+              AND (%(gene)s::text IS NULL OR T.hgnc = %(gene)s::text)
+              AND %(tx_exon_start)s BETWEEN T.tx_start_i AND T.tx_end_i
+              AND %(tx_exon_end)s BETWEEN T.tx_start_i AND T.tx_end_i
+              AND T.alt_aln_method = 'splign'
+              AND T.alt_ac LIKE 'NC_00%%'
+            ORDER BY CAST(
+                SUBSTR(
+                    T.alt_ac,
+                    POSITION('.' IN T.alt_ac) + 1,
+                    LENGTH(T.alt_ac)
+                ) AS INT
+            ) DESC;
+        """
 
-        query = f"""
-            SELECT T.hgnc, T.alt_ac, T.alt_start_i, T.alt_end_i, T.alt_strand, T.ord
-            FROM {self.schema}._cds_exons_fp_v as C
-            JOIN {self.schema}.tx_exon_aln_mv as T ON T.tx_ac = C.tx_ac
-            WHERE T.tx_ac = '{tx_ac}'
-            {gene_query}
-            AND {tx_exon_start} BETWEEN T.tx_start_i AND T.tx_end_i
-            AND {tx_exon_end} BETWEEN T.tx_start_i AND T.tx_end_i
-            AND T.alt_aln_method = 'splign'
-            AND T.alt_ac LIKE 'NC_00%'
-            ORDER BY CAST(SUBSTR(T.alt_ac, position('.' in T.alt_ac) + 1,
-                LENGTH(T.alt_ac)) AS INT) DESC;
-            """  # noqa: S608
-        result = await self.execute_query(query)
-        if not result:
-            msg = (
-                f"Unable to find a result where {tx_ac} has transcript "
-                f"coordinates {tx_exon_start} and {tx_exon_end} between "
-                f"an exon's start and end coordinates"
-            )
-            if gene_query:
-                msg += f" on gene {gene}"
+        params = {
+            "tx_ac": tx_ac,
+            "tx_exon_start": tx_exon_start,
+            "tx_exon_end": tx_exon_end,
+            "gene": gene,
+        }
+
+        cur = await self.execute_query(query, params)
+        row = await cur.fetchone()
+
+        if not row:
+            msg = f"Unable to find a result where {tx_ac} has transcript coordinates ({tx_exon_start=}, {tx_exon_end=}) between an exon's start and end coordinates on {gene=}"
             _logger.warning(msg)
-            return None, msg
-        return GenomicAlnData(**result[0]), None
+            raise NoMatchingAlignmentError(msg)
+
+        return GenomicAlnData(
+            hgnc=row[0],
+            alt_ac=row[1],
+            alt_start_i=row[2],
+            alt_end_i=row[3],
+            alt_strand=row[4],
+            ord=row[5],
+        )
 
     async def get_cds_start_end(self, tx_ac: str) -> tuple[int, int] | None:
-        """Get coding start and end site
+        """Return CDS start/end coordinates for a transcript.
+
+        Strips version from Ensembl accessions (``ENS*``) since UTA stores them
+        unversioned.
 
         :param tx_ac: Transcript accession
-        :return: [Coding start site, Coding end site]
+        :return: (cds_start_i, cds_end_i) if both exist, else None
         """
-        if tx_ac.startswith("ENS"):
-            tx_ac = tx_ac.split(".")[0]
-        query = f"""
+        # As of 2026-03, Ensembl transcripts in UTA are unversioned, so we need to drop
+        # the version specifier
+        tx_ac = tx_ac.split(".", 1)[0] if tx_ac.startswith("ENS") else tx_ac
+        query = """
             SELECT cds_start_i, cds_end_i
-            FROM {self.schema}.transcript
-            WHERE ac='{tx_ac}';
-            """  # noqa: S608
-        cds_start_end = await self.execute_query(query)
+            FROM transcript
+            WHERE ac=%(ac)s;
+        """
+        cds_start_end = await (
+            await self.execute_query(query, {"ac": tx_ac})
+        ).fetchone()
         if cds_start_end:
-            cds_start_end = cds_start_end[0]
             if cds_start_end[0] is not None and cds_start_end[1] is not None:
                 return cds_start_end[0], cds_start_end[1]
         else:
@@ -333,33 +313,40 @@ class UtaDatabase:
         return None
 
     async def get_newest_assembly_ac(self, ac: str) -> list[str]:
-        """Find accession associated to latest genomic assembly
+        """Return newest accession versions matching the given prefix
 
-        :param ac: Accession
-        :return: List of accessions associated to latest genomic assembly. Order by
-            desc
+        If the accession is Ensembl (``EN`` prefix), results are ordered lexicographically.
+        Otherwise, RefSeq-style accessions are ordered by version number in descending order.
+
+        :param ac: Accession (versioned or unversioned)
+        :return: List of matching accessions, newest version first
         """
-        # Ensembl accessions do not have versions
+        prefix = ac.split(".", 1)[0]
+
         if ac.startswith("EN"):
-            order_by_cond = "ORDER BY ac;"
+            query = """
+                SELECT ac
+                FROM _seq_anno_most_recent
+                WHERE ac LIKE %(ac_prefix)s
+                  AND (descr IS NULL OR descr = '')
+                ORDER BY ac;
+            """
         else:
-            order_by_cond = (
-                "ORDER BY SUBSTR(ac, 0, position('.' in ac)),"
-                "CAST(SUBSTR(ac, position('.' in ac) + 1, LENGTH(ac)) AS INT) DESC;"
-            )
+            query = """
+                SELECT ac
+                FROM _seq_anno_most_recent
+                WHERE ac LIKE %(ac_prefix)s
+                  AND (descr IS NULL OR descr = '')
+                ORDER BY
+                    SUBSTR(ac, 0, POSITION('.' IN ac)),
+                    CAST(SUBSTR(ac, POSITION('.' IN ac) + 1, LENGTH(ac)) AS INT) DESC;
+            """
 
-        query = f"""
-            SELECT ac
-            FROM {self.schema}._seq_anno_most_recent
-            WHERE ac LIKE '{ac.split(".")[0]}%'
-            AND ((descr IS NULL) OR (descr = ''))
-            {order_by_cond}
-            """  # noqa: S608
-        results = await self.execute_query(query)
-        if not results:
-            return []
-
-        return [r["ac"] for r in results]
+        params = {
+            "ac_prefix": f"{prefix}%",
+        }
+        results = await (await self.execute_query(query, params)).fetchall()
+        return [r[0] for r in results]
 
     async def validate_genomic_ac(self, ac: str) -> bool:
         """Return whether or not genomic accession exists.
@@ -367,31 +354,33 @@ class UtaDatabase:
         :param ac: Genomic accession
         :return: ``True`` if genomic accession exists. ``False`` otherwise.
         """
-        query = f"""
+        query = """
             SELECT EXISTS(
                 SELECT ac
-                FROM {self.schema}._seq_anno_most_recent
-                WHERE ac = '{ac}'
+                FROM _seq_anno_most_recent
+                WHERE ac = %(ac)s
             );
-            """  # noqa: S608
-        result = await self.execute_query(query)
-        return result[0][0]
+            """
+        cursor = await self.execute_query(query, {"ac": ac})
+        result = await cursor.fetchone()
+        return result[0]
 
     async def gene_exists(self, gene: str) -> bool:
         """Return whether or not a gene symbol exists in UTA gene table
 
         :param gene: Gene symbol
-        :return ``True`` if gene symbol exists in UTA, ``False`` if not
+        :return: ``True`` if gene symbol exists in UTA, ``False`` if not
         """
-        query = f"""
+        query = """
             SELECT EXISTS(
                 SELECT hgnc
-                FROM {self.schema}.gene
-                WHERE hgnc = '{gene}'
+                FROM gene
+                WHERE hgnc = %(gene)s
             );
-            """  # noqa: S608
-        result = await self.execute_query(query)
-        return result[0][0]
+            """
+        cursor = await self.execute_query(query, {"gene": gene})
+        result = await cursor.fetchone()
+        return result[0]
 
     async def transcript_exists(self, transcript: str) -> bool:
         """Return whether or not a transcript exists in the UTA ``tx_exon_aln_mv`` table
@@ -399,42 +388,41 @@ class UtaDatabase:
         :param transcript: A transcript accession
         :return: ``True`` if transcript exists in UTA, ``False`` if not
         """
-        query = f"""
+        query = """
             SELECT EXISTS(
                 SELECT tx_ac
-                FROM {self.schema}.tx_exon_aln_mv
-                WHERE tx_ac = '{transcript}'
+                FROM tx_exon_aln_mv
+                WHERE tx_ac = %(tx_ac)s
             );
-            """  # noqa: S608
-        result = await self.execute_query(query)
-        return result[0][0]
+            """
+        cursor = await self.execute_query(query, {"tx_ac": transcript})
+        result = await cursor.fetchone()
+        return result[0]
 
     async def get_ac_descr(self, ac: str) -> str | None:
-        """Return accession description. This is typically available only for accessions
-        from older (pre-GRCh38) builds.
+        """Return free-text accession description
 
-        >>> import asyncio
-        >>> from cool_seq_tool.sources.uta_database import UtaDatabase
-        >>> async def describe():
-        ...     uta_db = await UtaDatabase.create()
-        ...     result = await uta_db.get_ac_descr("NC_000001.10")
-        ...     return result
-        >>> asyncio.run(describe())
+        This is typically available only for accessions from older (pre-GRCh38) builds.
+
+        >>> async with uta.repository() as uta:
+        ...     result = await uta.get_ac_descr("NC_000001.10")
+        >>> result
         'Homo sapiens chromosome 1, GRCh37.p13 Primary Assembly'
 
         :param ac: chromosome accession, e.g. ``"NC_000001.10"``
-        :return: Description containing assembly and chromosome
+        :return: Free-text description provided by source, generally containing assembly and chromosome
         """
-        query = f"""
+        query = """
             SELECT descr
-            FROM {self.schema}._seq_anno_most_recent
-            WHERE ac = '{ac}';
-            """  # noqa: S608
-        result = await self.execute_query(query)
+            FROM _seq_anno_most_recent
+            WHERE ac = %(ac)s;
+            """
+        cursor = await self.execute_query(query, {"ac": ac})
+        result = await cursor.fetchone()
         if not result:
-            _logger.warning("Accession %s does not have a description", ac)
+            _logger.warning("No description entry found for accession %s", ac)
             return None
-        result = result[0][0]
+        result = result[0]
         if result == "":
             result = None
         return result
@@ -465,56 +453,76 @@ class UtaDatabase:
             ``False`` if tx_condition will be exact match
         :return: List of transcript exon alignment data
         """
+        params: dict = {"start_pos": start_pos, "end_pos": end_pos}
         if tx_ac.startswith("EN"):
-            temp_ac = tx_ac.split(".")[0]
-            aln_method = f"AND alt_aln_method='genebuild'"  # noqa: F541
+            params["tx_ac"] = tx_ac.split(".")[0]
+            params["alt_aln_method"] = "genebuild"
         else:
-            temp_ac = tx_ac
-            aln_method = f"AND alt_aln_method='splign'"  # noqa: F541
+            params["tx_ac"] = tx_ac
+            params["alt_aln_method"] = "splign"
 
         if like_tx_ac:
-            tx_q = f"WHERE tx_ac LIKE '{temp_ac}%'"
+            params["tx_ac"] = f"{params['tx_ac']}%"
+            tx_q = "WHERE tx_ac LIKE %(tx_ac)s"
         else:
-            tx_q = f"WHERE tx_ac='{temp_ac}'"
+            tx_q = "WHERE tx_ac=%(tx_ac)s"
 
         order_by_cond = "ORDER BY CAST(SUBSTR(alt_ac, position('.' in alt_ac) + 1, LENGTH(alt_ac)) AS INT)"
         if alt_ac:
-            alt_ac_q = f"AND alt_ac = '{alt_ac}'"
+            alt_ac_q = "AND alt_ac = %(alt_ac)s"
+            params["alt_ac"] = alt_ac
             if alt_ac.startswith("EN"):
                 order_by_cond = "ORDER BY alt_ac"
         else:
-            alt_ac_q = f"AND alt_ac LIKE 'NC_00%'"  # noqa: F541
+            alt_ac_q = "AND alt_ac LIKE 'NC_00%%'"
 
         if use_tx_pos:
-            pos_q = f"""tx_start_i AND tx_end_i"""  # noqa: F541
+            pos_q = """tx_start_i AND tx_end_i"""
         else:
-            pos_q = f"""alt_start_i AND alt_end_i"""  # noqa: F541
+            pos_q = """alt_start_i AND alt_end_i"""
 
         query = f"""
             SELECT hgnc, tx_ac, tx_start_i, tx_end_i, alt_ac, alt_start_i,
                 alt_end_i, alt_strand, alt_aln_method, ord, tx_exon_id, alt_exon_id
-            FROM {self.schema}.tx_exon_aln_mv
+            FROM tx_exon_aln_mv
             {tx_q}
             {alt_ac_q}
-            {aln_method}
-            AND {start_pos} BETWEEN {pos_q}
-            AND {end_pos} BETWEEN {pos_q}
+            AND alt_aln_method = %(alt_aln_method)s
+            AND %(start_pos)s BETWEEN {pos_q}
+            AND %(end_pos)s BETWEEN {pos_q}
             {order_by_cond}
             """  # noqa: S608
-        result = await self.execute_query(query)
-        if not result:
+        cursor = await self.execute_query(query, params)
+        results = await cursor.fetchall()
+        if not results:
             _logger.warning("Unable to find transcript alignment for query: %s", query)
             return []
-        if alt_ac and not use_tx_pos and len(result) > 1:
+        if alt_ac and not use_tx_pos and len(results) > 1:
             _logger.debug(
                 "Found more than one match for tx_ac %s and alt_ac = %s",
-                temp_ac,
+                params["tx_ac"],
                 alt_ac,
             )
-        return [TxExonAlnData(**r) for r in result]
+        return [
+            TxExonAlnData(
+                hgnc=r[0],
+                tx_ac=r[1],
+                tx_start_i=r[2],
+                tx_end_i=r[3],
+                alt_ac=r[4],
+                alt_start_i=r[5],
+                alt_end_i=r[6],
+                alt_strand=r[7],
+                alt_aln_method=r[8],
+                ord=r[9],
+                tx_exon_id=r[10],
+                alt_exon_id=r[11],
+            )
+            for r in results
+        ]
 
     @staticmethod
-    def data_from_result(result: TxExonAlnData) -> GenomicTxData | None:
+    def _process_aln_data(result: TxExonAlnData) -> GenomicTxData | None:
         """Return data found from result.
 
         :param result: Transcript exon alignment data
@@ -548,19 +556,14 @@ class UtaDatabase:
         representation. This function parses queried data from the tx_exon_aln_mv
         table, and sorts the queried data by the most recent genomic build
 
-        >>> import asyncio
-        >>> from cool_seq_tool.sources import UtaDatabase
-        >>> async def get_braf_mane():
-        ...     uta_db = await UtaDatabase.create()
-        ...     result = await uta_db.get_mane_c_genomic_data(
+        >>> async with uta_db.repository() as uta:
+        ...     result = await uta.get_mane_c_genomic_data(
         ...         "NM_004333.6",
         ...         None,
         ...         140753335,
         ...         140753335,
         ...     )
-        ...     return result
-        >>> braf = asyncio.run(get_braf_mane())
-        >>> braf["alt_ac"]
+        >>> result.alt_ac
         'NC_000007.14'
 
         :param ac: MANE transcript accession
@@ -584,7 +587,7 @@ class UtaDatabase:
         # Sort by most recent chromosomal accession
         result = results[-1]
 
-        genomic_tx_data = self.data_from_result(result)
+        genomic_tx_data = self._process_aln_data(result)
         if not genomic_tx_data:
             return None
 
@@ -653,7 +656,7 @@ class UtaDatabase:
         else:
             result = results[0]
 
-        genomic_tx_data = self.data_from_result(result)
+        genomic_tx_data = self._process_aln_data(result)
         if not genomic_tx_data:
             return None
 
@@ -692,37 +695,37 @@ class UtaDatabase:
         :param gene: Gene symbol
         :return: List of genomic accessions, sorted in desc order
         """
-        query = f"""
-            SELECT DISTINCT alt_ac
-            FROM {self.schema}.genomic
-            WHERE hgnc = '{gene}'
-            AND alt_ac LIKE 'NC_00%'
-            ORDER BY alt_ac;
-            """  # noqa: S608
+        query = """
+            SELECT DISTINCT aes.alt_ac
+            FROM transcript AS t
+            JOIN exon_set AS aes
+              ON t.ac = aes.tx_ac
+            WHERE t.hgnc = %(gene)s
+              AND aes.alt_aln_method <> 'transcript'
+              AND aes.alt_ac LIKE 'NC_00%%'
+            ORDER BY aes.alt_ac;
+            """
 
-        records = await self.execute_query(query)
-        if not records:
-            return []
-
-        alt_acs = [r["alt_ac"] for r in records]
+        cursor = await self.execute_query(query, {"gene": gene})
+        results = await cursor.fetchall()
+        alt_acs = [r[0] for r in results]
         alt_acs.sort(key=lambda x: int(x.split(".")[-1]), reverse=True)
         return alt_acs
 
     async def get_gene_from_ac(
-        self, ac: str, start_pos: int, end_pos: int
+        self, ac: str, start_pos: int, end_pos: int | None
     ) -> list[str] | None:
         """Get gene(s) within the provided coordinate range
 
-        >>> import asyncio
-        >>> from cool_seq_tool.sources import UtaDatabase
-        >>> async def get_gene():
-        ...     uta_db = await UtaDatabase.create()
-        ...     result = await uta_db.get_gene_from_ac(
-        ...         "NC_000017.11", 43044296, 43045802
-        ...     )
-        ...     return result
-        >>> asyncio.run(get_gene())
+        >>> async with uta_db.repository() as uta:
+        ...     result = await uta.get_gene_from_ac("NC_000017.11", 43044296, 43045802)
+        >>> result
         ['BRCA1']
+
+        This function performs a relatively expensive condition check and is expected to
+        be relatively slow (~100ms under ideal conditions). If users need a more efficient
+        lookup of this form, they should either create their own materialized views/indices,
+        or lobby for their inclusion in a new UTA release.
 
         :param ac: NC accession, e.g. ``"NC_000001.11"``
         :param start_pos: Start position change
@@ -731,14 +734,28 @@ class UtaDatabase:
         """
         if end_pos is None:
             end_pos = start_pos
-        query = f"""
-            SELECT DISTINCT hgnc
-            FROM {self.schema}.genomic
-            WHERE alt_ac = '{ac}'
-            AND {start_pos} BETWEEN alt_start_i AND alt_end_i
-            AND {end_pos} BETWEEN alt_start_i AND alt_end_i;
-            """  # noqa: S608
-        results = await self.execute_query(query)
+        query = """
+                SELECT DISTINCT t.hgnc
+                FROM transcript AS t
+                JOIN exon_set AS tes
+                  ON t.ac = tes.tx_ac
+                 AND tes.alt_aln_method = 'transcript'
+                JOIN exon_set AS aes
+                  ON t.ac = aes.tx_ac
+                 AND aes.alt_aln_method <> 'transcript'
+                JOIN exon AS te
+                  ON tes.exon_set_id = te.exon_set_id
+                JOIN exon AS ae
+                  ON aes.exon_set_id = ae.exon_set_id
+                 AND te.ord = ae.ord
+                WHERE aes.alt_ac = %(ac)s
+                  AND %(start_pos)s BETWEEN ae.start_i AND ae.end_i
+                  AND %(end_pos)s BETWEEN ae.start_i AND ae.end_i;
+        """
+        cursor = await self.execute_query(
+            query, {"ac": ac, "start_pos": start_pos, "end_pos": end_pos}
+        )
+        results = await cursor.fetchall()
         if not results:
             _logger.warning(
                 "Unable to find gene between %s and %s on %s", start_pos, end_pos, ac
@@ -787,16 +804,16 @@ class UtaDatabase:
         pos_cond = ""
         if start_pos is not None and end_pos is not None:
             if use_tx_pos:
-                pos_cond = f"""
-                    AND {start_pos} + T.cds_start_i
+                pos_cond = """
+                    AND %(start_pos)s + T.cds_start_i
                         BETWEEN ALIGN.tx_start_i AND ALIGN.tx_end_i
-                    AND {end_pos} + T.cds_start_i
+                    AND %(end_pos)s + T.cds_start_i
                         BETWEEN ALIGN.tx_start_i AND ALIGN.tx_end_i
                     """
             else:
-                pos_cond = f"""
-                    AND {start_pos} BETWEEN ALIGN.alt_start_i AND ALIGN.alt_end_i
-                    AND {end_pos} BETWEEN ALIGN.alt_start_i AND ALIGN.alt_end_i
+                pos_cond = """
+                    AND %(start_pos)s BETWEEN ALIGN.alt_start_i AND ALIGN.alt_end_i
+                    AND %(end_pos)s BETWEEN ALIGN.alt_start_i AND ALIGN.alt_end_i
                     """
 
         order_by_cond = """
@@ -806,29 +823,36 @@ class UtaDatabase:
         ALIGN.tx_end_i - ALIGN.tx_start_i DESC;
         """
         if alt_ac:
-            alt_ac_cond = f"AND ALIGN.alt_ac = '{alt_ac}'"
+            alt_ac_cond = "AND ALIGN.alt_ac = %(alt_ac)s"
             if alt_ac.startswith("EN"):
                 order_by_cond = "ORDER BY ALIGN.alt_ac;"
         else:
-            alt_ac_cond = "AND ALIGN.alt_ac LIKE 'NC_00%'"
+            alt_ac_cond = "AND ALIGN.alt_ac LIKE 'NC_00%%'"
 
-        gene_cond = f"AND T.hgnc = '{gene}'" if gene else ""
+        gene_cond = "AND T.hgnc = %(gene)s" if gene else ""
 
         query = f"""
             SELECT AA.pro_ac, AA.tx_ac, ALIGN.alt_ac, T.cds_start_i
-            FROM {self.schema}.associated_accessions as AA
-            JOIN {self.schema}.transcript as T ON T.ac = AA.tx_ac
-            JOIN {self.schema}.tx_exon_aln_mv as ALIGN ON T.ac = ALIGN.tx_ac
+            FROM associated_accessions as AA
+            JOIN transcript as T ON T.ac = AA.tx_ac
+            JOIN tx_exon_aln_mv as ALIGN ON T.ac = ALIGN.tx_ac
             WHERE ALIGN.alt_aln_method = 'splign'
             {gene_cond}
             {alt_ac_cond}
             {pos_cond}
             {order_by_cond}
             """  # noqa: S608
-        results = await self.execute_query(query)
-        results = [
-            (r["pro_ac"], r["tx_ac"], r["alt_ac"], r["cds_start_i"]) for r in results
-        ]
+        cursor = await self.execute_query(
+            query,
+            {
+                "start_pos": start_pos,
+                "end_pos": end_pos,
+                "gene": gene,
+                "alt_ac": alt_ac,
+            },
+        )
+        results = await cursor.fetchall()
+        results = [(r[0], r[1], r[2], r[3]) for r in results]
         results_df = pl.DataFrame(results, schema=schema, orient="row")
         if results:
             results_df = results_df.unique()
@@ -837,10 +861,8 @@ class UtaDatabase:
     async def get_chr_assembly(self, ac: str) -> tuple[str, Assembly] | None:
         """Get chromosome and assembly for NC accession if not in GRCh38.
 
-        >>> import asyncio
-        >>> from cool_seq_tool.sources.uta_database import UtaDatabase
-        >>> uta_db = asyncio.run(UtaDatabase.create())
-        >>> result = asyncio.run(uta_db.get_chr_assembly("NC_000007.13"))
+        >>> async with uta_db.repository() as uta:
+        ...     result = await uta.get_chr_assembly("NC_000007.13")
         >>> result
         ('chr7', <Assembly.GRCH37: 'GRCh37'>)
 
@@ -885,14 +907,13 @@ class UtaDatabase:
 
         query = f"""
             SELECT tx_ac
-            FROM {self.schema}.associated_accessions
-            WHERE pro_ac = '{p_ac}'
+            FROM associated_accessions
+            WHERE pro_ac = %(p_ac)s
             {order_by_cond}
             """  # noqa: S608
-        result = await self.execute_query(query)
-        if result:
-            result = [r["tx_ac"] for r in result]
-        return result
+        cursor = await self.execute_query(query, {"p_ac": p_ac})
+        result = await cursor.fetchall()
+        return [r[0] for r in result]
 
     async def get_transcripts_from_genomic_pos(
         self, alt_ac: str, g_pos: int
@@ -903,48 +924,142 @@ class UtaDatabase:
         :param g_pos: Genomic position
         :return: RefSeq transcripts on c. coordinate
         """
-        query = f"""
-               SELECT distinct tx_ac
-               FROM {self.schema}.tx_exon_aln_mv
-               WHERE alt_ac = '{alt_ac}'
-               AND {g_pos} BETWEEN alt_start_i AND alt_end_i
-               AND tx_ac LIKE 'NM_%';
-               """  # noqa: S608
-        results = await self.execute_query(query)
-        if not results:
-            return []
+        query = """
+           SELECT distinct tx_ac
+           FROM tx_exon_aln_mv
+           WHERE alt_ac = %(alt_ac)s
+           AND %(g_pos)s BETWEEN alt_start_i AND alt_end_i
+           AND tx_ac LIKE 'NM_%%';
+       """
+        cursor = await self.execute_query(query, {"alt_ac": alt_ac, "g_pos": g_pos})
+        results = await cursor.fetchall()
         return [item for sublist in results for item in sublist]
 
-    @staticmethod
-    def get_secret() -> str:
-        """Get secrets for UTA DB instances. Used for deployment on AWS.
+    async def get_alt_acs_for_tx(self, tx_ac: str) -> list[str]:
+        """Return genomic reference sequences associated with transcript accession
 
-        :raises ClientError: If unable to retrieve secret value due to decryption
-            decryption failure, internal service error, invalid parameter, invalid
-            request, or resource not found.
+        :param tx_ac: transcript accession
+        :return: list of genomic accessions for which alignments exist to ``tx_ac``
         """
-        secret_name = environ["UTA_DB_SECRET"]
-        region_name = "us-east-2"
+        query = """
+            SELECT DISTINCT alt_ac
+            FROM exon_set
+            WHERE tx_ac = %(tx_ac)s
+              AND alt_aln_method != 'transcript';
+        """
+        cursor = await self.execute_query(query, {"tx_ac": tx_ac})
+        results = await cursor.fetchall()
+        return [r[0] for r in results]
 
-        # Create a Secrets Manager client
-        session = boto3.session.Session()
-        client = session.client(service_name="secretsmanager", region_name=region_name)
+    async def get_gene_from_tx_ac(self, tx_ac: str) -> str | None:
+        """Return HGNC gene name for a transcript accession
 
-        try:
-            get_secret_value_response = client.get_secret_value(SecretId=secret_name)
-        except ClientError:
-            # For a list of exceptions thrown, see
-            # https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
-            _logger.exception("Encountered AWS client error fetching UTA DB secret")
-            raise
+        :param tx_ac: transcript accession
+        :return: gene name, if found
+        """
+        query = """
+            SELECT hgnc
+            FROM tx_exon_aln_mv
+            WHERE tx_ac = %(tx_ac)s;
+        """
+        cursor = await self.execute_query(query, {"tx_ac": tx_ac})
+        result = await cursor.fetchone()
+        if result:
+            return result[0]
+        return None
+
+    async def validate_genomic_breakpoint(
+        self,
+        pos: int,
+        genomic_ac: str,
+        tx_ac: str,
+    ) -> bool:
+        """Validate that a genomic coordinate falls within the first and last exon
+            for a transcript on a given accession
+
+        :param pos: Genomic position on ``genomic_ac``
+        :param genomic_ac: RefSeq genomic accession, e.g. ``"NC_000007.14"``
+        :param transcript: A transcript accession
+        :return: ``True`` if the coordinate falls within 150bp of the first and last exon
+            for the transcript, ``False`` if not. Breakpoints past this threshold
+            are likely erroneous.
+        """
+        query = """
+            WITH tx_boundaries AS (
+                SELECT
+                MIN(alt_start_i) AS min_start,
+                MAX(alt_end_i) AS max_end
+                FROM tx_exon_aln_mv
+                WHERE tx_ac = %(tx_ac)s
+                AND alt_ac = %(genomic_ac)s
+            )
+            SELECT * FROM tx_boundaries
+            WHERE %(pos)s between (tx_boundaries.min_start - 150) and (tx_boundaries.max_end + 150);
+            """
+        cursor = await self.execute_query(
+            query, {"tx_ac": tx_ac, "genomic_ac": genomic_ac, "pos": pos}
+        )
+        result = await cursor.fetchone()
+        return bool(result)
+
+    async def get_all_exon_coords(
+        self, tx_ac: str, genomic_ac: str | None = None
+    ) -> list[ExonCoord]:
+        """Get all exon coordinate data for a transcript.
+
+        If ``genomic_ac`` is NOT provided, this method will use the GRCh38 accession
+        associated to ``tx_ac``.
+
+        :param tx_ac: The RefSeq transcript accession to get exon data for.
+        :param genomic_ac: The RefSeq genomic accession to get exon data for.
+        :return: List of all exon coordinate data for ``tx_ac`` and ``genomic_ac``.
+            The exon coordinate data will include the exon number, transcript and
+            genomic positions for the start and end of the exon, and strand.
+            The list will be ordered by ascending exon number.
+        """
+        if genomic_ac:
+            query = """
+                SELECT DISTINCT ord, tx_start_i, tx_end_i, alt_start_i, alt_end_i, alt_strand
+                FROM tx_exon_aln_mv
+                WHERE tx_ac = %(tx_ac)s
+                AND alt_aln_method = 'splign'
+                AND alt_ac = %(genomic_ac)s
+                ORDER BY ord ASC;
+                """
         else:
-            return get_secret_value_response["SecretString"]
+            query = """
+                SELECT DISTINCT ord, tx_start_i, tx_end_i, alt_start_i, alt_end_i, alt_strand
+                FROM tx_exon_aln_mv as t
+                INNER JOIN _seq_anno_most_recent as s
+                ON t.alt_ac = s.ac
+                WHERE s.descr = ''
+                AND t.tx_ac = %(tx_ac)s
+                AND t.alt_aln_method = 'splign'
+                AND t.alt_ac like 'NC_000%%'
+                ORDER BY ord ASC;
+                """
+
+        cursor = await self.execute_query(
+            query, {"tx_ac": tx_ac, "genomic_ac": genomic_ac}
+        )
+        results = await cursor.fetchall()
+        return [
+            ExonCoord(
+                ord=r[0],
+                tx_start_i=r[1],
+                tx_end_i=r[2],
+                alt_start_i=r[3],
+                alt_end_i=r[4],
+                alt_strand=r[5],
+            )
+            for r in results
+        ]
 
 
 class ParseResult(UrlLibParseResult):
-    """Subclass of url.ParseResult that adds database and schema methods,
-    and provides stringification.
-    Source: https://github.com/biocommons/hgvs
+    """Subclass of url.ParseResult that adds database and schema methods, and provides stringification.
+
+    Inspired by: https://github.com/biocommons/hgvs
     """
 
     def __new__(cls, pr):  # noqa: ANN001, ANN204
@@ -987,3 +1102,234 @@ class ParseResult(UrlLibParseResult):
                 self.fragment,
             )
         )
+
+
+def _get_secret_args() -> str:
+    """Get secrets connection args for UTA DB instances. Used for deployment on AWS.
+
+    This function is tightly coupled to our internal deployment policies;
+    it is subject to change or removal in the (distant) future.
+
+    :return: connection URL consisting of params from secrets
+    :raises ClientError: If unable to retrieve secret value due to decryption
+        decryption failure, internal service error, invalid parameter, invalid
+        request, or resource not found.
+    """
+    warnings.warn(
+        "Deprecated; subject to change in future releases, someday",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
+    secret_name = os.environ["UTA_DB_SECRET"]
+    region_name = "us-east-2"
+
+    session = boto3.session.Session()
+    client = session.client(service_name="secretsmanager", region_name=region_name)
+    try:
+        get_secret_value_response = client.get_secret_value(SecretId=secret_name)
+    except ClientError:
+        # For a list of exceptions thrown, see
+        # https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
+        _logger.exception("Encountered AWS client error fetching UTA DB secret")
+        raise
+    secret_val = get_secret_value_response["SecretString"]
+    secret = ast.literal_eval(secret_val)
+
+    username, password = secret["username"], secret["password"]
+    port, host = secret["port"], secret["host"]
+    database = secret["dbname"]
+    schema = secret["schema"]
+    return f"postgresql://{username}{':' + password if password else ''}@{host}:{port}/{database}?options=-csearch_path%3D{schema},public"
+
+
+DEFAULT_UTA_DB_URL = "postgresql://anonymous@localhost:5432/uta?options=-csearch_path%3Duta_20241220,public"
+
+
+def _normalize_uta_db_url(db_url: str) -> str:
+    """Normalize supported UTA DB URLs to psycopg-compatible URI form.
+
+    Deprecated legacy form:
+        postgresql://user@host:5432/uta/uta_20241220
+
+    Preferred form:
+        postgresql://user@host:5432/uta?options=-csearch_path%3Duta_20241220,public
+    """
+    parsed = urlparse(db_url)
+    path_parts = [part for part in parsed.path.split("/") if part]
+
+    if len(path_parts) <= 1:
+        return db_url
+
+    database = path_parts[0]
+    schema = path_parts[1]
+
+    if len(path_parts) > 2:  # noqa: PLR2004
+        msg = f"Unsupported DB URL path: {parsed.path!r}"
+        raise ValueError(msg)
+
+    warnings.warn(
+        "UTA DB URLs of the form 'postgresql://user:password@host:port/database/schema' are deprecated. Use 'postgresql://user:password@host:port/database?options=-csearch_path%3Dschema,public' instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
+    query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+
+    if "options" in query:
+        msg = (
+            "Legacy UTA DB URL includes both a schema path segment and existing "
+            "'options' query parameter. Please use only the modern search_path form."
+        )
+        raise ValueError(msg)
+
+    query["options"] = f"-csearch_path={schema},public"
+
+    return urlunparse(
+        (
+            parsed.scheme,
+            parsed.netloc,
+            f"/{database}",
+            parsed.params,
+            urlencode(query),
+            parsed.fragment,
+        )
+    )
+
+
+async def create_uta_connection_pool(db_url: str | None = None) -> AsyncConnectionPool:
+    """Create and initialize a UTA connection pool.
+
+    Connection parameters are resolved in the following order:
+
+    1. If the ``UTA_DB_PROD`` environment variable is set, credentials and schema
+       are retrieved from a secret manager via ``_get_secret_args()``.
+    2. Otherwise, if the ``db_url`` arg is defined, it's used
+    3. If not provided, fall back to environment variable ``UTA_DB_URL``
+    4. If not declared, then use default value
+
+    Connection strings are expected to look like this:
+
+    .. note::
+
+       Connection strings are expected to look like this:
+
+          postgresql://user@host:port/db?options=-csearch_path%3Duta_schema,public
+
+       For example, this is the default:
+
+          postgresql://anonymous@localhost:5432/uta?options=-csearch_path%3Duta_20241220,public
+
+       However, biocommons-style connection strings are presently supported, although they are considered deprecated:
+
+          postgresql://anonymous@localhost:5432/uta/uta_20241220
+
+    :param db_url: PostgreSQL connection URI If not provided, resolved from environment or defaults.
+    :return: An open ``AsyncConnectionPool`` configured for the UTA database
+    """
+    if "UTA_DB_PROD" in os.environ:
+        db_url = _get_secret_args()
+    elif db_url is None:
+        db_url = os.environ.get("UTA_DB_URL", DEFAULT_UTA_DB_URL)
+    db_url = _normalize_uta_db_url(db_url)
+    _logger.info(
+        "Creating connection pool with db_uri '%s'",
+        ParseResult(urlparse(db_url)).sanitized_url,
+    )
+    pool = AsyncConnectionPool(conninfo=db_url, open=False)
+    await pool.open()
+    return pool
+
+
+class ClosedUtaConnectionError(Exception):
+    """Raise for attempts to access a UTA connection when it's been closed/deleted"""
+
+
+class UtaDatabase:
+    """Provide pooled access to connection-scoped UTA repositories.
+
+    This class owns or borrows an async psycopg connection pool and yields
+    ``UtaRepository`` instances bound to checked-out connections.
+    """
+
+    def __init__(self, pool: AsyncConnectionPool) -> None:
+        """Initialize access wrapper.
+
+        :param pool: Existing async connection pool to use. If omitted, a default
+            pool is created lazily on first use.
+        """
+        self._connection_pool = pool
+
+    @asynccontextmanager
+    async def repository(self) -> AsyncGenerator[UtaRepository]:
+        """Yield a ``UtaRepository`` backed by a pooled connection.
+
+        If no pool has been provided yet, a default one is created on first use.
+
+        :yield: Repository bound to an active pooled connection
+        :raise ClosedUtaConnectionError: if connection associated w/ this instance is closed
+            or nullified
+        """
+        if self._connection_pool is None:
+            raise ClosedUtaConnectionError
+        async with self._connection_pool.connection() as conn:
+            yield UtaRepository(conn)
+
+    async def close(self) -> None:
+        """Close the owned connection pool, if present."""
+        if self._connection_pool is None:
+            _logger.info("Attempted to close nonexistent UTA access connection pool")
+            return
+
+        await self._connection_pool.close()
+        self._connection_pool = None
+
+
+class LazyUtaDatabase(UtaDatabase):
+    """UTA access wrapper with lazy connection pool initialization.
+
+    This variant defers creation of the underlying connection pool until first use.
+    It exists primarily for backward compatibility with earlier APIs that did not
+    require explicit pool construction.
+
+    Because configuration is resolved at runtime (via environment variables or
+    defaults), this class can introduce implicit behavior and is not recommended
+    for applications that require explicit control over database connections.
+    """
+
+    def __init__(self, pool: AsyncConnectionPool | None = None) -> None:
+        """Initialize the lazy access wrapper.
+
+        :param pool: Optional existing async connection pool. If not provided,
+            a pool will be created on first use using environment variables
+            or default configuration.
+        """
+        if pool is None:
+            _logger.info(
+                "LazyUtaDatabase initialized without a connection pool; "
+                "a pool will be created on first use from environment/default settings."
+            )
+        self._connection_pool = pool
+
+    async def open(self) -> None:
+        """Ensure that a connection pool has been initialized.
+
+        If no pool is currently set, one is created using default configuration.
+        """
+        if self._connection_pool is None:
+            _logger.debug("Creating UTA connection pool lazily on first use")
+            self._connection_pool = await create_uta_connection_pool()
+
+    @asynccontextmanager
+    async def repository(self) -> AsyncGenerator[UtaRepository]:
+        """Yield a repository backed by a pooled UTA connection.
+
+        This method ensures that a connection pool exists, creating one if
+        necessary, and then yields a ``UtaRepository`` bound to a checked-out
+        connection.
+
+        :yield: Repository bound to an active pooled connection
+        """
+        await self.open()
+        async with self._connection_pool.connection() as conn:
+            yield UtaRepository(conn)

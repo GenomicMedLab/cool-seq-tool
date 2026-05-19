@@ -19,43 +19,15 @@ from cool_seq_tool.schemas import (
     TranscriptPriority,
 )
 from cool_seq_tool.sources.mane_transcript_mappings import ManeTranscriptMappings
-from cool_seq_tool.sources.uta_database import GenomicAlnData, UtaDatabase
+from cool_seq_tool.sources.uta_database import (
+    ExonCoord,
+    GenomicAlnData,
+    NoMatchingAlignmentError,
+    UtaDatabase,
+)
 from cool_seq_tool.utils import service_meta
 
 _logger = logging.getLogger(__name__)
-
-
-class _ExonCoord(BaseModelForbidExtra):
-    """Model for representing exon coordinate data"""
-
-    ord: StrictInt = Field(..., description="Exon number. 0-based.")
-    tx_start_i: StrictInt = Field(
-        ...,
-        description="Transcript start index of the exon. Inter-residue coordinates.",
-    )
-    tx_end_i: StrictInt = Field(
-        ..., description="Transcript end index of the exon. Inter-residue coordinates."
-    )
-    alt_start_i: StrictInt = Field(
-        ..., description="Genomic start index of the exon. Inter-residue coordinates."
-    )
-    alt_end_i: StrictInt = Field(
-        ..., description="Genomic end index of the exon. Inter-residue coordinates."
-    )
-    alt_strand: Strand = Field(..., description="Strand.")
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "ord": 0,
-                "tx_start_i": 0,
-                "tx_end_i": 234,
-                "alt_start_i": 154191901,
-                "alt_end_i": 154192135,
-                "alt_strand": Strand.NEGATIVE,
-            }
-        }
-    )
 
 
 class TxSegment(BaseModelForbidExtra):
@@ -133,8 +105,7 @@ class GenomicTxSeg(BaseModelForbidExtra):
         """Ensure that fields are (un)set depending on errors
 
         :param values: Values in model
-        :raises ValueError: If `seg`, `genomic_ac` and `tx_ac` are not
-        provided when there are no errors
+        :raises ValueError: If `seg`, `genomic_ac` and `tx_ac` are not provided when there are no errors
         :return: Values in model
         """
         if not values.get("errors") and not all(
@@ -598,7 +569,7 @@ class ExonGenomicCoordsMapper:
         exon_start: int | None = None,
         exon_end: int | None = None,
         genomic_ac: str | None = None,
-    ) -> tuple[_ExonCoord | None, _ExonCoord | None, list[str]]:
+    ) -> tuple[ExonCoord | None, ExonCoord | None, list[str]]:
         """Get exon coordinates for a transcript given exon start and exon end.
 
         If ``genomic_ac`` is NOT provided, this method will use the GRCh38 accession
@@ -613,7 +584,8 @@ class ExonGenomicCoordsMapper:
             transcript and genomic positions for the start and end of the exon, and
             strand.
         """
-        tx_exons = await self._get_all_exon_coords(tx_ac, genomic_ac=genomic_ac)
+        async with self.uta_db.repository() as uta:
+            tx_exons = await uta.get_all_exon_coords(tx_ac, genomic_ac=genomic_ac)
         if not tx_exons:
             return None, None, [f"Transcript does not exist in UTA: {tx_ac}"]
 
@@ -633,51 +605,11 @@ class ExonGenomicCoordsMapper:
 
         return *start_end_exons, errors
 
-    async def _get_all_exon_coords(
-        self, tx_ac: str, genomic_ac: str | None = None
-    ) -> list[_ExonCoord]:
-        """Get all exon coordinate data for a transcript.
-
-        If ``genomic_ac`` is NOT provided, this method will use the GRCh38 accession
-        associated to ``tx_ac``.
-
-        :param tx_ac: The RefSeq transcript accession to get exon data for.
-        :param genomic_ac: The RefSeq genomic accession to get exon data for.
-        :return: List of all exon coordinate data for ``tx_ac`` and ``genomic_ac``.
-            The exon coordinate data will include the exon number, transcript and
-            genomic positions for the start and end of the exon, and strand.
-            The list will be ordered by ascending exon number.
-        """
-        if genomic_ac:
-            query = f"""
-                SELECT DISTINCT ord, tx_start_i, tx_end_i, alt_start_i, alt_end_i, alt_strand
-                FROM {self.uta_db.schema}.tx_exon_aln_mv
-                WHERE tx_ac = '{tx_ac}'
-                AND alt_aln_method = 'splign'
-                AND alt_ac = '{genomic_ac}'
-                ORDER BY ord ASC
-                """  # noqa: S608
-        else:
-            query = f"""
-                SELECT DISTINCT ord, tx_start_i, tx_end_i, alt_start_i, alt_end_i, alt_strand
-                FROM {self.uta_db.schema}.tx_exon_aln_mv as t
-                INNER JOIN {self.uta_db.schema}._seq_anno_most_recent as s
-                ON t.alt_ac = s.ac
-                WHERE s.descr = ''
-                AND t.tx_ac = '{tx_ac}'
-                AND t.alt_aln_method = 'splign'
-                AND t.alt_ac like 'NC_000%'
-                ORDER BY ord ASC
-                """  # noqa: S608
-
-        results = await self.uta_db.execute_query(query)
-        return [_ExonCoord(**r) for r in results]
-
     async def _get_genomic_aln_coords(
         self,
         tx_ac: str,
-        tx_exon_start: _ExonCoord | None = None,
-        tx_exon_end: _ExonCoord | None = None,
+        tx_exon_start: ExonCoord | None = None,
+        tx_exon_end: ExonCoord | None = None,
         gene: str | None = None,
     ) -> tuple[GenomicAlnData | None, GenomicAlnData | None, str | None]:
         """Get aligned genomic coordinates for transcript exon start and end.
@@ -702,13 +634,14 @@ class ExonGenomicCoordsMapper:
         aligned_coords = {"start": None, "end": None}
         for exon, key in [(tx_exon_start, "start"), (tx_exon_end, "end")]:
             if exon:
-                aligned_coord, warning = await self.uta_db.get_alt_ac_start_or_end(
-                    tx_ac, exon.tx_start_i, exon.tx_end_i, gene=gene
-                )
-                if aligned_coord:
+                async with self.uta_db.repository() as uta:
+                    try:
+                        aligned_coord = await uta.get_alt_ac_start_or_end(
+                            tx_ac, exon.tx_start_i, exon.tx_end_i, gene=gene
+                        )
+                    except NoMatchingAlignmentError as e:
+                        return None, None, str(e)
                     aligned_coords[key] = aligned_coord
-                else:
-                    return None, None, warning
 
         return *aligned_coords.values(), None
 
@@ -717,7 +650,7 @@ class ExonGenomicCoordsMapper:
         genomic_ac: str,
         strand: Strand,
         offset: int,
-        genomic_ac_data: _ExonCoord,
+        genomic_ac_data: ExonCoord,
         is_seg_start: bool = False,
     ) -> tuple[TxSegment | None, str | None]:
         """Get transcript segment data given ``genomic_ac`` and offset data
@@ -839,19 +772,22 @@ class ExonGenomicCoordsMapper:
 
         # Validate inputs exist in UTA
         if gene:
-            gene_validation = await self.uta_db.gene_exists(gene)
+            async with self.uta_db.repository() as uta:
+                gene_validation = await uta.gene_exists(gene)
             if not gene_validation:
                 return GenomicTxSeg(errors=[f"Gene does not exist in UTA: {gene}"])
 
         if transcript:
-            transcript_validation = await self.uta_db.transcript_exists(transcript)
+            async with self.uta_db.repository() as uta:
+                transcript_validation = await uta.transcript_exists(transcript)
             if not transcript_validation:
                 return GenomicTxSeg(
                     errors=[f"Transcript does not exist in UTA: {transcript}"]
                 )
 
         if genomic_ac:
-            grch38_ac = await self.uta_db.get_newest_assembly_ac(genomic_ac)
+            async with self.uta_db.repository() as uta:
+                grch38_ac = await uta.get_newest_assembly_ac(genomic_ac)
             if grch38_ac:
                 genomic_ac = grch38_ac[0]
             else:
@@ -900,16 +836,20 @@ class ExonGenomicCoordsMapper:
                     transcript = results.refseq
                 else:
                     # Run if gene is for a noncoding transcript
-                    query = f"""
+                    query = """
                         SELECT DISTINCT tx_ac
-                        FROM {self.uta_db.schema}.tx_exon_aln_mv
-                        WHERE hgnc = '{gene}'
-                        AND alt_ac = '{genomic_ac}'
-                        """  # noqa: S608
-                    result = await self.uta_db.execute_query(query)
+                        FROM tx_exon_aln_mv
+                        WHERE hgnc = %(gene)s
+                        AND alt_ac = %(genomic_ac)s;
+                        """
+                    async with self.uta_db.repository() as uta:
+                        cursor = await uta.execute_query(
+                            query, {"gene": gene, "genomic_ac": genomic_ac}
+                        )
+                        result = await cursor.fetchone()
 
                     if result:
-                        transcript = result[0]["tx_ac"]
+                        transcript = result[0]
                     else:
                         return GenomicTxSeg(
                             errors=[
@@ -918,14 +858,15 @@ class ExonGenomicCoordsMapper:
                         )
         # gene is not required to liftover coordinates if tx_ac and genomic_ac are given, but we should set the associated gene
         if not gene:
-            _gene, err_msg = await self._get_tx_ac_gene(transcript)
-            if err_msg:
-                return GenomicTxSeg(errors=[err_msg])
-            gene = _gene
+            async with self.uta_db.repository() as uta:
+                gene = await uta.get_gene_from_tx_ac(transcript)
+            if not gene:
+                return GenomicTxSeg(errors=[f"No gene(s) found given {transcript}"])
 
-        tx_exons = await self._get_all_exon_coords(
-            tx_ac=transcript, genomic_ac=genomic_ac
-        )
+        async with self.uta_db.repository() as uta:
+            tx_exons = await uta.get_all_exon_coords(
+                tx_ac=transcript, genomic_ac=genomic_ac
+            )
         if not tx_exons:
             return GenomicTxSeg(
                 errors=[f"No exons found given transcript: {transcript}"]
@@ -941,9 +882,10 @@ class ExonGenomicCoordsMapper:
 
         # Validate that the breakpoint occurs within 150 bp of the first and last exon for the selected transcript.
         # A breakpoint beyond this range is likely erroneous.
-        coordinate_check = await self._validate_genomic_breakpoint(
-            pos=genomic_pos, genomic_ac=genomic_ac, tx_ac=transcript
-        )
+        async with self.uta_db.repository() as uta:
+            coordinate_check = await uta.validate_genomic_breakpoint(
+                pos=genomic_pos, genomic_ac=genomic_ac, tx_ac=transcript
+            )
         if not coordinate_check:
             msg = (
                 f"{genomic_pos} on {genomic_ac} occurs more than 150 bp outside the "
@@ -967,13 +909,14 @@ class ExonGenomicCoordsMapper:
             )
         else:
             is_exonic = True
-            exon_data = await self.uta_db.get_tx_exon_aln_data(
-                transcript,
-                genomic_pos,
-                genomic_pos,
-                alt_ac=genomic_ac,
-                use_tx_pos=False,
-            )
+            async with self.uta_db.repository() as uta:
+                exon_data = await uta.get_tx_exon_aln_data(
+                    transcript,
+                    genomic_pos,
+                    genomic_pos,
+                    alt_ac=genomic_ac,
+                    use_tx_pos=False,
+                )
             exon_num = exon_data[0].ord
 
         offset = self._get_exon_offset(
@@ -1026,65 +969,8 @@ class ExonGenomicCoordsMapper:
         )
         return liftover_data[1] if liftover_data else None
 
-    async def _validate_genomic_breakpoint(
-        self,
-        pos: int,
-        genomic_ac: str,
-        tx_ac: str,
-    ) -> bool:
-        """Validate that a genomic coordinate falls within the first and last exon
-            for a transcript on a given accession
-
-        :param pos: Genomic position on ``genomic_ac``
-        :param genomic_ac: RefSeq genomic accession, e.g. ``"NC_000007.14"``
-        :param transcript: A transcript accession
-        :return: ``True`` if the coordinate falls within 150bp of the first and last exon
-            for the transcript, ``False`` if not. Breakpoints past this threshold
-            are likely erroneous.
-        """
-        query = f"""
-            WITH tx_boundaries AS (
-                SELECT
-                MIN(alt_start_i) AS min_start,
-                MAX(alt_end_i) AS max_end
-                FROM {self.uta_db.schema}.tx_exon_aln_mv
-                WHERE tx_ac = '{tx_ac}'
-                AND alt_ac = '{genomic_ac}'
-            )
-            SELECT * FROM tx_boundaries
-            WHERE {pos} between (tx_boundaries.min_start - 150) and (tx_boundaries.max_end + 150)
-            """  # noqa: S608
-        results = await self.uta_db.execute_query(query)
-        return bool(results)
-
-    async def _get_tx_ac_gene(
-        self,
-        tx_ac: str,
-    ) -> tuple[str | None, str | None]:
-        """Get gene given a transcript.
-
-        If multiple genes are found for a given ``tx_ac``, only one
-        gene will be returned.
-
-        :param tx_ac: RefSeq transcript, e.g. ``"NM_004333.6"``
-        :return: HGNC gene symbol associated to transcript and
-            warning
-        """
-        query = f"""
-            SELECT DISTINCT hgnc
-            FROM {self.uta_db.schema}.tx_exon_aln_mv
-            WHERE tx_ac = '{tx_ac}'
-            ORDER BY hgnc
-            LIMIT 1;
-            """  # noqa: S608
-        results = await self.uta_db.execute_query(query)
-        if not results:
-            return None, f"No gene(s) found given {tx_ac}"
-
-        return results[0]["hgnc"], None
-
     @staticmethod
-    def _is_exonic_breakpoint(pos: int, tx_genomic_coords: list[_ExonCoord]) -> bool:
+    def _is_exonic_breakpoint(pos: int, tx_genomic_coords: list[ExonCoord]) -> bool:
         """Check if a breakpoint occurs on an exon
 
         :param pos: Genomic breakpoint
@@ -1112,7 +998,7 @@ class ExonGenomicCoordsMapper:
 
     @staticmethod
     def _get_adjacent_exon(
-        tx_exons_genomic_coords: list[_ExonCoord],
+        tx_exons_genomic_coords: list[ExonCoord],
         strand: Strand,
         start: int | None = None,
         end: int | None = None,

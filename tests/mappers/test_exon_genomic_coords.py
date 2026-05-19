@@ -8,161 +8,19 @@ import pytest
 from cool_seq_tool.mappers.exon_genomic_coords import (
     GenomicTxSeg,
     GenomicTxSegService,
-    _ExonCoord,
 )
 from cool_seq_tool.schemas import (
     Assembly,
     CoordinateType,
     Strand,
 )
+from cool_seq_tool.sources.uta_database import ExonCoord
 
 
 @pytest.fixture(scope="module")
 def test_egc_mapper(test_cool_seq_tool):
     """Build ExonGenomicCoordsMapper test fixture."""
     return test_cool_seq_tool.ex_g_coords_mapper
-
-
-@pytest.fixture(scope="module")
-def nm_152263_exons_genomic_coords():
-    """Create test fixture for NM_152263.4 exons and genomic coordinates."""
-    return [
-        _ExonCoord(
-            ord=0,
-            tx_start_i=0,
-            tx_end_i=199,
-            alt_start_i=154191901,
-            alt_end_i=154192100,
-            alt_strand=Strand.NEGATIVE,
-        ),
-        _ExonCoord(
-            ord=1,
-            tx_start_i=199,
-            tx_end_i=325,
-            alt_start_i=154191185,
-            alt_end_i=154191311,
-            alt_strand=Strand.NEGATIVE,
-        ),
-        _ExonCoord(
-            ord=2,
-            tx_start_i=325,
-            tx_end_i=459,
-            alt_start_i=154176114,
-            alt_end_i=154176248,
-            alt_strand=Strand.NEGATIVE,
-        ),
-        _ExonCoord(
-            ord=3,
-            tx_start_i=459,
-            tx_end_i=577,
-            alt_start_i=154173083,
-            alt_end_i=154173201,
-            alt_strand=Strand.NEGATIVE,
-        ),
-        _ExonCoord(
-            ord=4,
-            tx_start_i=577,
-            tx_end_i=648,
-            alt_start_i=154172907,
-            alt_end_i=154172978,
-            alt_strand=Strand.NEGATIVE,
-        ),
-        _ExonCoord(
-            ord=5,
-            tx_start_i=648,
-            tx_end_i=724,
-            alt_start_i=154171412,
-            alt_end_i=154171488,
-            alt_strand=Strand.NEGATIVE,
-        ),
-        _ExonCoord(
-            ord=6,
-            tx_start_i=724,
-            tx_end_i=787,
-            alt_start_i=154170648,
-            alt_end_i=154170711,
-            alt_strand=Strand.NEGATIVE,
-        ),
-        _ExonCoord(
-            ord=7,
-            tx_start_i=787,
-            tx_end_i=857,
-            alt_start_i=154170399,
-            alt_end_i=154170469,
-            alt_strand=Strand.NEGATIVE,
-        ),
-        _ExonCoord(
-            ord=8,
-            tx_start_i=857,
-            tx_end_i=936,
-            alt_start_i=154169304,
-            alt_end_i=154169383,
-            alt_strand=Strand.NEGATIVE,
-        ),
-        _ExonCoord(
-            ord=9,
-            tx_start_i=936,
-            tx_end_i=7064,
-            alt_start_i=154161812,
-            alt_end_i=154167940,
-            alt_strand=Strand.NEGATIVE,
-        ),
-    ]
-
-
-@pytest.fixture(scope="module")
-def nm_001105539_exons_genomic_coords():
-    """Create test fixture for NM_001105539.3 exons and genomic coordinates."""
-    return [
-        _ExonCoord(
-            ord=0,
-            tx_start_i=0,
-            tx_end_i=1557,
-            alt_start_i=80486225,
-            alt_end_i=80487782,
-            alt_strand=Strand.NEGATIVE,
-        ),
-        _ExonCoord(
-            ord=1,
-            tx_start_i=1557,
-            tx_end_i=2446,
-            alt_start_i=80499493,
-            alt_end_i=80500382,
-            alt_strand=Strand.NEGATIVE,
-        ),
-        _ExonCoord(
-            ord=2,
-            tx_start_i=2446,
-            tx_end_i=2545,
-            alt_start_i=80513909,
-            alt_end_i=80514008,
-            alt_strand=Strand.NEGATIVE,
-        ),
-        _ExonCoord(
-            ord=3,
-            tx_start_i=2545,
-            tx_end_i=2722,
-            alt_start_i=80518402,
-            alt_end_i=80518579,
-            alt_strand=Strand.NEGATIVE,
-        ),
-        _ExonCoord(
-            ord=4,
-            tx_start_i=2722,
-            tx_end_i=2895,
-            alt_start_i=80518781,
-            alt_end_i=80518954,
-            alt_strand=Strand.NEGATIVE,
-        ),
-        _ExonCoord(
-            ord=5,
-            tx_start_i=2895,
-            tx_end_i=9938,
-            alt_start_i=80519222,
-            alt_end_i=80526265,
-            alt_strand=Strand.NEGATIVE,
-        ),
-    ]
 
 
 @pytest.fixture(scope="module")
@@ -774,33 +632,13 @@ def genomic_tx_seg_checks(actual, expected=None, is_valid=True):
 
 
 @pytest.mark.asyncio
-async def test_get_all_exon_coords(
-    test_egc_mapper, nm_152263_exons, nm_152263_exons_genomic_coords
-):
-    """Test that _get_all_exon_coords works correctly."""
-    resp = await test_egc_mapper._get_all_exon_coords("NM_152263.3")
-    assert resp == nm_152263_exons
-
-    # Invalid transcript accession
-    resp = await test_egc_mapper._get_all_exon_coords("NM_152263.36")
-    assert resp == []
-
-    resp = await test_egc_mapper._get_all_exon_coords("NM_152263.4", "NC_000001.11")
-    assert resp == nm_152263_exons_genomic_coords
-
-    # Invalid transcript accession given chromosome accession
-    resp = await test_egc_mapper._get_all_exon_coords("NM_001105539.3", "NC_000001.11")
-    assert resp == []
-
-
-@pytest.mark.asyncio
 async def test_get_start_end_exon_coords(test_egc_mapper):
     """Test that _get_start_end_exon_coords works correctly."""
     resp = await test_egc_mapper._get_start_end_exon_coords(
         "NM_152263.3", exon_start=1, exon_end=8
     )
     assert resp == (
-        _ExonCoord(
+        ExonCoord(
             ord=0,
             tx_start_i=0,
             tx_end_i=234,
@@ -808,7 +646,7 @@ async def test_get_start_end_exon_coords(test_egc_mapper):
             alt_end_i=154192135,
             alt_strand=Strand.NEGATIVE,
         ),
-        _ExonCoord(
+        ExonCoord(
             ord=7,
             tx_start_i=822,
             tx_end_i=892,
@@ -1090,7 +928,7 @@ async def test_get_alt_ac_start_and_end(
     """Test that _get_genomic_aln_coords works correctly."""
     resp = await test_egc_mapper._get_genomic_aln_coords(
         "NM_152263.3",
-        _ExonCoord(
+        ExonCoord(
             ord=0,
             tx_start_i=0,
             tx_end_i=234,
@@ -1098,7 +936,7 @@ async def test_get_alt_ac_start_and_end(
             alt_end_i=154192135,
             alt_strand=Strand.NEGATIVE,
         ),
-        _ExonCoord(
+        ExonCoord(
             ord=7,
             tx_start_i=822,
             tx_end_i=892,
@@ -1116,17 +954,6 @@ async def test_get_alt_ac_start_and_end(
         None,
         "Must provide either `tx_exon_start` or `tx_exon_end` or both",
     )
-
-
-@pytest.mark.asyncio
-async def test_get_get_exons_coords(test_egc_mapper, nm_152263_exons_genomic_coords):
-    """Test that _get_all_exon_coords works correctly."""
-    resp = await test_egc_mapper._get_all_exon_coords("NM_152263.4", "NC_000001.11")
-    assert resp == nm_152263_exons_genomic_coords
-
-    # Invalid transcript accession given chromosome accession
-    resp = await test_egc_mapper._get_all_exon_coords("NM_001105539.3", "NC_000001.11")
-    assert resp == []
 
 
 @pytest.mark.asyncio
@@ -1671,9 +1498,7 @@ async def test_invalid(test_egc_mapper, caplog):
     )
     genomic_tx_seg_service_checks(resp, is_valid=False)
     assert resp.errors == [
-        "Unable to find a result where NM_152263.3 has transcript coordinates"
-        " 0 and 234 between an exon's start and end coordinates on gene "
-        "NTKR1"
+        "Unable to find a result where NM_152263.3 has transcript coordinates (tx_exon_start=0, tx_exon_end=234) between an exon's start and end coordinates on gene='NTKR1'"
     ]
 
     # No exons given

@@ -1,7 +1,7 @@
 """Defines attribute constants, useful object structures, and API response schemas."""
 
 import datetime
-from enum import Enum, IntEnum
+from enum import IntEnum, StrEnum
 from typing import Literal
 
 from ga4gh.vrs.models import SequenceLocation
@@ -17,7 +17,7 @@ from cool_seq_tool import __version__
 _now = str(datetime.datetime.now(tz=datetime.UTC))
 
 
-class AnnotationLayer(str, Enum):
+class AnnotationLayer(StrEnum):
     """Create enum for supported annotation layers"""
 
     PROTEIN = "p"
@@ -32,7 +32,7 @@ class Strand(IntEnum):
     NEGATIVE = -1
 
 
-class Assembly(str, Enum):
+class Assembly(StrEnum):
     """Define supported genomic assemblies. Must be defined in ascending order"""
 
     GRCH37 = "GRCh37"
@@ -44,14 +44,14 @@ class Assembly(str, Enum):
         return [item.value for item in cls]
 
 
-class ManeStatus(str, Enum):
+class ManeStatus(StrEnum):
     """Define constraints for mane status"""
 
     SELECT = "mane_select"
     PLUS_CLINICAL = "mane_plus_clinical"
 
 
-class TranscriptPriority(str, Enum):
+class TranscriptPriority(StrEnum):
     """Create Enum for Transcript Priority labels"""
 
     MANE_SELECT = ManeStatus.SELECT.value
@@ -60,7 +60,7 @@ class TranscriptPriority(str, Enum):
     GRCH38 = "grch38"
 
 
-class CoordinateType(str, Enum):
+class CoordinateType(StrEnum):
     """Create Enum for coordinate types.
 
     It is preferred to operate in inter-residue coordinates, but users should be
