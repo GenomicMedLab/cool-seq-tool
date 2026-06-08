@@ -770,7 +770,9 @@ class ExonGenomicCoordsMapper:
         """
         params = dict.fromkeys(GenomicTxSeg.model_fields)
 
-        # Validate inputs exist in UTA
+        # Validate inputs exist in UTA. We cannot create a TranscriptSegmentElement
+        # object if the inputs do not exist in UTA, so we begin with a validation
+        # step here
         if gene:
             async with self.uta_db.repository() as uta:
                 gene_validation = await uta.gene_exists(gene)
@@ -803,7 +805,7 @@ class ExonGenomicCoordsMapper:
                 )
             genomic_ac = genomic_acs[0]
 
-        # Liftover to GRCh38 if the provided assembly is GRCh37
+        # Liftover to GRCh38 if the provided assembly is GRCh37.
         if starting_assembly == Assembly.GRCH37:
             genomic_pos = await self._get_grch38_pos(
                 genomic_ac, genomic_pos, chromosome=chromosome if chromosome else None
@@ -815,7 +817,11 @@ class ExonGenomicCoordsMapper:
                     ]
                 )
 
-        # Select a transcript if not provided
+        # Select a transcript if not provided. We prioritize the selection of a
+        # transcript in the MANE collection as these are considered clinically
+        # representative transcripts. If a MANE or longest compatible transcript
+        # is not available, we then attempt to select a noncoding transcript
+        # (e.g. NR_)
         if not transcript:
             mane_transcripts = self.mane_transcript_mappings.get_gene_mane_data(gene)
 
@@ -929,7 +935,7 @@ class ExonGenomicCoordsMapper:
 
         genomic_location, err_msg = self._get_vrs_seq_loc(
             genomic_ac, genomic_pos, is_seg_start, strand, is_exonic
-        )
+        )  # Represent genomic breakpoint using VRS SequenceLocation class
         if err_msg:
             return GenomicTxSeg(errors=[err_msg])
 
@@ -1019,7 +1025,10 @@ class ExonGenomicCoordsMapper:
         if len(tx_exons_genomic_coords) == 1:
             return 0
 
-        # Check if a breakpoint occurs before/after the transcript boundaries
+        # Check if a breakpoint occurs before/after the transcript boundaries.
+        # We return 0 if the breakpoint occurs before the transcript boundary
+        # and the last exon number if the breakpoint occurs after the transcript
+        # boundary.
         bp = start if start else end
         exon_list_len = len(tx_exons_genomic_coords) - 1
 
@@ -1034,6 +1043,9 @@ class ExonGenomicCoordsMapper:
             if bp < tx_exons_genomic_coords[exon_list_len].alt_start_i:
                 return exon_list_len
 
+        # Having determined that the breakpoint occurs within the boundaries
+        # of the exon, we then iterate through all exon pairs and determine
+        # the appropriate exon number.
         for i in range(exon_list_len):
             exon = tx_exons_genomic_coords[i]
             if start == exon.alt_start_i:
@@ -1047,7 +1059,9 @@ class ExonGenomicCoordsMapper:
             else:
                 lte_exon = next_exon
                 gte_exon = exon
-            if bp >= lte_exon.alt_end_i and bp <= gte_exon.alt_start_i:
+            if (
+                bp >= lte_exon.alt_end_i and bp <= gte_exon.alt_start_i
+            ):  # Breakpoint occurs between the current and next exon
                 break
 
         # Return current exon if end position is provided, next exon if start position
