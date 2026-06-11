@@ -541,7 +541,8 @@ class ExonGenomicCoordsMapper:
                 return _return_service_errors(end_tx_seg_data.errors)
 
             if start_tx_seg_data:
-                # Need to check that gene, genomic_ac, tx_ac all match
+                # When both start and end segments are provided, they must have
+                # matching gene, genomic accession, and transcript
                 errors = []
                 for attr in ["gene", "genomic_ac", "tx_ac"]:
                     start_seg_attr = params[attr]
@@ -661,7 +662,7 @@ class ExonGenomicCoordsMapper:
         :param genomic_ac_data: Exon coordinate data for ``genomic_ac``
         :param is_seg_start: ``True`` if retrieving genomic data where the transcript
             segment starts, defaults to ``False``
-        :return: Transcript segment data
+        :return: Transcript segment data and error message if unsucessful
         """
         if is_seg_start:
             if strand == Strand.POSITIVE:
@@ -805,7 +806,8 @@ class ExonGenomicCoordsMapper:
                 )
             genomic_ac = genomic_acs[0]
 
-        # Liftover to GRCh38 if the provided assembly is GRCh37.
+        # Now that we have the GRCh38 genomic assembly, we need to liftover the
+        # coordinates to GRCh38 (if the provided assembly is GRCh37).
         if starting_assembly == Assembly.GRCH37:
             genomic_pos = await self._get_grch38_pos(
                 genomic_ac, genomic_pos, chromosome=chromosome if chromosome else None
@@ -841,7 +843,10 @@ class ExonGenomicCoordsMapper:
                 if results:
                     transcript = results.refseq
                 else:
-                    # Run if gene is for a noncoding transcript
+                    # Run if gene is for a noncoding transcript, NR (i.e. the
+                    # gene symbol does not map to an NM_ transcript accession).
+                    # The code block above specifically looks within the MANE
+                    # transcript set (NM_ accessions).
                     query = """
                         SELECT DISTINCT tx_ac
                         FROM tx_exon_aln_mv
@@ -886,8 +891,9 @@ class ExonGenomicCoordsMapper:
         if use_alt_start_i and coordinate_type == CoordinateType.RESIDUE:
             genomic_pos = genomic_pos - 1  # Convert residue coordinate to inter-residue
 
-        # Validate that the breakpoint occurs within 150 bp of the first and last exon for the selected transcript.
-        # A breakpoint beyond this range is likely erroneous.
+        # Validate that the breakpoint occurs within 150 bp of the first and last exon
+        # for the selected transcript. A breakpoint beyond this range may represent
+        # a regulatory event, so we would like to note this for the user.
         async with self.uta_db.repository() as uta:
             coordinate_check = await uta.validate_genomic_breakpoint(
                 pos=genomic_pos, genomic_ac=genomic_ac, tx_ac=transcript
